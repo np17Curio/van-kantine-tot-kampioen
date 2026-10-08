@@ -1,0 +1,15 @@
+{
+  "name": "van-kantine-tot-kampioen",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Voetbalcarrièrespel: van de jeugd van een amateurclub naar de wereldtop.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0"
+  }
+}
