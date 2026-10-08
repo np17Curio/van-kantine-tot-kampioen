@@ -1,0 +1,55 @@
+import { S, club, salarisLabel, tmp } from '../../core/state.js';
+import { knop } from '../../core/ui.js';
+import { esc, geldTxt } from '../../core/utils.js';
+import { CLUBS, DIVS, JEUGD, NIVEAU } from '../../data/gegevens.js';
+import { stoppen } from '../../game/seizoen/seizoen.js';
+import { gaHuren } from '../../game/speler/o23.js';
+import { rolBijClub } from '../../game/speler/status.js';
+import { clubInfo, isBuitenland, okey } from '../../game/transfers/buitenland.js';
+import { ohStart, vOnderhandel } from '../../game/transfers/onderhandelen.js';
+import { blijf, teken } from '../../game/transfers/transfers.js';
+
+export function rolRij(id, cObj){
+  const hier = id === S.sp.club && !(cObj && cObj.land);
+  if (hier && S.sp.o23) return `<div class="rol"><span class="label">Jouw rol hier</span><b>Bij de O23</b><span class="risico r-riskant">Speelt niet in het eerste elftal</span></div>`;
+  const r = rolBijClub(id, cObj);
+  return `<div class="rol"><span class="label">${hier ? 'Jouw rol hier' : 'Jouw rol daar'}</span><b>${r.status}</b><span class="risico ${r.plek[1]}">${r.plek[0]}</span></div>`;
+}
+export function bodKaart(o, label){
+  const c = clubInfo(o), V = S.venster, bl = isBuitenland(o);
+  const kanVragen = V.modus === 'normaal' && !o.gevraagd && (o.verlenging || c.t <= 3);
+  return `<div class="bod ${o.club === S.sp.club && !bl ? 'huidig' : ''} ${o.doorstroom || o.viaAgent ? 'door' : ''}"><span class="label">${o.huurKoop ? 'Je huurclub wil je definitief overnemen' : o.viaAgent ? 'Droomclub · geregeld door je zaakwaarnemer' : o.doorstroom ? '1e elftal van je eigen club' : o.verlenging ? 'Je huidige club · nieuw contract' : bl ? `🌍 ${esc(o.land)} · ${NIVEAU[c.t]} · ${esc(c.div)}` : `${NIVEAU[c.t]} · ${DIVS[c.t]}`}</span><div class="club">${esc(c.n)}</div>
+    <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>${salarisLabel(c.t)}</dt><dd>${geldTxt(o.salaris)}</dd><dt>Contract</dt><dd>${o.jaren} jaar</dd>${o.som ? `<dt>Bod op jou</dt><dd>${geldTxt(o.som)}</dd>` : ''}</dl>
+    ${rolRij(o.club, bl ? c : null)}
+    ${bl ? `<p class="muted klein-tekst">Je verhuist naar ${esc(o.land)}: nieuwe competitie, nieuwe clubs, nieuwe kranten.${S.sp.relatie ? ` Gaat ${esc(S.sp.relatie.naam)} mee?` : ''}</p>` : ''}
+    ${o.akkoord ? `<p class="goedtxt klein-tekst">Uitonderhandeld${o.tekengeld ? ` · tekengeld ${geldTxt(o.tekengeld)}` : ''}${o.clausule ? ` · afkoopclausule ${geldTxt(o.clausule)}` : ''}</p>` : ''}
+    <div class="rij">${knop(o.doorstroom ? 'Doorstromen' : label, () => teken(o), 'hoofd', 'style="font-size:1.05rem;padding:10px 16px"')}${kanVragen && !(tmp.oh && tmp.oh.key === okey(o)) ? knop('Onderhandelen', () => ohStart(o), 'klein', 'data-blijf') : ''}</div>
+    ${kanVragen && tmp.oh && tmp.oh.key === okey(o) ? vOnderhandel(o) : ''}</div>`;
+}
+export function huidigKaart(){
+  const c = club(), sp = S.sp, V = S.venster;
+  return `<div class="bod huidig"><span class="label">Je huidige club · ${NIVEAU[c.t]}</span><div class="club">${esc(c.n)}</div>
+    <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>${salarisLabel(c.t)}</dt><dd>${geldTxt(sp.salaris)}</dd><dt>Contract</dt><dd>nog ${Math.max(sp.contract, 0)} jaar</dd></dl>
+    ${rolRij(sp.club)}
+    <div class="rij">${knop(V.huurOpties && V.huurOpties.length ? 'Nee, ik blijf en vecht voor mijn plek' : V.bods.length ? 'Nee, ik blijf hier' : 'Verder', blijf, V.bods.length || (V.huurOpties && V.huurOpties.length) ? 'hoofd tweede' : 'hoofd', 'style="font-size:1.05rem;padding:10px 16px"')}</div></div>`;
+}
+export function huurKaart(id){
+  const c = CLUBS[id];
+  return `<div class="bod huur"><span class="label">Huur tot de zomer · ${NIVEAU[c.t]} · ${DIVS[c.t]}</span><div class="club">${esc(c.n)}</div>
+    <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>Salaris</dt><dd>betaalt je eigen club</dd><dt>Daarna</dt><dd>terug naar ${esc(club().n)}</dd></dl>
+    <div class="rol"><span class="label">Jouw rol daar</span><b>Vaste waarde</b><span class="risico r-veilig">Basisspeler</span></div>
+    <div class="rij">${knop(`Op huur naar ${esc(c.n)}`, () => gaHuren(id), 'hoofd middel')}</div></div>`;
+}
+export function vVenster(){
+  const V = S.venster, sp = S.sp;
+  let html = `<div class="verhaal"><span class="label">Transfermarkt · ${sp.ontbonden ? 'zonder club' : V.soort === 'winter' ? 'winterstop' : 'zomer'}</span><h2>${V.modus === 'huur' ? 'Verhuurd' : V.huurOpties && V.huurOpties.length ? 'Je club wil je verhuren' : V.modus === 'weg' ? (sp.ontbonden ? 'Contract ontbonden!' : 'Weggestuurd!') : V.modus === 'vrij' ? 'Transfervrij' : V.modus === 'jeugdKlaar' ? 'Klaar voor de senioren' : V.bods.length ? 'Er is interesse!' : 'Stil op de markt'}</h2><p>${esc(V.intro)}</p></div>`;
+  if (V.melding) html += `<p class="melding">${esc(V.melding)}</p>`;
+  if (V.huurOpties && V.huurOpties.length) html += `<div class="aanbod">${V.huurOpties.map(huurKaart).join('')}</div>`;
+  const kaarten = [];
+  if (V.blijven) kaarten.push(huidigKaart());
+  if (V.verlenging) kaarten.push(bodKaart(V.verlenging, club().t === JEUGD ? 'Blijven' : 'Verlengen'));
+  V.bods.forEach(o => kaarten.push(bodKaart(o, clubInfo(o).t <= 3 ? 'Ja, ik wil hierheen' : 'Tekenen')));
+  if (kaarten.length) html += `<div class="aanbod">${kaarten.join('')}</div>`;
+  if (V.soort === 'zomer' && sp.leeftijd >= 33) html += knop('Stoppen met voetbal', () => stoppen(`Op je ${sp.leeftijd}e kies je zelf het moment: je stopt als voetballer.`), 'klein', 'data-bevestig="Dit is het einde van je spelerscarrière. Dit kun je niet terugdraaien." data-ja="Ja, ik stop"');
+  return html;
+}

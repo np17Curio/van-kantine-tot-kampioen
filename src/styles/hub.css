@@ -1,0 +1,117 @@
+/* HUD: altijd zichtbaar wie je bent, hoe fit je bent en hoeveel geld je hebt */
+.hud{position:sticky;top:0;z-index:20;box-shadow:0 8px 20px rgba(0,0,0,.35)}
+.hudspeler{display:flex;gap:12px;align-items:center;min-width:0;flex:1 1 220px}
+.hudovr{font-family:var(--f-display);font-weight:900;font-size:2.3rem;line-height:.9;color:var(--lamp);min-width:2.2ch;text-align:center}
+.hudnaam{display:grid;min-width:0}
+.hudnaam b{font-family:var(--f-display);font-weight:800;font-size:1.25rem;text-transform:uppercase;line-height:1.05;overflow-wrap:anywhere}
+.hudmeters{display:grid;gap:4px;flex:0 1 200px;min-width:160px}
+.meter{display:grid;grid-template-columns:30px minmax(0,1fr) 24px;gap:6px;align-items:center;font-family:var(--f-mono);font-size:.68rem;color:var(--mist)}
+.meter .b{height:7px;background:#0a1a13;border-radius:4px;overflow:hidden}
+.meter i{display:block;height:100%;border-radius:4px;transition:width .4s ease-out}
+.meter b{color:var(--krijt);font-weight:500;text-align:right;font-variant-numeric:tabular-nums}
+.m-laag i{background:var(--fout)}.m-laag b,.m-laag .mk{color:var(--fout)}
+.m-mid i{background:var(--lamp)}
+.m-goed i{background:var(--goed)}
+.m-flow i{background:linear-gradient(90deg,var(--goed),#b6ffd2);box-shadow:0 0 8px var(--goed)}
+.m-flow .mk{color:var(--goed)}
+.hudinfo{display:flex;flex-wrap:wrap;gap:6px;flex:1 1 240px}
+.chip.geld b{color:var(--lamp)}
+.chip.alarm{border-color:var(--fout);color:var(--fout)}
+.hudrechts{margin-left:auto;display:flex;gap:8px}
+.hudknop{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--lijn);background:transparent;color:var(--lamp);font-family:var(--f-display);font-weight:800;font-size:1.2rem;line-height:1}
+.hudknop:hover{border-color:var(--lamp)}
+
+/* Tabbladen (weekhub en zijbalk) */
+.hubtabs{display:flex;gap:2px;border-bottom:1px solid var(--lijn);overflow-x:auto;scrollbar-width:none}
+.hubtabs::-webkit-scrollbar{display:none}
+.hubtab{position:relative;background:transparent;border:none;border-bottom:3px solid transparent;padding:10px 14px 7px;font-family:var(--f-display);font-weight:800;font-size:1.08rem;text-transform:uppercase;letter-spacing:.03em;color:var(--mist);white-space:nowrap;display:inline-flex;gap:6px;align-items:center}
+.hubtab:hover{color:var(--krijt)}
+.hubtab.aan{color:var(--lamp);border-bottom-color:var(--lamp)}
+.badge{min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--lijn);color:var(--krijt);font-family:var(--f-mono);font-size:.68rem;font-weight:500;display:inline-grid;place-items:center;letter-spacing:0}
+.badge.urgent{background:var(--fout);color:#1a0603}
+.hubinhoud{display:grid;gap:18px;min-width:0}
+.zijtabs{background:var(--gras2);border:1px solid var(--lijn);border-radius:6px;padding:0 4px}
+.zijtabs .hubtab{font-size:.92rem;padding:9px 8px 6px;flex:1;justify-content:center}
+
+/* Secties binnen een tab */
+.sectie{gap:12px}
+.sectiekop{font-size:1.15rem;color:var(--krijt);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 10px}
+.sectiekop .niv{text-transform:none;letter-spacing:0;font-weight:400}
+
+/* Vooruitblik op de wedstrijd */
+.vooruit{display:grid;gap:10px;background:linear-gradient(180deg,#0d2117,#08160f);border:1px solid var(--lijn);border-radius:8px;padding:14px 16px}
+.vs{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px}
+.vs .ploeg b{font-family:var(--f-display);font-weight:800;font-size:clamp(1.15rem,3.4vw,1.6rem);text-transform:uppercase;line-height:1.05;overflow-wrap:anywhere}
+.vs .ploeg.r{text-align:right}
+.vs .ploeg.mij b{color:var(--lamp)}
+.vsteken{font-family:var(--f-mono);color:var(--mist);font-size:.8rem;border:1px solid var(--lijn);border-radius:50%;width:34px;height:34px;display:grid;place-items:center}
+.kracht{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center}
+.kracht .niv{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:22ch}
+.krachtbalk{height:8px;border-radius:4px;background:var(--fout);overflow:hidden}
+.krachtbalk i{display:block;height:100%;background:var(--lamp)}
+
+/* Weekactiviteiten */
+.activiteiten{display:grid;gap:12px}
+.actgroep{display:grid;gap:6px}
+.actgroep .keuzes{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+.mini{display:inline-block;width:42px;height:5px;background:#0a1a13;border-radius:3px;overflow:hidden;vertical-align:middle}
+.mini i{display:block;height:100%;background:var(--krijt)}
+.tip{font-family:var(--f-mono);font-size:.6rem;font-weight:500;letter-spacing:.06em;background:var(--goed);color:#08160f;border-radius:3px;padding:2px 5px;vertical-align:middle;white-space:nowrap}
+
+/* Effecten in keuzes: +n groen, −n rood */
+.eff{font-family:var(--f-mono);font-weight:500;border-radius:3px;padding:0 4px;white-space:nowrap}
+.eff.plus{color:var(--goed);background:rgba(98,214,143,.12)}
+.eff.min{color:var(--fout);background:rgba(255,117,99,.12)}
+
+/* Sneltoetsen zichtbaar op de knoppen */
+.keuze{position:relative}
+.keuze[data-sneltoets]::after{content:attr(data-sneltoets);position:absolute;top:8px;right:8px;font-family:var(--f-mono);font-size:.66rem;color:var(--mist);border:1px solid var(--lijn);border-bottom-width:2px;border-radius:3px;min-width:18px;height:18px;display:grid;place-items:center;line-height:1}
+.keuze[data-sneltoets] .t,.keuze[data-sneltoets] .a{padding-right:24px}
+[data-primair]::after{content:"⏎";margin-left:10px;font-family:var(--f-mono);font-size:.75em;opacity:.55}
+@media (hover:none){.keuze[data-sneltoets]::after,[data-primair]::after{display:none}.keuze[data-sneltoets] .t,.keuze[data-sneltoets] .a{padding-right:0}}
+
+/* Vaste actiebalk onderaan het weekscherm */
+.ctabalk{position:sticky;bottom:0;z-index:5;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;margin:0 -20px -20px;padding:14px 20px;background:linear-gradient(180deg,rgba(18,41,31,.88),var(--gras2) 45%);border-top:1px solid var(--lijn);border-radius:0 0 6px 6px;backdrop-filter:blur(4px)}
+.ctabalk .hoofd{justify-self:auto}
+
+/* Winkel */
+.winkelgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.winkelitem{display:grid;gap:6px;align-content:start;background:var(--paneel);border:1px solid var(--lijn);border-radius:6px;padding:12px}
+.winkelitem.bezit{border-color:var(--goed)}
+.winkelitem .klein,.winkelitem .tag{justify-self:start}
+
+/* Wedstrijd: scorebord blijft in beeld tijdens het lezen van het verslag */
+.score{position:sticky;top:calc(var(--hud-h, 0px) + 8px);z-index:6;box-shadow:0 6px 16px rgba(0,0,0,.35)}
+
+/* Toasts: wat leverde je keuze op? */
+.toasts{position:fixed;right:16px;bottom:16px;z-index:50;display:grid;gap:8px;max-width:min(440px,calc(100vw - 32px));pointer-events:none}
+.toast{background:#08160f;border:1px solid var(--lamp);border-radius:8px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,.45);font-size:.9rem;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;animation:toastIn .25s ease-out both}
+.toast .sep{color:var(--lijn)}
+.toast.weg{opacity:0;transform:translateY(8px);transition:opacity .35s,transform .35s}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* Modal: bevestigen, hulp en instellingen */
+.modal{position:fixed;inset:0;z-index:60;background:rgba(4,10,7,.72);display:grid;place-items:center;padding:16px}
+.modal[hidden]{display:none}
+.modalvak{background:var(--gras2);border:1px solid var(--lamp);border-radius:10px;padding:20px;max-width:580px;width:100%;max-height:calc(100vh - 32px);overflow:auto;display:grid;gap:14px;animation:toastIn .2s ease-out both}
+.modaltekst{display:grid;gap:10px}
+.modalknoppen{justify-content:flex-end}
+body.modal-open{overflow:hidden}
+kbd{font-family:var(--f-mono);font-size:.8em;border:1px solid var(--lijn);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:#08160f;color:var(--krijt)}
+.uitleg{margin:0;display:grid;gap:8px}
+.uitleg dt{font-weight:700;color:var(--lamp)}
+.uitleg dd{margin:0;color:var(--mist);font-size:.92rem}
+.uitlegpanel summary{cursor:pointer}
+.uitlegpanel .uitleg{margin-top:10px}
+.toetsen{margin:0;padding-left:18px;display:grid;gap:4px}
+.radio{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--lijn);border-radius:4px;padding:6px 10px;cursor:pointer}
+
+/* Mobiel: HUD scrolt mee, scorebord plakt bovenaan, toasts boven de actiebalk */
+@media (max-width:700px){
+  .hud{position:static;box-shadow:none}
+  .hudmeters{flex:1 1 100%;order:3}
+  .score{top:8px}
+  .toasts{left:16px;right:16px;bottom:88px}
+  .hubtab{padding:10px 10px 7px;font-size:1rem}
+}
+@media (prefers-reduced-motion:reduce){.toast,.modalvak{animation:none}.meter i{transition:none}}

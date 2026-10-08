@@ -1,0 +1,21 @@
+/* Wedstrijd */
+.score{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px;background:#08160f;border-radius:6px;padding:14px 16px;border:1px solid var(--lijn)}
+.score .team{font-family:var(--f-display);font-weight:800;font-size:clamp(1rem,3vw,1.4rem);text-transform:uppercase;line-height:1.05;overflow-wrap:anywhere}
+.score .team.r{text-align:right}
+.score .team.mij{color:var(--lamp)}
+.score .stand{font-family:var(--f-mono);font-size:clamp(1.8rem,6vw,2.6rem);font-weight:500;color:var(--lamp);text-shadow:0 0 18px rgba(255,192,77,.45);text-align:center;font-variant-numeric:tabular-nums;line-height:1}
+.score .min{display:block;font-size:.8rem;color:var(--mist);text-shadow:none;margin-top:6px}
+.log{display:grid;gap:6px;max-height:420px;overflow-y:auto;padding-right:4px}
+.pitch25{display:grid;gap:6px;margin:6px 0}.pitch25 canvas{width:100%;display:block;border-radius:10px;background:#1d2a24;border:1px solid var(--lijn)}
+.log div{display:grid;grid-template-columns:44px minmax(0,1fr);gap:8px;font-size:.98rem}
+.log .m{font-family:var(--f-mono);color:var(--mist);font-variant-numeric:tabular-nums;text-align:right}
+.log .ok{color:var(--goed)}.log .mis{color:#ffb4a8}
+.log .goal{color:var(--lamp);font-weight:700}.log .tegen{color:var(--fout);font-weight:700}
+.log .kaart{color:var(--kaart)}
+.log .info{color:var(--mist)}
+.log .gevaar{color:#ffb4a8}
+.log .rust{color:var(--krijt);font-weight:700}
+@keyframes regel{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.nieuw{animation:regel .35s ease-out both}
+.moment{border-left:3px solid var(--lamp);background:var(--lamp-zacht);padding:12px 14px;border-radius:0 6px 6px 0;font-size:1.08rem}
+

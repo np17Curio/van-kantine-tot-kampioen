@@ -1,0 +1,22 @@
+/* Layout: avondwedstrijd onder de lampen — scorebord bovenaan, speelveld (verhaal + keuzes) links, spelerskaart en stand rechts */
+:root{
+  --gras:#0c2118; --gras2:#12291f; --paneel:#163226; --lijn:#2b4c3e;
+  --krijt:#eef3ea; --mist:#9fb5a8; --lamp:#ffc04d; --lamp-zacht:rgba(255,192,77,.14);
+  --goed:#62d68f; --fout:#ff7563; --kaart:#ffd84a;
+  --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"DM Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  background:var(--gras);
+  background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.018) 0 80px,transparent 80px 160px);
+  color:var(--krijt);font-family:var(--f-body);font-size:16px;line-height:1.5;
+  padding-inline:16px;padding-block:16px 40px;
+}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:16px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--lamp);outline-offset:2px}
+

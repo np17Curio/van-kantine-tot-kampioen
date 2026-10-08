@@ -1,0 +1,22 @@
+/* Zijkant */
+.zij{display:grid;gap:16px;min-width:0}
+.kaart{background:var(--gras2);border:1px solid var(--lijn);border-radius:6px;padding:16px;display:grid;gap:12px;min-width:0}
+.speler{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center}
+.ovr{font-family:var(--f-display);font-weight:900;font-size:3.2rem;line-height:.9;color:var(--lamp);text-align:center}
+.ovr small{display:block;font-family:var(--f-mono);font-size:.65rem;font-weight:400;color:var(--mist);letter-spacing:.1em}
+.naam{font-family:var(--f-display);font-weight:800;font-size:1.5rem;text-transform:uppercase;line-height:1.05;overflow-wrap:anywhere}
+.balk{display:grid;grid-template-columns:92px minmax(0,1fr) 30px;gap:8px;align-items:center;font-size:.85rem}
+.balk .b{height:8px;background:#0a1a13;border-radius:4px;overflow:hidden}
+.balk .b i{display:block;height:100%;background:var(--krijt);border-radius:4px}
+.balk .v{font-family:var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+.balk.st .b i{background:var(--lamp)}
+.feiten{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}
+.feiten div{display:grid}
+.feiten b{font-family:var(--f-mono);font-weight:500;font-variant-numeric:tabular-nums}
+.tabel{width:100%;border-collapse:collapse;font-size:.85rem;font-variant-numeric:tabular-nums}
+.tabel td,.tabel th{padding:4px 4px;text-align:right;border-bottom:1px solid rgba(43,76,62,.6)}
+.tabel th{font-family:var(--f-mono);font-weight:400;font-size:.7rem;color:var(--mist);text-transform:uppercase}
+.tabel td:nth-child(2),.tabel th:nth-child(2){text-align:left}
+.tabel tr.mij td{color:var(--lamp);font-weight:700}
+.tabelwrap{overflow-x:auto}
+

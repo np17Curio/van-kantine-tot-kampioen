@@ -1,0 +1,48 @@
+/* Competitiekaart: tabs, ranglijsten en uitslagen */
+.comptabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.comptab{background:transparent;border:1px solid var(--lijn);border-radius:4px;padding:6px 2px;font-family:var(--f-mono);font-size:.7rem;color:var(--mist);min-width:0;overflow-wrap:anywhere}
+.comptab:hover{border-color:var(--lamp);color:var(--krijt)}
+.comptab.aan{background:var(--lamp-zacht);border-color:var(--lamp);color:var(--lamp)}
+.tabel.rang td:nth-child(2){text-align:left}
+.rnaam{display:block;line-height:1.2}.rclub{display:block;font-size:.72rem;color:var(--mist);line-height:1.2}
+.tabel tr.mij .rclub{color:var(--lamp);opacity:.8}
+.tabel tr.gat td{text-align:center;color:var(--mist);border-bottom:none}
+.rondenav{display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:var(--f-mono);font-size:.8rem}
+.rondenav .klein[disabled]{opacity:.35;cursor:default}
+.uitslagen{display:grid;gap:4px}
+.uit{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center;font-size:.85rem;border-top:1px solid var(--lijn);padding-top:5px}
+.uit .th{text-align:right;overflow-wrap:anywhere}.uit .tu{overflow-wrap:anywhere}
+.uit b{font-family:var(--f-mono);font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
+.uit .w{color:var(--krijt);font-weight:700}
+.uit span:not(.w){color:var(--mist)}
+.uit.mij span,.uit.mij b{color:var(--lamp)}
+.kampioen{border:2px solid var(--lamp);border-radius:8px;padding:16px 18px;display:grid;gap:8px;background:
+  repeating-linear-gradient(135deg,rgba(255,192,77,.10) 0 14px,rgba(255,192,77,.02) 14px 28px),var(--paneel)}
+.kampioen h2{color:var(--lamp);font-size:clamp(1.8rem,6vw,2.6rem)}
+.pd{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 10px;border-top:1px solid var(--lijn);padding-top:5px;font-size:.88rem}
+.buitentabs{display:flex;flex-wrap:wrap;gap:4px}
+.buitentabs .comptab{padding:6px 9px}
+.tegels{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
+.tegel{border:1px solid var(--lijn);border-radius:6px;padding:10px 12px;background:var(--paneel);display:grid;gap:2px}
+.tegel b{font-family:var(--f-display);font-size:1.8rem;font-weight:800;color:var(--lamp);line-height:1}
+.gb{margin:4px 0 0;padding-left:22px;display:grid;gap:3px}
+.gb li.mij{color:var(--lamp);font-weight:700}
+.tabel.seizoenen td:nth-child(2),.tabel.seizoenen th:nth-child(2){text-align:left}
+.maten{display:grid;gap:4px;margin-top:8px}
+.maatrij{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) auto;gap:10px;align-items:center;text-align:left;background:transparent;border:1px solid var(--lijn);border-radius:6px;padding:7px 10px}
+.klein.aan{border-color:var(--lamp);color:var(--lamp);background:var(--lamp-zacht)}.maatrij:hover{border-color:var(--lamp)}.maatrij.aan{border-color:var(--lamp);background:var(--lamp-zacht)}
+.maatrij .mn{display:grid;min-width:0}.maatrij .b{height:8px;background:#0a1a13;border-radius:4px;overflow:hidden}.maatrij .b i{display:block;height:100%;border-radius:4px}
+.maatrij .risico{font-family:var(--f-mono)}
+.krantblok{display:grid;gap:10px}
+.krant{background:#efe9da;color:#1d1a14;border-radius:3px;padding:12px 14px 13px;display:grid;gap:4px;box-shadow:0 2px 0 rgba(0,0,0,.25);max-width:62ch}
+.krant:nth-child(odd){transform:rotate(-.4deg)}.krant:nth-child(even){transform:rotate(.35deg)}
+.krant .bron{font-family:var(--f-mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:#6b6250;border-bottom:1px solid #cfc6b0;padding-bottom:4px}
+.krant h4{margin:0;font-family:var(--f-display);font-weight:800;font-size:1.35rem;line-height:1.05;text-transform:uppercase;letter-spacing:.01em;text-wrap:balance}
+.krant p{font-size:.95rem;color:#3a3428}
+.nieuwslijst{display:grid;gap:8px}
+.nieuwslijst > div{display:grid;gap:2px;border-top:1px solid var(--lijn);padding-top:6px;font-size:.9rem}
+.kaartrisico{display:inline-flex;align-items:center;gap:5px;font-size:.72rem;color:var(--mist)}
+.kaartrisico::before{content:"";width:8px;height:11px;border-radius:1.5px;background:var(--kaart)}
+.kaartrisico.rood::before{background:var(--fout)}
+.bod.door{border-color:var(--lamp);box-shadow:0 0 0 1px var(--lamp) inset}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}.nieuw{animation:none}}

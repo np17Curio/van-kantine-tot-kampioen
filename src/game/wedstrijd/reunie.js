@@ -1,0 +1,107 @@
+import { S, club, mod } from '../../core/state.js';
+import { keuzeKnop, knop } from '../../core/ui.js';
+import { clamp, esc, pick } from '../../core/utils.js';
+import { AANTAL_RONDES, CLUBS, JEUGD } from '../../data/gegevens.js';
+import { thuisLand } from '../../data/landen.js';
+import { fixture } from '../competitie/competitie.js';
+import { selectie } from '../competitie/spelers.js';
+import { KRANTEN, vKrant } from '../media/nieuws.js';
+import { krantMelding } from '../media/roddel.js';
+import { social } from '../prive/social.js';
+import { onrust } from '../speler/kalmte.js';
+import { ck } from '../transfers/buitenland.js';
+import { fans, modFans, zetFans } from './fans-pers.js';
+import { focusBoost } from './momenten.js';
+import { stand2 } from './wedstrijd.js';
+
+/* ===================== Weerzien met je oude club ===================== */
+// Bij een transfer onthoudt de game hoe je vertrok en je band met je teamgenoten daar
+export const oudeClubs = () => S.sp.oudeClubs || (S.sp.oudeClubs = {});
+export const VERTREK_TEKST = {legende:'Je vertrok als clublegende.', goed:'Je vertrok netjes, met de zegen van de club.', weg:'De trainer stuurde je weg.', slecht:'Je vertrok met ruzie.'};
+export function bewaarVertrek(oudId, hoe, naarRivaal){
+  const sp = S.sp; if (CLUBS[oudId].t === JEUGD) return;
+  const type = sp.legendeHier ? 'legende' : (naarRivaal || hoe === 'geforceerd' || sp.ontbonden || sp.vertrekRuzie) ? 'slecht' : hoe === 'weg' ? 'weg' : 'goed';
+  const reden = naarRivaal ? 'Je ging naar de aartsrivaal.' : sp.ontbonden ? 'Je contract werd ontbonden.' : hoe === 'geforceerd' ? 'Je dwong je transfer af.' : sp.vertrekRuzie ? 'Je wilde per se weg en kreeg ruzie met de club.' : VERTREK_TEKST[type];
+  const rel = sp.kleed && sp.kleed.club === ck(oudId) ? {...sp.kleed.rel} : {};
+  oudeClubs()[ck(oudId)] = {type, reden, rel, jaar:S.jaar, nr:(sp.rugHist || {})[ck(oudId)] ?? null, n:CLUBS[oudId].n, land:thuisLand()};
+  // Hoe de oude fans over je denken past bij hoe je vertrok
+  sp.fans = sp.fans || {}; const f = fans(oudId);
+  zetFans(oudId, type === 'legende' ? Math.max(f, 85) : type === 'goed' ? Math.max(f, 58) : type === 'slecht' ? Math.min(f, 25) : f);
+  sp.vertrekRuzie = false;
+}
+export const reunieMet = opp => { const o = S.sp.oudeClubs; return o && o[ck(opp)] && opp !== S.sp.club ? o[ck(opp)] : null; };
+// Oude maat (beste band) en oude vijand (slechtste band) uit de oude selectie
+export function oudeMaten(opp){
+  const R = reunieMet(opp); if (!R) return {};
+  const sel = selectie(opp).filter(x => R.rel[x.n] !== undefined).sort((a, b) => R.rel[b.n] - R.rel[a.n]);
+  return {maat: sel.length && R.rel[sel[0].n] >= 55 ? sel[0] : null, vijand: sel.length && R.rel[sel[sel.length - 1].n] < 35 ? sel[sel.length - 1] : null};
+}
+export function ontvangst(opp){ const f = fans(opp), R = reunieMet(opp); return R.type === 'legende' && f >= 70 ? 'ovatie' : f >= 55 ? 'applaus' : f >= 30 ? 'gemengd' : 'fluit'; }
+// Weekscherm: aankondiging, pers en een appje van een oude teamgenoot
+export function reuniePers(fel){
+  const sp = S.sp, w = S.week, opp = fixture(S.ronde).opp, R = reunieMet(opp); if (!R || w.reuniePers) return;
+  w.reuniePers = fel ? 'fel' : 'rustig';
+  if (fel){ modFans(-8, opp); social().volgers += Math.round(40 + social().volgers * .02);
+    if (club().t <= 3) krantMelding(`${sp.naam}: "Ik ga ${CLUBS[opp].n} laten zien wat ze missen"`, `Voor het weerzien met zijn oude club is ${sp.naam} strijdlustig. Bij ${CLUBS[opp].n} reageren ze verbaasd.`);
+    w.reunieTekst = `Je zegt het hardop in de krant. Je bent extra gemotiveerd, maar bij ${CLUBS[opp].n} zijn ze er niet blij mee (oude fans −8).`; }
+  else { focusBoost(2); w.reunieTekst = '"Ik heb ze niks te bewijzen. Ik heb daar een mooie tijd gehad." Een rustig antwoord. Focus +2.'; }
+}
+export function reunieApp(opp){
+  const w = S.week; if (w.reunieApp !== undefined) return w.reunieApp;
+  const {maat, vijand} = oudeMaten(opp);
+  w.reunieApp = maat ? `${maat.n} appt je: "Zondag zie ik je! Ik ga je geen meter ruimte geven, maatje 😄 Daarna een drankje?"` : vijand ? `${vijand.n} stuurt je een berichtje: "Hoop dat je zondag je schoenen niet vergeet. Je gaat het merken."` : null;
+  return w.reunieApp;
+}
+export function vReunie(){
+  const sp = S.sp, w = S.week; if (sp.o23 || S.ronde >= AANTAL_RONDES) return '';
+  const opp = fixture(S.ronde).opp, R = reunieMet(opp); if (!R) return '';
+  const f = Math.round(fans(opp)), o = ontvangst(opp), app = reunieApp(opp);
+  const verwacht = {ovatie:'Ze maken zich op voor een staande ovatie.', applaus:'De oude fans willen je bedanken met een applaus.', gemengd:'De oude fans weten niet goed wat ze van je moeten denken.', fluit:'De oude fans hebben er zin in: ze gaan je uitfluiten.'}[o];
+  return `<div class="paneel" style="gap:8px;border-color:var(--lamp)"><span class="label">Weerzien met ${esc(CLUBS[opp].n)}</span>
+    <p>${esc(R.reden)} Daar speelde je${R.nr ? ` met nummer ${R.nr}` : ''} tot ${R.jaar}. ${verwacht} <span class="muted">(fans daar: ${f})</span>${R.type === 'weg' ? ' Jij hebt nog iets recht te zetten...' : ''}</p>
+    ${app ? `<p class="moment">📱 ${esc(app)}</p>` : ''}
+    ${w.reuniePers ? `<p class="melding">${esc(w.reunieTekst)}</p>` : `<span class="label">De pers vraagt naar het weerzien</span><div class="keuzes">${keuzeKnop('"Ik heb ze niks te bewijzen"', 'rustig · focus +2', () => reuniePers(false), 'data-blijf')}${keuzeKnop('"Ik ga ze laten zien wat ze missen"', 'extra motivatie · krantenkop · oude fans boos', () => reuniePers(true), 'data-blijf')}</div>`}</div>`;
+}
+// Bij de aftrap: ontvangst door het oude publiek
+export function reunieAftrap(M){
+  const sp = S.sp, R = reunieMet(M.opp); if (!R) return;
+  const o = ontvangst(M.opp), naam = CLUBS[M.opp].n, fel = S.week && S.week.reuniePers === 'fel';
+  M.reunie = {club:M.opp, type:R.type, ontvangst:o};
+  if (o === 'ovatie'){ const n = focusBoost(6); M.log.push({m:'', t:`Als je naam klinkt, staat het hele stadion op. Een staande ovatie voor de clublegende van ${naam}. Je moet even slikken. Focus +${n}.`, k:'ok'}); }
+  else if (o === 'applaus'){ const n = focusBoost(3); M.log.push({m:'', t:`Een warm applaus van de supporters van ${naam}. In het oude vak hangt een spandoek: "Bedankt, ${sp.naam}!" Focus +${n}.`, k:'ok'}); }
+  else if (o === 'gemengd') M.log.push({m:'', t:`Als je naam klinkt, hoor je applaus én gefluit uit het vak van ${naam}.`, k:'info'});
+  else { mod('focus', -5); onrust(6, `Uitgefloten door ${naam}`); M.reunieDuels = 2; M.log.push({m:'', t:`Een oorverdovend fluitconcert. Op een spandoek staat: "${sp.naam} = VERRADER". Focus −5.`, k:'mis'}); }
+  if (R.type === 'weg'){ const n = focusBoost(4); M.reunieDuels = Math.max(M.reunieDuels || 0, 1); M.log.push({m:'', t:`De trainer die je wegstuurde staat langs de lijn. Je hebt iets recht te zetten. Focus +${n}.`, k:'info'}); }
+  if (fel){ const n = focusBoost(3); M.reunieDuels = Math.max(M.reunieDuels || 0, 1); M.log.push({m:'', t:`Na je woorden in de krant ben je extra gebrand. Focus +${n}.`, k:'info'}); }
+  const {maat, vijand} = oudeMaten(M.opp); M.reunieMaat = maat ? maat.n : null; M.reunieVijand = vijand ? vijand.n : null;
+}
+export function reunieNaWedstrijd(M, speelde){
+  const sp = S.sp, R = M.reunie; if (!R) return;
+  const t = S.car.tegenOud = S.car.tegenOud || {}, x = t[ck(R.club)] = t[ck(R.club)] || {w:0, g:0, v:0, goals:0}; x.n = CLUBS[R.club].n;
+  if (M.us > M.them || (M.us === M.them && M.pens && M.bekerWinstRonde)) x.w++; else if (M.us < M.them) x.v++; else x.g++;
+  if (speelde) x.goals += M.goals;
+  const naam = CLUBS[R.club].n, wij = club().n;
+  let kop, tekst;
+  if (M.juich === 'ssst'){ kop = `Ssst! ${sp.naam} legt oude fans van ${naam} het zwijgen op`; tekst = `Na zijn doelpunt hield hij zijn vinger voor zijn mond, recht voor het vak van zijn oude club. Bij ${naam} zijn ze woedend.`; }
+  else if (M.juich === 'respect'){ kop = `Respect: ${sp.naam} juicht niet tegen ${naam}`; tekst = `Hij scoorde tegen zijn oude club, maar hief zijn handen verontschuldigend op. Het oude publiek gaf hem applaus.`; }
+  else if (M.juich === 'wild'){ kop = `${sp.naam} viert feest voor neus van oude club`; tekst = `Na zijn goal rende hij juichend naar het vak van ${naam}. De supporters daar konden het niet waarderen.`; }
+  else if (speelde && M.goals) { kop = `${sp.naam} scoort tegen zijn oude club`; tekst = `Het weerzien met ${naam} eindigde in ${stand2()}.`; }
+  else if (R.ontvangst === 'ovatie' || R.ontvangst === 'applaus'){ kop = `Warm weerzien voor ${sp.naam} bij ${naam}`; tekst = `Het publiek van zijn oude club ontving hem met applaus. Uitslag: ${stand2()}.`; }
+  else if (R.ontvangst === 'fluit'){ kop = `${sp.naam} uitgefloten bij weerzien met ${naam}`; tekst = `De supporters van zijn oude club zijn hem nog niet vergeten. Uitslag: ${stand2()}.`; }
+  else { kop = `${wij} tegen ${naam}: weerzien voor ${sp.naam}`; tekst = `Uitslag: ${stand2()}.`; }
+  M.reunieKop = {kop, tekst};
+}
+export function shirtRuil(){
+  const M = S.M, R = M && M.reunie; if (!R || M.shirtGeruild || !M.reunieMaat) return;
+  M.shirtGeruild = true; const o = oudeClubs()[ck(R.club)]; o.rel[M.reunieMaat] = clamp((o.rel[M.reunieMaat] ?? 50) + 10, 0, 100); mod('moraal', 2);
+  M.shirtTekst = `Na het laatste fluitsignaal ruil je je shirt met ${M.reunieMaat}. Een knuffel, een grap over vroeger. Jullie band blijft goed.`;
+}
+export function vReunieEinde(M){
+  if (!M.reunie) return '';
+  return `${M.reunieKop ? vKrant([{bron:pick(KRANTEN[Math.min(club().t, 3)]), kop:M.reunieKop.kop, tekst:M.reunieKop.tekst}]) : ''}
+    ${M.reunieMaat ? (M.shirtGeruild ? `<p class="melding">${esc(M.shirtTekst)}</p>` : `<div class="rij">${knop(`Shirt ruilen met je oude maat ${esc(M.reunieMaat)}`, shirtRuil, 'klein', 'data-blijf')}</div>`) : ''}`;
+}
+export function vTegenOud(){
+  const t = S.car.tegenOud, o = S.sp.oudeClubs || {}; if (!t || !Object.keys(t).length) return '';
+  return `<div class="paneel"><span class="label">Tegen je oude clubs</span>${Object.entries(t).map(([id, x]) => `<div class="landrij"><div><b>${esc(x.n || (CLUBS[id] || {}).n || '')}</b> <span class="muted klein-tekst">· ${esc((o[id] || {}).reden || '')}</span></div><span class="niv">${x.w}W ${x.g}G ${x.v}V · ${x.goals} ${x.goals === 1 ? 'goal' : 'goals'}</span></div>`).join('')}</div>`;
+}
