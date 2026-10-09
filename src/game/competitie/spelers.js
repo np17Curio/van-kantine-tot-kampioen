@@ -12,14 +12,34 @@ export const ACHTERNAMEN = ['De Vries','Bakker','El Amrani','Jansen','Mulder','B
   'Van den Berg','Meijer','De Boer','Vos','Jacobs','Kramer','Schouten','De Graaf','Huisman','Boukhari','Özdemir','Achterberg','Wouters','Blom','Van Wijk',
   'Sanchez','Ferreira','Novak','Andersen','Dubois','Müller','Okoro','Santos','Bianchi','Nowak','Laurent','Ibrahim','Pereira','Jovanović','Hansen','Martins','Kuipers',
   'Van Rijn','Sneijders','Dijkman','Boateng','Mertens','Lambert','Silva','Costa','Ramos','Keller','Berger','Schmidt','Ouali','Aksoy','Tahiri','Verbeek','Groen'];
-export const ROL_G = [5, 4, 2.6, 2, 1.6, 1.1, .7, .45, .3], ROL_A = [2, 2.4, 3, 2.6, 2.2, 1.6, 1.1, .8, .5];
+// Een selectie van 21 teamgenoten (met jou erbij 22): per positie hoe vaak iemand scoort (g) en een assist geeft (a).
+// De eersten per positie zijn vaste basisspelers, de rest zit meestal op de bank
+export const OPBOUW = {
+  K:{g:[0, 0], a:[0, 0], basis:1},
+  V:{g:[1.1, .7, .45, .3, .25, .2, .15], a:[1.6, 1.1, .8, .5, .4, .3, .3], basis:4},
+  M:{g:[2.6, 2, 1.6, .7, .5, .4, .3], a:[3, 2.6, 2.2, 1, .8, .6, .5], basis:3},
+  A:{g:[5, 4, 1.2, .8, .5], a:[2, 2.4, .8, .6, .4], basis:2},
+};
+export const POS_NAAM = {K:'Keeper', V:'Verdediger', M:'Middenvelder', A:'Aanvaller'};
+// Wie er echt op het veld staat (geen keeper, geen reserve): voor kansen en kaarten in het verslag
+export const inVeld = P => P.filter(x => x.basis && x.pos !== 'K');
 export function selectie(id){
-  const sel = S.sel = S.sel || {}, id0 = id; id = ck(id);
-  if (!sel[id]){
-    const namen = shuffle(ACHTERNAMEN).slice(0, ROL_G.length);
-    sel[id] = namen.map((n, i) => ({v:pick(VOORL), n, g:ROL_G[i], a:ROL_A[i]}));
+  const sel = S.sel = S.sel || {}; id = ck(id);
+  if (!sel[id]) sel[id] = [];
+  const lijst = sel[id];
+  // Oude opslag had 9 spelers zonder positie: die houden naam, nummer en band, en de groep wordt aangevuld
+  if (lijst.length && !lijst[0].pos) lijst.forEach((x, i) => { x.pos = i < 2 ? 'A' : i < 6 ? 'M' : 'V'; x.basis = true; });
+  if (lijst.length < 21) vulAan(lijst);
+  return lijst;
+}
+function vulAan(lijst){
+  const vrij = shuffle(ACHTERNAMEN.filter(n => !lijst.some(x => x.n === n)));
+  for (const [pos, o] of Object.entries(OPBOUW)){
+    for (let i = lijst.filter(x => x.pos === pos).length; i < o.g.length; i++){
+      const basis = i < o.basis;
+      lijst.push({v:pick(VOORL), n:vrij.pop(), g:o.g[i], a:o.a[i], pos, basis});
+    }
   }
-  return sel[id];
 }
 export function gewogen(lijst, k){ let tot = 0; for (const x of lijst) tot += x[k]; let r = rnd() * tot; for (const x of lijst){ r -= x[k]; if (r <= 0) return x; } return lijst[lijst.length - 1]; }
 export const vindSpeler = (id, n) => selectie(id).find(x => x.n === n) || null;

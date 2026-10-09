@@ -6,7 +6,18 @@
 .score .stand{font-family:var(--f-mono);font-size:clamp(1.8rem,6vw,2.6rem);font-weight:500;color:var(--lamp);text-shadow:0 0 18px rgba(198,244,50,.4);text-align:center;font-variant-numeric:tabular-nums;line-height:1}
 .score .min{display:block;font-size:.8rem;color:var(--mist);text-shadow:none;margin-top:6px}
 .log{display:grid;gap:4px;max-height:340px;overflow-y:auto;padding-right:4px}
-.pitch25{display:grid;gap:6px;margin:6px 0}.pitch25 canvas{width:100%;display:block;margin-inline:auto;border-radius:10px;background:#0d1324;border:1px solid var(--lijn)}
+.pitch25{display:grid;gap:6px;margin:6px 0}
+/* Jouw actie: een balk onderin over het veld, zodat je niet hoeft te scrollen */
+.pitchvak{position:relative;width:fit-content;max-width:100%;margin-inline:auto}
+.pitchkeuze{position:absolute;left:0;right:0;bottom:0;padding:28px 12px 10px;display:grid;gap:5px;background:linear-gradient(0deg,rgba(7,11,22,.96) 62%,rgba(7,11,22,0));border-radius:0 0 10px 10px}
+.pitchkeuze .moment{background:none;border-left:none;padding:0;font-size:.92rem;max-width:none;text-shadow:0 1px 2px #000}
+.pitchkeuze .opst{gap:6px}
+.pitchkeuze .keuzes{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.pitchkeuze .keuze{background:rgba(23,32,54,.92);backdrop-filter:blur(3px)}
+.pitchkeuze .keuze:hover{background:var(--hover)}
+@media (max-width:640px){.pitchkeuze{position:static;background:none;padding:8px 0 0}
+  /* Meldingen bovenin tijdens de wedstrijd, zodat ze niet over je keuzes vallen */
+  body[data-fase="match"] .toasts{top:8px;bottom:auto}}.pitch25 canvas{width:100%;display:block;margin-inline:auto;border-radius:10px;background:#0d1324;border:1px solid var(--lijn)}
 .log div{display:grid;grid-template-columns:38px minmax(0,1fr);gap:8px;font-size:.9rem}
 .log .m{font-family:var(--f-mono);color:var(--mist);font-variant-numeric:tabular-nums;text-align:right}
 .log .ok{color:var(--goed)}.log .mis{color:var(--fout-zacht)}

@@ -7,7 +7,6 @@ import { ck } from '../transfers/buitenland.js';
 import { plafond, verhoog } from '../week.js';
 
 /* ===================== Kleedkamer: je band met teamgenoten ===================== */
-export const ROL_NAAM = i => i < 2 ? 'Aanvaller' : i < 6 ? 'Middenvelder' : 'Verdediger';
 // Per club een eigen kleedkamer. Bij een nieuwe club begin je opnieuw
 export function kleedkamer(){
   const sp = S.sp;

@@ -305,20 +305,21 @@ export function pitchSpeel(el, a, klaar){
   };
   requestAnimationFrame(frame);
 }
-export function vPitch(){
+// overlay: de keuzes van jouw actie, onderin over het veld
+export function vPitch(overlay = ''){
   const M = S.M; if (!M) return '';
   const open = openAnims(M), nieuwAnim = open.length && instel().anim !== 'uit';
   if (!nieuwAnim && (!M.pending || ['toespraak', 'juichen'].includes(M.pending.type))) return '';
   if (instel().anim === 'uit' && !M.pending) return '';
   const zet = v => knop(v === 'normaal' ? 'Normaal' : v === 'snel' ? 'Snel' : 'Uit', () => { instel().anim = v; if (v === 'uit') openAnims(M).forEach(a => a.gezien = true); }, instel().anim === v ? 'klein aan' : 'klein', 'data-blijf');
-  return `<div id="pitch25" class="pitch25"><canvas aria-label="Het veld van bovenaf, schuin gezien"></canvas>
+  return `<div id="pitch25" class="pitch25"><div class="pitchvak"><canvas aria-label="Het veld van bovenaf, schuin gezien"></canvas>${overlay ? `<div class="pitchkeuze">${overlay}</div>` : ''}</div>
     <div class="rij pitchknop" style="gap:6px;align-items:center;flex-wrap:wrap"><span class="muted klein-tekst">Animatie:</span>${zet('normaal')}${zet('snel')}${zet('uit')}${nieuwAnim ? knop(open.length > 1 ? `Overslaan (${open.length}) ⏭` : 'Overslaan ⏭', () => { openAnims(M).forEach(a => a.gezien = true); }, 'klein', 'data-blijf id="pitchSkip"') : ''}</div></div>`;
 }
 // Na elke weergave: het veld tekenen of de wachtrij met animaties afspelen
 export function pitchNaRender(){
   if (PITCH){ PITCH.stop = true; PITCH = null; }
   const el = document.getElementById('pitch25'); if (!el || !S || !S.M) return;
-  const M = S.M, keuzes = document.querySelector('#veld .keuzes'), knoppen = document.querySelector('#veld > .hoofd:last-of-type');
+  const M = S.M, keuzes = document.querySelector('#veld .pitchkeuze') || document.querySelector('#veld .keuzes'), knoppen = document.querySelector('#veld > .hoofd:last-of-type');
   const toon = t => t && !['toespraak', 'juichen'].includes(t);
   if (instel().anim === 'uit'){ openAnims(M).forEach(a => a.gezien = true); if (M.pending && toon(M.pending.type)) pitchStatisch(el, M.pending.type); return; }
   const open = openAnims(M);

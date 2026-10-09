@@ -46,15 +46,17 @@ export function vLog(){
 
 export function vMatch(){
   const M = S.M, wacht = `style="animation-delay:${(Math.min(nieuweRegels(), 20) * REGEL_TEMPO).toFixed(2)}s"`;
-  let html = scorebord() + vPitch() + vLog();
+  let keuzeHtml = '';
   if (M.pending){
     const f = Math.round(S.sp.focus ?? 65), fs = focusStaat(f);
-    html += `<p class="moment nieuw" ${wacht}><b>${M.min}'</b> · ${esc(M.pending.tekst)}</p><p class="opst nieuw" ${wacht}><span class="label">Focus ${f}</span>${fs ? `<span class="risico ${fs.cls}">${fs.k}</span><span class="muted klein-tekst">${fs.t}</span>` : '<span class="muted klein-tekst">Lukt een actie, dan groeit je focus. Mislukt ze, dan zakt hij.</span>'}</p><div class="keuzes nieuw" ${wacht}>${pOpts(M.pending).map((o, i) => {
+    keuzeHtml = `<p class="moment nieuw" ${wacht}><b>${M.min}'</b> · ${esc(M.pending.tekst)}</p><p class="opst nieuw" ${wacht}><span class="label">Focus ${f}</span>${fs ? `<span class="risico ${fs.cls}">${fs.k}</span><span class="muted klein-tekst">${fs.t}</span>` : '<span class="muted klein-tekst">Lukt een actie, dan groeit je focus. Mislukt ze, dan zakt hij.</span>'}</p><div class="keuzes nieuw" ${wacht}>${pOpts(M.pending).map((o, i) => {
       const [r, cls] = risico(kans(o));
       return `<button class="keuze" data-i="${act(() => kies(i))}"><span class="t">${esc(o.l)}</span><span class="s">${ATTR[o.st]} ${statWaarde(o.st)} <span class="risico ${cls}">${r}</span>${o.kaart ? `<span class="kaartrisico ${o.kaart}">${o.kaart === 'rood' ? 'kans op rood' : 'kans op geel'}</span>` : ''}</span></button>`;
     }).join('')}</div>`;
   }
-  return html;
+  // Jouw actie staat op het veld zelf; zonder veld staat hij boven het verslag
+  const veld = vPitch(keuzeHtml);
+  return scorebord() + (veld || keuzeHtml) + vLog();
 }
 
 export function vMatchEnd(){

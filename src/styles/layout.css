@@ -7,7 +7,7 @@
 .chip{font-family:var(--f-mono);font-size:.74rem;border:1px solid var(--lijn);border-radius:999px;padding:3px 9px;color:var(--mist);font-variant-numeric:tabular-nums;background:var(--gras2)}
 .chip b{color:var(--krijt);font-weight:500}
 
-.grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px;align-items:start}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) clamp(300px,24vw,420px);gap:12px;align-items:start}
 @media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
 
 .veld{background:var(--gras2);border:1px solid var(--lijn);border-radius:10px;padding:14px;display:grid;gap:12px;min-width:0}

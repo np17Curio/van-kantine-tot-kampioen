@@ -9,8 +9,9 @@ import { band, iedereen, zetBand } from './kleedkamer.js';
 export const isAanvoerder = () => statusNiveau() >= AANV && !S.sp.o23;
 // Elke week kiest de trainer iemand die slecht traint en iemand die wat stil is
 export function kleedPersonen(){
-  const w = S.week, sel = selectie(S.sp.club).map(x => x.n);
-  if (!w.slecht) w.slecht = pick(sel);
+  const w = S.week, groep = selectie(S.sp.club), sel = groep.map(x => x.n);
+  // Op de bank zetten kan alleen bij iemand die nu speelt
+  if (!w.slecht) w.slecht = pick(groep.filter(x => x.basis).map(x => x.n));
   if (!w.stil){ const r = sel.filter(n => n !== w.slecht).sort((a, b) => band(a) - band(b)); w.stil = r[0]; }
   if (!w.laat) w.laat = pick(sel.filter(n => n !== w.slecht && n !== w.stil));
   return w;

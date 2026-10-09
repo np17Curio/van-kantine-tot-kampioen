@@ -55,6 +55,7 @@
 .activiteiten{display:grid;gap:8px}
 .actgroepen{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:start}
 .actgroep:first-child .keuzes{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (min-width:1600px){.actgroep:first-child .keuzes{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:1000px) and (min-width:641px){.actgroepen{grid-template-columns:repeat(2,minmax(0,1fr))}.actgroep:first-child{grid-column:1/-1}}
 .actgroep{display:grid;gap:5px;align-content:start;min-width:0}
 .actgroep .keuzes{grid-template-columns:minmax(0,1fr);gap:5px}

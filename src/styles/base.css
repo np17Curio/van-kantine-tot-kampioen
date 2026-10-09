@@ -10,13 +10,15 @@
 }
 *{box-sizing:border-box}
 html,body{min-height:100%}
+/* Op heel brede schermen groeit alles iets mee (tot 1920px blijft het 16px) */
+html{font-size:clamp(16px,calc(10px + .3vw),19px)}
 body{
   background:var(--gras);
   background-image:radial-gradient(ellipse 70% 40% at 15% -10%,rgba(56,189,248,.10),transparent 70%),radial-gradient(ellipse 70% 40% at 85% -10%,rgba(198,244,50,.07),transparent 70%);
   background-attachment:fixed;
-  color:var(--krijt);font-family:var(--f-body);font-size:15px;line-height:1.45;
-  margin:0;padding-inline:12px;padding-block:10px 24px;
+  color:var(--krijt);font-family:var(--f-body);font-size:.94rem;line-height:1.45;
+  margin:0;padding-inline:clamp(10px,1.5vw,24px);padding-block:10px 24px;
 }
-.wrap{max-width:1240px;margin:0 auto;display:grid;gap:10px}
+.wrap{width:100%;display:grid;gap:10px}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}

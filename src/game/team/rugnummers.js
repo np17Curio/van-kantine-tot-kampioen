@@ -12,18 +12,24 @@ import { kans } from '../wedstrijd/momenten.js';
 
 /* ===================== Rugnummers ===================== */
 // Elke teamgenoot heeft een rugnummer en een status in de groep. Nummer 1 is altijd van de keeper
-export const RUG_ROL = [[9, 11, 7, 17, 19, 18], [10, 8, 6, 14, 20, 21, 16, 23], [4, 3, 5, 2, 15, 22, 13, 12]];
+export const RUG_ROL = {K:[16, 23, 30, 13], A:[9, 11, 7, 17, 19, 18], M:[10, 8, 6, 14, 20, 21, 16, 23], V:[4, 3, 5, 2, 15, 22, 13, 12]};
 export function rugTeam(id){
-  const sel = selectie(id), bezet = new Set([1]);
+  const sel = selectie(id), bezet = new Set();
   sel.forEach(x => { if (x.nr) bezet.add(x.nr); });
-  sel.forEach((x, i) => {
-    if (!x.nr){ const pool = RUG_ROL[i < 2 ? 0 : i < 6 ? 1 : 2].filter(n => !bezet.has(n)); x.nr = pool.length && rnd() < .8 ? pick(pool) : vrijNummer(bezet, 2, 40); bezet.add(x.nr); }
+  const k = sel.find(x => x.pos === 'K' && x.basis);
+  if (k && !k.nr && !bezet.has(1)){ k.nr = 1; bezet.add(1); }
+  bezet.add(1);
+  // Basisspelers eerst, zodat zij de bekende nummers krijgen
+  [...sel].sort((a, b) => b.basis - a.basis).forEach(x => {
+    if (!x.nr){ const pool = RUG_ROL[x.pos].filter(n => !bezet.has(n)); x.nr = pool.length && rnd() < (x.basis ? .85 : .5) ? pick(pool) : vrijNummer(bezet, 12, 40); bezet.add(x.nr); }
   });
   if (sel.some(x => x.st === undefined)){
     // Status in de groep: één aanvoerder, soms een clublegende, de rest gemengd
-    sel.forEach(x => { if (x.st === undefined) x.st = pick([0, 1, 1, 2, 2, 2, 3, 3]); });
-    if (!sel.some(x => x.st === AANV)) pick(sel).st = AANV;
-    if (rnd() < .2 && !sel.some(x => x.st === LEGENDE)) pick(sel.filter(x => x.st !== AANV)).st = LEGENDE;
+    // Reserves zijn vaker jonkie of bankspeler, basisspelers vaker vaste waarde of fan-favoriet
+    sel.forEach(x => { if (x.st === undefined) x.st = pick(x.basis === false ? [0, 0, 1, 1, 1, 2] : [0, 1, 1, 2, 2, 2, 3, 3]); });
+    const basis = sel.filter(x => x.basis !== false);
+    if (!sel.some(x => x.st === AANV)) pick(basis).st = AANV;
+    if (rnd() < .2 && !sel.some(x => x.st === LEGENDE)) pick(basis.filter(x => x.st !== AANV)).st = LEGENDE;
   }
   return sel;
 }

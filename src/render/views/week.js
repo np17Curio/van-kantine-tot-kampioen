@@ -20,7 +20,7 @@ import { AUTOS, EXAMEN_PRIJS, RIJLES, THEORIE_PRIJS, WONINGEN, autoInfo, autoWaa
 import { doorstroomAdvies, doorstroomDoel, doorstroomEisen, inMoment } from '../../game/speler/doorstroom.js';
 import { O23_EIS, fmt1, gemiddelde } from '../../game/speler/o23.js';
 import { aanvoerderActie, isAanvoerder, kleedPersonen, teamUitjePrijs } from '../../game/team/aanvoerder.js';
-import { ROL_NAAM, band, bandLabel, chemie, maatActie } from '../../game/team/kleedkamer.js';
+import { band, bandLabel, chemie, maatActie } from '../../game/team/kleedkamer.js';
 import { verwachteOpstelling } from '../../game/team/opstelling.js';
 import { rugTeam, stNaam, vRugnummer } from '../../game/team/rugnummers.js';
 import { vVertrek } from '../../game/transfers/vertrek.js';
@@ -172,13 +172,19 @@ export function vFocusExtra(){
 export function vKleedkamer(){
   const sp = S.sp, w = S.week; if (sp.o23) return '';
   const sel = rugTeam(sp.club), ch = Math.round(chemie()), gek = tmp.maat && sel.find(x => x.n === tmp.maat) ? tmp.maat : null;
-  const rij = (x, i) => { const v = Math.round(band(x.n)), [lab, cls] = bandLabel(v);
-    return `<button class="maatrij ${gek === x.n ? 'aan' : ''}" data-i="${act(() => { tmp.maat = tmp.maat === x.n ? null : x.n; })}" data-blijf><span class="mn"><b><span class="muted">#${x.nr}</span> ${esc(metVoorletter(x))}</b><span class="niv">${ROL_NAAM(i)} · ${esc(stNaam(x.st))}</span></span><span class="b"><i style="width:${v}%;background:${v >= 60 ? 'var(--goed)' : v >= 40 ? 'var(--lamp)' : 'var(--fout)'}"></i></span><span class="risico ${cls}">${lab}</span></button>`; };
+  const rij = x => { const v = Math.round(band(x.n)), [lab, cls] = bandLabel(v);
+    return `<button class="maatrij ${gek === x.n ? 'aan' : ''}" data-i="${act(() => { tmp.maat = tmp.maat === x.n ? null : x.n; })}" data-blijf><span class="mn"><b><span class="muted">#${x.nr}</span> ${esc(metVoorletter(x))}</b><span class="niv">${x.basis ? 'Basis' : 'Bank'} · ${esc(stNaam(x.st))}</span></span><span class="b"><i style="width:${v}%;background:${v >= 60 ? 'var(--goed)' : v >= 40 ? 'var(--lamp)' : 'var(--fout)'}"></i></span><span class="risico ${cls}">${lab}</span></button>`; };
+  // Per linie, basisspelers eerst
+  const linies = [['K', 'Keepers'], ['V', 'Verdedigers'], ['M', 'Middenvelders'], ['A', 'Aanvallers']].map(([pos, l]) => {
+    const groep = sel.filter(x => x.pos === pos).sort((a, b) => b.basis - a.basis || a.nr - b.nr);
+    return groep.length ? `<span class="label linie">${l} · ${groep.length}</span>${groep.map(rij).join('')}` : '';
+  }).join('');
   const acties = gek ? `<div class="paneel"><span class="label">Met ${esc(gek)} · ${w.maat ? 'deze week heb je al iets met een teamgenoot gedaan' : '1 keuze per week'}</span><div class="keuzes">${[['praten', 'Praten na de training', 'band +4 tot +9'], ['trainen', 'Samen extra trainen', 'band +7 tot +11 · fitheid −6 · kans op +1'], ['grap', 'Een grap uithalen', 'riskant: band +8 of −12'], ['uitpraten', 'Spanning uitpraten', band(gek) < 40 ? 'band +10 tot +16' : 'band +3 tot +6']].map(([id, l, d]) => keuzeKnop(l, d, () => maatActie(gek, id), `data-blijf ${w.maat ? 'disabled' : ''}`)).join('')}</div></div>` : '<p class="muted klein-tekst">Klik op een teamgenoot om iets met hem te doen.</p>';
   return `<section id="kleedPanel" class="paneel sectie"><h3 class="sectiekop">Kleedkamer · sfeer ${ch}${ch >= 65 ? ' (top)' : ch < 40 ? ' (slecht)' : ''}</h3>
     <p class="muted klein-tekst" style="margin-top:8px">Hoe beter je band, hoe vaker teamgenoten je in de wedstrijd opzoeken. Met wie je niet kunt opschieten, die speelt niet graag naar je. Een goede sfeer maakt het hele team sterker.</p>
     ${vRugnummer()}
-    <div class="maten">${sel.map(rij).join('')}</div>${acties}</section>`;
+    <p class="muted klein-tekst">De selectie: ${sel.length + 1} spelers, jij meegerekend.</p>
+    <div class="maten">${linies}</div>${acties}</section>`;
 }
 export function vAanvoerder(){
   if (!isAanvoerder()) return '';

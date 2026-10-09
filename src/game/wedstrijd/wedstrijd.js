@@ -3,7 +3,7 @@ import { clamp, pick, poisson, randInt, rnd } from '../../core/utils.js';
 import { AANTAL_RONDES, AANV, CLUBS, JEUGD, POS, TEAMGENOTEN, TEGENSTANDERS } from '../../data/gegevens.js';
 import { eindeBeker } from '../competitie/beker.js';
 import { fixture, simGoals } from '../competitie/competitie.js';
-import { doelHun, doelOns, gewogen, ploeg, selectie, speelRonde, tegenPloeg, telt } from '../competitie/spelers.js';
+import { doelHun, doelOns, gewogen, inVeld, ploeg, selectie, speelRonde, tegenPloeg, telt } from '../competitie/spelers.js';
 import { eindeInterland, maakOproep } from '../interlands/interlands.js';
 import { toernooiNaWedstrijd, twStrafschoppen } from '../interlands/toernooi.js';
 import { maakNieuws } from '../media/nieuws.js';
@@ -85,9 +85,9 @@ export function uniek(M, sleutel, lijst){
 export function verslag(e, M){
   const wij = M.wij ?? mijnNaam(), zij = M.zij ?? CLUBS[M.opp].n, P = ploeg(M), T = tegenPloeg(M);
   // Bij een doelpunt: de maker volgens wie vaak scoort, de aangever volgens wie vaak assists geeft
-  const tmS = P ? (e.type === 'us' ? gewogen(P, 'g') : pick(P)) : null, tm2S = P ? gewogen(P.filter(x => x !== tmS), 'a') : null;
+  const tmS = P ? (e.type === 'us' ? gewogen(P, 'g') : pick(inVeld(P))) : null, tm2S = P ? gewogen(P.filter(x => x !== tmS), 'a') : null;
   const tm = P ? tmS.n : pick(TEAMGENOTEN), tm2 = P ? tm2S.n : pick(TEAMGENOTEN.filter(n => n !== tm));
-  const opS = T ? (e.type === 'them' ? gewogen(T, 'g') : pick(T)) : null, op = T ? opS.n : pick(TEGENSTANDERS);
+  const opS = T ? (e.type === 'them' ? gewogen(T, 'g') : pick(inVeld(T))) : null, op = T ? opS.n : pick(TEGENSTANDERS);
   const coach = M.inter ? 'De bondscoach' : 'De trainer', jijSpeelt = M.rol === 'basis' || (M.rol === 'invaller' && M.idx > M.ev.findIndex(x => x.type === 'inval'));
   switch (e.type){
     case 'us': { M.us++; const l = [
