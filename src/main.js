@@ -38,7 +38,9 @@ async function toonHulp(){
   const p = openModal('Hoe werkt het?', `${instellingen}
     <h3>Sneltoetsen</h3>
     <ul class="toetsen"><li><kbd>1</kbd>–<kbd>9</kbd> kies de genummerde keuze</li><li><kbd>Enter</kbd> hoofdknop (verder, speel, volgende week)</li><li><kbd>←</kbd> <kbd>→</kbd> wissel van tabblad</li><li><kbd>Esc</kbd> sluit dit venster</li></ul>
-    ${hulpInhoud()}`);
+    ${hulpInhoud()}
+    <h3>Bronnen</h3>
+    <p class="muted klein-tekst">3D-spelersmodel: <a href="https://sketchfab.com/3d-models/pallone-da-calciogiocatore-3016826bcb984b02869f8dcc296120e0" target="_blank" rel="noopener" style="color:var(--info)">"pallone da calcio+giocatore"</a> door rosaliarenda (Sketchfab), licentie <a href="http://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener" style="color:var(--info)">CC-BY-4.0</a>. Aangepast voor dit spel: spijkerbroek, bal en wimpers weggelaten, texturen verkleind, eigen tenues, huidskleur, kapsels, lengte, bouw en bewegingen.</p>`);
   const m = document.getElementById('modal');
   const wissel = e => { if (e.target.name === 'anim' && S){ instel().anim = e.target.value; render(); } };
   m.addEventListener('change', wissel);

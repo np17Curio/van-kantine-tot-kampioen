@@ -582,7 +582,8 @@ export let PITCH = null; // lopende animatie
 let V3 = null, GEN = 0;
 if (typeof window !== 'undefined') import('./veld3d.js').then(m => { V3 = m; }).catch(e => console.warn('3D-veld kon niet laden', e));
 export const is3D = () => !!(V3 && instel().veld !== '2d' && V3.beschikbaar());
-function teken(cv, T, nu){ if (cv._3d && V3) V3.teken3D(T, nu, PITCH_KLEUR); else tekenVeld(cv, T); }
+// instel().kwaliteit = 'vast': de automatische kwaliteit nooit terugschakelen (altijd de echte spelers)
+function teken(cv, T, nu){ if (cv._3d && V3){ T.kwaliteitVast = instel().kwaliteit === 'vast'; V3.teken3D(T, nu, PITCH_KLEUR); } else tekenVeld(cv, T); }
 export function pitchCanvas(el){
   const b = Math.round(Math.min(el.clientWidth || 600, Math.max(320, window.innerHeight * .48 / .52))), dpr = Math.min(2, window.devicePixelRatio || 1), h = Math.round(b * .52);
   if (is3D()){ const c3 = V3.koppel3D(el, b, h, dpr); if (c3) return c3; }
@@ -595,7 +596,7 @@ export function pitchCanvas(el){
 }
 // Jouw keuzemoment: in 2D één plaatje, in 3D staan de spelers rustig te ademen tot je kiest
 export function pitchStatisch(el, type){
-  const cv = pitchCanvas(el), sc = pitchScene(type), T = {ents:sc.ents, bal:sc.bal, cam:sc.cam, zoom:sc.zoom, camY:sc.camY, nr:rugnummerVeilig()};
+  const cv = pitchCanvas(el), sc = pitchScene(type), T = {ents:sc.ents, bal:sc.bal, cam:sc.cam, zoom:sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen()};
   if (!cv._3d) return tekenVeld(cv, T);
   const id = (PITCH = {stop:false, klaar:() => {}}), gen = GEN; let vorige = 0;
   const frame = nu => {
@@ -605,10 +606,12 @@ export function pitchStatisch(el, type){
   };
   requestAnimationFrame(frame);
 }
+// Welke clubs staan er op het veld, en wie ben jij (voor een vast uiterlijk in 3D; jouw uiterlijk wordt één keer gekozen en bewaard)
+export function ploegen(){ const sp = S && S.sp; if (!sp) return {}; if (!sp.uitSleutel) sp.uitSleutel = Math.random().toString(36).slice(2, 10); return {wij:sp.club, zij:S.M ? S.M.opp : null, jij:sp.uitSleutel}; }
 export const rugnummerVeilig = () => { try { return S.M && (S.M.inter || S.M.o23) ? '' : rugnummer(); } catch (e){ return ''; } };
 export function pitchSpeel(el, a, klaar){
   const cv = pitchCanvas(el), {sc, st} = animScript(a), snel = instel().anim === 'snel' ? .5 : 1;
-  const T = {ents:sc.ents, bal:{...sc.bal}, cam:sc.cam, zoom:sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), onder:a.onder || (a.soort === 'shootout' ? 'Strafschoppen' : null)};
+  const T = {ents:sc.ents, bal:{...sc.bal}, cam:sc.cam, zoom:sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(), onder:a.onder || (a.soort === 'shootout' ? 'Strafschoppen' : null)};
   let i = -1, t0 = 0, van = null, fx = null, fxT = 0, eind = 0;
   const id = (PITCH = {stop:false, klaar}), gen = GEN;
   const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
