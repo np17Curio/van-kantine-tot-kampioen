@@ -2,6 +2,7 @@ import { S, club, ovr } from '../../core/state.js';
 import { clamp } from '../../core/utils.js';
 import { AANV, JEUGD, OPST_BASIS } from '../../data/gegevens.js';
 import { statusNiveau } from '../speler/status.js';
+import { TACTIEKEN, clubTactiek, pasScore } from './tactiek.js';
 
 /* ===================== Opstelling ===================== */
 // Hoe groot is je kans op een basisplaats? Vertrouwen, vorm, conditie, kwaliteit en status tellen mee
@@ -11,9 +12,13 @@ export const OPST_MAX = [42, 50];
 export function opstMax(lvl, sc){ return lvl < OPST_MAX.length ? Math.min(sc, OPST_MAX[lvl]) : sc; }
 export function opstellingScore(){
   const sp = S.sp, c = club(), lvl = statusNiveau();
-  return opstMax(lvl, OPST_BASIS[lvl] + sp.vorm * 9 + Math.min(0, sp.fit - 55) * 1.2 + (sp.vert - 50) * .25 + clamp(ovr(sp) - c.s, -10, 10) * .8);
+  return opstMax(lvl, OPST_BASIS[lvl] + sp.vorm * 9 + Math.min(0, sp.fit - 55) * 1.2 + (sp.vert - 50) * .25 + clamp(ovr(sp) - c.s, -10, 10) * .8 + tactiekOpst());
 }
-export function opstellingReden(twijfel){
+// Past je goed in de speelstijl van de trainer, dan sta je sneller in de basis (max ±6)
+export const tactiekOpst = () => S.sp.o23 ? 0 : clamp((pasScore() - 50) * .2, -6, 6);
+const tactiekZin = () => pasScore() < 40 ? ` Je past ook nog niet goed in de ${TACTIEKEN[clubTactiek(S.sp.club)].n.toLowerCase()} van de trainer.` : '';
+export function opstellingReden(twijfel){ return basisReden(twijfel) + tactiekZin(); }
+function basisReden(twijfel){
   const sp = S.sp, c = club(), lvl = statusNiveau();
   if (sp.fit < 45) return twijfel ? `Je conditie is niet top (fitheid ${Math.round(sp.fit)}). De trainer twijfelt of hij je laat starten.` : `Je conditie is niet goed genoeg (fitheid ${Math.round(sp.fit)}).`;
   if (sp.vorm <= -1) return twijfel ? 'Je speelde slecht in de vorige wedstrijd. De trainer twijfelt of hij je laat starten.' : 'Je speelde slecht in de vorige wedstrijd. De trainer kiest voor iemand anders.';

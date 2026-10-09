@@ -15,6 +15,7 @@ import { kalmData, kalmWeek, kroegEvent, kroegKans } from './speler/kalmte.js';
 import { checkStatus, statusPunten } from './speler/status.js';
 import { kleedWeek } from './team/kleedkamer.js';
 import { rugnummer } from './team/rugnummers.js';
+import { tactiekTraining } from './team/tactiek.js';
 import { ergernis, tuchtWeek } from './team/tucht.js';
 import { ck } from './transfers/buitenland.js';
 import { maakBodEvent } from './transfers/transferbod.js';
@@ -91,6 +92,8 @@ export function doeActiviteit(soort, attr){
       const n = sp.a[attr] - voor;
       t = `Je traint keihard op ${ATTR[attr].toLowerCase()}. Het werpt z'n vruchten af: +${n} ${ATTR[attr].toLowerCase()}.`;
     } else t = `Je traint op ${ATTR[attr].toLowerCase()}, maar het wil nog niet echt klikken. Volgende keer beter.`;
+  } else if (soort === 'tactiek'){
+    t = tactiekTraining();
   } else if (soort === 'rust'){
     mod('fit', 22); focusBoost(8); sp.vorm = clamp(sp.vorm + .3, -3, 3); kalmData().onrust *= .7;
     t = 'Je doet rustig aan: ijsbad, massage, vroeg naar bed. Je benen voelen weer fris.';

@@ -25,3 +25,4 @@
 .tabel tr.mij td{color:var(--lamp);font-weight:700}
 .tabel tr.mij{background:var(--lamp-zacht)}
 .tabelwrap{overflow-x:auto}
+.balken.breed .balk{grid-template-columns:110px minmax(0,1fr) 30px}

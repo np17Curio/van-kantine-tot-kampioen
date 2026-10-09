@@ -21,8 +21,9 @@ import { doorstroomAdvies, doorstroomDoel, doorstroomEisen, inMoment } from '../
 import { O23_EIS, fmt1, gemiddelde } from '../../game/speler/o23.js';
 import { aanvoerderActie, isAanvoerder, kleedPersonen, teamUitjePrijs } from '../../game/team/aanvoerder.js';
 import { band, bandLabel, chemie, maatActie } from '../../game/team/kleedkamer.js';
-import { verwachteOpstelling } from '../../game/team/opstelling.js';
+import { tactiekOpst, verwachteOpstelling } from '../../game/team/opstelling.js';
 import { rugTeam, stNaam, vRugnummer } from '../../game/team/rugnummers.js';
+import { TACTIEKEN, TRAIN_FIT, WINT_VAN, clubTactiek, inzicht, matchup, pasScore, tactiekEig, zwaarste } from '../../game/team/tactiek.js';
 import { vVertrek } from '../../game/transfers/vertrek.js';
 import { isDerby, vFans } from '../../game/wedstrijd/fans-pers.js';
 import { focusBoost, focusStaat, focusWinst } from '../../game/wedstrijd/momenten.js';
@@ -31,7 +32,7 @@ import { startWedstrijd } from '../../game/wedstrijd/wedstrijd.js';
 import { doeActiviteit, plafond } from '../../game/week.js';
 import { eisRij, vAgent } from './agent.js';
 import { herkomstUitTmp, vHerkomstKeuze } from './start.js';
-import { vSeizoenStrip } from './zijbalk.js';
+import { balk, vSeizoenStrip } from './zijbalk.js';
 
 // Het weekscherm is een hub met tabbladen; elke nieuwe week begint op "Deze week"
 const WEEK_TABS = [['week', 'Deze week'], ['team', 'Team'], ['carriere', 'Carrière'], ['prive', 'Privé'], ['winkel', 'Winkel']];
@@ -62,9 +63,26 @@ function vVooruitblik(fx, opp, vo){
     <span class="label">Wedstrijd ${S.ronde + 1} van ${AANTAL_RONDES}${sp.o23 ? ` · het 1e elftal speelt ${fx.thuis ? 'thuis' : 'uit'} tegen ${esc(opp.n)}` : ''}</span>
     <div class="vs"><div class="ploeg ${fx.thuis ? 'mij' : ''}"><b>${esc(fx.thuis ? wij : zij)}</b></div><span class="vsteken">vs</span><div class="ploeg r ${fx.thuis ? '' : 'mij'}"><b>${esc(fx.thuis ? zij : wij)}</b></div></div>
     <div class="kracht" title="Sterkte ${c.s} tegen ${opp.s}"><span class="niv">${esc(c.n)} ${c.s}</span><span class="krachtbalk"><i style="width:${aandeel}%"></i></span><span class="niv">${opp.s} ${esc(opp.n)}</span></div>
+    ${vTactiekDuel(fx.opp)}
     <div class="rij">${tags.filter(Boolean).join('')}</div>
     <p class="opst"><span class="label">Verwachte opstelling</span><span class="risico ${vo.cls}">${vo.k}</span><span class="muted">${esc(vo.reden)}</span></p>
   </div>`;
+}
+
+// Welke stijl speelt de tegenstander, en ligt die jullie?
+function vTactiekDuel(opp){
+  const wij = clubTactiek(S.sp.club), zij = clubTactiek(opp), m = matchup(wij, zij);
+  const tag = m > 0 ? `<span class="tag omhoog">Jullie stijl werkt goed tegen ${TACTIEKEN[zij].n.toLowerCase()}</span>` : m < 0 ? `<span class="tag teveel">Lastig: ${TACTIEKEN[zij].n.toLowerCase()} werkt goed tegen jullie stijl</span>` : '';
+  return `<p class="opst"><span class="label">Tactiek</span><b>${TACTIEKEN[wij].n}</b><span class="muted">tegen</span><b>${TACTIEKEN[zij].n}</b>${tag}</p>`;
+}
+function vTactiek(){
+  const sp = S.sp; if (sp.o23) return '';
+  const id = clubTactiek(sp.club), T = TACTIEKEN[id], p = pasScore(id), op = Math.round(tactiekOpst());
+  const sterk = TACTIEKEN[WINT_VAN[id]].n.toLowerCase(), zwak = TACTIEKEN[Object.keys(WINT_VAN).find(k => WINT_VAN[k] === id)].n.toLowerCase();
+  return `<section id="tactiekPanel" class="paneel sectie"><h3 class="sectiekop">Tactiek van de trainer · ${T.n} <span class="niv">je past ${p >= 65 ? 'heel goed' : p >= 50 ? 'goed' : p >= 35 ? 'matig' : 'nog slecht'} in het systeem</span></h3>
+    <p class="muted klein-tekst">${T.d} Hier telt vooral je ${zwaarste(id).join(' en ')}. Werkt goed tegen ${sterk}, maar heeft moeite met ${zwak}.</p>
+    <div class="balken breed">${balk('Past bij jou', p, 'st')}${balk('Eigenschappen', tactiekEig(id))}${balk('Inzicht', inzicht(id))}</div>
+    <p class="muted klein-tekst">Hoe beter je past, hoe sneller je in de basis staat (nu ${op > 0 ? '+' : ''}${op}) en hoe vaker je acties lukken. Train je inzicht met <b>Tactiektraining</b> bij Deze week. Elke wedstrijd die je speelt levert ook inzicht op.</p></section>`;
 }
 
 // Een kleine tip op de activiteit die nu het meest helpt (alleen een hint, verandert niets aan de regels)
@@ -74,6 +92,7 @@ function advies(){
   if (f < 35) return 'mentaal';
   if (sp.vert < 30) return 'trainer';
   if (sp.moraal < 35) return 'uit';
+  if (!sp.o23 && pasScore() < 35) return 'tactiek';
   return null;
 }
 function activiteit(id, t, s, fn, extra = ''){
@@ -82,7 +101,9 @@ function activiteit(id, t, s, fn, extra = ''){
 }
 function vActiviteiten(){
   const sp = S.sp, fitKost = sp.items.fitness ? 5 : 8;
-  const train = TRAINBAAR.map(k => keuzeKnop(`Train ${ATTR[k].toLowerCase()}`, `<span class="mini"><i style="width:${clamp(sp.a[k], 0, 100)}%"></i></span> ${sp.a[k]} · ${sp.a[k] >= plafond() ? 'plafond bereikt' : `fitheid −${fitKost}`}`, () => doeActiviteit('train', k))).join('');
+  const tid = clubTactiek(sp.club), iz = inzicht(tid);
+  const train = TRAINBAAR.map(k => keuzeKnop(`Train ${ATTR[k].toLowerCase()}`, `<span class="mini"><i style="width:${clamp(sp.a[k], 0, 100)}%"></i></span> ${sp.a[k]} · ${sp.a[k] >= plafond() ? 'plafond bereikt' : `fitheid −${fitKost}`}`, () => doeActiviteit('train', k))).join('')
+    + activiteit('tactiek', `Tactiek: ${TACTIEKEN[tid].n.toLowerCase()}`, `<span class="mini"><i style="width:${iz}%"></i></span> inzicht ${iz} · fitheid −${TRAIN_FIT}`, () => doeActiviteit('tactiek'));
   const herstel = activiteit('rust', 'Rustig aan', `Fitheid +22 · focus +${focusWinst(8)} · vorm iets beter`, () => doeActiviteit('rust'))
     + activiteit('mentaal', 'Mentale training', `Focus +${focusWinst(12)} · fitheid +4 · geen training`, () => doeActiviteit('mentaal'))
     + activiteit('video', 'Videoanalyse', `Focus +${focusWinst(7)} · vertrouwen +4 · fitheid −2`, () => doeActiviteit('video'));
@@ -130,7 +151,7 @@ function vDezeWeek(){
 }
 
 function vTeamTab(){
-  const h = vAanvoerder() + vKleedkamer() + vFans();
+  const h = vTactiek() + vAanvoerder() + vKleedkamer() + vFans();
   return h || `<p class="muted">Bij de O23 heb je geen eigen kleedkamer. Bewijs jezelf eerst.</p>`;
 }
 function vCarriereTab(){

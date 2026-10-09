@@ -20,6 +20,7 @@ import { checkStatus, statusNiveau, statusPunten, wedstrijdPunten } from '../spe
 import { isAanvoerder } from '../team/aanvoerder.js';
 import { band, iedereen, teamBonus } from '../team/kleedkamer.js';
 import { opstellingReden, opstellingScore } from '../team/opstelling.js';
+import { clubTactiek, erbij, matchup } from '../team/tactiek.js';
 import { openVenster } from '../transfers/transfers.js';
 import { agentCheck } from '../transfers/zaakwaarnemer.js';
 import { fansNaWedstrijd, fansVoorAftrap, isDerby, maakPers, modFans } from './fans-pers.js';
@@ -27,7 +28,7 @@ import { focusNaWedstrijd } from './focus.js';
 import { FLOW, SLECHTE_FOCUS, bouwMoment, focusBoost, kans, kiesMomentType, pOpts } from './momenten.js';
 import { ontvangst, reunieAftrap, reunieMet, reunieNaWedstrijd } from './reunie.js';
 import { nieuweWeek, verhoog } from '../week.js';
-import { animAnderen, animPush, animSoort } from '../../render/pitch.js';
+import { animAnderen, animPush, animSoort, animVariant } from '../../render/pitch.js';
 
 /* ===================== Wedstrijd ===================== */
 // Plant de goals van teamgenoten/tegenstander en jouw momenten in
@@ -166,7 +167,7 @@ export function startWedstrijd(){
     if (rol !== 'basis') reden = ' ' + opstellingReden();
   }
 
-  const T = c.s + (rol === 'basis' || rol === 'invaller' ? (ovr(sp) - c.s) * .15 : 0) + (fx.thuis ? 2 : 0) + teamBonus();
+  const T = c.s + (rol === 'basis' || rol === 'invaller' ? (ovr(sp) - c.s) * .15 : 0) + (fx.thuis ? 2 : 0) + teamBonus() + matchup(clubTactiek(sp.club), clubTactiek(fx.opp));
   const O = opp.s + (fx.thuis ? 0 : 2);
   const M = {opp:fx.opp, oppS:opp.s, wij:c.n, zij:opp.n, thuis:fx.thuis, rol, us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false, derby:isDerby(fx.opp), fel:!!S.ss.rivaalFel};
   S.M = M;
@@ -216,7 +217,7 @@ export function kies(i){
   const M = S.M, opt = pOpts(M.pending)[i];
   const ok = rnd() < kans(opt);
   const out = (ok ? opt.ok : opt.mis)();
-  { const soort = animSoort(M.pending.type, opt.l); if (soort) animPush(M, {type:M.pending.type, label:opt.l, soort, ok, goal:!!out.goal, assist:!!out.assist, team:!!out.teamGoal, tegen:!!out.tegen, geel:!!out.geel, rood:!!out.rood}); }
+  { const soort = animSoort(M.pending.type, opt.l); if (soort) animPush(M, {type:M.pending.type, label:opt.l, soort, variant:animVariant(M.pending.type, opt.l), ok, goal:!!out.goal, assist:!!out.assist, team:!!out.teamGoal, tegen:!!out.tegen, geel:!!out.geel, rood:!!out.rood}); }
   const fVoor = S.sp.focus ?? 65; if (ok) focusBoost(1); else mod('focus', -1);
   const m = M.min + "'";
   M.log.push({m, t:`[${opt.l}] ${out.t}`, k: ok ? 'ok' : 'mis'});
@@ -296,6 +297,7 @@ export function eindeWedstrijd(){
     S.ss.wed++; S.ss.g += M.goals; S.ss.a += M.assists; S.ss.c.push(M.cijfer);
     if (M.rol === 'basis' && M.them === 0) S.ss.cs = (S.ss.cs || 0) + 1;
     sp.clubWed++;
+    erbij(2); // spelen in het systeem leert je het systeem
     statusPunten(wedstrijdPunten(M.cijfer, M.goals, M.assists, M.us > M.them, M.rood, M.rol === 'invaller'));
     focusNaWedstrijd(M);
     M.kaartTekst = kaartenVerwerken(M);

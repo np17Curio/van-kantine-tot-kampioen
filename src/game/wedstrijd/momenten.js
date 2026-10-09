@@ -3,6 +3,7 @@ import { clamp, pick, rnd, shuffle } from '../../core/utils.js';
 import { CLUBS, MOMENT_POOL, TEAMGENOTEN } from '../../data/gegevens.js';
 import { gewogen, ploeg, telt } from '../competitie/spelers.js';
 import { chemie } from '../team/kleedkamer.js';
+import { tactiekKans, tactiekMoment } from '../team/tactiek.js';
 
 /* ===================== Wedstrijdmomenten ===================== */
 export const goal = (t, d) => ({t, d, goal:true});
@@ -167,7 +168,7 @@ export function kans(opt){
   // Alleen tegen ploegen van Europese-topniveau (sterkte 79+), dus niet in de Topdivisie
   const top = oppS >= 79 ? oppS - 72 : 0;
   const moeilijk = opt.b + (oppS - 48) + top * (TOP_EXTRA[opt.st] || 0);
-  return clamp(.5 + (statWaarde(opt.st) - moeilijk) / 45 + sp.vorm * .03 + (sp.fit - 60) / 400 + (sp.moraal - 50) / 500 + focusEffect(sp.focus ?? 65) + (opt.st === 'pas' && telt(M) ? (chemie() - 50) / 600 : 0) + (sp.items.analist ? .02 : 0), .05, .95);
+  return clamp(.5 + (statWaarde(opt.st) - moeilijk) / 45 + sp.vorm * .03 + (sp.fit - 60) / 400 + (sp.moraal - 50) / 500 + focusEffect(sp.focus ?? 65) + (opt.st === 'pas' && telt(M) ? (chemie() - 50) / 600 : 0) + (sp.items.analist ? .02 : 0) + tactiekKans(opt.st), .05, .95);
 }
 export function risico(p){ return p > .7 ? ['Veilig','r-veilig'] : p >= .45 ? ['Gemiddeld','r-gem'] : ['Riskant','r-riskant']; }
 export const KAART_MOMENTEN = ['tackle', 'opstootje', 'provocatie', 'verdedigen'];
@@ -178,7 +179,9 @@ export function bouwMoment(type){
 }
 export const pOpts = p => p.idx.map(i => MOMENTS[p.type].opts[i]);
 export function kiesMomentType(){
-  const pool = MOMENT_POOL[S.sp.pos]; let tot = 0; for (const k in pool) tot += pool[k];
+  // De speelstijl van je club bepaalt mee wat voor momenten je krijgt
+  const basis = MOMENT_POOL[S.sp.pos], pool = {}; let tot = 0;
+  for (const k in basis){ pool[k] = basis[k] * tactiekMoment(k); tot += pool[k]; }
   let r = rnd() * tot; for (const k in pool){ r -= pool[k]; if (r <= 0) return k; }
   return Object.keys(pool)[0];
 }
