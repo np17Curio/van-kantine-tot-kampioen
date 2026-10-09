@@ -28,7 +28,7 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => { if (e.target.id === 'opgroei'){ tmp.opgroei = e.target.value; if (!S) render(); } if (HERKOMST_IDS.includes(e.target.id)){ tmp[e.target.id] = e.target.value; if (e.target.id === 'geboren' && !S && !tmp.opgroei) render(); } if (e.target.id === 'wensNr'){ tmp.wensNr = +e.target.value || null; if (S && S.sp) S.sp.wensNr = tmp.wensNr; render(); } });
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'agentInput'){ e.preventDefault(); const b = document.getElementById('agentVraag'); if (b) b.click(); } });
 document.addEventListener('keydown', sneltoetsen);
-document.addEventListener('toggle', e => { if (e.target.id === 'clubLijstPanel') tmp.clubLijstOpen = e.target.open; if (e.target.id === 'hulpPanel') tmp.hulpOpen = e.target.open; }, true);
+document.addEventListener('toggle', e => { if (e.target.id === 'clubLijstPanel') tmp.clubLijstOpen = e.target.open; if (e.target.id === 'hulpPanel') tmp.hulpOpen = e.target.open; if (e.target.id === 'focusPanel' && tmp.focusOpen !== e.target.open){ tmp.focusOpen = e.target.open; render(); } }, true);
 window.addEventListener('resize', () => { const h = document.getElementById('hud'); if (h) document.documentElement.style.setProperty('--hud-h', h.offsetHeight + 'px'); });
 
 /* ===================== Hulp en instellingen ===================== */

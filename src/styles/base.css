@@ -1,8 +1,8 @@
-/* Layout: avondwedstrijd onder de lampen — scorebord bovenaan, speelveld (verhaal + keuzes) links, spelerskaart en stand rechts */
+/* Layout: nachtwedstrijd in het stadion — scorebord bovenaan, speelveld (verhaal + keuzes) links, spelerskaart en stand rechts */
 :root{
-  --gras:#0c2118; --gras2:#12291f; --paneel:#163226; --lijn:#2b4c3e;
-  --krijt:#eef3ea; --mist:#9fb5a8; --lamp:#ffc04d; --lamp-zacht:rgba(255,192,77,.14);
-  --goed:#62d68f; --fout:#ff7563; --kaart:#ffd84a;
+  --gras:#0b1020; --gras2:#11182b; --paneel:#172036; --lijn:#26304a; --diep:#070b16; --hover:#1d2843;
+  --krijt:#e8ecf5; --mist:#8c97b0; --lamp:#c6f432; --lamp-zacht:rgba(198,244,50,.12); --op-lamp:#0b1020;
+  --info:#38bdf8; --goed:#4ade80; --fout:#fb7185; --fout-zacht:#fda4af; --kaart:#facc15;
   --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
   --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-mono:"DM Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
@@ -12,11 +12,11 @@
 html,body{min-height:100%}
 body{
   background:var(--gras);
-  background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.018) 0 80px,transparent 80px 160px);
-  color:var(--krijt);font-family:var(--f-body);font-size:16px;line-height:1.5;
-  padding-inline:16px;padding-block:16px 40px;
+  background-image:radial-gradient(ellipse 70% 40% at 15% -10%,rgba(56,189,248,.10),transparent 70%),radial-gradient(ellipse 70% 40% at 85% -10%,rgba(198,244,50,.07),transparent 70%);
+  background-attachment:fixed;
+  color:var(--krijt);font-family:var(--f-body);font-size:15px;line-height:1.45;
+  margin:0;padding-inline:12px;padding-block:10px 24px;
 }
-.wrap{max-width:1180px;margin:0 auto;display:grid;gap:16px}
+.wrap{max-width:1240px;margin:0 auto;display:grid;gap:10px}
 button{font:inherit;color:inherit;cursor:pointer}
-button:focus-visible,input:focus-visible{outline:3px solid var(--lamp);outline-offset:2px}
-
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}

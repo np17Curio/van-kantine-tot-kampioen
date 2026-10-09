@@ -89,8 +89,8 @@ export function vZij(){
       <div class="speler"><div class="ovr">${ovr(sp)}<small>KLASSE</small></div>
         <div><div class="naam">${sp.o23 ? '' : `<span class="muted">#${rugnummer()}</span> `}${esc(sp.naam)}</div><div class="muted">${POS[sp.pos].n} · ${sp.leeftijd} jaar · ${esc(c.n)}${sp.o23 ? ' O23' : ''}${sp.huur ? ` (gehuurd van ${esc(CLUBS[sp.huur.ouder].n)})` : ''}</div><div class="label" title="Verwachting van scouts">Talent ${sterren(sp.pot)}</div></div></div>
       ${vStatus()}
-      <div style="display:grid;gap:6px">${TRAINBAAR.map(k => balk(ATTR[k], sp.a[k])).join('')}</div>
-      <div style="display:grid;gap:6px">${balk('Fitheid', sp.fit, 'st')}${balk('Moraal', sp.moraal, 'st')}${balk('Focus', sp.focus ?? 65, 'st')}${vKalmte()}${balk('Vertrouwen', sp.vert, 'st')}${balk('Reputatie', sp.rep, 'st')}</div>
+      <div class="balken">${TRAINBAAR.map(k => balk(ATTR[k], sp.a[k])).join('')}</div>
+      <div class="balken2">${balk('Fitheid', sp.fit, 'st')}${balk('Moraal', sp.moraal, 'st')}${balk('Focus', sp.focus ?? 65, 'st')}${vKalmte()}${balk('Vertrouwen', sp.vert, 'st')}${balk('Reputatie', sp.rep, 'st')}</div>
       <div class="feiten">
         <div><span class="label">Vorm</span><b>${vorm}</b></div>
         <div><span class="label">Marktwaarde</span><b>${c.t === JEUGD ? '–' : geldTxt(waarde(sp))}</b></div>

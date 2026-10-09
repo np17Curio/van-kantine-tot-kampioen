@@ -82,7 +82,7 @@ function activiteit(id, t, s, fn, extra = ''){
 }
 function vActiviteiten(){
   const sp = S.sp, fitKost = sp.items.fitness ? 5 : 8;
-  const train = TRAINBAAR.map(k => keuzeKnop(`Train ${ATTR[k].toLowerCase()}`, `<span class="mini"><i style="width:${clamp(sp.a[k], 0, 100)}%"></i></span> ${ATTR[k]} ${sp.a[k]} · ${sp.a[k] >= plafond() ? 'plafond bereikt' : `fitheid −${fitKost}`}`, () => doeActiviteit('train', k))).join('');
+  const train = TRAINBAAR.map(k => keuzeKnop(`Train ${ATTR[k].toLowerCase()}`, `<span class="mini"><i style="width:${clamp(sp.a[k], 0, 100)}%"></i></span> ${sp.a[k]} · ${sp.a[k] >= plafond() ? 'plafond bereikt' : `fitheid −${fitKost}`}`, () => doeActiviteit('train', k))).join('');
   const herstel = activiteit('rust', 'Rustig aan', `Fitheid +22 · focus +${focusWinst(8)} · vorm iets beter`, () => doeActiviteit('rust'))
     + activiteit('mentaal', 'Mentale training', `Focus +${focusWinst(12)} · fitheid +4 · geen training`, () => doeActiviteit('mentaal'))
     + activiteit('video', 'Videoanalyse', `Focus +${focusWinst(7)} · vertrouwen +4 · fitheid −2`, () => doeActiviteit('video'));
@@ -90,9 +90,10 @@ function vActiviteiten(){
     + (sp.leeftijd < 18 && sp.ouders.boos ? keuzeKnop('Afspreken met vrienden', 'Mag niet van je ouders', () => {}, 'disabled') : activiteit('uit', sp.leeftijd < 18 ? 'Afspreken met vrienden' : 'Avondje uit', 'Moraal +10 · focus −3 · kans op gedoe', () => doeActiviteit('uit')))
     + (sp.leeftijd < 18 ? keuzeKnop('Huiswerk maken', sp.ouders.boos ? 'Focus +6 · dan mag je deze week zeker spelen' : 'Focus +6 · beter voorbereid op school', () => doeActiviteit('huiswerk')) : '');
   return `<section class="activiteiten"><h3 class="sectiekop">Wat doe je deze week? <span class="niv">1 keuze</span></h3>
+    <div class="actgroepen">
     <div class="actgroep"><span class="label">Trainen</span><div class="keuzes">${train}</div></div>
     <div class="actgroep"><span class="label">Herstel en mentaal</span><div class="keuzes">${herstel}</div></div>
-    <div class="actgroep"><span class="label">Club en sociaal</span><div class="keuzes">${sociaal}</div></div></section>`;
+    <div class="actgroep"><span class="label">Club en sociaal</span><div class="keuzes">${sociaal}</div></div></div></section>`;
 }
 
 function vDezeWeek(){
@@ -100,7 +101,7 @@ function vDezeWeek(){
   const eersteKeer = S.ronde === 0 && S.car.wed === 0;
   const vo = sp.o23 && sp.blessure <= 0 && !(sp.geschorst > 0) ? {k:'O23 · basis', cls:'r-gem', reden:'Je speelt bij de O23 tot de trainer je terughaalt.'} : verwachteOpstelling();
   let html = vSeizoenStrip() + `<div class="verhaal"><span class="label">Week ${S.ronde + 1} van ${AANTAL_RONDES} · ${S.ronde === 0 ? 'Nieuw seizoen' : S.ronde === 7 ? 'Na de winterstop' : 'Trainingsweek'}</span>
-    <h2>${eersteKeer ? `Welkom bij ${esc(club().n)}` : 'Doordeweeks'}</h2>`;
+    ${S.ronde === 0 ? `<h2>${eersteKeer ? `Welkom bij ${esc(club().n)}` : 'Nieuw seizoen'}</h2>` : ''}`;
   if (eersteKeer) html += `<p>Je eerste training bij de jeugd. De trainer is ook de vader van de keeper en fluit op een theelepeltje. De ballen zijn half lek, maar de droom is groot: ooit speel je in een vol stadion.</p>`;
   else if (S.ronde === 0) html += `<p>Een nieuw seizoen bij ${esc(club().n)} in de ${DIVS[club().t]}. Alles begint weer bij nul.</p>`;
   html += `</div>` + vVooruitblik(fx, opp, vo);
@@ -164,9 +165,9 @@ export function vFocusExtra(){
     const d = [x.id === 'psycholoog' && !prijs ? 'gratis via je mentale coach' : prijs ? geldTxt(prijs) : 'gratis', `focus +${focusWinst(x.n)}`, x.d].join(' · ');
     return keuzeKnop(x.l, d, () => focusExtra(x.id), `data-blijf ${w.extra || sp.geld < prijs ? 'disabled' : ''}`);
   }).join('');
-  return `<div class="paneel"><span class="label">Focus en ontspanning · 1 keuze per week, naast je activiteit</span>
-    <p>Je focus is <b>${f}</b>${fs ? ` · <span class="${fs.cls === 'r-veilig' ? 'goedtxt' : 'fouttxt'}">${fs.k}</span>` : ''}. ${w.extra ? '<span class="muted">Deze week heb je al iets gedaan voor je focus.</span>' : '<span class="muted">Hoe hoger je focus al is, hoe minder het nog oplevert.</span>'}</p>
-    <div class="keuzes">${knoppen}</div></div>`;
+  return `<details class="paneel uitklap" id="focusPanel" ${tmp.focusOpen ? 'open' : ''}><summary><span class="label">Focus en ontspanning</span><span>Focus <b>${f}</b>${fs ? ` · <span class="${fs.cls === 'r-veilig' ? 'goedtxt' : 'fouttxt'}">${fs.k}</span>` : ''}</span><span class="niv">${w.extra ? 'deze week al gedaan' : '1 extra keuze, naast je activiteit'}</span></summary>
+    <div class="uitklapinhoud"><p class="muted klein-tekst">Hoe hoger je focus al is, hoe minder het nog oplevert.</p>
+    <div class="keuzes">${knoppen}</div></div></details>`;
 }
 export function vKleedkamer(){
   const sp = S.sp, w = S.week; if (sp.o23) return '';

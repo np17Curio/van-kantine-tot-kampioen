@@ -8,7 +8,7 @@ import { rugnummer } from '../game/team/rugnummers.js';
 // Coördinaten in meters: x 0-105 (wij spelen naar rechts), y 0-68 (0 = dichtbij), z = hoogte.
 export const instel = () => S.instel || (S.instel = {anim:'normaal'});
 export const PITCH_ZICHT = 30; // zoveel meter veld is op de voorste lijn in beeld
-export const PITCH_KLEUR = {wij:'#f5c542', zij:'#e05252', K:'#9b6bd6', k:'#3fae6a', R:'#222'};
+export const PITCH_KLEUR = {wij:'#c6f432', zij:'#e05252', K:'#9b6bd6', k:'#3fae6a', R:'#222'};
 // Startopstelling per soort moment
 export function pitchScene(type){
   const e = (id, x, y, rol) => ({id, x, y, z:0, rol});
@@ -210,7 +210,7 @@ export function tekenVeld(cv, toestand){
   ctx.save(); ctx.scale(cv._dpr || 1, cv._dpr || 1);
   const p = (x, y, z) => proj(null, W, H, cam, x, y, z);
   // tribune
-  const g = ctx.createLinearGradient(0, 0, 0, H * .16); g.addColorStop(0, '#0d1512'); g.addColorStop(1, '#1d2a24'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const g = ctx.createLinearGradient(0, 0, 0, H * .16); g.addColorStop(0, '#070b16'); g.addColorStop(1, '#141c33'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = 'rgba(255,255,255,.08)'; for (let i = 0; i < 140; i++){ const xx = (i * 97 % 1000) / 1000 * W, yy = ((i * 53) % 100) / 100 * H * .1 + 2; ctx.fillRect(xx, yy, 2, 2); }
   // gras met banen
   for (let i = 0; i < 14; i++){ const x0 = i * 7.5, x1 = x0 + 7.5, a = p(x0, 0), b = p(x1, 0), c = p(x1, 68), d = p(x0, 68);
@@ -263,7 +263,7 @@ export const FX = {paal:['Paal!', '#fff'], lijn:['Van de lijn!', '#fff'], onzeRe
   gewonnen:['Bal veroverd!', '#b9ff9c'], langs:['Hij is erlangs', '#ff9b9b'], weg:['Weggewerkt!', '#b9ff9c'], geel:['Gele kaart', '#ffd400'], rood:['Rode kaart!', '#ff5a5a'], rustig:['Rustig gebleven', '#b9ff9c']};
 export let PITCH = null; // lopende animatie
 export function pitchCanvas(el){
-  const cv = el.querySelector('canvas'), b = el.clientWidth || 600, dpr = Math.min(2, window.devicePixelRatio || 1), h = Math.round(b * .52);
+  const cv = el.querySelector('canvas'), b = Math.round(Math.min(el.clientWidth || 600, Math.max(320, window.innerHeight * .48 / .52))), dpr = Math.min(2, window.devicePixelRatio || 1), h = Math.round(b * .52);
   cv.style.width = b + 'px'; cv.style.height = h + 'px'; cv.width = Math.round(b * dpr); cv.height = Math.round(h * dpr); cv._dpr = dpr; return cv;
 }
 export function pitchStatisch(el, type){

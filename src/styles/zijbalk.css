@@ -1,22 +1,27 @@
-/* Zijkant */
-.zij{display:grid;gap:16px;min-width:0}
-.kaart{background:var(--gras2);border:1px solid var(--lijn);border-radius:6px;padding:16px;display:grid;gap:12px;min-width:0}
-.speler{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center}
-.ovr{font-family:var(--f-display);font-weight:900;font-size:3.2rem;line-height:.9;color:var(--lamp);text-align:center}
-.ovr small{display:block;font-family:var(--f-mono);font-size:.65rem;font-weight:400;color:var(--mist);letter-spacing:.1em}
-.naam{font-family:var(--f-display);font-weight:800;font-size:1.5rem;text-transform:uppercase;line-height:1.05;overflow-wrap:anywhere}
-.balk{display:grid;grid-template-columns:92px minmax(0,1fr) 30px;gap:8px;align-items:center;font-size:.85rem}
-.balk .b{height:8px;background:#0a1a13;border-radius:4px;overflow:hidden}
-.balk .b i{display:block;height:100%;background:var(--krijt);border-radius:4px}
+/* Zijkant: schuift mee met de pagina en scrolt zelf als hij te lang is */
+.zij{display:grid;gap:10px;min-width:0}
+@media (min-width:861px){.zij{position:sticky;top:calc(var(--hud-h, 0px) + 10px);max-height:calc(100vh - var(--hud-h, 0px) - 20px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--lijn) transparent;padding-right:2px}}
+.kaart{background:var(--gras2);border:1px solid var(--lijn);border-radius:10px;padding:12px;display:grid;gap:8px;min-width:0}
+.speler{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center}
+.ovr{font-family:var(--f-display);font-weight:900;font-size:2.4rem;line-height:.9;color:var(--lamp);text-align:center}
+.ovr small{display:block;font-family:var(--f-mono);font-size:.6rem;font-weight:400;color:var(--mist);letter-spacing:.1em}
+.naam{font-family:var(--f-display);font-weight:800;font-size:1.15rem;text-transform:uppercase;line-height:1.05;overflow-wrap:anywhere}
+.balken{display:grid;gap:4px}
+.balken2{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px}
+.balken2 .balk{grid-template-columns:68px minmax(0,1fr) 18px;gap:4px;font-size:.74rem}
+.balken2 .balk > span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.balk{display:grid;grid-template-columns:74px minmax(0,1fr) 26px;gap:6px;align-items:center;font-size:.78rem}
+.balk .b{height:6px;background:var(--diep);border-radius:3px;overflow:hidden}
+.balk .b i{display:block;height:100%;background:var(--krijt);border-radius:3px}
 .balk .v{font-family:var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
 .balk.st .b i{background:var(--lamp)}
-.feiten{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}
+.feiten{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;font-size:.88rem}
 .feiten div{display:grid}
 .feiten b{font-family:var(--f-mono);font-weight:500;font-variant-numeric:tabular-nums}
-.tabel{width:100%;border-collapse:collapse;font-size:.85rem;font-variant-numeric:tabular-nums}
-.tabel td,.tabel th{padding:4px 4px;text-align:right;border-bottom:1px solid rgba(43,76,62,.6)}
-.tabel th{font-family:var(--f-mono);font-weight:400;font-size:.7rem;color:var(--mist);text-transform:uppercase}
+.tabel{width:100%;border-collapse:collapse;font-size:.8rem;font-variant-numeric:tabular-nums}
+.tabel td,.tabel th{padding:3px 4px;text-align:right;border-bottom:1px solid rgba(38,48,74,.7)}
+.tabel th{font-family:var(--f-mono);font-weight:400;font-size:.66rem;color:var(--mist);text-transform:uppercase}
 .tabel td:nth-child(2),.tabel th:nth-child(2){text-align:left}
 .tabel tr.mij td{color:var(--lamp);font-weight:700}
+.tabel tr.mij{background:var(--lamp-zacht)}
 .tabelwrap{overflow-x:auto}
-

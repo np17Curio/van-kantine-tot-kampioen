@@ -47,7 +47,8 @@ export function render(){
 
 // Nummer 1-9 op de eerste keuzes in het speelveld, en de hoofdknop (Enter) markeren
 function markeerSneltoetsen(veld){
-  veld.querySelectorAll('.keuze:not([disabled])').forEach((b, i) => { if (i < 9) b.dataset.sneltoets = i + 1; });
+  // Knoppen in een dichtgeklapt paneel tellen niet mee
+  [...veld.querySelectorAll('.keuze:not([disabled])')].filter(b => !b.closest('details:not([open])')).forEach((b, i) => { if (i < 9) b.dataset.sneltoets = i + 1; });
   const hoofd = [...veld.querySelectorAll('.hoofd:not([disabled])')].filter(b => !b.closest('.paneel, .keuzes'));
   const primair = hoofd[hoofd.length - 1];
   if (primair) primair.dataset.primair = '';
