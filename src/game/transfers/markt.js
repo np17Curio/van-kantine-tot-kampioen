@@ -1,7 +1,7 @@
 import { S, club, mod } from '../../core/state.js';
 import { clamp, esc, geldTxt, pick, randInt, rnd } from '../../core/utils.js';
 import { AMATEUR, BASE, CLUBS, DIVS, JEUGD, divClubs } from '../../data/gegevens.js';
-import { OPBOUW, POS_NAAM, selectie } from '../competitie/spelers.js';
+import { ACHTERNAMEN, OPBOUW, POS_NAAM, VOORL, selectie } from '../competitie/spelers.js';
 import { kortClub, metVoorletter } from '../media/nieuws.js';
 import { krantMelding } from '../media/roddel.js';
 import { onrust } from '../speler/kalmte.js';
@@ -28,20 +28,29 @@ function doeDeal(van, naar, speler, hoger, delta, soort){
   const opvolger = selV.filter(x => x.pos === speler.pos && !x.basis).sort((a, b) => b.g + b.a - a.g - a.a)[0];
   if (opvolger && speler.basis){ opvolger.basis = true; [opvolger.g, opvolger.a] = [Math.max(opvolger.g, speler.g * .8), Math.max(opvolger.a, speler.a * .8)]; }
   selectie(van); // aanvullen tot 21
-  // koper: de nieuweling in de basis, de zwakste basisspeler naar de bank, de zwakste bankspeler vertrekt
+  neemOp(naar, speler);
+  if (selN[0] && selN[0].k !== undefined) herschik(selectie(van));
+  // sterkte
+  const plus = hoger ? 2 : 1, kan = (id, d) => Math.abs((delta[id] || 0) + d) <= MAX_DELTA;
+  if (kan(naar, plus)){ CLUBS[naar].s = clamp(CLUBS[naar].s + plus, 30, 95); delta[naar] = (delta[naar] || 0) + plus; }
+  if (kan(van, -1)){ CLUBS[van].s = clamp(CLUBS[van].s - 1, 30, 95); delta[van] = (delta[van] || 0) - 1; }
+  return noteerDeal(van, naar, speler, soort);
+}
+// De koper: de nieuweling in de basis, de zwakste basisspeler naar de bank, de zwakste bankspeler vertrekt
+function neemOp(naar, speler){
+  const selN = selectie(naar);
   const zelfde = selN.filter(x => x.pos === speler.pos);
   const zwakBasis = zelfde.filter(x => x.basis).sort((a, b) => a.g + a.a - b.g - b.a)[0];
   const zwakBank = zelfde.filter(x => !x.basis).sort((a, b) => a.g + a.a - b.g - b.a)[0];
   if (zwakBank) selN.splice(selN.indexOf(zwakBank), 1);
   if (zwakBasis){ zwakBasis.basis = false; [zwakBasis.g, zwakBasis.a] = [zwakBasis.g * .5, zwakBasis.a * .5]; }
   selN.push({v:speler.v, n:speler.n, pos:speler.pos, basis:true, nieuwWeek:S.weekNr || 0, k:speler.k, lft:speler.lft, kVorig:speler.kVorig, jeugd:speler.jeugd, sindsWeek:speler.sindsWeek, g:Math.max(speler.g, zwakBasis ? zwakBasis.g * 2 : 0), a:Math.max(speler.a, zwakBasis ? zwakBasis.a * 2 : 0)});
-  if (selN[0] && selN[0].k !== undefined){ herschik(selN); herschik(selectie(van)); }
-  // sterkte
-  const plus = hoger ? 2 : 1, kan = (id, d) => Math.abs((delta[id] || 0) + d) <= MAX_DELTA;
-  if (kan(naar, plus)){ CLUBS[naar].s = clamp(CLUBS[naar].s + plus, 30, 95); delta[naar] = (delta[naar] || 0) + plus; }
-  if (kan(van, -1)){ CLUBS[van].s = clamp(CLUBS[van].s - 1, 30, 95); delta[van] = (delta[van] || 0) - 1; }
-  const tv = CLUBS[van].t, som = tv <= 3 ? Math.round(BASE[tv] * (.12 + rnd() * .35) / 1000) * 1000 : 0;
-  const d = {jaar:S.jaar, soort, van, naar, v:speler.v, n:speler.n, pos:speler.pos, som};
+  if (selN[0] && selN[0].k !== undefined) herschik(selN);
+}
+// van = null: een transfervrije speler uit het buitenland
+function noteerDeal(van, naar, speler, soort, extra = {}){
+  const tv = van == null ? null : CLUBS[van].t, som = tv != null && tv <= 3 ? Math.round(BASE[tv] * (.12 + rnd() * .35) / 1000) * 1000 : 0;
+  const d = {jaar:S.jaar, soort, van, naar, v:speler.v, n:speler.n, pos:speler.pos, som, ...extra};
   (S.transfers = S.transfers || []).push(d);
   if (S.transfers.length > 120) S.transfers = S.transfers.slice(-120);
   return d;
@@ -84,11 +93,61 @@ export function clubTransfers(soort){
     const speler = kiesSpeler(verkoper, koper); if (!speler) continue;
     const d = doeDeal(verkoper, koper, speler, hoger, delta, soort); if (d) deals.push(d);
   }
+  const inhaal = inhaalAankopen(comp, onder, soort);
+  deals.push(...inhaal.deals);
   if (soort === 'zomer') jeugdDoorstroom(comp.includes(mijn) ? comp : comp.concat(mijn));
   S.clubs = CLUBS.map(c => [c.t, c.s]);
   const opgekomen = (S.jeugdIn || []).slice(jeugdStart).filter(x => x.club === mijn);
-  markNieuws(deals, t, mijn, jeugd, opgekomen, gestopt);
+  markNieuws(deals, t, mijn, jeugd, opgekomen, gestopt, inhaal.clubs);
   return deals;
+}
+// Inhaalaankopen: een club die duidelijk onder de rest van zijn competitie zit (zoals een promovendus) haalt gericht
+// spelers die beter zijn dan wat er staat. Geen sterren: de spelers hooguit net onder het gemiddelde van de competitie,
+// en de club zelf komt niet verder dan net boven de zwakste andere club.
+export const INHAAL = {gat:3, zomer:5, winter:2}; // hoeveel onder de zwakste andere club, en hoeveel sterkte erbij per periode
+export const zwaksteZonder = (comp, id) => Math.min(...comp.filter(i => i !== id).map(i => CLUBS[i].s));
+export const divGemZonder = (comp, id) => { const r = comp.filter(i => i !== id); return r.reduce((a, i) => a + CLUBS[i].s, 0) / Math.max(1, r.length); };
+export function inhaalAankopen(comp, onder, soort){
+  const deals = [], clubs = [];
+  for (const id of comp){
+    const gem = divGemZonder(comp, id), bodem = zwaksteZonder(comp, id), gat = bodem - CLUBS[id].s;
+    if (gat <= INHAAL.gat) continue;
+    const max = soort === 'zomer' ? INHAAL.zomer : INHAAL.winter, n = Math.min(soort === 'zomer' ? randInt(2, 4) : randInt(1, 2), Math.ceil(gat / 3));
+    const plafond = bodem + 1, hoogst = Math.floor(gem - 1); let erbij = 0;
+    const l = [];
+    for (let i = 0; i < n + 2 && l.length < n && CLUBS[id].s < plafond && erbij < max; i++){
+      const sel = selectie(id);
+      // de positie met de zwakste basisspeler (keepers zelden)
+      const zwak = sel.filter(x => x.basis && (x.pos !== 'K' || rnd() < .15)).sort((a, b) => a.k - b.k)[0];
+      if (!zwak) break;
+      const laag = zwak.k + 2; if (laag > hoogst) continue;
+      const past = x => x.pos === zwak.pos && x.k >= laag && x.k <= hoogst && naamVrij(sel, x.n);
+      // (a) een reservespeler van een sterkere club uit de competitie, (b) een basisspeler uit de top van de divisie eronder
+      const reserves = comp.filter(j => j !== id && CLUBS[j].s > CLUBS[id].s).flatMap(j => selectie(j).filter(x => !x.basis && past(x)).map(x => ({x, van:j, reserve:true})));
+      const lager = onder.flatMap(j => selectie(j).filter(x => x.basis && past(x)).map(x => ({x, van:j, reserve:false})));
+      const kand = reserves.length ? reserves : lager;
+      let d, nieuw;
+      if (kand.length){
+        const {x, van, reserve} = pick(kand), selV = selectie(van);
+        selV.splice(selV.indexOf(x), 1); selectie(van); herschik(selectie(van));
+        if (!reserve) CLUBS[van].s = clamp(CLUBS[van].s - 1, 30, 95);
+        nieuw = x; neemOp(id, x);
+        d = noteerDeal(van, id, x, soort, {inhaal:true, reserve});
+      } else {
+        // (c) transfervrij uit het buitenland
+        const nm = pick(ACHTERNAMEN.filter(a => naamVrij(sel, a))) || 'Novak';
+        nieuw = {v:pick(VOORL), n:nm, pos:zwak.pos, basis:true, k:randInt(laag, hoogst), lft:randInt(24, 30), g:zwak.g, a:zwak.a};
+        neemOp(id, nieuw);
+        d = noteerDeal(null, id, nieuw, soort, {inhaal:true, vrij:true});
+      }
+      // sterkte: +1, of +2 als hij veel beter is dan de speler die hij vervangt
+      const plus = Math.min(nieuw.k - zwak.k >= 5 ? 2 : 1, max - erbij, plafond - CLUBS[id].s);
+      if (plus > 0){ CLUBS[id].s += plus; erbij += plus; }
+      deals.push(d); l.push(d);
+    }
+    if (l.length) clubs.push({id, n:l.length, erbij});
+  }
+  return {deals, clubs};
 }
 // Elke zomer worden alle spelers een jaar ouder: jongens groeien, routiniers gaan achteruit, wie 34 is stopt.
 // Daarna bepaalt de klasse wie er in de basis staat, en schuift de clubsterkte mee met het niveau van de basisspelers.
@@ -128,15 +187,20 @@ export function jeugdDoorstroom(clubs){
   }
 }
 // Wat het voor jou betekent, en de krant
-function markNieuws(deals, t, mijn, jeugd, opgekomen = [], gestopt = []){
-  const sp = S.sp, cn = id => CLUBS[id].n, naam = d => metVoorletter(d), prijs = d => d.som ? ` voor ${geldTxt(d.som)}` : '';
-  const erin = deals.filter(d => d.naar === mijn), eruit = deals.filter(d => d.van === mijn), rest = deals.filter(d => d.naar !== mijn && d.van !== mijn);
+function markNieuws(deals, t, mijn, jeugd, opgekomen = [], gestopt = [], inhaal = []){
+  const sp = S.sp, cn = id => id == null ? 'het buitenland' : CLUBS[id].n, naam = d => metVoorletter(d), prijs = d => d.som ? ` voor ${geldTxt(d.som)}` : '';
+  const herkomst = d => d.vrij ? 'transfervrij uit het buitenland' : d.reserve ? `reservespeler bij ${cn(d.van)}` : `van ${cn(d.van)}`;
+  const erin = deals.filter(d => d.naar === mijn), eruit = deals.filter(d => d.van === mijn), rest = deals.filter(d => d.naar !== mijn && d.van !== mijn && !d.inhaal);
   const tekst = [];
-  for (const d of erin.slice(0, 2)) krantMelding(`${cn(mijn)} haalt ${naam(d)} bij ${cn(d.van)}`, `De ${POS_NAAM[d.pos].toLowerCase()} komt over${prijs(d)}. Een versterking voor de selectie.`);
+  // clubs die achterlopen en zich gericht versterken
+  for (const c of inhaal){ const l = deals.filter(d => d.inhaal && d.naar === c.id);
+    krantMelding(`${cn(c.id)} slaat toe op de transfermarkt: ${l.length} ${l.length === 1 ? 'versterking' : 'versterkingen'}`, `${cn(c.id)} wil niet achterblijven in de ${DIVS[t]} en haalt ${l.map(d => `${naam(d)} (${POS_NAAM[d.pos].toLowerCase()}, ${herkomst(d)})`).join(', ')}. Geen grote namen, wel spelers die het team beter maken.`); }
+  for (const d of erin.filter(d => !d.inhaal).slice(0, 2)) krantMelding(`${cn(mijn)} haalt ${naam(d)} bij ${cn(d.van)}`, `De ${POS_NAAM[d.pos].toLowerCase()} komt over${prijs(d)}. Een versterking voor de selectie.`);
   for (const d of eruit.slice(0, 2)) krantMelding(`${cn(mijn)} verkoopt ${naam(d)} aan ${cn(d.naar)}`, `De ${POS_NAAM[d.pos].toLowerCase()} vertrekt${prijs(d)}. Een gat in de selectie.`);
   if (rest.length) krantMelding(`Transfers in de ${DIVS[t]}`, rest.slice(0, 5).map(d => `${kortClub(d.naar)} haalt ${naam(d)} (${kortClub(d.van)})`).join(' · ') + '.');
   if (!jeugd){
-    if (erin.length) tekst.push(`Nieuw bij ${cn(mijn)}: ${erin.map(d => `${naam(d)} (${POS_NAAM[d.pos].toLowerCase()}, van ${cn(d.van)})`).join(', ')}.`);
+    if (erin.length) tekst.push(`Nieuw bij ${cn(mijn)}: ${erin.map(d => `${naam(d)} (${POS_NAAM[d.pos].toLowerCase()}, ${herkomst(d)})`).join(', ')}.`);
+    const ik = inhaal.find(c => c.id === mijn); if (ik) tekst.push(`De club wil niet achterblijven in de ${DIVS[t]}: met de nieuwe spelers gaat de clubsterkte omhoog naar ${CLUBS[mijn].s}.`);
     for (const d of eruit){
       const b = band(d.n); delete kleedkamer().rel[d.n];
       if (b >= 80){ mod('moraal', -4); tekst.push(`Je maatje ${naam(d)} vertrekt naar ${cn(d.naar)}. Je gaat hem missen in de kleedkamer.`); }
@@ -180,5 +244,5 @@ export function vMarkt(){
   const {t} = marktComp(), l = (S.transfers || []).filter(d => `${d.jaar}-${d.soort}` === S.marktKlaar);
   if (!l.length) return '';
   return `<details class="paneel" open><summary class="label" style="cursor:pointer">Transfers in de ${DIVS[t]} (${l.length})</summary><div class="uitslagen" style="margin-top:8px">${l.map(d =>
-    `<div class="pd"><span><span class="goedtxt">▲ ${esc(kortClub(d.naar))}</span> haalt <b>${esc(metVoorletter(d))}</b> <span class="muted klein-tekst">(${POS_NAAM[d.pos].toLowerCase()})</span></span><span class="muted"><span class="fouttxt">▼ ${esc(kortClub(d.van))}</span>${d.som ? ` · ${geldTxt(d.som)}` : ''}</span></div>`).join('')}</div></details>`;
+    `<div class="pd"><span><span class="goedtxt">▲ ${esc(kortClub(d.naar))}</span> haalt <b>${esc(metVoorletter(d))}</b> <span class="muted klein-tekst">(${POS_NAAM[d.pos].toLowerCase()})</span></span><span class="muted">${d.van == null ? 'transfervrij' : `<span class="fouttxt">▼ ${esc(kortClub(d.van))}</span>${d.reserve ? ' (reserve)' : ''}`}${d.som ? ` · ${geldTxt(d.som)}` : ''}</span></div>`).join('')}</div></details>`;
 }
