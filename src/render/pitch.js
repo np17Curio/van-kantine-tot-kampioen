@@ -583,7 +583,8 @@ let V3 = null, GEN = 0;
 if (typeof window !== 'undefined') import('./veld3d.js').then(m => { V3 = m; }).catch(e => console.warn('3D-veld kon niet laden', e));
 export const is3D = () => !!(V3 && instel().veld !== '2d' && V3.beschikbaar());
 // instel().kwaliteit = 'vast': de automatische kwaliteit nooit terugschakelen (altijd de echte spelers)
-function teken(cv, T, nu){ if (cv._3d && V3){ T.kwaliteitVast = instel().kwaliteit === 'vast'; V3.teken3D(T, nu, PITCH_KLEUR); } else tekenVeld(cv, T); }
+export const spelerModus = () => instel().spelers || (instel().kwaliteit === 'vast' ? 'echt' : 'auto');
+function teken(cv, T, nu){ if (cv._3d && V3){ T.spelers = spelerModus(); V3.teken3D(T, nu, PITCH_KLEUR); } else tekenVeld(cv, T); }
 export function pitchCanvas(el){
   const b = Math.round(Math.min(el.clientWidth || 600, Math.max(320, window.innerHeight * .48 / .52))), dpr = Math.min(2, window.devicePixelRatio || 1), h = Math.round(b * .52);
   if (is3D()){ const c3 = V3.koppel3D(el, b, h, dpr); if (c3) return c3; }
@@ -607,12 +608,12 @@ export function pitchStatisch(el, type){
   requestAnimationFrame(frame);
 }
 // Welke clubs staan er op het veld, en wie ben jij (voor een vast uiterlijk in 3D; jouw uiterlijk wordt één keer gekozen en bewaard)
-export function ploegen(){ const sp = S && S.sp; if (!sp) return {}; if (!sp.uitSleutel) sp.uitSleutel = Math.random().toString(36).slice(2, 10); return {wij:sp.club, zij:S.M ? S.M.opp : null, jij:sp.uitSleutel}; }
+export function ploegen(){ const sp = S && S.sp; if (!sp) return {}; if (!sp.uitSleutel) sp.uitSleutel = Math.random().toString(36).slice(2, 10); return {wij:sp.club, zij:S.M ? S.M.opp : null, jij:sp.uitSleutel, jijUit:sp.uiterlijk || null}; }
 export const rugnummerVeilig = () => { try { return S.M && (S.M.inter || S.M.o23) ? '' : rugnummer(); } catch (e){ return ''; } };
 export function pitchSpeel(el, a, klaar){
   const cv = pitchCanvas(el), {sc, st} = animScript(a), snel = instel().anim === 'snel' ? .5 : 1;
   const T = {ents:sc.ents, bal:{...sc.bal}, cam:sc.cam, zoom:sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(), onder:a.onder || (a.soort === 'shootout' ? 'Strafschoppen' : null)};
-  let i = -1, t0 = 0, van = null, fx = null, fxT = 0, eind = 0;
+  let i = -1, t0 = 0, van = null, fx = null, fxT = 0, eind = 0, aanzet = 0;
   const id = (PITCH = {stop:false, klaar}), gen = GEN;
   const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
   const begin = (nu) => {
@@ -623,9 +624,11 @@ export function pitchSpeel(el, a, klaar){
     if (s.d <= 1){ T.tekst = null; T.netBol = 0; T.netKant = null; fx = null; }
     if (s.bal && s.bal.van){ T.bal = {x:s.bal.van.x, y:s.bal.van.y, z:0}; van.bal = {...T.bal}; }
     // Vertrekt de bal bij een speler, dan trapt die speler hem weg (schot of pass)
+    aanzet = 0;
     if (s.bal && s.bal.to && s.bal.trap !== 'geen'){ let best = null, bd = 2.6;
       for (const k in T.ents){ const p = T.ents[k], d = Math.hypot(p.x - T.bal.x, p.y - T.bal.y); if (d < bd && (p.z || 0) < .3){ bd = d; best = k; } }
-      if (best) T.trap = {id:best, soort:s.bal.trap || null, t0:nu - 340 * snel * .35, dur:340 * snel, hard:(s.bal.boog || 0) > 2 || Math.hypot(s.bal.to.x - T.bal.x, s.bal.to.y - T.bal.y) > 14 || s.bal.to.x > 103 || s.bal.to.x < 2}; }
+      aanzet = best ? Math.min(220 * snel, s.d * snel * .45) : 0;
+      if (best) T.trap = {id:best, soort:s.bal.trap || null, t0:nu, dur:aanzet / .4, kc:.4, hard:(s.bal.boog || 0) > 2 || Math.hypot(s.bal.to.x - T.bal.x, s.bal.to.y - T.bal.y) > 14 || s.bal.to.x > 103 || s.bal.to.x < 2}; }
   };
   const frame = (nu) => {
     if (id.stop || gen !== GEN || !cv.isConnected){ return; }
@@ -634,8 +637,12 @@ export function pitchSpeel(el, a, klaar){
       const s = st[i], d = s.d * snel, t = Math.min(1, (nu - t0) / d), e = ease(t);
       for (const k in s.moves){ const m = s.moves[k], a0 = van.ents[k]; if (!m || !a0) continue; const p = T.ents[k];
         p.x = a0.x + ((m.x ?? a0.x) - a0.x) * e; p.y = a0.y + ((m.y ?? a0.y) - a0.y) * e; p.z = (a0.z || 0) + ((m.z ?? (a0.z || 0)) - (a0.z || 0)) * e; }
-      if (s.bal){ if (s.bal.volg){ const p = T.ents[s.bal.volg], m = s.moves[s.bal.volg], p0 = van.ents[s.bal.volg]; const dir = m && m.x !== undefined && p0 && Math.abs(m.x - p0.x) > .2 ? Math.sign(m.x - p0.x) : (p.rol === 'zij' || p.rol === 'k' ? -1 : 1); T.bal = {x:p.x + .8 * dir, y:p.y, z:0}; }
-        else if (s.bal.to){ const b0 = van.bal, b1 = s.bal.to; T.bal = {x:b0.x + (b1.x - b0.x) * t, y:b0.y + (b1.y - b0.y) * t + (s.bal.krul || 0) * 4 * t * (1 - t), z:(b0.z || 0) + ((b1.z || 0) - (b0.z || 0)) * t + (s.bal.boog || 0) * 4 * t * (1 - t)}; } }
+      if (s.bal){ if (s.bal.volg){ const p = T.ents[s.bal.volg], m = s.moves[s.bal.volg], p0 = van.ents[s.bal.volg];
+          // bal aan de voet, vóór de speler in zijn looprichting (staat hij stil: de richting waarin hij het laatst liep)
+          const dx = m && p0 ? (m.x ?? p0.x) - p0.x : 0, dy = m && p0 ? (m.y ?? p0.y) - p0.y : 0, l = Math.hypot(dx, dy);
+          if (l > .2) p.balRicht = {x:dx / l, y:dy / l};
+          const r = p.balRicht || {x:p.rol === 'zij' || p.rol === 'k' ? -1 : 1, y:0}; T.bal = {x:p.x + .8 * r.x, y:p.y + .8 * r.y, z:0}; }
+        else if (s.bal.to){ const b0 = van.bal, b1 = s.bal.to, tb = aanzet ? Math.max(0, Math.min(1, (nu - t0 - aanzet) / Math.max(1, d - aanzet))) : t; T.bal = {x:b0.x + (b1.x - b0.x) * tb, y:b0.y + (b1.y - b0.y) * tb + (s.bal.krul || 0) * 4 * tb * (1 - tb), z:(b0.z || 0) + ((b1.z || 0) - (b0.z || 0)) * tb + (s.bal.boog || 0) * 4 * tb * (1 - tb)}; } }
       // camera volgt de bal rustig
       T.cam += (Math.max(18, Math.min(87, T.bal.x)) - T.cam) * .06;
       if (t >= 1){ if (s.fx){ fx = s.fx; fxT = nu; if (s.fx === 'goal' || s.fx === 'tegen' || s.fx.net){ T.netKant = s.fx === 'tegen' ? 'L' : 'R'; } if (s.fx === 'geel' || s.fx === 'rood'){ T.kaart = s.fx; } } begin(nu); }
@@ -655,8 +662,9 @@ export function vPitch(overlay = ''){
   if (instel().anim === 'uit' && !M.pending) return '';
   const zet = v => knop(v === 'normaal' ? 'Normaal' : v === 'snel' ? 'Snel' : 'Uit', () => { instel().anim = v; if (v === 'uit') openAnims(M).forEach(a => a.gezien = true); }, instel().anim === v ? 'klein aan' : 'klein', 'data-blijf');
   const veld = v => knop(v.toUpperCase(), () => { instel().veld = v; }, (instel().veld || '3d') === v ? 'klein aan' : 'klein', 'data-blijf');
+  const spelers = (v, l) => knop(l, () => { instel().spelers = v; delete instel().kwaliteit; }, spelerModus() === v ? 'klein aan' : 'klein', `data-blijf title="${v === 'echt' ? 'Altijd de 3D-spelers' : v === 'auto' ? 'Eenvoudiger als het beeld te traag wordt' : 'Altijd de eenvoudige spelers (snelst)'}"`);
   return `<div id="pitch25" class="pitch25"><div class="pitchvak"><canvas aria-label="Het veld van bovenaf, schuin gezien"></canvas>${overlay ? `<div class="pitchkeuze">${overlay}</div>` : ''}</div>
-    <div class="rij pitchknop" style="gap:6px;align-items:center;flex-wrap:wrap"><span class="muted klein-tekst">Animatie:</span>${zet('normaal')}${zet('snel')}${zet('uit')}<span class="muted klein-tekst" style="margin-left:8px">Veld:</span>${veld('3d')}${veld('2d')}${nieuwAnim ? knop(open.length > 1 ? `Overslaan (${open.length}) ⏭` : 'Overslaan ⏭', () => { openAnims(M).forEach(a => a.gezien = true); }, 'klein', 'data-blijf id="pitchSkip"') : ''}</div></div>`;
+    <div class="rij pitchknop" style="gap:6px;align-items:center;flex-wrap:wrap"><span class="muted klein-tekst">Animatie:</span>${zet('normaal')}${zet('snel')}${zet('uit')}<span class="muted klein-tekst" style="margin-left:8px">Veld:</span>${veld('3d')}${veld('2d')}${(instel().veld || '3d') === '3d' ? `<span class="muted klein-tekst" style="margin-left:8px">Spelers:</span>${spelers('echt', 'Echt')}${spelers('auto', 'Auto')}${spelers('simpel', 'Simpel')}` : ''}${nieuwAnim ? knop(open.length > 1 ? `Overslaan (${open.length}) ⏭` : 'Overslaan ⏭', () => { openAnims(M).forEach(a => a.gezien = true); }, 'klein', 'data-blijf id="pitchSkip"') : ''}</div></div>`;
 }
 // Na elke weergave: het veld tekenen of de wachtrij met animaties afspelen
 export function pitchNaRender(){

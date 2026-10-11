@@ -4,6 +4,7 @@ import { CLUBS, MOMENT_POOL, TEAMGENOTEN } from '../../data/gegevens.js';
 import { gewogen, ploeg, telt } from '../competitie/spelers.js';
 import { chemie } from '../team/kleedkamer.js';
 import { tactiekKans, tactiekMoment } from '../team/tactiek.js';
+import { stamina } from './stamina.js';
 
 /* ===================== Wedstrijdmomenten ===================== */
 export const goal = (t, d) => ({t, d, goal:true});
@@ -161,6 +162,8 @@ export const focusEffect = f => (f - 60) / 400 + (f >= FLOW ? .04 : 0) - (f < SL
 export const focusWinst = n => { const f = S.sp.focus ?? 65; return Math.min(Math.round(n * (f >= FLOW ? .25 : f >= 65 ? .6 : 1)), Math.max(0, 100 - Math.round(f))); };
 export function focusBoost(n){ const echt = focusWinst(n); mod('focus', echt); return echt; }
 export function focusStaat(f){ return f >= FLOW ? {k:'In de flow', cls:'r-veilig', t:'je acties lukken vaker'} : f < SLECHTE_FOCUS ? {k:'Slechte focus', cls:'r-riskant', t:'je maakt sneller fouten'} : null; }
+// Stamina: hoe vermoeider, hoe vaker het misgaat (onder de 25 ben je echt leeg)
+export const staminaEffect = st => (st - 60) / 300 - (st < 25 ? .06 : 0);
 export function kans(opt){
   const sp = S.sp, M = S.M;
   const oppS = M.oppS ?? CLUBS[M.opp].s;
@@ -168,7 +171,7 @@ export function kans(opt){
   // Alleen tegen ploegen van Europese-topniveau (sterkte 79+), dus niet in de Topdivisie
   const top = oppS >= 79 ? oppS - 72 : 0;
   const moeilijk = opt.b + (oppS - 48) + top * (TOP_EXTRA[opt.st] || 0);
-  return clamp(.5 + (statWaarde(opt.st) - moeilijk) / 45 + sp.vorm * .03 + (sp.fit - 60) / 400 + (sp.moraal - 50) / 500 + focusEffect(sp.focus ?? 65) + (opt.st === 'pas' && telt(M) ? (chemie() - 50) / 600 : 0) + (sp.items.analist ? .02 : 0) + tactiekKans(opt.st), .05, .95);
+  return clamp(.5 + (statWaarde(opt.st) - moeilijk) / 45 + sp.vorm * .03 + staminaEffect(stamina(M)) + (sp.moraal - 50) / 500 + focusEffect(sp.focus ?? 65) + (opt.st === 'pas' && telt(M) ? (chemie() - 50) / 600 : 0) + (sp.items.analist ? .02 : 0) + tactiekKans(opt.st), .05, .95);
 }
 export function risico(p){ return p > .7 ? ['Veilig','r-veilig'] : p >= .45 ? ['Gemiddeld','r-gem'] : ['Riskant','r-riskant']; }
 export const KAART_MOMENTEN = ['tackle', 'opstootje', 'provocatie', 'verdedigen'];

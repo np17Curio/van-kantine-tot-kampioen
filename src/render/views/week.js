@@ -18,6 +18,7 @@ import { koop } from '../../game/prive/sponsors.js';
 import { vUitgaan } from '../../game/prive/verleidingen.js';
 import { AUTOS, EXAMEN_PRIJS, RIJLES, THEORIE_PRIJS, WONINGEN, autoInfo, autoWaarde, koopAuto, praktijkExamen, rijles, startTheorie, theorieAntwoord, verhuis, verkoopWaarde, woning } from '../../game/prive/wonen-auto.js';
 import { doorstroomAdvies, doorstroomDoel, doorstroomEisen, inMoment } from '../../game/speler/doorstroom.js';
+import { BEWIJS, bewijsAdvies, bewijsEisen, heeftProef } from '../../game/speler/bewijs.js';
 import { O23_EIS, fmt1, gemiddelde } from '../../game/speler/o23.js';
 import { aanvoerderActie, isAanvoerder, kleedPersonen, teamUitjePrijs } from '../../game/team/aanvoerder.js';
 import { band, bandLabel, chemie, maatActie } from '../../game/team/kleedkamer.js';
@@ -135,6 +136,7 @@ function vDezeWeek(){
   if (sp.geboorte) html += `<div class="kampioen"><span class="label">Je bent vader!</span><h2>Het is een ${sp.geboorte.jongen ? 'jongen' : 'meisje'}</h2><p>Hoe ga je ${sp.geboorte.jongen ? 'hem' : 'haar'} noemen?</p><div class="keuzes">${sp.geboorte.opties.map(n => keuzeKnop(esc(n), '', () => geefNaam(n), 'data-blijf')).join('')}</div></div>`;
   if (sp.leeftijd < 18 && sp.ouders.boos && !w.huiswerk) html += `<p class="melding">Je ouders zijn boos om je cijfers. Misschien houden ze je thuis bij de wedstrijd. Maak je deze week huiswerk, dan mag je zeker spelen.</p>`;
   html += vDoorstroom();
+  html += vBewijs();
   html += vSchool();
   // Stap 1: activiteit kiezen · stap 2 (optioneel): iets voor je focus · stap 3: spelen
   let cta;
@@ -325,6 +327,15 @@ export function vDoorstroom(){
     ${klaar ? `<p class="melding">Je voldoet aan alle eisen! ${inMoment(d.moment).charAt(0).toUpperCase() + inMoment(d.moment).slice(1)} mag je naar het 1e elftal.</p>` : `<p>${esc(doorstroomAdvies(e))}</p>`}
     <div class="eisen">${rijen.map(eisRij).join('')}</div>
     <p class="muted klein-tekst">Wedstrijden en cijfers tellen alleen voor dit seizoen. Het 1e elftal kijkt bij de winterstop (na wedstrijd 7) en in de zomer. Je volgende kans: ${inMoment(d.moment).replace('bij ', '')}.${d.moment === 'zomer' && S.ronde >= 7 ? ' In de zomer telt je hele seizoen mee.' : ''}</p></div>`;
+}
+// De laatbloeier: hoe staat zijn proefcontract ervoor?
+export function vBewijs(){
+  if (!heeftProef() || S.ronde >= 7) return '';
+  const e = bewijsEisen(), klaar = e.every(x => x.ok), nog = 7 - S.ronde;
+  return `<div class="paneel"><span class="label">Je proefcontract bij ${esc(club().n)}</span>
+    ${klaar ? `<p class="melding">${esc(bewijsAdvies(e))}</p>` : `<p>${esc(bewijsAdvies(e))}</p>`}
+    <div class="eisen">${e.map(eisRij).join('')}</div>
+    <p class="muted klein-tekst">Bij de winterstop (nog ${nog} ${nog === 1 ? 'wedstrijd' : 'wedstrijden'}) beslist de trainer. Minstens ${BEWIJS.wed} wedstrijden en gemiddeld een ${String(BEWIJS.cijfer).replace('.', ',')}: dan krijg je een vast contract.</p></div>`;
 }
 export function vSchool(){
   const v = S.week && S.week.school; if (!v) return '';

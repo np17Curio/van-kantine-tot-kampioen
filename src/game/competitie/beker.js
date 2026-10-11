@@ -19,7 +19,8 @@ import { MOMENTS, kans } from '../wedstrijd/momenten.js';
 import { ontvangst, reunieAftrap, reunieMet, reunieNaWedstrijd, vReunieEinde } from '../wedstrijd/reunie.js';
 import { planWedstrijd, stand2, verderSpelen, vervolgNaRonde } from '../wedstrijd/wedstrijd.js';
 import { animPush, reeksStrafschoppen } from '../../render/pitch.js';
-import { scorebord, vLog } from '../../render/views/match.js';
+import { scorebord, vFit, vLog } from '../../render/views/match.js';
+import { staminaNaWedstrijd } from '../wedstrijd/stamina.js';
 
 /* ===================== Beker ===================== */
 // Elke competitie heeft een beker: knock-out, bij gelijkspel strafschoppen. Bekerwedstrijden vallen tussen de speelrondes
@@ -130,7 +131,7 @@ export function eindeBeker(){
     sp.vert = clamp(sp.vert + (M.cijfer - (M.rol === 'invaller' ? 6.0 : 6.3)) * 4, 0, 100);
     sp.vorm = clamp(sp.vorm * .6 + (M.cijfer - 6.5) * .7, -3, 3);
     sp.rep = clamp(sp.rep + (M.cijfer - 6.5) + M.goals * .8, 0, 100);
-    sp.fit = clamp(sp.fit - (M.rol === 'basis' ? randInt(14, 20) : 8), 0, 100);
+    staminaNaWedstrijd(M);
     S.car.wed++; S.car.g += M.goals; S.car.a += M.assists; carCijfer(M.cijfer);
     S.ss.bg = (S.ss.bg || 0) + M.goals; S.ss.ba = (S.ss.ba || 0) + M.assists; S.ss.bw = (S.ss.bw || 0) + 1;
     statusPunten(wedstrijdPunten(M.cijfer, M.goals, M.assists, winst, M.rood, M.rol === 'invaller') * .5);
@@ -171,7 +172,7 @@ export function vBekerEnd(){
   const ronde = B.rondes[B.rondes.length - 1];
   let h = scorebord() + `<div class="verhaal"><span class="label">${esc(M.beker.naam)} · ${esc(M.beker.ronde)} · ${uitslag}${M.pens ? ` (strafschoppen ${M.pens})` : ''}</span>`;
   if (M.cijfer !== null) h += `<div class="rij" style="gap:20px;align-items:flex-end"><div><span class="label">Jouw cijfer</span><div class="groot">${fmt1(M.cijfer)}</div></div><div class="muted">${M.goals} ${M.goals === 1 ? 'goal' : 'goals'} · ${M.assists} ${M.assists === 1 ? 'assist' : 'assists'}</div></div>`
-    + (M.focusTekst ? `<p class="${M.focusOmlaag ? 'fouttxt' : 'goedtxt'}">${esc(M.focusTekst)}</p>` : '') + (M.bonus ? `<p class="melding">${esc(M.bonus.tekst)}</p>` : '');
+    + (M.focusTekst ? `<p class="${M.focusOmlaag ? 'fouttxt' : 'goedtxt'}">${esc(M.focusTekst)}</p>` : '') + vFit(M) + (M.bonus ? `<p class="melding">${esc(M.bonus.tekst)}</p>` : '');
   if (M.bekerWinst) h += `<div class="kampioen"><span class="label">Bekerwinnaar!</span><h2>🏆 ${esc(M.beker.naam)}</h2><p>${esc(club().n)} wint de ${esc(M.beker.naam)}! De beker gaat van hand tot hand en jij mag hem als eerste omhoog houden.</p></div>`;
   else if (M.bekerUit) h += `<p class="melding" style="color:var(--fout);border-color:var(--fout)">${esc(M.bekerUit)}</p>`;
   else h += `<p class="melding">Door naar de ${esc(bekerRondeNaam(k, B.rondes.length).toLowerCase())}!</p>`;

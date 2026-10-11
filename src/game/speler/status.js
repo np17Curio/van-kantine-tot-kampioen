@@ -1,11 +1,12 @@
-import { S, VERSIE, club, ovr, seizoenLabel, setS } from '../../core/state.js';
-import { clamp, pick, randInt } from '../../core/utils.js';
-import { AANV, BASE, CLUBS, JEUGD, LEGENDE, OPST_BASIS, POS, STATUS, divClubs, zetClubs } from '../../data/gegevens.js';
+import { S, VERSIE, club, ovr, salarisVoor, seizoenLabel, setS } from '../../core/state.js';
+import { clamp, randInt } from '../../core/utils.js';
+import { AANV, BASE, CLUBS, JEUGD, LEGENDE, OPST_BASIS, POS, STATUS, zetClubs } from '../../data/gegevens.js';
 import { SPEEL_LANDEN, zetLand } from '../../data/landen.js';
 import { nieuweBekers } from '../competitie/beker.js';
 import { opstMax } from '../team/opstelling.js';
 import { norm } from '../transfers/zaakwaarnemer.js';
 import { nieuweWeek } from '../week.js';
+import { LEEFTIJDEN, startClub, startIntro, startVoor } from './startverhaal.js';
 
 /* ===================== Status bij de club ===================== */
 // Startstatus bij een nieuwe club: hoe beter je bent dan de club en hoe bekender je bent, hoe hoger
@@ -72,21 +73,30 @@ export function rolBijClub(id, cObj){
 
 export function nieuweTabellen(){ const tab = {}; CLUBS.forEach((c, i) => tab[i] = {g:0,w:0,gl:0,v:0,dv:0,dt:0,pt:0}); return tab; }
 
-export function nieuwSpel(naam, pos, herkomst, land){
+// opties: {leeftijd: 15 | 18 | 23, uiterlijk: {huid, haar, kapsel}, sleutel (voor lengte, bouw en manier van bewegen, net als op het portret)}.
+// Zonder opties: een 15-jarige met een toevallig uiterlijk
+export function nieuwSpel(naam, pos, herkomst, land, opties = {}){
   zetClubs(null);
   land = SPEEL_LANDEN.includes(land) ? land : 'Nederland';
   zetLand(land);
+  const lft = LEEFTIJDEN.includes(opties.leeftijd) ? opties.leeftijd : 15, V = startVoor(lft);
   const st = POS[pos].start, a = {};
-  for (const k in st) a[k] = st[k] + randInt(-3, 3);
-  const sp = {naam, pos, leeftijd:15, a, pot:randInt(72, 94), fit:90, vorm:0, moraal:60, rep:2, vert:55,
-    salaris:BASE[JEUGD], contract:1, club:pick(divClubs(JEUGD)), geld:50, blessure:0, items:{}, transferWens:false,
-    relatie:null, rijbewijs:false, rij:{lessen:0, theorie:false}, woning:'ouders', auto:null, hond:false, status:28, clubWed:0, clubSz:0, statusNiveau:1, sindsTransfer:10, legendeHier:false,
+  for (const k in st) a[k] = st[k] + V.extra + randInt(-3, 3);
+  const id = startClub(V), jeugd = V.t === JEUGD, klasse = ovr({pos, a});
+  // In de jeugd een bankspeler; bij de senioren eerst een jonkie of nieuwkomer
+  const status = jeugd ? 28 : V.id === 'bewijs' ? 10 : 8, niveau = jeugd ? 1 : 0;
+  const sp = {naam, pos, leeftijd:lft, a, pot:Math.max(randInt(...V.pot), klasse + 6), fit:90, vorm:0, moraal:60, rep:V.rep, vert:V.vert,
+    salaris:jeugd ? BASE[JEUGD] : Math.round(salarisVoor(V.t, klasse) * (V.id === 'bewijs' ? .7 : 1)), contract:1, club:id, geld:V.geld, blessure:0, items:{}, transferWens:false,
+    relatie:null, rijbewijs:V.rijbewijs, rij:{lessen:V.rijbewijs ? 5 : 0, theorie:V.rijbewijs}, woning:V.woning, auto:V.auto, hond:false, status, clubWed:0, clubSz:0, statusNiveau:niveau, sindsTransfer:10, legendeHier:false,
     focus:65, school:{cijfers:[], gehad:[]}, ouders:{boos:false, trots:false},
-    herkomst: herkomst || {geboren:'Nederland', vader:'Nederland', moeder:'Nederland'}, land:null, bonds:{}, agent:{doel:null, antwoord:null, gehaald:false, sugg:null}};
+    herkomst: herkomst || {geboren:'Nederland', vader:'Nederland', moeder:'Nederland'}, land:null, bonds:{}, agent:{doel:null, antwoord:null, gehaald:false, sugg:null},
+    startVerhaal:V.id, ...(opties.uiterlijk ? {uiterlijk:{...opties.uiterlijk}} : {}), ...(opties.sleutel ? {uitSleutel:opties.sleutel} : {}), ...(V.id === 'bewijs' ? {bewijs:{klaar:null}} : {})};
   setS({v:VERSIE, mig4:true, mig5:true, land, startLand:land, sp, jaar:2026, ronde:0, tab:nieuweTabellen(), ss:{wed:0,g:0,a:0,c:[],bods:0}, vorigGem:6.5,
     car:{wed:0,g:0,a:0,clubs:[{club:sp.club, van:2026, land}], prijzen:[], hist:[], maxOvr:ovr(sp), maxWaarde:0, int:{}},
     fase:'week', week:null, ev:null, M:null, venster:null, eind:null});
-  S.car.hist.push(`${seizoenLabel()}: begonnen in de ${CLUBS[sp.club].n}${land !== 'Nederland' ? ` (${land})` : ''}`);
+  const wie = V.id === 'wonder' ? 'als wonderkind van 15' : V.id === 'normaal' ? 'als 18-jarige' : 'als 23-jarige laatbloeier, met een proefcontract,';
+  S.car.hist.push(`${seizoenLabel()}: begonnen ${wie} bij ${CLUBS[sp.club].n}${land !== 'Nederland' ? ` (${land})` : ''}`);
   S.ss.bekers = nieuweBekers();
   nieuweWeek(true);
+  if (opties.leeftijd) startIntro();
 }

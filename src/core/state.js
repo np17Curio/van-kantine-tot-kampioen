@@ -1,6 +1,7 @@
 import { clamp } from './utils.js';
 import { AMATEUR, BASE, CLUBS, JEUGD, POS, REF } from '../data/gegevens.js';
 import { kalmte } from '../game/speler/kalmte.js';
+import { willekeurigUiterlijk } from '../data/uiterlijk.js';
 
 /* ===================== Staat ===================== */
 export const VERSIE = 2;
@@ -25,7 +26,7 @@ export const salarisLabel = t => t === JEUGD ? 'Zakgeld/jaar' : t === AMATEUR ? 
 export function statWaarde(st){ return st === 'kalm' ? kalmte() : S.sp.a[st]; }
 export function mod(k, n){ S.sp[k] = clamp(S.sp[k] + n, 0, 100); }
 
-export const NIEUW_TMP = () => ({naam:'', pos:'SPITS', geboren:'Nederland', vader:'Nederland', moeder:'Nederland', agentQ:''});
+export const NIEUW_TMP = () => ({naam:'', pos:'SPITS', geboren:'Nederland', vader:'Nederland', moeder:'Nederland', agentQ:'', leeftijd:15, uiterlijk:willekeurigUiterlijk()});
 export let tmp = NIEUW_TMP();
 export function setS(v){ S = v; }
 export function resetTmp(){ tmp = NIEUW_TMP(); }

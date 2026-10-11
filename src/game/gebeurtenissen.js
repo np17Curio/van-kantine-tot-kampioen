@@ -3,6 +3,7 @@ import { clamp, geldTxt, pick, randInt, rnd } from '../core/utils.js';
 import { MEIDEN } from '../data/gegevens.js';
 import { selectie } from './competitie/spelers.js';
 import { roddel } from './media/roddel.js';
+import { belevenissen } from './prive/belevenissen.js';
 import { dieren } from './prive/dieren.js';
 import { ouders } from './prive/familie.js';
 import { kindLeeftijd, scheidingKosten } from './prive/gezin.js';
@@ -254,7 +255,9 @@ export function maakEvent(){
       {l:'Afzeggen en uitrusten', f(){ mod('fit', 6); return 'Je kijkt de uitzending gewoon thuis op de bank.'; }}]},
     {soort:'prive', als: bekend, tekst:'In de supermarkt herkent iemand je. Binnen een minuut staat er een rij mensen voor een selfie.', opts:[
       {l:'Iedereen een selfie geven', f(){ mod('rep', 2); mod('fit', -3); return 'Je staat er een uur. Je ijs is gesmolten.'; }},
-      {l:'Snel afrekenen en weg', f(){ mod('rep', -1); return 'Iemand roept "arrogant!" Ach.'; }}]}
+      {l:'Snel afrekenen en weg', f(){ mod('rep', -1); return 'Iemand roept "arrogant!" Ach.'; }}]},
+    // nog meer belevenissen buiten het voetbal (eigen bestand)
+    ...belevenissen({sp, n, jong, bekend, meid})
   ].filter(e => e.als !== false);
 
   const ev = pick(lijst);

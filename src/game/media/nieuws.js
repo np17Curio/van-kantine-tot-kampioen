@@ -1,7 +1,7 @@
 import { S, club, seizoenLabel, tmp } from '../../core/state.js';
 import { knop } from '../../core/ui.js';
 import { clamp, esc, pick, shuffle } from '../../core/utils.js';
-import { CLUBS, DIVS, divClubs } from '../../data/gegevens.js';
+import { AMATEUR, CLUBS, DIVS, JEUGD, divClubs } from '../../data/gegevens.js';
 import { stand } from '../competitie/spelers.js';
 import { fmt1, gemiddelde } from '../speler/o23.js';
 import { stand2 } from '../wedstrijd/wedstrijd.js';
@@ -24,18 +24,20 @@ export function maakNieuws(M, speelde){
   const k = [];
   // Dezelfde soort kop komt niet elke week terug: in de 5 wedstrijden daarna telt hij veel minder zwaar
   const nr = S.car.nieuwsNr = (S.car.nieuwsNr || 0) + 1, laatst = S.car.nieuwsLaatst = S.car.nieuwsLaatst || {};
-  const voeg = (p, kop, tekst, sleutel) => { const sl = sleutel || kop.replace(/\d+/g, ''); k.push({p: laatst[sl] !== undefined && nr - laatst[sl] <= 5 ? p - 9 : p, kop, tekst, sl}); };
+  const voeg = (p, kop, tekst, sleutel, foto) => { const sl = sleutel || kop.replace(/\d+/g, ''); k.push({p: laatst[sl] !== undefined && nr - laatst[sl] <= 5 ? p - 9 : p, kop, tekst, sl, foto}); };
   const hoger = t > 0 ? CLUBS[pick(divClubs(t - 1))].n : null;
   const cijfer = speelde ? fmt1(M.cijfer) : null;
 
   // --- Over jou ---
   if (speelde){
-    if (M.goals >= 3) voeg(10, won ? `Hattrick! ${naam} schiet ${wij} naar de zege` : `Hattrick van ${naam} niet genoeg voor ${wij}`, `${M.goals} goals in ${uit}. Hij krijgt de wedstrijdbal mee naar huis.`);
+    if (M.goals >= 3) voeg(10, won ? `Hattrick! ${naam} schiet ${wij} naar de zege` : `Hattrick van ${naam} niet genoeg voor ${wij}`, `${M.goals} goals in ${uit}. Hij krijgt de wedstrijdbal mee naar huis.`, 'hattrick' + nr, fotoVan('hattrick', `${naam} met de wedstrijdbal na zijn hattrick tegen ${zij}.`));
     if (M.rood) voeg(9, verl ? `Rood voor ${naam}: ${wij} verliest met tien man` : `Rood voor ${naam}, maar ${wij} houdt stand`, `${M.roodSoort === 'direct' ? 'Een directe rode kaart' : 'Twee keer geel'} tegen ${zij}. ${naam} is ${M.roodSoort === 'direct' ? '2 wedstrijden' : '1 wedstrijd'} geschorst.`);
     if (M.cijfer >= 8.5 && !M.rood){
-      if (lft >= 31) voeg(9, `${naam} (${lft}) laat zien dat hij het nog steeds kan`, `Een ${cijfer} tegen ${zij}. "Ouder worden? Daar doet hij niet aan," grapt de trainer.`);
-      else if (t === 0) voeg(9, `Wereldklasse van ${naam} tegen ${zij}`, `Een ${cijfer}. Op social media gaan de beelden de hele wereld over.`);
-      else voeg(9, pick([`"Deze jongen gaat de top halen"`, `"Zo'n talent zie je maar eens in de tien jaar"`, `${naam} speelt ${zij} helemaal zoek`]), `${pick(['De trainer', 'Een teamgenoot', 'De voorzitter'])} na de wedstrijd tegen ${zij}: "${naam} is te goed voor dit niveau." Hij kreeg een ${cijfer}.`, 'topwedstrijd');
+      // Man of the Match: met een foto (bij een hattrick staat die foto er al)
+      const motm = M.goals >= 3 ? null : fotoVan('motm', `Man of the Match ${naam} met zijn trofee na ${uit}.`), ms = motm ? 'motm' + nr : null;
+      if (lft >= 31) voeg(9, `${naam} (${lft}) laat zien dat hij het nog steeds kan`, `Een ${cijfer} tegen ${zij}. "Ouder worden? Daar doet hij niet aan," grapt de trainer.`, ms, motm);
+      else if (t === 0) voeg(9, `Wereldklasse van ${naam} tegen ${zij}`, `Een ${cijfer}. Op social media gaan de beelden de hele wereld over.`, ms, motm);
+      else voeg(9, pick([`"Deze jongen gaat de top halen"`, `"Zo'n talent zie je maar eens in de tien jaar"`, `${naam} speelt ${zij} helemaal zoek`]), `${pick(['De trainer', 'Een teamgenoot', 'De voorzitter'])} na de wedstrijd tegen ${zij}: "${naam} is te goed voor dit niveau." Hij kreeg een ${cijfer}.`, ms || 'topwedstrijd', motm);
     }
     const r3 = v.c.slice(-3), g3 = r3.length === 3 ? gemiddelde(r3) : null;
     if (g3 !== null && g3 >= 7.5 && M.cijfer >= 7){
@@ -90,13 +92,20 @@ export function maakNieuws(M, speelde){
   const top = k.filter(x => x.p >= 1).slice(0, 2);
   top.forEach(x => laatst[x.sl] = nr);
   const bronnen = shuffle(KRANTEN[t]);
-  const items = top.map((x, i) => ({bron:bronnen[i % bronnen.length], kop:x.kop, tekst:x.tekst, wanneer:`week ${S.ronde + 1}, ${seizoenLabel()}`}));
+  const items = top.map((x, i) => ({bron:bronnen[i % bronnen.length], kop:x.kop, tekst:x.tekst, wanneer:`week ${S.ronde + 1}, ${seizoenLabel()}`, ...(x.foto ? {foto:x.foto} : {})}));
   S.nieuws = items.concat(S.nieuws || []).slice(0, 6);
   return items;
 }
+// Een foto bij een artikel: jouw speler met de prijs (de foto zelf wordt na de weergave gemaakt, zie render/krantfoto.js)
+export const FOTO_ALT = {hattrick:'met de wedstrijdbal', motm:'met de Man of the Match-trofee', svs:'met de bokaal voor Speler van het Seizoen', topscorer:'met de Gouden Schoen'};
+export const fotoVan = (soort, onder) => ({soort, onder});
+function vFoto(f){
+  const door = club() && club().t >= 4 ? 'de clubfotograaf' : 'Studio Kantine';
+  return `<figure class="krantfoto"><div class="lijst"><img data-foto="${esc(f.soort)}" alt="${esc(S.sp.naam + ' ' + (FOTO_ALT[f.soort] || ''))}" width="720" height="480"><span class="ontwikkel">Foto wordt ontwikkeld…</span></div><figcaption>${esc(f.onder)} <span>Foto: ${door}</span></figcaption></figure>`;
+}
 export function vKrant(items){
   if (!items || !items.length) return '';
-  return `<div class="krantblok"><span class="label">In de krant</span>${items.map(n => `<article class="krant"><span class="bron">${esc(n.bron)}</span><h4>${esc(n.kop)}</h4><p>${esc(n.tekst)}</p></article>`).join('')}</div>`;
+  return `<div class="krantblok"><span class="label">In de krant</span>${items.map(n => `<article class="krant${n.foto ? ' metfoto' : ''}"><span class="bron">${esc(n.bron)}</span>${n.foto ? vFoto(n.foto) : ''}<h4>${esc(n.kop)}</h4><p>${esc(n.tekst)}</p></article>`).join('')}</div>`;
 }
 // Ranglijst van de competitie op niveau t: k = 'g' (goals) of 'a' (assists)
 export function ranglijst(t, k){
@@ -128,6 +137,16 @@ export function vUitslagen(t, r, zonderMijn){
     return `<div class="uit ${mijn ? 'mij' : ''}"><span class="th ${gh > gu ? 'w' : ''}">${esc(kortClub(h))}</span><b>${gh} - ${gu}</b><span class="tu ${gu > gh ? 'w' : ''}">${esc(kortClub(u))}</span></div>`; }).join('')}</div>`;
 }
 export const gespeeldeRondes = t => (S.ss.res && S.ss.res[t] ? S.ss.res[t].length : 0);
+// Wat betekent een plek in de stand? Kampioen promoveert, de nummer 2 en de een-na-laatste spelen nacompetitie, de laatste degradeert
+export const ZONES = {prom:'Kampioen: promoveert', po:'Nacompetitie om promotie', pod:'Nacompetitie tegen degradatie', degr:'Degradeert'};
+export function zone(t, i, n){
+  if (t === JEUGD) return null;
+  if (i === 0 && t > 0) return 'prom';
+  if (i === 1 && t > 0) return 'po';
+  if (t < AMATEUR && i === n - 1) return 'degr';
+  if (t < AMATEUR && i === n - 2) return 'pod';
+  return null;
+}
 export function vCompetitieKaart(){
   const sp = S.sp, c = club(), t = c.t, tab = tmp.comp || 'stand';
   const tabs = [['stand', 'Stand'], ['g', 'Topscorers'], ['a', 'Assists'], ['uit', 'Uitslagen']];
@@ -136,8 +155,8 @@ export function vCompetitieKaart(){
     const st = stand(t);
     inhoud = `<div class="tabelwrap"><table class="tabel">
       <thead><tr><th>#</th><th>Club</th><th>G</th><th>DS</th><th>Pt</th></tr></thead>
-      <tbody>${st.map((id, i) => { const e = S.tab[id]; return `<tr class="${id === sp.club ? 'mij' : ''}"><td>${i + 1}</td><td>${esc(CLUBS[id].n)}</td><td>${e.g}</td><td>${e.dv - e.dt > 0 ? '+' : ''}${e.dv - e.dt}</td><td>${e.pt}</td></tr>`; }).join('')}</tbody>
-    </table></div>`;
+      <tbody>${st.map((id, i) => { const e = S.tab[id], z = zone(t, i, st.length); return `<tr class="${id === sp.club ? 'mij' : ''}${z ? ' z-' + z : ''}"${z ? ` title="${ZONES[z]}"` : ''}><td>${i + 1}</td><td>${esc(CLUBS[id].n)}</td><td>${e.g}</td><td>${e.dv - e.dt > 0 ? '+' : ''}${e.dv - e.dt}</td><td>${e.pt}</td></tr>`; }).join('')}</tbody>
+    </table></div>${t === JEUGD ? '' : `<div class="zones">${Object.entries(ZONES).filter(([k]) => (t > 0 || (k !== 'prom' && k !== 'po')) && (t < AMATEUR || (k !== 'pod' && k !== 'degr'))).map(([k, l]) => `<span class="z-${k}">${l}</span>`).join('')}</div>`}`;
   } else if (tab === 'uit'){
     const n = gespeeldeRondes(t);
     if (!n) inhoud = '<p class="muted klein-tekst">Er is nog geen speelronde gespeeld.</p>';

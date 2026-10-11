@@ -2,6 +2,7 @@ import { S, club, mod, ovr, salarisVoor, seizoenLabel } from '../../core/state.j
 import { clamp, pick } from '../../core/utils.js';
 import { AANTAL_RONDES, AMATEUR, CLUBS, DIVS, JEUGD } from '../../data/gegevens.js';
 import { stand } from '../competitie/spelers.js';
+import { simNacompetitie } from '../competitie/nacompetitie.js';
 import { KRANTEN } from '../media/nieuws.js';
 import { roddel } from '../media/roddel.js';
 import { isProf } from '../prive/sponsors.js';
@@ -21,13 +22,17 @@ export function checkKampioen(M){
   M.nieuws = [kop].concat(M.nieuws || []).slice(0, 2);
   S.nieuws = [kop].concat(S.nieuws || []).slice(0, 6);
 }
-// Na het seizoen: de kampioen van een niveau gaat omhoog, de nummer laatst gaat omlaag (jeugd doet niet mee)
+// Na het seizoen: de kampioen van een niveau gaat omhoog, de nummer laatst gaat omlaag (jeugd doet niet mee).
+// Daarna de nacompetitie: wint de nummer 2 van het lagere niveau van de nummer een-na-laatst erboven, dan wisselen ze ook.
+// Zonder gespeelde nacompetitie (trainermodus) wordt die hier gesimuleerd.
 export function bepaalPromotie(){
   const wissels = [];
   for (let t = 0; t < AMATEUR; t++){
     const boven = stand(t), onder = stand(t + 1);
     wissels.push({id:boven[boven.length - 1], van:t, naar:t + 1}, {id:onder[0], van:t + 1, naar:t});
   }
+  const po = S.ss.po && S.ss.po.every(p => p.w !== undefined) ? S.ss.po : (S.ss.po = simNacompetitie());
+  for (const p of po) if (p.w === p.laag) wissels.push({id:p.laag, van:p.t + 1, naar:p.t, po:true}, {id:p.hoog, van:p.t, naar:p.t + 1, po:true});
   return wissels;
 }
 export function voerPromotieUit(wissels){

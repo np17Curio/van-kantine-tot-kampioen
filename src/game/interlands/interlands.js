@@ -6,6 +6,7 @@ import { statusNiveau } from '../speler/status.js';
 import { focusNaWedstrijd } from '../wedstrijd/focus.js';
 import { planWedstrijd, stand2, verderSpelen } from '../wedstrijd/wedstrijd.js';
 import { nieuweWeek } from '../week.js';
+import { staminaNaWedstrijd } from '../wedstrijd/stamina.js';
 
 /* ===================== Interlands ===================== */
 export const magInterland = () => club().t <= 2 && S.sp.leeftijd >= 17 && !S.sp.o23;
@@ -71,7 +72,7 @@ export function eindeInterland(){
   M.bonus = topBonus(M);
   sp.vorm = clamp(sp.vorm * .7 + (M.cijfer - 6.5) * .3, -3, 3);
   sp.rep = clamp(sp.rep + 2 + (M.cijfer - 6.5) * 1.5 + M.goals * 1.5 + M.assists * .7, 0, 100);
-  sp.fit = clamp(sp.fit - (M.rol === 'basis' ? 15 : 7), 0, 100);
+  staminaNaWedstrijd(M);
   mod('moraal', M.us >= M.them ? 6 : -2);
   const st = S.car.int[naam] = S.car.int[naam] || {caps:0, g:0, a:0};
   const debuut = st.caps === 0, eersteGoal = st.g === 0 && M.goals > 0;

@@ -1,6 +1,7 @@
 import { S, bewaar, tmp } from './state.js';
 import { vToernooi, vToernooiEinde } from '../game/interlands/toernooi.js';
 import { instel, openAnims, pitchNaRender, vPitch } from '../render/pitch.js';
+import { fotoNaRender } from '../render/krantfoto.js';
 import { vHud } from '../render/views/hud.js';
 import { vOproep } from '../render/views/interland.js';
 import { vMatch, vMatchEnd } from '../render/views/match.js';
@@ -41,6 +42,7 @@ export function render(){
   if (S && !tmp.stats && S.fase === 'matchEnd' && S.M && openAnims(S.M).length && instel().anim !== 'uit') veld.insertAdjacentHTML('afterbegin', vPitch());
   const log = veld.querySelector('.log'); if (log) log.scrollTop = log.scrollHeight;
   try { pitchNaRender(); } catch (e){ console.error('veld', e); }
+  try { fotoNaRender(); } catch (e){ console.error('krantenfoto', e); }
   markeerSneltoetsen(veld);
   if (S) bewaar();
 }

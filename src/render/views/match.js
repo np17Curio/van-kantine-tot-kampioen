@@ -3,11 +3,13 @@ import { act, knop } from '../../core/ui.js';
 import { esc } from '../../core/utils.js';
 import { AANTAL_RONDES, ATTR, CLUBS } from '../../data/gegevens.js';
 import { naWedstrijd, vBekerEnd } from '../../game/competitie/beker.js';
+import { vNacompetitieEnd } from '../../game/competitie/nacompetitie.js';
 import { vKrant, vOokGespeeld } from '../../game/media/nieuws.js';
 import { social, volgersTxt } from '../../game/prive/social.js';
 import { fmt1 } from '../../game/speler/o23.js';
 import { vPers } from '../../game/wedstrijd/fans-pers.js';
 import { focusStaat, kans, pOpts, risico } from '../../game/wedstrijd/momenten.js';
+import { WAARSCHUW, actieKosten, stamina } from '../../game/wedstrijd/stamina.js';
 import { vReunieEinde } from '../../game/wedstrijd/reunie.js';
 import { kies, mijnNaam, stand2 } from '../../game/wedstrijd/wedstrijd.js';
 import { vPitch } from '../pitch.js';
@@ -19,7 +21,7 @@ export function vO23End(){
   return scorebord() + vSeizoenStrip() + `<div class="verhaal"><span class="label">O23 · ${uitslag}</span>
     <div class="rij" style="gap:20px;align-items:flex-end"><div><span class="label">Jouw cijfer</span><div class="groot">${fmt1(M.cijfer)}</div></div>
     <div class="muted">${M.goals} ${M.goals === 1 ? 'goal' : 'goals'} · ${M.assists} ${M.assists === 1 ? 'assist' : 'assists'}${M.rood ? ' · rode kaart' : ''}</div></div>
-    ${M.focusTekst ? `<p class="${M.focusOmlaag ? 'fouttxt' : 'goedtxt'}">${esc(M.focusTekst)}</p>` : ''}
+    ${M.focusTekst ? `<p class="${M.focusOmlaag ? 'fouttxt' : 'goedtxt'}">${esc(M.focusTekst)}</p>` : ''}${vFit(M)}
     <p class="melding">${esc(M.o23Tekst)}</p>
     ${M.bonus ? `<p class="melding">${esc(M.bonus.tekst)}</p>` : ''}
     ${M.groei ? `<p class="muted">Door je goede spel groeit je ${ATTR[M.groei].toLowerCase()} met 1.</p>` : ''}
@@ -32,7 +34,19 @@ export function scorebord(){
   const [l, r] = M.thuis ? [mij, hun] : [hun, mij];
   return `<div class="score"><div class="team ${M.thuis ? 'mij' : ''}">${l}</div>
     <div class="stand">${stand2()}<span class="min">${M.derby ? '<b style="color:var(--fout)">DERBY</b> · ' : ''}${M.klaar ? 'EINDE' : M.min + "'"}</span></div>
-    <div class="team r ${!M.thuis ? 'mij' : ''}">${r}</div></div>`;
+    <div class="team r ${!M.thuis ? 'mij' : ''}">${r}</div>${vStamina(M)}</div>`;
+}
+// Hoeveel energie heb je nog? Alleen zolang jij in het veld staat (of net gewisseld bent)
+export function vStamina(M){
+  if (!M.stam || M.klaar || M.rood) return '';
+  if (M.gewisseld !== undefined) return `<div class="stamina uit"><span class="label">Gewisseld (${M.gewisseld}')</span><span class="muted klein-tekst">Je stamina was op.</span></div>`;
+  const st = Math.round(stamina(M)), kl = st > 50 ? 'hoog' : st >= 25 ? 'mid' : 'laag', alarm = M.rol === 'basis' && st < M.wisselGrens + WAARSCHUW;
+  return `<div class="stamina ${kl}${alarm ? ' alarm' : ''}" title="Elke minuut en elke actie kost stamina. Moeilijke acties kosten meer. Is hij op, dan wisselt de trainer je."><span class="label">Stamina</span><div class="stambalk"><i style="width:${st}%"></i></div><b>${st}</b>${alarm ? '<span class="klein-tekst">Wisselgevaar</span>' : ''}</div>`;
+}
+// Na afloop: hoeveel fitheid kostte het, en werd je gewisseld?
+export function vFit(M){
+  if (M.fitVoor === undefined) return '';
+  return (M.gewisseld !== undefined ? `<p class="fouttxt">De trainer wisselde je in de ${M.gewisseld}e minuut: je stamina was op.</p>` : '') + `<p class="muted">Fitheid: ${M.fitVoor} → ${S.sp.fit}.</p>`;
 }
 // Nieuwe regels sinds de vorige weergave verschijnen één voor één, alsof je de wedstrijd live volgt
 export const REGEL_TEMPO = .22;
@@ -50,8 +64,8 @@ export function vMatch(){
   if (M.pending){
     const f = Math.round(S.sp.focus ?? 65), fs = focusStaat(f);
     keuzeHtml = `<p class="moment nieuw" ${wacht}><b>${M.min}'</b> · ${esc(M.pending.tekst)}</p><p class="opst nieuw" ${wacht}><span class="label">Focus ${f}</span>${fs ? `<span class="risico ${fs.cls}">${fs.k}</span><span class="muted klein-tekst">${fs.t}</span>` : '<span class="muted klein-tekst">Lukt een actie, dan groeit je focus. Mislukt ze, dan zakt hij.</span>'}</p><div class="keuzes nieuw" ${wacht}>${pOpts(M.pending).map((o, i) => {
-      const [r, cls] = risico(kans(o));
-      return `<button class="keuze" data-i="${act(() => kies(i))}"><span class="t">${esc(o.l)}</span><span class="s">${ATTR[o.st]} ${statWaarde(o.st)} <span class="risico ${cls}">${r}</span>${o.kaart ? `<span class="kaartrisico ${o.kaart}">${o.kaart === 'rood' ? 'kans op rood' : 'kans op geel'}</span>` : ''}</span></button>`;
+      const [r, cls] = risico(kans(o)), kost = actieKosten(o);
+      return `<button class="keuze" data-i="${act(() => kies(i))}"><span class="t">${esc(o.l)}</span><span class="s">${ATTR[o.st]} ${statWaarde(o.st)} <span class="risico ${cls}">${r}</span><span class="stamkost${kost >= 6 ? ' zwaar' : ''}" title="Kost ${kost} stamina">−${kost} ⚡</span>${o.kaart ? `<span class="kaartrisico ${o.kaart}">${o.kaart === 'rood' ? 'kans op rood' : 'kans op geel'}</span>` : ''}</span></button>`;
     }).join('')}</div>`;
   }
   // Jouw actie staat op het veld zelf; zonder veld staat hij boven het verslag
@@ -64,6 +78,7 @@ export function vMatchEnd(){
   if (M.inter) return vInterEnd();
   if (M.o23) return vO23End();
   if (M.beker) return vBekerEnd();
+  if (M.po) return vNacompetitieEnd();
   const uitslag = M.us > M.them ? 'Gewonnen' : M.us < M.them ? 'Verloren' : 'Gelijkgespeeld';
   let oordeel = '';
   if (M.cijfer !== null){
@@ -73,7 +88,7 @@ export function vMatchEnd(){
   if (M.cijfer !== null){
     html += `<div class="rij" style="gap:20px;align-items:flex-end"><div><span class="label">Jouw cijfer</span><div class="groot">${M.cijfer.toFixed(1).replace('.', ',')}</div></div>
       <div class="muted">${M.goals} ${M.goals === 1 ? 'goal' : 'goals'} · ${M.assists} ${M.assists === 1 ? 'assist' : 'assists'}${M.rood ? ' · rode kaart' : M.geel ? ' · gele kaart' : ''}</div></div>
-      <p>${oordeel}</p>${M.focusTekst ? `<p class="${M.focusOmlaag ? 'fouttxt' : 'goedtxt'}">${esc(M.focusTekst)}</p>` : ''}`;
+      <p>${oordeel}</p>${M.focusTekst ? `<p class="${M.focusOmlaag ? 'fouttxt' : 'goedtxt'}">${esc(M.focusTekst)}</p>` : ''}${vFit(M)}`;
     if (M.volgers) html += `<p class="muted">${M.volgers > 0 ? '+' : ''}${volgersTxt(M.volgers)} volgers op social media (nu ${volgersTxt(social().volgers)}).</p>`;
     if (M.volgerTekst) html += `<p class="melding">${esc(M.volgerTekst)}</p>`;
     if (M.kaartTekst) html += `<p class="melding" style="${M.rood ? 'color:var(--fout);border-color:var(--fout)' : ''}">${esc(M.kaartTekst)}</p>`;

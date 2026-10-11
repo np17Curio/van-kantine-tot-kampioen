@@ -1,5 +1,5 @@
 import { S, club, mod, ovr, seizoenLabel } from '../../core/state.js';
-import { clamp, randInt, rnd, shuffle } from '../../core/utils.js';
+import { clamp, rnd, shuffle } from '../../core/utils.js';
 import { AMATEUR, CLUBS, POS, divClubs } from '../../data/gegevens.js';
 import { fixture, simGoals } from '../competitie/competitie.js';
 import { speelRonde } from '../competitie/spelers.js';
@@ -12,6 +12,7 @@ import { agentReset } from '../transfers/zaakwaarnemer.js';
 import { focusNaWedstrijd } from '../wedstrijd/focus.js';
 import { planWedstrijd, verderSpelen } from '../wedstrijd/wedstrijd.js';
 import { verhoog } from '../week.js';
+import { staminaNaWedstrijd } from '../wedstrijd/stamina.js';
 
 /* ===================== O23 en verhuur ===================== */
 export const gemiddelde = l => l.reduce((a, b) => a + b, 0) / l.length;
@@ -73,7 +74,7 @@ export function eindeO23(){
   if (sp.pos === 'VERD' && M.them === 0) M.cijfer += .5;
   M.cijfer = Math.round(clamp(M.cijfer, 3, 10) * 10) / 10;
   sp.vorm = clamp(sp.vorm * .5 + (M.cijfer - 6.5) * .7, -3, 3);
-  sp.fit = clamp(sp.fit - randInt(14, 20), 0, 100);
+  staminaNaWedstrijd(M);
   mod('vert', (M.cijfer - 6.5) * 3);
   O.cijfers.push(M.cijfer); O.g += M.goals; O.a += M.assists;
   focusNaWedstrijd(M);

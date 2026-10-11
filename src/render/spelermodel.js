@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as kloonSkelet } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { HAAR, HUID, KAPSELS, SCHOENEN } from '../data/uiterlijk.js';
 
 /* ===================== Spelersmodel (GLB) ===================== */
 // 3D-model: "pallone da calcio+giocatore" door rosaliarenda (Sketchfab), CC-BY-4.0.
@@ -45,11 +46,11 @@ export function laadModel(){
       act.stop(); mixer.uncacheRoot(scene);
       for (const [o, q, p] of rust){ o.quaternion.copy(q); o.position.copy(p); } // het model terug in zijn ruststand
     }
-    // hoofd: waar de schedel zit (voor de kapsels), in houder-ruimte
-    let hoofd = null; scene.traverse(o => { if (o.isBone && naamVan(o) === 'head') hoofd = o; });
-    houder.updateMatrixWorld(true);
-    const schedel = hoofd ? hoofd.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(0, .93, 0);
-    BASIS = {houder, bron, clip, handen, schedel, tex:{}, mat:{}, geo:{}};
+    // het haar van het model: alle kapsels worden hieruit gemaakt (zie haarGeo)
+    let haar = null; scene.traverse(o => { if (o.isMesh && o.userData.deel === 'haar') haar = o.geometry; });
+    // welke botten de animatie zelf beweegt (de andere, zoals het hoofd en het bekken, hebben geen spoor)
+    const metSpoor = new Set(clip ? clip.tracks.filter(t => t.name.endsWith('.quaternion')).map(t => naamVan({name:t.name.slice(0, t.name.lastIndexOf('.'))})) : []);
+    BASIS = {houder, bron, clip, handen, haar:haar ? haarMaten(haar) : null, metSpoor, tex:{}, mat:{}, geo:{}};
     return BASIS;
   })().catch(e => { console.warn('Spelersmodel kon niet laden, de eenvoudige spelers blijven', e); BASIS = null; throw e; });
   return BELOFTE;
@@ -98,17 +99,17 @@ function grijs(naam, opties = {}){
 const materiaal = (key, maak) => BASIS.mat[key] || (BASIS.mat[key] = maak());
 
 // ---------- uiterlijk ----------
-export const HUID = ['#f2d1b3', '#e5b893', '#c99366', '#a46a43', '#7b4a2c', '#5a3420'];
-export const HAAR = ['#1a1410', '#3b2516', '#6b4527', '#c9a15a', '#9a4a22', '#9b9b9b'];
-export const SCHOENEN = ['#111111', '#f2f2f2', '#d8ff3a', '#ff5a2a', '#2f6bff'];
-export const KAPSELS = ['model', 'model', 'kort', 'kuif', 'krul', 'staart', 'lang', 'kaal'];
+export { HAAR, HUID, KAPSELS, SCHOENEN }; // de lijsten staan in data/uiterlijk.js
 export function hashGetal(s){ let h = 2166136261; for (let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
-// Een vaste dobbelsteen: dezelfde sleutel geeft altijd hetzelfde uiterlijk, en ook dezelfde manier van bewegen
-export function uiterlijkVoor(sleutel){
+// Een vaste dobbelsteen: dezelfde sleutel geeft altijd hetzelfde uiterlijk, en ook dezelfde manier van bewegen.
+// eigen = wat je zelf koos bij het aanmaken van je speler (huid, haar, kapsel); de rest blijft van de dobbelsteen
+export function uiterlijkVoor(sleutel, eigen){
   let h = hashGetal(sleutel); const d = n => { h = Math.imul(h ^ (h >>> 15), 2246822519) >>> 0; return h % n; };
   const huid = d(HUID.length);
-  return {huid, haar: huid >= 4 && d(3) ? 0 : d(HAAR.length), kapsel:KAPSELS[d(KAPSELS.length)], lengte:.93 + d(15) / 100, bouw:.9 + d(21) / 100, schoen:d(SCHOENEN.length),
+  const u = {huid, haar: huid >= 4 && d(3) ? 0 : d(HAAR.length), kapsel:KAPSELS[d(KAPSELS.length)], lengte:.93 + d(15) / 100, bouw:.9 + d(21) / 100, schoen:d(SCHOENEN.length),
     stijl:{arm:.8 + d(41) / 100, pas:.9 + d(26) / 100, houding:d(11) / 100, veer:.85 + d(31) / 100}};
+  if (eigen){ if (HUID[eigen.huid]) u.huid = eigen.huid; if (HAAR[eigen.haar]) u.haar = eigen.haar; if (KAPSELS.includes(eigen.kapsel)) u.kapsel = eigen.kapsel; }
+  return u;
 }
 // Tenue van een club: jullie limoen, keepers en scheids vast, de rest volgens de club (soms gestreept)
 const CLUBKLEUR = [['#d42a2a', '#ffffff', 0], ['#1e5bd6', '#ffffff', 0], ['#f2f2f2', '#1b2a52', 0], ['#ff7a1a', '#111111', 0], ['#6d2bd1', '#ffffff', 0], ['#3fa9ff', '#ffffff', 0],
@@ -130,20 +131,63 @@ function tenueMaterialen(t){
   };
 }
 
-// ---------- kapsels: kleine meshes aan het hoofdbot ----------
-function kapselGeo(soort){
-  if (BASIS.geo[soort]) return BASIS.geo[soort];
-  const r = .062; let g;
-  if (soort === 'krul'){ g = new THREE.IcosahedronGeometry(r * 1.32, 2); const p = g.attributes.position; for (let i = 0; i < p.count; i++){ const v = new THREE.Vector3().fromBufferAttribute(p, i); const k = 1 + .08 * Math.sin(v.x * 140) * Math.sin(v.y * 160) * Math.sin(v.z * 150); if (v.y < -r * .25) v.y = -r * .25 + (v.y + r * .25) * .25; v.multiplyScalar(k); p.setXYZ(i, v.x, v.y, v.z); } g.computeVertexNormals(); }
-  else {
-    g = new THREE.SphereGeometry(r * 1.07, 18, 12, 0, Math.PI * 2, 0, Math.PI * (soort === 'lang' ? .66 : .5));
-    if (soort === 'kuif'){ const k = new THREE.SphereGeometry(r * .55, 10, 8); k.scale(1.2, .6, 1); k.translate(0, r * .9, r * .55); g = samen([g, k]); }
-    if (soort === 'staart'){ const s = new THREE.CylinderGeometry(r * .18, r * .1, r * 1.6, 8); s.rotateX(.5); s.translate(0, -r * .2, -r * 1.1); g = samen([g, s]); }
-    if (soort === 'lang') g.scale(1, 1.15, 1.08);
-  }
-  return BASIS.geo[soort] = g;
+// ---------- kapsels: allemaal gemaakt van het echte haar van het model ----------
+// Het haar is een mesh met losse plukjes en een doorzichtige textuur. Voor elk kapsel wordt een kopie vervormd:
+// korter tegen het hoofd, een kuif omhoog, langer in de nek, voller voor krullen, of een staart. Zo houdt elk kapsel
+// dezelfde echte plukjes en schaduw, en beweegt het met het hoofd mee (de koppeling met het skelet blijft gelijk).
+// In de ruimte van het haar-mesh is z omhoog en -y voor.
+function haarMaten(g){
+  g.computeBoundingBox(); const b = g.boundingBox, c = b.getCenter(new THREE.Vector3()), h = b.getSize(new THREE.Vector3()).multiplyScalar(.5);
+  const s = new THREE.Vector3(c.x, c.y, c.z - h.z * .35), pos = g.attributes.position, v = new THREE.Vector3(), d = [];
+  for (let i = 0; i < pos.count; i++) d.push(v.fromBufferAttribute(pos, i).distanceTo(s));
+  d.sort((a, b) => a - b);
+  // s: ongeveer het midden van de schedel; huid: de afstand waarop de binnenste plukjes op de hoofdhuid liggen
+  return {geo:g, c, h, s, huid:d[Math.floor(d.length * .15)]};
 }
-function samen(lijst){ const pos = [], norm = []; for (const g of lijst){ const n = g.index ? g.toNonIndexed() : g; pos.push(...n.attributes.position.array); norm.push(...n.attributes.normal.array); } const u = new THREE.BufferGeometry(); u.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); u.setAttribute('normal', new THREE.Float32BufferAttribute(norm, 3)); return u; }
+const glad = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+function haarGeo(kapsel){
+  const H = BASIS.haar; if (!H || kapsel === 'model' || kapsel === 'kaal') return H ? H.geo : null;
+  if (BASIS.geo['haar|' + kapsel]) return BASIS.geo['haar|' + kapsel];
+  const g = H.geo.clone(), pos = g.attributes.position, {c, h, s, huid} = H, p = new THREE.Vector3();
+  // korter: niet naar binnen drukken (dan zakt het haar in de schedel), maar de lengte eraf halen:
+  // nek en zijkant omhoog, de pony iets omhoog en naar achteren, en het volume een fractie kleiner
+  const kort = (p, w, v) => {
+    const k = 1 - .15 * (1 - glad(-.1, .5, v)); // aan de achterkant niet: daar ligt het haar al dicht tegen het hoofd
+    const q = p.clone().sub(s), d = q.length(); if (d > huid) p.copy(s).add(q.multiplyScalar((huid + (d - huid) * k) / d));
+    if (w < -.45) p.z += (-.45 - w) * h.z * .35; // alleen de punten in de nek, anders wordt het achterhoofd kaal
+    const pony = glad(-.35, -1, v) * glad(-.6, .3, w); p.z += pony * h.z * .1; p.y += pony * h.y * .1;
+  };
+  for (let i = 0; i < pos.count; i++){
+    p.fromBufferAttribute(pos, i);
+    const u = (p.x - c.x) / h.x, v = (p.y - c.y) / h.y, w = (p.z - c.z) / h.z; // opzij, voor (-) / achter (+), hoogte
+    if (kapsel === 'kort') kort(p, w, v);
+    else if (kapsel === 'kuif'){
+      kort(p, w, v);
+      const t = glad(0, .8, w) * glad(.4, -.6, v); // bovenop en voor
+      p.z += t * h.z * .42; p.y -= t * h.y * .22;
+    } else if (kapsel === 'krul'){
+      const q = p.clone().sub(s), golf = Math.sin(p.x / h.x * 9) * Math.sin(p.y / h.y * 8) * Math.sin(p.z / h.z * 10);
+      p.copy(s).add(q.multiplyScalar(1.13 + .05 * golf));
+    } else if (kapsel === 'lang'){
+      // zij- en achterkant onder de oren naar beneden, de pony voor blijft kort
+      const lager = Math.max(0, -.1 - w), achter = glad(-.6, .1, v);
+      p.z -= lager * h.z * 2.2 * achter; p.y += lager * h.y * .25 * achter;
+      p.x += Math.sign(u) * lager * h.x * .12 * achter;
+    } else if (kapsel === 'staart'){
+      // voor en bovenop kort; de achterkant bij elkaar gebonden en als een staart naar beneden
+      // alleen het onderste deel van de achterkant wordt de staart; de rest blijft het hoofd bedekken
+      const staart = glad(.15, .6, v) * glad(-.1, -.55, w);
+      if (staart < 1) kort(p, w, v);
+      if (staart > 0){ const onder = Math.max(0, -.1 - w);
+        p.x = c.x + (p.x - c.x) * (1 - .7 * staart);
+        p.y += staart * onder * h.y * .35;
+        p.z -= staart * onder * h.z * 1.3; }
+    }
+    pos.setXYZ(i, p.x, p.y, p.z);
+  }
+  pos.needsUpdate = true; g.computeVertexNormals(); g.computeBoundingBox(); g.computeBoundingSphere();
+  return BASIS.geo['haar|' + kapsel] = g;
+}
 
 // Een nieuwe speler: kloon van het model met materialen voor dit uiterlijk en tenue
 export function maakModelSpeler(uit, tenue){
@@ -162,7 +206,7 @@ export function maakModelSpeler(uit, tenue){
     o.frustumCulled = false; meshes.push(o);
     const deel = o.userData.deel;
     o.material = deel === 'shirt' ? t.shirt : deel === 'broek' ? [t.broek, knie, t.sok] : deel === 'schoenen' ? schoen : deel === 'huid' ? huid : deel === 'wenkbrauw' ? wenk : deel === 'ogen' ? ogen : deel === 'haar' ? modelHaar : o.material;
-    if (deel === 'haar') o.visible = uit.kapsel === 'model';
+    if (deel === 'haar'){ const hg = haarGeo(uit.kapsel); if (hg) o.geometry = hg; o.visible = uit.kapsel !== 'kaal'; }
   });
   obj.scale.set(uit.bouw, uit.lengte, uit.bouw);
   // botten opzoeken; vingers in een ontspannen houding; ruststand en richting (naar het volgende gewricht) onthouden
@@ -170,18 +214,10 @@ export function maakModelSpeler(uit, tenue){
   obj.traverse(o => { if (!o.isBone) return; const n = naamVan(o); if (BOTTEN.includes(n)) botten[n] = o; if (BASIS.handen[n]) o.quaternion.copy(BASIS.handen[n]); });
   for (const naam in botten){ const b = botten[naam], kind = b.children.find(c => c.isBone && !VINGER.test(naamVan(c)) && !/thumb|index|middle|ring|pinky/.test(naamVan(c))) || b.children.find(c => c.isBone);
     b.userData.rust = b.quaternion.clone(); b.userData.richting = kind ? kind.position.clone().normalize() : new THREE.Vector3(0, 1, 0); }
-  // kapsel aan het hoofdbot, zo geplaatst dat het in de rusthouding precies op de schedel zit
-  if (uit.kapsel !== 'kaal' && uit.kapsel !== 'model' && botten.head){
-    const haar = new THREE.Mesh(kapselGeo(uit.kapsel), materiaal('haar|' + uit.haar, () => new THREE.MeshLambertMaterial({color:haarKl})));
-    obj.updateMatrixWorld(true);
-    const wereld = new THREE.Matrix4().compose(BASIS.schedel.clone().add(new THREE.Vector3(0, .028, -.012)).applyMatrix4(obj.matrixWorld), new THREE.Quaternion(), new THREE.Vector3(uit.bouw, uit.lengte, uit.bouw));
-    haar.matrix.copy(botten.head.matrixWorld.clone().invert().multiply(wereld)); haar.matrix.decompose(haar.position, haar.quaternion, haar.scale);
-    botten.head.add(haar); meshes.push(haar);
-  }
   // stilstaan: het rustige eerste deel van de modelanimatie, per speler op een ander moment begonnen
   let mixer = null, idle = null;
   if (BASIS.clip){ mixer = new THREE.AnimationMixer(obj); idle = mixer.clipAction(THREE.AnimationUtils.subclip(BASIS.clip, 'rust', 0, 130, 30)); idle.play(); mixer.setTime((hashGetal(JSON.stringify(uit)) % 400) / 100); }
-  return {obj, botten, meshes, mixer, idle, tenueKey:tenueKey(tenue), stijl:uit.stijl};
+  return {obj, botten, meshes, mixer, idle, metSpoor:BASIS.metSpoor, tenueKey:tenueKey(tenue), stijl:uit.stijl};
 }
 // Ander tenue (bijvoorbeeld bij strafschoppen wisselt de rol), zonder de kloon opnieuw te maken
 export function zetTenue(m, tenue){
@@ -190,28 +226,29 @@ export function zetTenue(m, tenue){
   for (const o of m.meshes){ if (o.userData.deel === 'shirt') o.material = t.shirt; else if (o.userData.deel === 'broek') o.material = [t.broek, o.material[1], t.sok]; }
   m.tenueKey = key;
 }
-// Een bot zo draaien dat het in dezelfde richting wijst als het hulpbot (de kleinste draaiing vanuit zijn ruststand).
-// basis: de quaternion om vanuit te beginnen (meestal de ruststand; bij stilstaan de stand uit de animatie)
-const _q = new THREE.Quaternion(), _qp = new THREE.Quaternion(), _v = new THREE.Vector3(), _d = new THREE.Vector3(), _qd = new THREE.Quaternion();
-export function lijnBotUit(bot, hulp, basis){
+// Botten draaien. Alles wordt uitgerekend in de ruimte van het model zelf (onder de schaal van de speler): elke speler is
+// anders geschaald in breedte en lengte, en bij zo'n ongelijke schaal zijn wereldrotaties niet zuiver. Dat gaf kleine,
+// steeds wisselende fouten in nek en hoofd (trillende, rollende hoofden). Binnen het model is alle schaal gelijk en klopt het precies.
+const _q = new THREE.Quaternion(), _qp = new THREE.Quaternion(), _v = new THREE.Vector3(), _d = new THREE.Vector3(), _qd = new THREE.Quaternion(), _m = new THREE.Matrix4();
+// draaiing van een bot ten opzichte van het model (product van de lokale draaiingen van het model tot en met het bot)
+function inModel(bot, obj, uit){ uit.identity(); const keten = []; for (let o = bot; o && o !== obj; o = o.parent) keten.push(o); for (let i = keten.length - 1; i >= 0; i--) uit.multiply(keten[i].quaternion); return uit; }
+// Een bot zo draaien dat het in dezelfde richting wijst als het hulpbot (de kleinste draaiing vanuit zijn ruststand)
+export function lijnBotUit(bot, hulp, basis, obj){
   if (!bot || !hulp) return;
-  bot.quaternion.copy(basis || bot.userData.rust); bot.updateMatrixWorld(true);
-  bot.getWorldQuaternion(_q);
-  _v.copy(bot.userData.richting).applyQuaternion(_q).normalize();
-  _d.set(0, -1, 0).applyQuaternion(hulp.getWorldQuaternion(_qd)).normalize();
+  bot.quaternion.copy(basis || bot.userData.rust);
+  inModel(bot, obj, _q);
+  _v.copy(bot.userData.richting).applyQuaternion(_q).normalize();                       // waar het bot nu naartoe wijst (modelruimte)
+  _d.set(0, -1, 0).applyQuaternion(hulp.getWorldQuaternion(_qd));                       // waar het heen moet (wereld; het hulpskelet heeft geen ongelijke schaal)
+  _d.transformDirection(_m.copy(obj.matrixWorld).invert());                             // ... naar modelruimte
   _qd.setFromUnitVectors(_v, _d).multiply(_q);
-  bot.parent.getWorldQuaternion(_qp);
+  inModel(bot.parent, obj, _qp);
   bot.quaternion.copy(_qp.invert().multiply(_qd));
-  bot.updateMatrixWorld(true);
 }
-// Een bot extra draaien om een as in de ruimte van de speler (x = opzij, y = omhoog, z = vooruit), bovenop zijn huidige stand
-const _as = new THREE.Vector3(), _qr = new THREE.Quaternion();
-export function draaiBot(bot, lijfQ, ax, ay, az, hoek){
+// Een bot extra draaien om een as in de ruimte van het model (x = opzij, y = omhoog, z = vooruit), bovenop zijn huidige stand
+const _as = new THREE.Vector3();
+export function draaiBot(bot, obj, ax, ay, az, hoek){
   if (!bot || !hoek) return;
-  _as.set(ax, ay, az).applyQuaternion(lijfQ).normalize();
-  _qr.setFromAxisAngle(_as, hoek);
-  bot.getWorldQuaternion(_q); _qd.copy(_qr).multiply(_q);
-  bot.parent.getWorldQuaternion(_qp);
+  _qd.setFromAxisAngle(_as.set(ax, ay, az).normalize(), hoek).multiply(inModel(bot, obj, _q));
+  inModel(bot.parent, obj, _qp);
   bot.quaternion.copy(_qp.invert().multiply(_qd));
-  bot.updateMatrixWorld(true);
 }

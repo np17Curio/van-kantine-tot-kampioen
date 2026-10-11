@@ -12,7 +12,6 @@ import { isProf, topBonus } from '../prive/sponsors.js';
 import { carCijfer } from '../seizoen/carriere.js';
 import { checkKampioen } from '../seizoen/kampioen.js';
 import { recordsNaWedstrijd } from '../seizoen/records.js';
-import { seizoenEinde } from '../seizoen/seizoen.js';
 import { o19Check } from '../speler/doorstroom.js';
 import { kalmte, onrust } from '../speler/kalmte.js';
 import { checkO23, eindeO23, startO23 } from '../speler/o23.js';
@@ -26,6 +25,9 @@ import { agentCheck } from '../transfers/zaakwaarnemer.js';
 import { fansNaWedstrijd, fansVoorAftrap, isDerby, maakPers, modFans } from './fans-pers.js';
 import { focusNaWedstrijd } from './focus.js';
 import { FLOW, SLECHTE_FOCUS, bouwMoment, focusBoost, kans, kiesMomentType, pOpts } from './momenten.js';
+import { gebruik, staminaNaWedstrijd, staminaStart, wisselCheck } from './stamina.js';
+import { bewijsAfrekening } from '../speler/bewijs.js';
+import { eindeNacompetitie, nacompetitie } from '../competitie/nacompetitie.js';
 import { ontvangst, reunieAftrap, reunieMet, reunieNaWedstrijd } from './reunie.js';
 import { nieuweWeek, verhoog } from '../week.js';
 import { animAnderen, animPush, animSoort, animVariant } from '../../render/pitch.js';
@@ -51,6 +53,7 @@ export function planWedstrijd(M, T, O, vast){
   for (let i = 0; i < bgUs; i++) M.ev.push({type:'us', min:randInt(2, 90)});
   for (let i = 0; i < bgThem; i++) M.ev.push({type:'them', min:randInt(2, 90)});
   let start = 1;
+  if (rol === 'basis') staminaStart(M, 0);
   if (rol === 'invaller'){ start = randInt(58, 72); M.ev.push({type:'warm', min:start - randInt(5, 9)}); M.ev.push({type:'inval', min:start}); }
   if (rol !== 'basis' && rol !== 'invaller') return sorteerEv(M);
   const n = rol === 'basis' ? 3 + (rnd() < .5 ? 1 : 0) + (rnd() < .25 ? 1 : 0) + (sp.pos === 'VERD' ? 1 : 0) : 1 + (rnd() < .6 ? 1 : 0);
@@ -197,12 +200,12 @@ export function stand2(){ const M = S.M; return M.thuis ? `${M.us}-${M.them}` : 
 export function verderSpelen(){
   const M = S.M;
   while (M.idx < M.ev.length){
-    const e = M.ev[M.idx++]; M.min = e.min;
+    const e = M.ev[M.idx++]; M.min = e.min; wisselCheck(M);
     if (e.type !== 'inval' && e.type !== 'moment'){ const v = verslag(e, M); if (v){ M.log.push({m:e.min + "'", t:v.t, k:v.k}); animAnderen(M, e, v); }
-      if (e.type === 'rust' && M.rol === 'basis' && !M.rood && M.us < M.them && !M.inter && isAanvoerder()){ M.pending = bouwMoment('toespraak'); return; } }
-    else if (e.type === 'inval'){ M.log.push({m:e.min + "'", t: M.inter ? 'De bondscoach roept je. Je mag erin!' : 'De trainer roept je. Je mag erin!', k:'ok'}); }
+      if (e.type === 'rust' && M.rol === 'basis' && !M.rood && M.gewisseld === undefined && M.us < M.them && !M.inter && isAanvoerder()){ M.pending = bouwMoment('toespraak'); return; } }
+    else if (e.type === 'inval'){ staminaStart(M, e.min); M.log.push({m:e.min + "'", t: M.inter ? 'De bondscoach roept je. Je mag erin!' : 'De trainer roept je. Je mag erin!', k:'ok'}); }
     else if (e.type === 'moment'){
-      if (M.rood) continue;
+      if (M.rood || M.gewisseld !== undefined) continue;
       const type = (e.min >= 84 && M.us <= M.them && rnd() < .6) ? 'laatsteMinuut' : e.m;
       M.pending = bouwMoment(type);
       if (e.via && type !== 'laatsteMinuut') M.pending.tekst = `${e.via} zoekt je op met een perfecte pass. Jullie zijn maatjes en weten elkaar blind te vinden. ` + M.pending.tekst;
@@ -218,6 +221,7 @@ export function kies(i){
   const ok = rnd() < kans(opt);
   const out = (ok ? opt.ok : opt.mis)();
   { const soort = animSoort(M.pending.type, opt.l); if (soort) animPush(M, {type:M.pending.type, label:opt.l, soort, variant:animVariant(M.pending.type, opt.l), ok, goal:!!out.goal, assist:!!out.assist, team:!!out.teamGoal, tegen:!!out.tegen, geel:!!out.geel, rood:!!out.rood}); }
+  gebruik(M, opt);
   const fVoor = S.sp.focus ?? 65; if (ok) focusBoost(1); else mod('focus', -1);
   const m = M.min + "'";
   M.log.push({m, t:`[${opt.l}] ${out.t}`, k: ok ? 'ok' : 'mis'});
@@ -284,6 +288,7 @@ export function eindeWedstrijd(){
   }
   if (M.o23) return eindeO23();
   if (M.beker) return eindeBeker();
+  if (M.po) return eindeNacompetitie();
   M.klaar = true;
   const speelde = M.rol === 'basis' || M.rol === 'invaller';
   if (speelde){
@@ -293,8 +298,9 @@ export function eindeWedstrijd(){
     sp.vert = clamp(sp.vert + (M.cijfer - (M.rol === 'invaller' ? 6.0 : 6.3)) * 6 - (M.rood ? 8 : 0), 0, 100);
     sp.vorm = clamp(sp.vorm * .5 + (M.cijfer - 6.5), -3, 3);
     sp.rep = clamp(sp.rep + ((M.cijfer - 6.5) * 1.2 + M.goals + M.assists * .5) * (1 + (3 - Math.min(club().t, 4)) * .3), 0, 100);
-    sp.fit = clamp(sp.fit - (M.rol === 'basis' ? randInt(18, 26) : 9), 0, 100);
+    staminaNaWedstrijd(M);
     S.ss.wed++; S.ss.g += M.goals; S.ss.a += M.assists; S.ss.c.push(M.cijfer);
+    if (M.rol === 'basis') S.ss.basis = (S.ss.basis || 0) + 1;
     if (M.rol === 'basis' && M.them === 0) S.ss.cs = (S.ss.cs || 0) + 1;
     sp.clubWed++;
     erbij(2); // spelen in het systeem leert je het systeem
@@ -343,8 +349,14 @@ export function eindeWedstrijd(){
 }
 
 export function vervolgNaRonde(){
-  if (S.ronde === 7) return openVenster('winter');
-  if (S.ronde >= AANTAL_RONDES) return seizoenEinde();
+  if (S.ronde === 7){
+    // Winterstop: de laatbloeier hoort of zijn proefcontract een vast contract wordt
+    const proef = bewijsAfrekening();
+    openVenster('winter');
+    if (proef !== null && S.venster) S.venster.intro = (proef ? 'Je proeftijd zit erop en je hebt je bewezen: je krijgt een vast contract! ' : 'Je proeftijd is mislukt. De trainer is niet overtuigd en je vertrouwen is flink gezakt. ') + S.venster.intro;
+    return;
+  }
+  if (S.ronde >= AANTAL_RONDES) return nacompetitie(); // eerst de nacompetitie, daarna het seizoenseinde
   if (S.ronde === 4 || S.ronde === 11){
     const o = maakOproep();
     if (o && o.landen.length){ S.oproep = o; S.fase = 'oproep'; return; }

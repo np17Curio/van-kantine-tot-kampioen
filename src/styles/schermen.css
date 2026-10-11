@@ -83,3 +83,22 @@ select{background:var(--diep);border:1px solid var(--lijn);border-radius:6px;pad
 .vraag{font-size:1rem}
 .goedtxt{color:var(--goed)}.fouttxt{color:var(--fout-zacht)}
 .niv.onv{color:var(--fout)}
+/* Je speler aanmaken: portret naast de keuzes */
+.aanmaken{display:grid;grid-template-columns:minmax(150px,220px) minmax(0,1fr);gap:14px;align-items:start}
+.portretfoto{margin:0;position:relative;aspect-ratio:4/5;border-radius:10px;overflow:hidden;background:var(--diep);border:1px solid var(--lijn)}
+.portretfoto img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 35%}
+.portretfoto img[src] + .ontwikkel{display:none}
+.portretfoto .ontwikkel{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--f-mono);font-size:.7rem;color:var(--mist)}
+.aanmaakkeuzes{display:grid;gap:10px;min-width:0}
+.kleurvlakken{display:flex;flex-wrap:wrap;gap:8px;margin-top:5px}
+.kleurvlak{width:30px;height:30px;border-radius:50%;background:var(--kl);border:2px solid var(--lijn);padding:0;cursor:pointer;box-shadow:inset 0 -3px 6px rgba(0,0,0,.25);transition:transform .12s,border-color .12s}
+.kleurvlak:hover{transform:scale(1.08)}
+.kleurvlak.aan{border-color:var(--lamp);box-shadow:0 0 0 2px var(--lamp-zacht),inset 0 -3px 6px rgba(0,0,0,.25)}
+.kleurvlak:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+.kapsels{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+/* Leeftijd en verhaal */
+.leeftijden{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.keuze.leeftijd .t b{color:var(--lamp);font-size:1.25rem}
+.keuze.leeftijd .v{font-size:.84rem;line-height:1.35;color:var(--krijt)}
+@media (max-width:560px){.aanmaken{grid-template-columns:110px minmax(0,1fr);gap:10px}}
+@media (prefers-reduced-motion:reduce){.kleurvlak{transition:none}}

@@ -55,7 +55,7 @@ function publiekTex(){
 function netTex(){
   return canvasTex(128, 128, (g, w, h) => { g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 2; for (let i = 0; i <= 8; i++){ g.beginPath(); g.moveTo(i * w / 8, 0); g.lineTo(i * w / 8, h); g.moveTo(0, i * h / 8); g.lineTo(w, i * h / 8); g.stroke(); } });
 }
-function balTex(){
+export function balTex(){
   return canvasTex(256, 128, (g, w, h) => {
     g.fillStyle = '#f4f4f4'; g.fillRect(0, 0, w, h); g.fillStyle = '#1b1b1b';
     for (let i = 0; i < 12; i++){ const x = (i % 6) * w / 6 + (i < 6 ? 0 : w / 12), y = i < 6 ? h * .3 : h * .72; g.beginPath(); for (let k = 0; k < 5; k++){ const a = k / 5 * Math.PI * 2; g.lineTo(x + Math.cos(a) * 13, y + Math.sin(a) * 13); } g.fill(); }
@@ -158,6 +158,7 @@ export function koppel3D(el, b, h, dpr){
   for (const k of ['pitchfx', 'pitchonder']) if (!vak.querySelector('.' + k)){ const d = document.createElement('div'); d.className = k; d.setAttribute('aria-hidden', 'true'); cv.after(d); }
   R.dpr = dpr; R.renderer.setPixelRatio(Math.min(dpr, KWALITEIT[R.kwaliteit || 0].dpr)); R.renderer.setSize(b, h);
   R.camera.aspect = b / h; R.camera.updateProjectionMatrix();
+  R.sceneNr = (R.sceneNr || 0) + 1; // elke nieuwe scène (de spelers staan dan opnieuw opgesteld)
   R.vak = vak; R.vorigeNu = 0; R.camX = null; R.kijkZ = null; R.vorigeBal = null;
   for (const id in R.spelers) R.spelers[id].x = null;
   cv._3d = true; return cv;
@@ -202,7 +203,7 @@ export const POSE_NAMEN = Object.keys(POSE);
 // Wie is dit (voor een vast uiterlijk): jij, of een speler van een club. Het hulpskelet (de eenvoudige pop) blijft de bewegingen bepalen, onzichtbaar
 function sleutelVan(e, T){
   const p = T.ploegen || {};
-  if (e.id === 'J' && (e.rol === 'wij' || !e.rol)) return 'jij|' + (p.jij || 'x');
+  if (e.id === 'J' && (e.rol === 'wij' || !e.rol)) return 'jij|' + (p.jij || 'x') + (p.jijUit ? '|' + p.jijUit.huid + p.jijUit.haar + p.jijUit.kapsel : '');
   if (e.rol === 'R') return 'scheids|' + (p.zij ?? '');
   const club = e.rol === 'wij' || e.rol === 'k' ? p.wij : p.zij;
   return 'c' + club + '|' + e.id;
@@ -211,34 +212,72 @@ function kleedAan(s, e, T){
   const sleutel = sleutelVan(e, T), club = e.rol === 'wij' || e.rol === 'k' ? (T.ploegen || {}).wij : (T.ploegen || {}).zij, tenue = tenueVoor(e.rol, club);
   if (s.model && s.modelSleutel === sleutel){ zetTenue(s.model, tenue); return; }
   if (s.modelHouder) s.lijf.remove(s.modelHouder);
-  const m = maakModelSpeler(uiterlijkVoor(sleutel), tenue); if (!m) return;
+  const jij = sleutel.startsWith('jij|'), m = maakModelSpeler(uiterlijkVoor(jij ? 'jij|' + ((T.ploegen || {}).jij || 'x') : sleutel, jij ? (T.ploegen || {}).jijUit : null), tenue); if (!m) return;
   const houder = new THREE.Group(); houder.scale.setScalar(1.86); houder.add(m.obj); s.lijf.add(houder);
   s.model = m; s.modelHouder = houder; s.modelSleutel = sleutel;
+  if (m.botten.head && m.botten.neck_01) m.hoofdRust = m.botten.neck_01.userData.rust.clone().multiply(m.botten.head.userData.rust);
   s.procMeshes = []; s.lijf.traverse(o => { if (o.isMesh && !m.meshes.includes(o)){ o.visible = false; s.procMeshes.push(o); } }); s.ver = false;
 }
 // Verder dan zoveel meter van de camera: de eenvoudige pop (scheelt veel rekenwerk; van die afstand zie je het verschil niet)
-const VER = 38;
+// (gemeten vanaf het punt waar de camera op richt: alles wat in beeld is, is het echte model)
+const VER_EXTRA = 30;
 // ---------- automatische kwaliteit ----------
 // Haalt het veld geen vloeiend beeld (bijvoorbeeld een computer zonder grafische kaart), dan stap voor stap lichter:
 // eerst minder pixels, daarna de eenvoudige spelers. Een snelle computer blijft op de hoogste stand.
 const KWALITEIT = [{dpr:2}, {dpr:1}, {dpr:.75}, {dpr:.75, eenvoudig:true}];
-const TRAAG = 1 / 22;
+const TRAAG = 1 / 18, MEETTIJD = 3;
 function meetSnelheid(dt){
   if (!(dt > 0 && dt < .25)) return;                      // pauzes, losse haperingen en het eerste beeld tellen niet mee
   R.ft = R.ft ? R.ft * .92 + dt * .08 : dt; R.tMeting = (R.tMeting || 0) + dt;
-  if (R.tMeting < 1.5 || R.ft < TRAAG || (R.kwaliteit || 0) >= KWALITEIT.length - 1) return;
+  if (R.tMeting < MEETTIJD || R.ft < TRAAG || (R.kwaliteit || 0) >= KWALITEIT.length - 1) return;
   R.kwaliteit = (R.kwaliteit || 0) + 1; R.tMeting = 0; R.ft = 0;
   const k = KWALITEIT[R.kwaliteit], maat = R.renderer.getSize(new THREE.Vector2());
   R.renderer.setPixelRatio(Math.min(R.dpr || 1, k.dpr)); R.renderer.setSize(maat.x, maat.y);
-  if (k.eenvoudig) R.modelNieuw = true;                   // spelers opnieuw opbouwen, nu zonder model
+  if (k.eenvoudig){ R.modelNieuw = true; R.melding = performance.now(); } // spelers opnieuw opbouwen, nu zonder model (en dat even melden)
+}
+// Een foto (voor de krant) met dezelfde renderer, maar in een eigen buffer: het canvas van het veld blijft ongemoeid
+// en er komt geen tweede WebGL-context bij. Geeft een 2D-canvas terug (of null zonder WebGL).
+export const renderer3D = () => beschikbaar() ? R.renderer : null;
+export function fotoRender(scene, camera, w, h){
+  if (!beschikbaar()) return null;
+  const r = R.renderer, rt = new THREE.WebGLRenderTarget(w, h, {samples:4});
+  rt.texture.colorSpace = THREE.SRGBColorSpace;
+  const oud = r.getRenderTarget();
+  try {
+    r.setRenderTarget(rt); r.clear(); r.render(scene, camera);
+    const px = new Uint8Array(w * h * 4); r.readRenderTargetPixels(rt, 0, 0, w, h, px);
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d'), img = g.createImageData(w, h);
+    for (let y = 0; y < h; y++) img.data.set(px.subarray((h - 1 - y) * w * 4, (h - y) * w * 4), y * w * 4); // WebGL leest van onder naar boven
+    g.putImageData(img, 0, 0);
+    return c;
+  } finally { r.setRenderTarget(oud); rt.dispose(); }
 }
 export const kwaliteit = () => R ? (R.kwaliteit || 0) : 0;
+// Handig bij debuggen en voor de automatische speltest (net als window.__S): hoeveel spelers in beeld zijn het echte model
+if (typeof window !== 'undefined') window.__veld3d = () => { if (!R) return null; let model = 0, pop = 0;
+  for (const id in R.spelers){ const sp = R.spelers[id]; if (!sp.root.visible) continue; if (sp.model && !sp.ver && sp.modelHouder.visible) model++; else pop++; }
+  // per speler: hoe ver het hoofd gedraaid staat ten opzichte van de borst, vergeleken met de ruststand (radialen)
+  const hoofden = {};
+  for (const id in R.spelers){ const sp = R.spelers[id], m = sp.model; if (!m || sp.ver || !sp.root.visible || !m.botten.head || !m.botten.spine_03) continue;
+    // nek x hoofd (lokaal): de draaiing van het hoofd ten opzichte van de borst, zonder last van de schaal van de speler
+    const rel = m.botten.neck_01.quaternion.clone().multiply(m.botten.head.quaternion);
+    if (!m.hoofdRust) continue; const d = m.hoofdRust.clone().invert().multiply(rel); hoofden[id] = {hoek:2 * Math.acos(Math.min(1, Math.abs(d.w))), q:[d.x, d.y, d.z, d.w], kijkY:m.kijkY, kijkX:m.kijkX, wIdle:m.wIdle, pose:sp.pose || null}; }
+  return {model, pop, kwaliteit:R.kwaliteit || 0, modus:R.modus, scene:R.sceneNr || 0, hoofden, jij:R.spelers.J ? R.spelers.J.modelSleutel : null}; };
 const hoekVerschil = (a, b) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d; };
 export function teken3D(T, nu, kleuren){
   if (!R) return;
   const echtDt = R.vorigeNu ? (nu - R.vorigeNu) / 1000 : 0;
   const dt = Math.min(.1, Math.max(0, echtDt)); R.vorigeNu = nu;
-  if (!T.kwaliteitVast) meetSnelheid(echtDt);
+  // Spelers: 'echt' = altijd het model, 'simpel' = altijd de eenvoudige pop, 'auto' = zelf terugschakelen als het beeld te traag is
+  const modus = T.spelers || 'auto';
+  if (modus !== R.modus){
+    if (R.modus !== undefined) R.modelNieuw = true;
+    if (modus === 'echt' && R.kwaliteit){ R.kwaliteit = 0; const maat = R.renderer.getSize(new THREE.Vector2()); R.renderer.setPixelRatio(Math.min(R.dpr || 1, KWALITEIT[0].dpr)); R.renderer.setSize(maat.x, maat.y); }
+    R.modus = modus; R.tMeting = 0; R.ft = 0;
+  }
+  if (modus === 'auto') meetSnelheid(echtDt);
+  const simpel = modus === 'simpel' || (modus === 'auto' && KWALITEIT[R.kwaliteit || 0].eenvoudig);
   if (R.modelNieuw){ R.modelNieuw = false; for (const id in R.spelers){ const sp = R.spelers[id]; R.scene.remove(sp.root, sp.schaduw); } R.spelers = {}; }
   const tijd = nu / 1000, bal = T.bal, gezien = new Set();
   const juichWij = T.tekst === 'GOAL!' || /^Raak/.test(T.tekst || ''), juichZij = T.tekst === 'Tegengoal';
@@ -247,7 +286,7 @@ export function teken3D(T, nu, kleuren){
     let s = R.spelers[e.id];
     if (!s){ s = R.spelers[e.id] = maakSpeler(kl); s.schaduw = schaduw(); R.scene.add(s.root); }
     if (s.kleur !== kl){ s.shirt.color.set(kl); s.sok.color.set(kl); s.kleur = kl; }
-    if (modelKlaar() && !KWALITEIT[R.kwaliteit || 0].eenvoudig) kleedAan(s, e, T);
+    if (modelKlaar() && !simpel) kleedAan(s, e, T);
     s.root.visible = s.schaduw.visible = true; gezien.add(e.id);
     const keeper = e.rol === 'K' || e.rol === 'k', z = e.z || 0;
     const nieuw = s.x === null, vx = nieuw || !dt ? 0 : (e.x - s.x) / dt, vy = nieuw || !dt ? 0 : (e.y - s.y) / dt;
@@ -272,8 +311,12 @@ export function teken3D(T, nu, kleuren){
     const sw = Math.sin(s.fase), cw = Math.cos(s.fase);
     // basishouding: lopen of stilstaan (ademen). u = arm naar buiten, a = arm naar voren, d = bovenbeen naar voren, k = knie
     // knie buigt veel in de zwaaifase en weinig in de standfase; ellebogen meer gebogen naarmate hij harder loopt
-    const h = {dL:sw * .95 * sprint * sp, dR:-sw * .95 * sprint * sp, kL:(Math.max(0, -cw) * 1.35 + Math.max(0, sw) * .2) * sprint * sp + .08, kR:(Math.max(0, cw) * 1.35 + Math.max(0, -sw) * .2) * sprint * sp + .08,
-      aL:-sw * .85 * sprint * sa, aR:sw * .85 * sprint * sa, uL:.12, uR:.12, eL:-.3 - sprint, eR:-.3 - sprint, leun:sprint * (s.model ? .1 : .18), rol:0, hoogte:0};
+    // versnellen: extra voorover, afremmen: even achterover; in een bocht naar binnen leunen
+    const acc = nieuw || !dt ? 0 : (v - (s.vVorig ?? v)) / dt, draai = nieuw || !dt ? 0 : hoekVerschil(s.kijkVorig ?? s.kijk, s.kijk) / dt; s.vVorig = v; s.kijkVorig = s.kijk;
+    s.acc = (s.acc || 0) + (acc - (s.acc || 0)) * Math.min(1, dt * 8);
+    const h = {dL:sw * 1.05 * sprint * sp, dR:-sw * 1.05 * sprint * sp, kL:(Math.max(0, -cw) * 1.6 + Math.max(0, sw) * .25) * sprint * sp + .08, kR:(Math.max(0, cw) * 1.6 + Math.max(0, -sw) * .25) * sprint * sp + .08,
+      aL:-sw * 1.2 * sprint * sa, aR:sw * 1.2 * sprint * sa, uL:.14 + .1 * sprint, uR:.14 + .1 * sprint, eL:-.3 - 1.25 * sprint, eR:-.3 - 1.25 * sprint,
+      leun:sprint * (s.model ? .12 : .2) + Math.max(-.25, Math.min(.3, s.acc * .03)), rol:Math.max(-.3, Math.min(.3, -draai * v * .015)), hoogte:0};
     if (!sprint){ const adem = Math.sin(tijd * 2.2 + s.fase) * .03; h.aL = adem; h.aR = -adem; }
     // trappen: schieten of passen (zwaai naar achter, dan door de bal); een hakje gaat juist naar achter
     if (T.trap && T.trap.id === e.id){
@@ -281,12 +324,15 @@ export function teken3D(T, nu, kleuren){
       if (k >= 0 && k <= 1){
         if (soort === 'hak'){ const z2 = k < .4 ? (k / .4) * .4 : .4 - ((k - .4) / .6) * 1.6; h.dR = z2; h.kR = k < .4 ? .3 : 1.5 * Math.sin(Math.min(1, (k - .4) / .4) * Math.PI / 2); h.leun = .2; }
         else {
-          const kracht = soort === 'chip' ? .6 : soort === 'binnenkant' ? .85 : T.trap.hard ? 1.35 : 1;
-          const zwaai = k < .3 ? (k / .3) * .9 : k < .65 ? .9 - ((k - .3) / .35) * (.9 + 1.4 * kracht) : -1.4 * kracht * (1 - (k - .65) / .35);
-          h.dR = -zwaai; h.kR = k < .3 ? 1.3 * (k / .3) : k < .65 ? 1.3 * (1 - (k - .3) / .35) : .1;
-          h.leun = k < .65 ? -.12 : .1; if (soort === 'binnenkant' || soort === 'volley') h.rol = soort === 'volley' ? -.4 : -.15;
+          // aanzet tot het contact (kc), dan door de bal en hoog uitzwaaien, daarna terug
+          const kracht = soort === 'chip' ? .6 : soort === 'binnenkant' ? .8 : T.trap.hard ? 1.4 : 1, kc = T.trap.kc || .4;
+          const zwaai = k < kc ? (k / kc) * 1.05 * kracht : k < kc + .3 ? 1.05 * kracht - ((k - kc) / .3) * 2.7 * kracht : -1.65 * kracht * (1 - (k - kc - .3) / (.7 - kc));
+          h.dR = -zwaai; h.kR = k < kc ? 1.5 * (k / kc) : k < kc + .12 ? 1.5 * (1 - (k - kc) / .12) : .15;
+          h.leun = k < kc ? -.14 * kracht : k < kc + .3 ? .06 : -.12 * kracht; if (soort === 'binnenkant' || soort === 'volley') h.rol = soort === 'volley' ? -.45 : -.18;
         }
-        h.dL = -.15; h.kL = .25; h.uL = .7; h.uR = .5; h.aL = .3; h.aR = -.4;
+        // standbeen licht gebogen, armen wijd voor evenwicht: de arm aan de kant van het schopbeen naar achter, de andere naar voren
+        const kc2 = T.trap.kc || .4, mee = Math.min(1, k / kc2);
+        h.dL = -.15; h.kL = .25 + .3 * Math.sin(Math.min(1, k / (kc2 + .15)) * Math.PI); h.uL = .55 + .55 * mee; h.uR = .45 + .65 * mee; h.aL = .2 + .6 * mee; h.aR = -.2 - .7 * mee; h.eL = h.eR = -.5;
       }
     }
     if (keeper && z > .25){
@@ -310,13 +356,16 @@ export function teken3D(T, nu, kleuren){
     s.LA.sch.rotation.x = -g.aL; s.RA.sch.rotation.x = -g.aR; s.LA.sch.rotation.z = -g.uL; s.RA.sch.rotation.z = g.uR; s.LA.elleboog.rotation.x = g.eL; s.RA.elleboog.rotation.x = g.eR;
     s.lijf.rotation.x = g.leun; s.lijf.rotation.z = g.rol;
     const hoogte = g.hoogte;
-    s.lijf.position.y = hoogte / SCHAAL + (sprint ? Math.abs(Math.cos(s.fase)) * .05 * sprint : 0);
+    s.lijf.position.y = hoogte / SCHAAL + (sprint ? Math.abs(Math.cos(s.fase)) * .08 * sprint : 0); // twee keer per pas op en neer
     s.root.position.set(wx(e.x), 0, wz(e.y));
     if (s.model){
-      const ver = R.camera.position.distanceTo(s.root.position) > VER;
-      if (ver !== s.ver){ s.ver = ver; s.modelHouder.visible = !ver; for (const o of s.procMeshes) o.visible = ver; }
-      if (!ver){ const tk = T.trap && T.trap.id === e.id && nu >= T.trap.t0 && nu <= T.trap.t0 + T.trap.dur;
-        volgModel(s, {dt, v, sprint, fase:s.fase, h:g, actief, trap:tk ? 'R' : null, keeper, z, naarBal, kijk:s.kijk, balHoogte:bal.z || 0, balAfstand:Math.hypot(bal.x - e.x, bal.y - e.y)}); }
+      // met een marge van 3 m, anders wisselt een speler die precies op de grens staat steeds tussen model en pop
+      const afst = R.camera.position.distanceTo(s.root.position), grens = R.camAfstand + VER_EXTRA, ver = s.ver ? afst > grens - 3 : afst > grens + 3;
+      if (ver !== s.ver){ s.ver = ver; s.modelHouder.visible = !ver; for (const o of s.procMeshes) o.visible = ver;
+        // weer dichtbij: het hoofd begint meteen goed (anders draait het vanuit een oude stand), en de rustanimatie ook
+        if (!ver){ s.model.kijkY = s.model.kijkX = undefined; s.model.wIdle = undefined; s.verT = nu; } }
+      if (!ver){ const tk = T.trap && T.trap.id === e.id && nu >= T.trap.t0 && nu <= T.trap.t0 + T.trap.dur ? {k:(nu - T.trap.t0) / T.trap.dur, kc:T.trap.kc || .4, kracht:T.trap.soort === 'chip' ? .6 : T.trap.soort === 'binnenkant' ? .8 : T.trap.hard ? 1.4 : 1, soort:T.trap.soort} : null;
+        volgModel(s, {dt, v, sprint, fase:s.fase, h:g, actief, trap:tk, keeper, z, naarBal, kijk:s.kijk, balHoogte:bal.z || 0, balAfstand:Math.hypot(bal.x - e.x, bal.y - e.y)}); }
     }
     s.schaduw.position.set(wx(e.x), .015, wz(e.y)); s.schaduw.scale.setScalar(1 - Math.min(.5, hoogte * .3));
     if (e.id === 'J'){ R.ring.visible = true; R.ring.position.set(wx(e.x), .02, wz(e.y));
@@ -349,11 +398,15 @@ export function teken3D(T, nu, kleuren){
   R.kijkZ = R.kijkZ === undefined || R.kijkZ === null || !dt ? kijkDoel : R.kijkZ + (kijkDoel - R.kijkZ) * Math.min(1, dt * 3);
   R.zoom = R.zoom === undefined || !dt ? zoom : R.zoom + (zoom - R.zoom) * Math.min(1, dt * 3);
   R.camera.position.set(R.camX, 14 * R.zoom, R.kijkZ + 40 * R.zoom); R.camera.lookAt(R.camX, 0, R.kijkZ);
+  R.camAfstand = Math.hypot(14, 40) * R.zoom;
   // teksten als HTML-laag: scherp en in de stijl van het spel
   if (R.vak){
     const fx = R.vak.querySelector('.pitchfx'), on = R.vak.querySelector('.pitchonder');
     if (fx){ const t = T.tekst || ''; if (fx.textContent !== t){ fx.textContent = t; fx.classList.toggle('lang', t.length > 12); } fx.style.color = T.tekstKleur || '#fff'; fx.style.opacity = t ? Math.min(1, (T.tekstT ?? 1) * 2) : 0; fx.style.transform = `translate(-50%,-50%) scale(${.85 + Math.min(1, (T.tekstT ?? 1)) * .15})`; }
     if (on){ const t = T.onder || ''; if (on.textContent !== t) on.textContent = t; on.style.display = t ? '' : 'none'; }
+    let ml = R.vak.querySelector('.pitchmelding'); const toon = R.melding && modus === 'auto' && performance.now() - R.melding < 9000;
+    if (toon && !ml){ ml = document.createElement('div'); ml.className = 'pitchmelding'; ml.textContent = 'Spelers vereenvoudigd voor een vloeiend beeld · kies Spelers: Echt om de 3D-spelers te houden'; R.vak.appendChild(ml); }
+    if (ml && !toon) ml.remove();
   }
   R.renderer.render(R.scene, R.camera);
 }
