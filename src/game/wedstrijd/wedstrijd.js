@@ -31,6 +31,7 @@ import { eindeNacompetitie, nacompetitie } from '../competitie/nacompetitie.js';
 import { ontvangst, reunieAftrap, reunieMet, reunieNaWedstrijd } from './reunie.js';
 import { nieuweWeek, verhoog } from '../week.js';
 import { animAnderen, animPush, animSoort, animVariant } from '../../render/pitch.js';
+import { talentNaWedstrijd } from '../speler/talent.js';
 
 /* ===================== Wedstrijd ===================== */
 // Plant de goals van teamgenoten/tegenstander en jouw momenten in
@@ -168,6 +169,10 @@ export function startWedstrijd(){
     else if (sc >= 12) rol = (sc < 30 && rnd() < .25) ? 'bank' : 'invaller';
     else rol = 'tribune';
     if (rol !== 'basis') reden = ' ' + opstellingReden();
+    // Je vroeg de trainer om op de bank te beginnen en hij ging akkoord
+    const bank = S.week && S.week.bank;
+    if (bank === 'inval' && (rol === 'basis' || rol === 'invaller')){ rol = 'invaller'; reden = ' Op je eigen verzoek begin je op de bank om je fitheid te sparen.'; }
+    else if (bank === 'rust' && (rol === 'basis' || rol === 'invaller')){ rol = 'bank'; reden = ' Op je eigen verzoek zit je deze wedstrijd op de bank om uit te rusten.'; }
   }
 
   const T = c.s + (rol === 'basis' || rol === 'invaller' ? (ovr(sp) - c.s) * .15 : 0) + (fx.thuis ? 2 : 0) + teamBonus() + matchup(clubTactiek(sp.club), clubTactiek(fx.opp));
@@ -315,6 +320,7 @@ export function eindeWedstrijd(){
       for (const kk of keys){ r -= w[kk]; if (r <= 0){ k = kk; break; } }
       if (ovr(sp) < sp.pot + 3){ verhoog(k, 1); M.groei = k; }
     }
+    M.talent = talentNaWedstrijd(M.cijfer);
     if (sp.fit < 30 && rnd() < .12){ sp.blessure = randInt(1, 4); M.blessureNieuw = sp.blessure; }
   } else {
     M.cijfer = null;
@@ -339,6 +345,9 @@ export function eindeWedstrijd(){
   reunieNaWedstrijd(M, speelde);
   if (speelde) recordsNaWedstrijd(M);
   M.nieuws = maakNieuws(M, speelde);
+  // Een nieuwe status (basisplaats, fanfavoriet, aanvoerder, terug naar de bank) staat meteen in de krant van deze wedstrijd
+  const statusKoppen = (S.krantWacht || []).filter(x => x.status);
+  if (statusKoppen.length){ S.krantWacht = S.krantWacht.filter(x => !x.status); M.nieuws = statusKoppen.concat(M.nieuws).slice(0, 3); }
   checkKampioen(M);
   if (speelde && isProf() && (M.derby || rnd() < .25)) M.pers = maakPers(M);
   if (speelde) volgersNaWedstrijd(M);
@@ -353,7 +362,8 @@ export function vervolgNaRonde(){
     // Winterstop: de laatbloeier hoort of zijn proefcontract een vast contract wordt
     const proef = bewijsAfrekening();
     openVenster('winter');
-    if (proef !== null && S.venster) S.venster.intro = (proef ? 'Je proeftijd zit erop en je hebt je bewezen: je krijgt een vast contract! ' : 'Je proeftijd is mislukt. De trainer is niet overtuigd en je vertrouwen is flink gezakt. ') + S.venster.intro;
+    // (bij een mislukte proeftijd vertelt het transfervenster zelf dat je weg moet)
+    if (proef === true && S.venster) S.venster.intro = 'Je proeftijd zit erop en je hebt je bewezen: je krijgt een vast contract! ' + (S.sp.bewijs.talent ? S.sp.bewijs.talent + ' ' : '') + S.venster.intro;
     return;
   }
   if (S.ronde >= AANTAL_RONDES) return nacompetitie(); // eerst de nacompetitie, daarna het seizoenseinde

@@ -13,6 +13,7 @@ import { focusNaWedstrijd } from '../wedstrijd/focus.js';
 import { planWedstrijd, verderSpelen } from '../wedstrijd/wedstrijd.js';
 import { verhoog } from '../week.js';
 import { staminaNaWedstrijd } from '../wedstrijd/stamina.js';
+import { talentNaWedstrijd } from './talent.js';
 
 /* ===================== O23 en verhuur ===================== */
 export const gemiddelde = l => l.reduce((a, b) => a + b, 0) / l.length;
@@ -85,6 +86,7 @@ export function eindeO23(){
     for (const kk of keys){ r -= w[kk]; if (r <= 0){ k = kk; break; } }
     if (ovr(sp) < sp.pot + 3){ verhoog(k, 1); M.groei = k; }
   }
+  M.talent = talentNaWedstrijd(M.cijfer);
   // Het eerste elftal speelde ook
   speelRonde(S.ronde, E.us, E.them);
   const eUit = E.us > E.them ? 'W' : E.us < E.them ? 'V' : 'G', eStand = E.thuis ? `${E.us}-${E.them}` : `${E.them}-${E.us}`;

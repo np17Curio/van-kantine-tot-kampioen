@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { balTex, fotoRender, renderer3D } from './veld3d.js';
 import { draaiBot, laadModel, maakModelSpeler, tenueVoor, uiterlijkVoor } from './spelermodel.js';
+import { logoURL } from '../data/logos.js';
 
 /* ===================== Fotostudio: jouw speler met een award, voor de krant ===================== */
 // Dezelfde speler als op het veld (zelfde uiterlijk en tenue), voor een persmuur, met de prijs in zijn handen.
@@ -70,6 +71,7 @@ function muurTex(ctx){
   g.filter = 'blur(1.2px)'; // achtergrond net niet scherp, zoals bij een echte persfoto
   for (let r = 0; r < 6; r++) for (let k = -1; k < 5; k++){
     const x = k * 256 + (r % 2 ? 128 : 0) + 128, y = r * 88 + 44;
+    if (ctx.logoImg && (r + k + 2) % 4 === 1){ g.drawImage(ctx.logoImg, x - 38, y - 38, 76, 76); continue; } // het clublogo op de persmuur
     if ((r + k) % 2){ g.fillStyle = ctx.accent; g.font = '800 26px "Arial Narrow", Impact, sans-serif'; g.fillText(ctx.club.toUpperCase().slice(0, 18), x, y, 230); }
     else { g.fillStyle = 'rgba(255,255,255,.7)'; g.font = '700 18px "Arial Narrow", Impact, sans-serif'; g.fillText('VAN KANTINE', x, y - 10, 230); g.fillText('TOT KAMPIOEN', x, y + 10, 230); }
   }
@@ -94,9 +96,11 @@ export async function maakFoto(soort, ctx){
   await laadModel();
   if (!STUDIO) STUDIO = bouwStudio(); if (!STUDIO) return null;
   const {scene, camera, env, muur} = STUDIO;
-  const mk = ctx.club + ctx.muur + ctx.accent;
+  // het clublogo (SVG) eerst als plaatje laden, zodat het op de muur getekend kan worden
+  if (ctx.clubId != null && !ctx.logoImg) ctx.logoImg = await new Promise(ok => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = logoURL(ctx.clubId, 256); });
+  const mk = ctx.club + ctx.muur + ctx.accent + (ctx.logoImg ? 'L' : '');
   if (STUDIO.muurKey !== mk){ if (muur.material.map) muur.material.map.dispose(); muur.material.map = muurTex(ctx); muur.material.needsUpdate = true; STUDIO.muurKey = mk; }
-  const uit = uiterlijkVoor('jij|' + ctx.sleutel, ctx.uiterlijk), m = maakModelSpeler(uit, tenueVoor('wij'));
+  const uit = uiterlijkVoor('jij|' + ctx.sleutel, ctx.uiterlijk), m = maakModelSpeler(uit, tenueVoor('wij', ctx.tenue ? {wij:ctx.tenue} : null));
   if (!m) return null;
   // rusthouding uit het begin van de modelanimatie, daarna de pose erop
   if (m.mixer) m.mixer.setTime(.2); // (niet stoppen: dan springt het skelet terug naar de T-houding)

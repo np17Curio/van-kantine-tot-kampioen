@@ -19,13 +19,16 @@ import { vUitgaan } from '../../game/prive/verleidingen.js';
 import { AUTOS, EXAMEN_PRIJS, RIJLES, THEORIE_PRIJS, WONINGEN, autoInfo, autoWaarde, koopAuto, praktijkExamen, rijles, startTheorie, theorieAntwoord, verhuis, verkoopWaarde, woning } from '../../game/prive/wonen-auto.js';
 import { doorstroomAdvies, doorstroomDoel, doorstroomEisen, inMoment } from '../../game/speler/doorstroom.js';
 import { BEWIJS, bewijsAdvies, bewijsEisen, heeftProef } from '../../game/speler/bewijs.js';
+import { welkomTekst } from '../../game/speler/startverhaal.js';
+import { verhaalActiviteiten, verhaalTitel } from '../../game/speler/verhaal.js';
 import { O23_EIS, fmt1, gemiddelde } from '../../game/speler/o23.js';
 import { aanvoerderActie, isAanvoerder, kleedPersonen, teamUitjePrijs } from '../../game/team/aanvoerder.js';
 import { band, bandLabel, chemie, maatActie } from '../../game/team/kleedkamer.js';
 import { tactiekOpst, verwachteOpstelling } from '../../game/team/opstelling.js';
-import { rugTeam, stNaam, vRugnummer } from '../../game/team/rugnummers.js';
+import { netGekocht, netUitJeugd, rugTeam, stNaam, vRugnummer } from '../../game/team/rugnummers.js';
 import { TACTIEKEN, TRAIN_FIT, WINT_VAN, clubTactiek, inzicht, matchup, pasScore, tactiekEig, zwaarste } from '../../game/team/tactiek.js';
 import { vVertrek } from '../../game/transfers/vertrek.js';
+import { vContract } from '../../game/transfers/contract.js';
 import { isDerby, vFans } from '../../game/wedstrijd/fans-pers.js';
 import { focusBoost, focusStaat, focusWinst } from '../../game/wedstrijd/momenten.js';
 import { reunieMet, vReunie } from '../../game/wedstrijd/reunie.js';
@@ -34,6 +37,9 @@ import { doeActiviteit, plafond } from '../../game/week.js';
 import { eisRij, vAgent } from './agent.js';
 import { herkomstUitTmp, vHerkomstKeuze } from './start.js';
 import { balk, vSeizoenStrip } from './zijbalk.js';
+import { vBankVraag } from '../../game/team/bankverzoek.js';
+import { vSelectie } from './selectie.js';
+import { clubLogo } from '../../data/logos.js';
 
 // Het weekscherm is een hub met tabbladen; elke nieuwe week begint op "Deze week"
 const WEEK_TABS = [['week', 'Deze week'], ['team', 'Team'], ['carriere', 'Carrière'], ['prive', 'Privé'], ['winkel', 'Winkel']];
@@ -62,11 +68,12 @@ function vVooruitblik(fx, opp, vo){
   for (const k of bekersVan(sp.club)){ const b = S.ss.bekers[k]; if (b && b.levend.includes(sp.club) && b.winnaar === null && BEKERS[k].schema[b.rondes.length] === S.ronde + 1) tags.push(`<span class="tag omhoog">Daarna: ${esc(BEKERS[k].naam)}, ${esc(bekerRondeNaam(k, b.rondes.length).toLowerCase())}</span>`); }
   return `<div class="vooruit">
     <span class="label">Wedstrijd ${S.ronde + 1} van ${AANTAL_RONDES}${sp.o23 ? ` · het 1e elftal speelt ${fx.thuis ? 'thuis' : 'uit'} tegen ${esc(opp.n)}` : ''}</span>
-    <div class="vs"><div class="ploeg ${fx.thuis ? 'mij' : ''}"><b>${esc(fx.thuis ? wij : zij)}</b></div><span class="vsteken">vs</span><div class="ploeg r ${fx.thuis ? '' : 'mij'}"><b>${esc(fx.thuis ? zij : wij)}</b></div></div>
+    <div class="vs"><div class="ploeg ${fx.thuis ? 'mij' : ''}">${clubLogo(fx.thuis ? sp.club : fx.opp, 40)}<b>${esc(fx.thuis ? wij : zij)}</b></div><span class="vsteken">vs</span><div class="ploeg r ${fx.thuis ? '' : 'mij'}"><b>${esc(fx.thuis ? zij : wij)}</b>${clubLogo(fx.thuis ? fx.opp : sp.club, 40)}</div></div>
     <div class="kracht" title="Sterkte ${c.s} tegen ${opp.s}"><span class="niv">${esc(c.n)} ${c.s}</span><span class="krachtbalk"><i style="width:${aandeel}%"></i></span><span class="niv">${opp.s} ${esc(opp.n)}</span></div>
     ${vTactiekDuel(fx.opp)}
     <div class="rij">${tags.filter(Boolean).join('')}</div>
     <p class="opst"><span class="label">Verwachte opstelling</span><span class="risico ${vo.cls}">${vo.k}</span><span class="muted">${esc(vo.reden)}</span></p>
+    ${vBankVraag()}
   </div>`;
 }
 
@@ -103,7 +110,7 @@ function activiteit(id, t, s, fn, extra = ''){
 function vActiviteiten(){
   const sp = S.sp, fitKost = sp.items.fitness ? 5 : 8;
   const tid = clubTactiek(sp.club), iz = inzicht(tid);
-  const train = TRAINBAAR.map(k => keuzeKnop(`Train ${ATTR[k].toLowerCase()}`, `<span class="mini"><i style="width:${clamp(sp.a[k], 0, 100)}%"></i></span> ${sp.a[k]} · ${sp.a[k] >= plafond() ? 'plafond bereikt' : `fitheid −${fitKost}`}`, () => doeActiviteit('train', k))).join('')
+  const train = TRAINBAAR.map(k => keuzeKnop(`Train ${ATTR[k].toLowerCase()}`, `<span class="mini"><i style="width:${clamp(sp.a[k], 0, 100)}%"></i></span> ${sp.a[k]} · ${sp.a[k] >= plafond() ? 'plafond bereikt (groeit met sterke wedstrijden)' : `fitheid −${fitKost}`}`, () => doeActiviteit('train', k))).join('')
     + activiteit('tactiek', `Tactiek: ${TACTIEKEN[tid].n.toLowerCase()}`, `<span class="mini"><i style="width:${iz}%"></i></span> inzicht ${iz} · fitheid −${TRAIN_FIT}`, () => doeActiviteit('tactiek'));
   const herstel = activiteit('rust', 'Rustig aan', `Fitheid +22 · focus +${focusWinst(8)} · vorm iets beter`, () => doeActiviteit('rust'))
     + activiteit('mentaal', 'Mentale training', `Focus +${focusWinst(12)} · fitheid +4 · geen training`, () => doeActiviteit('mentaal'))
@@ -111,11 +118,12 @@ function vActiviteiten(){
   const sociaal = activiteit('trainer', 'Indruk maken op trainer', 'Vertrouwen +7 · fitheid −12', () => doeActiviteit('trainer'))
     + (sp.leeftijd < 18 && sp.ouders.boos ? keuzeKnop('Afspreken met vrienden', 'Mag niet van je ouders', () => {}, 'disabled') : activiteit('uit', sp.leeftijd < 18 ? 'Afspreken met vrienden' : 'Avondje uit', 'Moraal +10 · focus −3 · kans op gedoe', () => doeActiviteit('uit')))
     + (sp.leeftijd < 18 ? keuzeKnop('Huiswerk maken', sp.ouders.boos ? 'Focus +6 · dan mag je deze week zeker spelen' : 'Focus +6 · beter voorbereid op school', () => doeActiviteit('huiswerk')) : '');
+  const va = verhaalActiviteiten(), verhaal = va.length ? `<div class="actgroep verhaal"><span class="label">Jouw verhaal · ${esc(verhaalTitel(sp))}</span><div class="keuzes">${va.map(a => keuzeKnop(a.l, a.s, () => doeActiviteit(a.id))).join('')}</div></div>` : '';
   return `<section class="activiteiten"><h3 class="sectiekop">Wat doe je deze week? <span class="niv">1 keuze</span></h3>
     <div class="actgroepen">
     <div class="actgroep"><span class="label">Trainen</span><div class="keuzes">${train}</div></div>
     <div class="actgroep"><span class="label">Herstel en mentaal</span><div class="keuzes">${herstel}</div></div>
-    <div class="actgroep"><span class="label">Club en sociaal</span><div class="keuzes">${sociaal}</div></div></div></section>`;
+    <div class="actgroep"><span class="label">Club en sociaal</span><div class="keuzes">${sociaal}</div></div>${verhaal}</div></section>`;
 }
 
 function vDezeWeek(){
@@ -124,7 +132,7 @@ function vDezeWeek(){
   const vo = sp.o23 && sp.blessure <= 0 && !(sp.geschorst > 0) ? {k:'O23 · basis', cls:'r-gem', reden:'Je speelt bij de O23 tot de trainer je terughaalt.'} : verwachteOpstelling();
   let html = vSeizoenStrip() + `<div class="verhaal"><span class="label">Week ${S.ronde + 1} van ${AANTAL_RONDES} · ${S.ronde === 0 ? 'Nieuw seizoen' : S.ronde === 7 ? 'Na de winterstop' : 'Trainingsweek'}</span>
     ${S.ronde === 0 ? `<h2>${eersteKeer ? `Welkom bij ${esc(club().n)}` : 'Nieuw seizoen'}</h2>` : ''}`;
-  if (eersteKeer) html += `<p>Je eerste training bij de jeugd. De trainer is ook de vader van de keeper en fluit op een theelepeltje. De ballen zijn half lek, maar de droom is groot: ooit speel je in een vol stadion.</p>`;
+  if (eersteKeer) html += `<p>${esc(welkomTekst(sp))}</p>`;
   else if (S.ronde === 0) html += `<p>Een nieuw seizoen bij ${esc(club().n)} in de ${DIVS[club().t]}. Alles begint weer bij nul.</p>`;
   html += `</div>` + vVooruitblik(fx, opp, vo);
   html += vReunie();
@@ -153,11 +161,11 @@ function vDezeWeek(){
 }
 
 function vTeamTab(){
-  const h = vTactiek() + vAanvoerder() + vKleedkamer() + vFans();
+  const h = vSelectie() + vTactiek() + vAanvoerder() + vKleedkamer() + vFans();
   return h || `<p class="muted">Bij de O23 heb je geen eigen kleedkamer. Bewijs jezelf eerst.</p>`;
 }
 function vCarriereTab(){
-  return vAgent() + vVertrek();
+  return vAgent() + vContract() + vVertrek();
 }
 function vWinkel(){
   const sp = S.sp;
@@ -196,7 +204,7 @@ export function vKleedkamer(){
   const sp = S.sp, w = S.week; if (sp.o23) return '';
   const sel = rugTeam(sp.club), ch = Math.round(chemie()), gek = tmp.maat && sel.find(x => x.n === tmp.maat) ? tmp.maat : null;
   const rij = x => { const v = Math.round(band(x.n)), [lab, cls] = bandLabel(v);
-    return `<button class="maatrij ${gek === x.n ? 'aan' : ''}" data-i="${act(() => { tmp.maat = tmp.maat === x.n ? null : x.n; })}" data-blijf><span class="mn"><b><span class="muted">#${x.nr}</span> ${esc(metVoorletter(x))}</b><span class="niv">${x.basis ? 'Basis' : 'Bank'} · ${esc(stNaam(x.st))}</span></span><span class="b"><i style="width:${v}%;background:${v >= 60 ? 'var(--goed)' : v >= 40 ? 'var(--lamp)' : 'var(--fout)'}"></i></span><span class="risico ${cls}">${lab}</span></button>`; };
+    return `<button class="maatrij ${gek === x.n ? 'aan' : ''}" data-i="${act(() => { tmp.maat = tmp.maat === x.n ? null : x.n; })}" data-blijf><span class="mn"><b><span class="muted">#${x.nr}</span> ${esc(metVoorletter(x))}</b><span class="niv">${x.basis ? 'Basis' : 'Bank'} · ${netUitJeugd(x) ? '<span class="goedtxt">Uit de jeugd</span>' : netGekocht(x) ? '<span style="color:var(--info)">Nieuw bij de club</span>' : esc(stNaam(x.st))}</span></span><span class="b"><i style="width:${v}%;background:${v >= 60 ? 'var(--goed)' : v >= 40 ? 'var(--lamp)' : 'var(--fout)'}"></i></span><span class="risico ${cls}">${lab}</span></button>`; };
   // Per linie, basisspelers eerst
   const linies = [['K', 'Keepers'], ['V', 'Verdedigers'], ['M', 'Middenvelders'], ['A', 'Aanvallers']].map(([pos, l]) => {
     const groep = sel.filter(x => x.pos === pos).sort((a, b) => b.basis - a.basis || a.nr - b.nr);
@@ -335,7 +343,7 @@ export function vBewijs(){
   return `<div class="paneel"><span class="label">Je proefcontract bij ${esc(club().n)}</span>
     ${klaar ? `<p class="melding">${esc(bewijsAdvies(e))}</p>` : `<p>${esc(bewijsAdvies(e))}</p>`}
     <div class="eisen">${e.map(eisRij).join('')}</div>
-    <p class="muted klein-tekst">Bij de winterstop (nog ${nog} ${nog === 1 ? 'wedstrijd' : 'wedstrijden'}) beslist de trainer. Minstens ${BEWIJS.wed} wedstrijden en gemiddeld een ${String(BEWIJS.cijfer).replace('.', ',')}: dan krijg je een vast contract.</p></div>`;
+    <p class="muted klein-tekst">Bij de winterstop (nog ${nog} ${nog === 1 ? 'wedstrijd' : 'wedstrijden'}) beslist de trainer. Minstens ${BEWIJS.wed} wedstrijden en gemiddeld een ${String(BEWIJS.cijfer).replace('.', ',')}: dan krijg je een vast contract. Haal je het niet, dan moet je bij de winterstop weg.</p></div>`;
 }
 export function vSchool(){
   const v = S.week && S.week.school; if (!v) return '';
@@ -347,8 +355,8 @@ export function vSchool(){
 
 export function vEvent(){
   const soort = S.ev.soort;
-  const label = soort === 'prive' ? 'Buiten het veld' : soort === 'transfer' ? 'Transfernieuws' : soort === 'sponsor' ? 'Sponsoraanbod' : 'Bij de club';
-  const kop = soort === 'prive' ? 'Ondertussen, in je privéleven' : soort === 'transfer' ? 'Er ligt een bod op tafel' : soort === 'sponsor' ? 'Een merk wil jou' : 'Er gebeurt iets';
+  const label = soort === 'verhaal' ? `Jouw verhaal · ${verhaalTitel(S.sp) || ''}` : soort === 'prive' ? 'Buiten het veld' : soort === 'transfer' ? 'Transfernieuws' : soort === 'sponsor' ? 'Sponsoraanbod' : 'Bij de club';
+  const kop = soort === 'verhaal' ? 'Een moment dat je niet vergeet' : soort === 'prive' ? 'Ondertussen, in je privéleven' : soort === 'transfer' ? 'Er ligt een bod op tafel' : soort === 'sponsor' ? 'Een merk wil jou' : 'Er gebeurt iets';
   return `<div class="verhaal"><span class="label">${label}</span><h2>${kop}</h2>
     ${S.week.tekst.map(t => `<p class="muted">${esc(t)}</p>`).join('')}
     <p class="moment">${esc(S.ev.tekst)}</p></div>

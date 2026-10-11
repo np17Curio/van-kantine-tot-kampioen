@@ -16,6 +16,7 @@ import { agentReset } from './zaakwaarnemer.js';
 import { fans, modFans, rivaal, zetFans } from '../wedstrijd/fans-pers.js';
 import { bewaarVertrek } from '../wedstrijd/reunie.js';
 import { nieuweWeek } from '../week.js';
+import { clubTransfers, naMarkt } from './markt.js';
 
 /* ===================== Transfers ===================== */
 export function transferScore(){
@@ -83,6 +84,7 @@ export function maakAanbiedingen(modus){
 
 export function openVenster(soort){
   const sp = S.sp;
+  clubTransfers(soort); // de andere clubs (en die van jou) kopen en verkopen ook
   let terug = null;
   if (sp.huur){
     if (soort === 'winter'){
@@ -97,6 +99,10 @@ export function openVenster(soort){
   if (sp.ontbonden){
     modus = 'weg';
     intro = `Je contract bij ${club().n} is ontbonden. Je zaakwaarnemer heeft rondgebeld, maar door je slechte naam willen alleen een paar kleinere clubs je een kans geven.`;
+  } else if (sp.bewijs && sp.bewijs.klaar === false && !sp.bewijs.weg){
+    // De laatbloeier haalde zijn proeftijd niet: het proefcontract wordt niet omgezet, hij moet weg
+    modus = 'weg'; sp.bewijs.weg = true;
+    intro = `Je proeftijd bij ${club().n} zit erop, en de trainer is niet overtuigd: je proefcontract wordt niet omgezet. Je moet een nieuwe club zoeken.`;
   } else if (sp.vert < 15 && statusNiveau() < AANV){
     modus = 'weg';
     intro = jeugd ? `De jeugdtrainer zegt dat je niet meer bij ${club().n} past. Je moet een andere club zoeken.`
@@ -232,5 +238,6 @@ export function sluitVenster(){
   const soort = S.venster.soort; S.venster = null; tmp.oh = null;
   if (soort === 'winter') nieuweWeek();
   else startNieuwSeizoen();
+  naMarkt(); // nieuwe en vertrokken teamgenoten, en als aanvoerder de verwelkoming
   if (S.verhuisTekst){ S.week.tekst.unshift(S.verhuisTekst); S.verhuisTekst = null; }
 }

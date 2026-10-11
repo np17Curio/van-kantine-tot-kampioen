@@ -124,7 +124,7 @@ function maakSpeler(kleur){
   const torso = new THREE.Mesh(new THREE.CapsuleGeometry(.19, .34, 4, 10), shirt); torso.scale.z = .68; torso.position.y = 1.27; lijf.add(torso);
   const heup = new THREE.Mesh(new THREE.BoxGeometry(.4, .24, .25), broek); heup.position.y = .96; lijf.add(heup);
   const hoofd = new THREE.Mesh(new THREE.SphereGeometry(.13, 14, 10), huid); hoofd.position.y = 1.72; lijf.add(hoofd);
-  const haar = new THREE.Mesh(new THREE.SphereGeometry(.135, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), broek); haar.position.y = 1.735; haar.rotation.x = -.25; lijf.add(haar);
+  const haar = new THREE.Mesh(new THREE.SphereGeometry(.135, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshLambertMaterial({color:BROEK})); haar.position.y = 1.735; haar.rotation.x = -.25; lijf.add(haar);
   const been = (x) => {
     const dij = new THREE.Group(); dij.position.set(x, .92, 0); lijf.add(dij);
     const bo = new THREE.Mesh(new THREE.CylinderGeometry(.085, .075, .44, 8), huid); bo.position.y = -.22; dij.add(bo);
@@ -142,7 +142,7 @@ function maakSpeler(kleur){
   };
   const L = been(-.11), Rb = been(.11), LA = arm(-.27), RA = arm(.27);
   root.scale.setScalar(SCHAAL);
-  return {root, lijf, L, R:Rb, LA, RA, shirt, sok, kleur, fase:Math.random() * 6, kijk:0, x:null, y:null, duik:1};
+  return {root, lijf, L, R:Rb, LA, RA, shirt, sok, broekM:broek, kleur, fase:Math.random() * 6, kijk:0, x:null, y:null, duik:1};
 }
 function schaduw(){ const m = new THREE.Mesh(new THREE.CircleGeometry(.62 * SCHAAL, 18), R.schaduwM); m.rotation.x = -Math.PI / 2; m.position.y = .015; R.scene.add(m); return m; }
 function nummerSprite(nr){
@@ -209,7 +209,7 @@ function sleutelVan(e, T){
   return 'c' + club + '|' + e.id;
 }
 function kleedAan(s, e, T){
-  const sleutel = sleutelVan(e, T), club = e.rol === 'wij' || e.rol === 'k' ? (T.ploegen || {}).wij : (T.ploegen || {}).zij, tenue = tenueVoor(e.rol, club);
+  const sleutel = sleutelVan(e, T), tenue = tenueVoor(e.rol, (T.ploegen || {}).tenues);
   if (s.model && s.modelSleutel === sleutel){ zetTenue(s.model, tenue); return; }
   if (s.modelHouder) s.lijf.remove(s.modelHouder);
   const jij = sleutel.startsWith('jij|'), m = maakModelSpeler(uiterlijkVoor(jij ? 'jij|' + ((T.ploegen || {}).jij || 'x') : sleutel, jij ? (T.ploegen || {}).jijUit : null), tenue); if (!m) return;
@@ -286,6 +286,7 @@ export function teken3D(T, nu, kleuren){
     let s = R.spelers[e.id];
     if (!s){ s = R.spelers[e.id] = maakSpeler(kl); s.schaduw = schaduw(); R.scene.add(s.root); }
     if (s.kleur !== kl){ s.shirt.color.set(kl); s.sok.color.set(kl); s.kleur = kl; }
+    { const tn = (T.ploegen || {}).tenues, br = tn && tn[e.rol] ? tn[e.rol].broek : null; if (br && s.broekKl !== br){ s.broekM.color.set(br); s.broekKl = br; } }
     if (modelKlaar() && !simpel) kleedAan(s, e, T);
     s.root.visible = s.schaduw.visible = true; gezien.add(e.id);
     const keeper = e.rol === 'K' || e.rol === 'k', z = e.z || 0;

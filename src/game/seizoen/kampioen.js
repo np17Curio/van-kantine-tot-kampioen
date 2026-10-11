@@ -19,7 +19,7 @@ export function checkKampioen(M){
   const volgende = t >= 1 && t <= AMATEUR ? DIVS[t - 1] : null;
   M.kampioenTekst = `${club().n} is kampioen van de ${DIVS[t]}!${over > 0 ? ` Met nog ${over} ${over === 1 ? 'wedstrijd' : 'wedstrijden'} te gaan kan niemand jullie meer inhalen.` : ''} De spelers rennen het veld op, de trainer wordt in de lucht gegooid en jij staat met de schaal in je handen.${volgende ? ` Volgend seizoen speelt ${club().n} in de ${volgende}!` : t === 0 ? ' Jullie zijn de beste ploeg van Europa!' : ''}`;
   const kop = {bron:pick(KRANTEN[t]), kop:`${club().n} kampioen van de ${DIVS[t]}!`, tekst: volgende ? `De ploeg van ${S.sp.naam} promoveert naar de ${volgende}. Feest in de hele stad.` : t === 0 ? 'De beste ploeg van Europa. Een historisch seizoen.' : 'Na afloop wordt er tot diep in de nacht gefeest in de kantine.', wanneer:`week ${S.ronde + 1}, ${seizoenLabel()}`};
-  M.nieuws = [kop].concat(M.nieuws || []).slice(0, 2);
+  M.nieuws = [kop].concat(M.nieuws || []).slice(0, 3);
   S.nieuws = [kop].concat(S.nieuws || []).slice(0, 6);
 }
 // Na het seizoen: de kampioen van een niveau gaat omhoog, de nummer laatst gaat omlaag (jeugd doet niet mee).

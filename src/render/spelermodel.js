@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as kloonSkelet } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { HAAR, HUID, KAPSELS, SCHOENEN } from '../data/uiterlijk.js';
+import { STANDAARD } from '../data/tenues.js';
 
 /* ===================== Spelersmodel (GLB) ===================== */
 // 3D-model: "pallone da calcio+giocatore" door rosaliarenda (Sketchfab), CC-BY-4.0.
@@ -111,21 +112,47 @@ export function uiterlijkVoor(sleutel, eigen){
   if (eigen){ if (HUID[eigen.huid]) u.huid = eigen.huid; if (HAAR[eigen.haar]) u.haar = eigen.haar; if (KAPSELS.includes(eigen.kapsel)) u.kapsel = eigen.kapsel; }
   return u;
 }
-// Tenue van een club: jullie limoen, keepers en scheids vast, de rest volgens de club (soms gestreept)
-const CLUBKLEUR = [['#d42a2a', '#ffffff', 0], ['#1e5bd6', '#ffffff', 0], ['#f2f2f2', '#1b2a52', 0], ['#ff7a1a', '#111111', 0], ['#6d2bd1', '#ffffff', 0], ['#3fa9ff', '#ffffff', 0],
-  ['#1f9d55', '#ffffff', 0], ['#d42a2a', '#111111', 8], ['#1e5bd6', '#111111', 8], ['#f5c400', '#111111', 10], ['#8a1538', '#ffffff', 0], ['#f2f2f2', '#d42a2a', 0]];
-export function tenueVoor(rol, club){
-  if (rol === 'wij') return {shirt:'#c6f432', broek:'#141720', sok:'#c6f432', strepen:0};
-  if (rol === 'K') return {shirt:'#8a5cf0', broek:'#141720', sok:'#8a5cf0', strepen:0};
-  if (rol === 'k') return {shirt:'#2fbf71', broek:'#141720', sok:'#2fbf71', strepen:0};
-  if (rol === 'R') return {shirt:'#15161c', broek:'#15161c', sok:'#15161c', strepen:0};
-  const [shirt, broek, strepen] = CLUBKLEUR[hashGetal('club' + (club ?? 'x')) % CLUBKLEUR.length];
-  return {shirt, broek, sok:strepen ? broek : shirt, strepen};
+// Tenue voor een rol in de wedstrijd: uit de tenues van deze wedstrijd (data/tenues.js), anders een vaste kleur per rol
+export function tenueVoor(rol, tenues){
+  if (tenues && tenues[rol]) return tenues[rol];
+  if (rol === 'K') return {shirt:'#8a5cf0', accent:'#141720', patroon:'effen', broek:'#141720', sok:'#8a5cf0'};
+  if (rol === 'k') return {shirt:'#2fbf71', accent:'#141720', patroon:'effen', broek:'#141720', sok:'#2fbf71'};
+  if (rol === 'R') return {shirt:'#15161c', accent:'#15161c', patroon:'effen', broek:'#15161c', sok:'#15161c'};
+  return STANDAARD;
 }
-const tenueKey = t => t.shirt + t.broek + t.sok + t.strepen;
+const tenueKey = t => [t.shirt, t.accent, t.patroon, t.broek, t.sok].join('|');
+// Welk deel van het shirt krijgt de accentkleur? u en v zijn plaatsen op de shirttextuur (0 tot 1)
+const PATROON = {
+  effen: () => false,
+  strepen: (u) => Math.floor(u * 9) % 2 === 1,
+  banen: (u, v) => Math.floor(v * 9) % 2 === 1,
+  helften: (u) => (u % .5) < .25,
+  sjerp: (u, v) => Math.abs(((u * 2) % 1) - v) < .11,
+  blokken: (u, v) => (Math.floor(u * 10) + Math.floor(v * 10)) % 2 === 1,
+  bies: (u, v) => v < .09 || (v < .3 && ((u * 2) % 1 < .07 || (u * 2) % 1 > .93)),
+};
+// Gekleurde shirttextuur: de vouwen en schaduw van het model, in de kleuren en het design van het tenue
+function shirtTex(t){
+  const key = 'shirt|' + t.shirt + t.accent + t.patroon;
+  if (BASIS.tex[key]) return BASIS.tex[key];
+  const bron = BASIS.bron['t_shirt_basic_tucked']; if (!bron) return null;
+  const c = document.createElement('canvas'), w = c.width = bron.width, h = c.height = bron.height;
+  const g = c.getContext('2d'); g.drawImage(bron, 0, 0);
+  const img = g.getImageData(0, 0, w, h), d = img.data, mask = PATROON[t.patroon] || PATROON.effen;
+  let som = 0, n = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 20){ som += (d[i] + d[i + 1] + d[i + 2]) / 3; n++; }
+  const gem = som / Math.max(1, n), hex = x => [parseInt(x.slice(1, 3), 16), parseInt(x.slice(3, 5), 16), parseInt(x.slice(5, 7), 16)];
+  const c1 = hex(t.shirt), c2 = hex(t.accent || t.shirt);
+  for (let i = 0, p = 0; i < d.length; i += 4, p++){
+    const x = p % w, y = (p - x) / w, v = Math.min(1.1, (d[i] + d[i + 1] + d[i + 2]) / 3 / gem * .92);
+    const kl = mask(x / w, y / h) ? c2 : c1;
+    d[i] = Math.min(255, kl[0] * v); d[i + 1] = Math.min(255, kl[1] * v); d[i + 2] = Math.min(255, kl[2] * v);
+  }
+  g.putImageData(img, 0, 0);
+  return BASIS.tex[key] = tex(c);
+}
 function tenueMaterialen(t){
   return {
-    shirt:materiaal('shirt|' + tenueKey(t), () => new THREE.MeshLambertMaterial({map:grijs('t_shirt_basic_tucked', {strepen:t.strepen}), color:new THREE.Color(t.shirt)})),
+    shirt:materiaal('shirt|' + tenueKey(t), () => new THREE.MeshLambertMaterial({map:shirtTex(t), color:0xffffff})),
     broek:materiaal('broek|' + t.broek, () => new THREE.MeshLambertMaterial({map:grijs('male-classic-jeans', {doel:225, contrast:.3}), color:new THREE.Color(t.broek)})),
     sok:materiaal('sok|' + t.sok, () => new THREE.MeshLambertMaterial({map:grijs('male-classic-jeans', {doel:235, contrast:.25}), color:new THREE.Color(t.sok)})),
   };

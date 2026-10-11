@@ -1,6 +1,7 @@
 import { S, club } from '../core/state.js';
 import { ploegen } from './pitch.js';
 import { HAAR, HUID } from '../data/uiterlijk.js';
+import { STANDAARD, clubTenue } from '../data/tenues.js';
 
 /* ===================== Foto's in de krant ===================== */
 // Een artikel met foto heeft <img data-foto="soort">. Na elke weergave wordt de foto gemaakt (3D, in de fotostudio)
@@ -13,14 +14,13 @@ export const FOTO_SOORTEN = {
   portret:{alt:'op de persfoto', prijs:null},
 };
 const KLAAR = new Map(); let STUDIO = null;
-const SHIRT = '#c6f432';
 
 const MUREN = [['#0f1a33', '#c6f432'], ['#1a1030', '#f3c44f'], ['#0d2a22', '#ffffff'], ['#2a0f14', '#f3c44f']];
 // Wie staat er op de foto? img.dataset.uit = 'huid,haar,kapsel' (op het startscherm, nog zonder carrière), anders jouw speler
 function fotoCtx(img){
-  if (img && img.dataset.uit){ const [huid, haar, kapsel] = img.dataset.uit.split(','); return {sleutel:img.dataset.sleutel || 'nieuw', uiterlijk:{huid:+huid, haar:+haar, kapsel}, club:'', muur:'#0f1a33', accent:'#c6f432', ...(img.dataset.draai !== undefined ? {draai:+img.dataset.draai} : {})}; }
+  if (img && img.dataset.uit){ const [huid, haar, kapsel] = img.dataset.uit.split(','); return {sleutel:img.dataset.sleutel || 'nieuw', uiterlijk:{huid:+huid, haar:+haar, kapsel}, club:'', muur:'#0f1a33', accent:'#c6f432', tenue:STANDAARD, ...(img.dataset.draai !== undefined ? {draai:+img.dataset.draai} : {})}; }
   const c = club(), [muur, accent] = MUREN[(S.sp.club || 0) % MUREN.length];
-  return {sleutel:ploegen().jij, uiterlijk:S.sp.uiterlijk || null, club:c ? c.n : '', muur, accent};
+  return {sleutel:ploegen().jij, uiterlijk:S.sp.uiterlijk || null, club:c ? c.n : '', muur, accent, tenue:clubTenue(S.sp.club), clubId:S.sp.club};
 }
 const sleutelVan = (soort, ctx) => [soort, ctx.sleutel, ctx.club, ctx.draai ?? '', ctx.uiterlijk ? ctx.uiterlijk.huid + ctx.uiterlijk.haar + ctx.uiterlijk.kapsel : ''].join('|');
 export function foto(soort, img){
@@ -39,6 +39,8 @@ export function fotoNaRender(){
     foto(img.dataset.foto, img).then(url => { if (!img.isConnected) return; img.src = url; img.closest('.krantfoto')?.classList.add('klaar'); });
   });
 }
+// Voor tests: een portret in een opgegeven tenue (bijvoorbeeld om de designs te bekijken)
+if (typeof window !== 'undefined') window.__fotoTenue = (tenue, draai) => (STUDIO || (STUDIO = import('./fotostudio.js'))).then(m => m.maakFoto('portret', {sleutel:'t', uiterlijk:{huid:1, haar:1, kapsel:'kort'}, club:'Test', muur:'#0f1a33', accent:'#c6f432', tenue, draai}));
 if (typeof window !== 'undefined') window.__foto = (soort, uit, draai) => foto(soort, uit ? {dataset:{uit, sleutel:'test', draai}} : undefined);
 
 // ---------- getekende foto (zonder WebGL) ----------
@@ -57,7 +59,7 @@ function getekend(soort, ctx){
   const naam = ctx.club.replace(/[<&>"]/g, '').toUpperCase().slice(0, 18);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480"><rect width="720" height="480" fill="${ctx.muur}"/>
     <g fill="${ctx.accent}" opacity=".45" font-family="Arial Narrow,Impact,sans-serif" font-weight="800" font-size="20" text-anchor="middle">${[0, 1, 2, 3, 4].map(r => [-1, 0, 1, 2].map(k => `<text x="${k * 260 + (r % 2 ? 130 : 0) + 130}" y="${r * 100 + 50}" textLength="210" lengthAdjust="spacingAndGlyphs">${naam}</text>`).join('')).join('')}</g>
-    <path d="M250 480v-150c0-50 30-80 110-80s110 30 110 80v150z" fill="${SHIRT}"/>${armen}
+    <path d="M250 480v-150c0-50 30-80 110-80s110 30 110 80v150z" fill="${(ctx.tenue || STANDAARD).shirt}"/>${armen}
     <rect x="345" y="205" width="30" height="40" fill="${huid}"/><circle cx="360" cy="180" r="50" fill="${huid}"/>${kaal ? '' : `<path d="M310 170c0-40 25-55 50-55s50 15 50 55c-12-20-30-28-50-28s-38 8-50 28z" fill="${haar}"/>`}${prijs}</svg>`;
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }

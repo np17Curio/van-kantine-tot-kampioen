@@ -12,5 +12,6 @@ export function krantMelding(kop, tekst, bronnen, foto){
   const it = {bron:pick(bronnen || KRANTEN[club().t]), kop, tekst, wanneer, ...(foto ? {foto} : {})};
   (S.krantWacht = S.krantWacht || []).push(it);
   S.nieuws = [it].concat(S.nieuws || []).slice(0, 6);
+  return it;
 }
 export function roddel(kop, tekst){ if (isProf()) krantMelding(kop, tekst, RODDELBLADEN); }

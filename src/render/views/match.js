@@ -15,6 +15,7 @@ import { kies, mijnNaam, stand2 } from '../../game/wedstrijd/wedstrijd.js';
 import { vPitch } from '../pitch.js';
 import { vInterEnd } from './interland.js';
 import { vSeizoenStrip } from './zijbalk.js';
+import { clubLogo } from '../../data/logos.js';
 
 export function vO23End(){
   const M = S.M, uitslag = M.us > M.them ? 'Gewonnen' : M.us < M.them ? 'Verloren' : 'Gelijkgespeeld';
@@ -25,13 +26,15 @@ export function vO23End(){
     <p class="melding">${esc(M.o23Tekst)}</p>
     ${M.bonus ? `<p class="melding">${esc(M.bonus.tekst)}</p>` : ''}
     ${M.groei ? `<p class="muted">Door je goede spel groeit je ${ATTR[M.groei].toLowerCase()} met 1.</p>` : ''}
+    ${M.talent ? `<p class="muted">${esc(M.talent)}</p>` : ''}
     <p class="muted">${esc(M.eersteTekst)}</p></div>` + vLog()
     + knop(S.ronde + 1 === 7 ? 'Naar de winterstop' : S.ronde + 1 >= AANTAL_RONDES ? 'Seizoen afsluiten' : 'Volgende week', naWedstrijd);
 }
 
 export function scorebord(){
   const M = S.M, mij = esc(M.wij ?? mijnNaam()), hun = esc(M.zij ?? CLUBS[M.opp].n);
-  const [l, r] = M.thuis ? [mij, hun] : [hun, mij];
+  const oppId = M.opp ?? (M.eerste && M.eerste.opp), lg = id => !M.inter && id != null && CLUBS[id] ? clubLogo(id, 34) : '';
+  const [l, r] = M.thuis ? [lg(S.sp.club) + `<span>${mij}</span>`, `<span>${hun}</span>` + lg(oppId)] : [lg(oppId) + `<span>${hun}</span>`, `<span>${mij}</span>` + lg(S.sp.club)];
   return `<div class="score"><div class="team ${M.thuis ? 'mij' : ''}">${l}</div>
     <div class="stand">${stand2()}<span class="min">${M.derby ? '<b style="color:var(--fout)">DERBY</b> · ' : ''}${M.klaar ? 'EINDE' : M.min + "'"}</span></div>
     <div class="team r ${!M.thuis ? 'mij' : ''}">${r}</div>${vStamina(M)}</div>`;
@@ -98,6 +101,7 @@ export function vMatchEnd(){
     if (M.o19Tekst) html += `<p class="melding">${esc(M.o19Tekst)}</p>`;
     if (M.bonus) html += `<p class="melding">${esc(M.bonus.tekst)}</p>`;
     if (M.groei) html += `<p class="muted">Door je goede spel groeit je ${ATTR[M.groei].toLowerCase()} met 1.</p>`;
+    if (M.talent) html += `<p class="muted">${esc(M.talent)}</p>`;
     if (M.blessureNieuw) html += `<p style="color:var(--fout)">Je hebt je geblesseerd en ligt ${M.blessureNieuw} ${M.blessureNieuw === 1 ? 'week' : 'weken'} uit. Te weinig rust genomen?</p>`;
     if (M.kampioen) html += `<div class="kampioen"><span class="label">Kampioen!</span><h2>🏆 ${esc(club().n)}</h2><p>${esc(M.kampioenTekst)}</p></div>`;
     if (M.recordTekst) html += `<div class="kampioen"><span class="label">Record!</span>${[].concat(M.recordTekst).map(t => `<p>${esc(t)}</p>`).join('')}</div>`;

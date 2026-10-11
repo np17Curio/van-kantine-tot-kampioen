@@ -39,7 +39,9 @@ export function verwachteOpstelling(){
   if (sp.blessure > 0) return {k:'Geblesseerd', cls:'r-riskant', reden:'Je kunt deze week niet spelen.'};
   if (sp.geschorst > 0) return {k:'Geschorst', cls:'r-riskant', reden: sp.geschorst === 1 ? 'Je bent deze wedstrijd geschorst.' : `Je bent nog ${sp.geschorst} wedstrijden geschorst.`};
   if (sp.fit < 20) return {k:'Rust', cls:'r-riskant', reden:'Je bent compleet kapot. De trainer laat je rusten.'};
-  const sc = opstellingScore();
+  const sc = opstellingScore(), bank = S.week && S.week.bank;
+  if (bank === 'inval' && sc >= 44) return {k:'Begint op de bank (jouw verzoek)', cls:'r-gem', reden:'Je spaart je fitheid. De trainer brengt je in de tweede helft.'};
+  if (bank === 'rust' && sc >= 44) return {k:'Rust op de bank (jouw verzoek)', cls:'r-gem', reden:'Je zit erbij, maar speelt niet. Zo herstel je.'};
   if (sc >= 56) return {k:'Basisplaats', cls:'r-veilig', reden: statusNiveau() >= AANV ? 'Jij bent de aanvoerder.' : 'De trainer rekent op je.'};
   if (sc >= 44) return {k:'Twijfelgeval', cls:'r-gem', reden:opstellingReden(true)};
   if (sc >= 12) return {k:'Waarschijnlijk bank', cls:'r-riskant', reden:opstellingReden()};

@@ -20,6 +20,8 @@ import { ergernis, tuchtWeek } from './team/tucht.js';
 import { ck } from './transfers/buitenland.js';
 import { maakBodEvent } from './transfers/transferbod.js';
 import { focusBoost } from './wedstrijd/momenten.js';
+import { doeVerhaal, isVerhaalActiviteit } from './speler/verhaal.js';
+import { talentDoorbraak } from './speler/talent.js';
 
 /* ===================== Week ===================== */
 export function nieuweWeek(eerste){
@@ -85,7 +87,8 @@ export function doeActiviteit(soort, attr){
   if (soort === 'train'){
     mod('fit', sp.items.fitness ? -5 : -8); mod('vert', 1);
     if (sp.a[attr] >= plafond()){
-      t = `Je ${ATTR[attr].toLowerCase()} zit aan je plafond (${plafond()}). Met jouw talent kom je hier niet verder. Train liever iets anders.`;
+      const d = talentDoorbraak();
+      t = d ? `Je traint keihard op ${ATTR[attr].toLowerCase()}. ${d} Je plafond ligt nu op ${plafond()}.` : `Je ${ATTR[attr].toLowerCase()} zit aan je plafond (${plafond()}). Train liever iets anders, of laat in wedstrijden zien dat er meer in je zit: sterke wedstrijden laten je talent groeien.`;
     } else if (rnd() < trainKans()){
       const voor = sp.a[attr];
       verhoog(attr, (sp.leeftijd < 18 && rnd() < .15) ? 2 : 1);
@@ -119,7 +122,7 @@ export function doeActiviteit(soort, attr){
   } else if (soort === 'revalidatie'){
     mod('fit', 20);
     t = 'Revalidatie bij de fysio. Saai, maar nodig.';
-  }
+  } else if (isVerhaalActiviteit(soort)) t = doeVerhaal(soort); // de keuzes van jouw startverhaal (speler/verhaal.js)
   w.gedaan = true; w.tekst.push(t);
   if (soort === 'uit' && sp.leeftijd >= 18 && rnd() < kroegKans()){ S.ev = kroegEvent(); S.fase = 'event'; return; }
   if (soort !== 'revalidatie'){

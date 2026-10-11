@@ -9,13 +9,20 @@ import { krantMelding } from '../media/roddel.js';
 export const LEEFTIJDEN = [15, 18, 23];
 export const START = {
   15:{id:'wonder', titel:'Wonderkind', kort:'Je bent 15 en scouts fluisteren je naam al. Veel talent, maar ook veel druk: iedereen verwacht dat jij het gaat maken.',
-    waar:'O19 (jeugd) · school · bij je ouders', extra:0, pot:[86, 96], rep:8, vert:55, t:JEUGD, geld:50, woning:'ouders', rijbewijs:false, auto:null},
+    waar:'O19 (jeugd) · school · talentcoach, media, scouts', extra:0, pot:[86, 96], rep:8, vert:55, t:JEUGD, geld:50, woning:'ouders', rijbewijs:false, auto:null},
   18:{id:'normaal', titel:'Gewoon beginnen', kort:'Je bent 18, net klaar met school en uit de jeugd. Je mag mee met het eerste elftal. Geen hype, gewoon hard werken.',
-    waar:'Amateurklasse · 1e elftal · bij je ouders', extra:7, pot:[72, 90], rep:3, vert:55, t:AMATEUR, geld:600, woning:'ouders', rijbewijs:false, auto:null},
+    waar:'Amateurklasse · 1e elftal · bijbaan, derde helft, avondschool', extra:7, pot:[72, 90], rep:3, vert:55, t:AMATEUR, geld:600, woning:'ouders', rijbewijs:false, auto:null},
   23:{id:'bewijs', titel:'Jezelf bewijzen', kort:'Je bent 23. Als tiener werd je weggestuurd bij een profjeugd. Nu krijg je een proefcontract bij een semi-profclub: je laatste kans.',
-    waar:'Tweede Divisie · proefcontract · eigen studio', extra:12, pot:[62, 80], rep:4, vert:40, t:3, geld:4000, woning:'studio', rijbewijs:true, auto:'oud'},
+    waar:'Tweede Divisie · proefcontract · fysio, bijbaan, mentor van de jongens', extra:12, pot:[66, 82], rep:4, vert:40, t:3, geld:4000, woning:'studio', rijbewijs:true, auto:'oud'},
 };
 export const startVoor = lft => START[lft] || START[15];
+// Welkomsttekst boven de eerste trainingsweek, per verhaal (oude saves zonder verhaal krijgen de jeugdtekst)
+export const WELKOM = {
+  wonder:'Je eerste training bij de jeugd. De trainer is ook de vader van de keeper en fluit op een theelepeltje. De ballen zijn half lek, maar de droom is groot: ooit speel je in een vol stadion.',
+  normaal:'Je eerste training met het eerste elftal. De kleedkamer ruikt naar diepwarmte en de oudere spelers kijken je even aan: is dat jonkie al klaar voor de senioren? Op zondag staan er meer mensen langs de lijn dan je gewend bent. Tijd om te laten zien wat je kunt.',
+  bewijs:'Je eerste training als semi-prof. Er staan camera\'s langs het veld, de trainer werkt met video-analyse en iedereen is superfit. Het tempo ligt hoger dan je gewend bent, en je weet: dit is je laatste kans om het te laten zien.',
+};
+export const welkomTekst = sp => WELKOM[sp.startVerhaal] || WELKOM.wonder;
 // De club waar je begint. De laatbloeier begint bij een van de zwakkere clubs van zijn divisie
 export function startClub(V){
   const lijst = divClubs(V.t);

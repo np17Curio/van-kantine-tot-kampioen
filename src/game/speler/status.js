@@ -7,6 +7,8 @@ import { opstMax } from '../team/opstelling.js';
 import { norm } from '../transfers/zaakwaarnemer.js';
 import { nieuweWeek } from '../week.js';
 import { LEEFTIJDEN, startClub, startIntro, startVoor } from './startverhaal.js';
+import { fotoVan } from '../media/nieuws.js';
+import { krantMelding } from '../media/roddel.js';
 
 /* ===================== Status bij de club ===================== */
 // Startstatus bij een nieuwe club: hoe beter je bent dan de club en hoe bekender je bent, hoe hoger
@@ -46,11 +48,32 @@ export function statusDrempel(){
   if (doel === LEGENDE && sp.clubSz < 4) nodig.push(`${4 - sp.clubSz} ${4 - sp.clubSz === 1 ? 'seizoen' : 'seizoenen'} meer bij de club`);
   return {naam:STATUS[doel].n, nodig};
 }
+// Een statuswijziging die het nieuws haalt: basisplaats, fanfavoriet, aanvoerder, clublegende, en terug naar de bank.
+// Dezelfde overgang komt pas na 6 speelrondes opnieuw in de krant (anders elke week "weer basis, weer bank")
+export const STATUS_KRANT_PAUZE = 6;
+export function statusKrant(oud, n){
+  const sp = S.sp, c = club().n, naam = sp.naam;
+  let sleutel = null, kop, tekst, foto = null;
+  if (n > oud){
+    if (n === 2){ sleutel = 'basis'; kop = `${naam} verovert een basisplaats bij ${c}`; tekst = 'De trainer rekent elke week op hem. "Hij heeft het verdiend."'; }
+    else if (n === 3){ sleutel = 'fans'; kop = `Fanfavoriet: ${c} zingt de naam van ${naam}`; tekst = 'Op de tribune hangt al een spandoek met zijn naam. De fans hebben een nieuwe held.'; }
+    else if (n === AANV){ sleutel = 'aanv'; kop = `${naam} is de nieuwe aanvoerder van ${c}`; tekst = `De trainer geeft hem de band. "Hij gaat voorop in de strijd, op en naast het veld."`; foto = fotoVan('portret', `${naam}, de nieuwe aanvoerder van ${c}.`); }
+    else if (n === LEGENDE){ sleutel = 'legende'; kop = `${naam} is een clublegende van ${c}`; tekst = 'Na jaren trouwe dienst krijgt hij een plek in de eregalerij van de club.'; foto = fotoVan('portret', `Clublegende ${naam}.`); }
+  } else if (oud >= AANV && n < AANV && n > 1){ sleutel = 'bandWeg'; kop = `${naam} raakt de aanvoerdersband kwijt`; tekst = `Na een reeks mindere wedstrijden geeft de trainer de band aan een ander. ${naam} moet het vertrouwen terugwinnen.`; }
+  else if (oud >= 2 && n === 1){ sleutel = 'bank'; kop = `${naam} kwijt zijn basisplaats bij ${c}`; tekst = 'Na een paar mindere wedstrijden begint hij weer op de bank. Hij moet zich terugknokken.'; }
+  if (!sleutel) return null;
+  const l = sp.statusKrant || {}, nu = S.jaar * 100 + S.ronde;
+  if (l[sleutel] !== undefined && nu - l[sleutel] < STATUS_KRANT_PAUZE) return null;
+  (sp.statusKrant = l)[sleutel] = nu;
+  const it = krantMelding(kop, tekst, null, foto); it.status = true;
+  return it;
+}
 // Controleert of je status veranderd is en geeft een bericht terug
 export function checkStatus(){
   const sp = S.sp, oud = sp.statusNiveau, n = statusNiveau(), c = club().n;
   sp.statusNiveau = n;
   if (n === oud) return null;
+  statusKrant(oud ?? 0, n);
   if (n > oud){
     if (n === 1) return `Je bent nu bankspeler bij ${c}. Pak je kansen als invaller, dan verdien je een basisplaats.`;
     if (n === 2) return `Je bent een vaste waarde bij ${c}! De trainer rekent elke week op je.`;
@@ -85,7 +108,7 @@ export function nieuwSpel(naam, pos, herkomst, land, opties = {}){
   const id = startClub(V), jeugd = V.t === JEUGD, klasse = ovr({pos, a});
   // In de jeugd een bankspeler; bij de senioren eerst een jonkie of nieuwkomer
   const status = jeugd ? 28 : V.id === 'bewijs' ? 10 : 8, niveau = jeugd ? 1 : 0;
-  const sp = {naam, pos, leeftijd:lft, a, pot:Math.max(randInt(...V.pot), klasse + 6), fit:90, vorm:0, moraal:60, rep:V.rep, vert:V.vert,
+  const sp = {naam, pos, leeftijd:lft, a, pot:Math.max(randInt(...V.pot), klasse + (V.id === 'bewijs' ? 10 : 6)), fit:90, vorm:0, moraal:60, rep:V.rep, vert:V.vert,
     salaris:jeugd ? BASE[JEUGD] : Math.round(salarisVoor(V.t, klasse) * (V.id === 'bewijs' ? .7 : 1)), contract:1, club:id, geld:V.geld, blessure:0, items:{}, transferWens:false,
     relatie:null, rijbewijs:V.rijbewijs, rij:{lessen:V.rijbewijs ? 5 : 0, theorie:V.rijbewijs}, woning:V.woning, auto:V.auto, hond:false, status, clubWed:0, clubSz:0, statusNiveau:niveau, sindsTransfer:10, legendeHier:false,
     focus:65, school:{cijfers:[], gehad:[]}, ouders:{boos:false, trots:false},

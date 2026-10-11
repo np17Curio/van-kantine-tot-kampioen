@@ -2,6 +2,7 @@ import { S, bewaar } from '../core/state.js';
 import { knop } from '../core/ui.js';
 import { rnd } from '../core/utils.js';
 import { rugnummer } from '../game/team/rugnummers.js';
+import { clubTenue, landTenue, wedstrijdTenues } from '../data/tenues.js';
 
 /* ===================== 2,5D-veld: je acties in beeld ===================== */
 // Een schuin veld (alsof je vanaf de tribune kijkt). De uitkomst wordt berekend zoals altijd; het veld laat zien wat er gebeurde.
@@ -556,7 +557,7 @@ export function tekenVeld(cv, toestand){
     if (gnd.x < -30 || gnd.x > W + 30) continue;
     ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(gnd.x, gnd.y, (d.soort === 'bal' ? .45 : 1.1) * k * 1.6, (d.soort === 'bal' ? .18 : .4) * k * 1.6, 0, 0, Math.PI * 2); ctx.fill();
     if (d.soort === 'bal'){ const q = p(d.x, d.y, d.z || 0), rr = Math.max(2.2, .5 * k * 1.4); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(q.x, q.y - rr, rr, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#333'; ctx.lineWidth = 1; ctx.stroke(); continue; }
-    const kl = PITCH_KLEUR[d.rol] || '#ccc', h = 1.85 * k * 2.1, q = p(d.x, d.y, d.z || 0), w = Math.max(5, .75 * k * 2.1);
+    const kl = kleurenVan(toestand)[d.rol] || '#ccc', h = 1.85 * k * 2.1, q = p(d.x, d.y, d.z || 0), w = Math.max(5, .75 * k * 2.1);
     const voet = q.y, broek = voet - h * .38, shirt = voet - h * .8, hoofd = voet - h * .9;
     ctx.strokeStyle = '#1b1b1b'; ctx.lineWidth = Math.max(1.5, w * .22); ctx.beginPath(); ctx.moveTo(q.x - w * .22, broek); ctx.lineTo(q.x - w * .25, voet); ctx.moveTo(q.x + w * .22, broek); ctx.lineTo(q.x + w * .25, voet); ctx.stroke();
     ctx.fillStyle = d.rol === 'R' ? '#111' : '#222'; ctx.fillRect(q.x - w / 2, broek - h * .1, w, h * .12);
@@ -584,7 +585,7 @@ if (typeof window !== 'undefined') import('./veld3d.js').then(m => { V3 = m; }).
 export const is3D = () => !!(V3 && instel().veld !== '2d' && V3.beschikbaar());
 // instel().kwaliteit = 'vast': de automatische kwaliteit nooit terugschakelen (altijd de echte spelers)
 export const spelerModus = () => instel().spelers || (instel().kwaliteit === 'vast' ? 'echt' : 'auto');
-function teken(cv, T, nu){ if (cv._3d && V3){ T.spelers = spelerModus(); V3.teken3D(T, nu, PITCH_KLEUR); } else tekenVeld(cv, T); }
+function teken(cv, T, nu){ if (cv._3d && V3){ T.spelers = spelerModus(); V3.teken3D(T, nu, kleurenVan(T)); } else tekenVeld(cv, T); }
 export function pitchCanvas(el){
   const b = Math.round(Math.min(el.clientWidth || 600, Math.max(320, window.innerHeight * .48 / .52))), dpr = Math.min(2, window.devicePixelRatio || 1), h = Math.round(b * .52);
   if (is3D()){ const c3 = V3.koppel3D(el, b, h, dpr); if (c3) return c3; }
@@ -608,7 +609,16 @@ export function pitchStatisch(el, type){
   requestAnimationFrame(frame);
 }
 // Welke clubs staan er op het veld, en wie ben jij (voor een vast uiterlijk in 3D; jouw uiterlijk wordt één keer gekozen en bewaard)
-export function ploegen(){ const sp = S && S.sp; if (!sp) return {}; if (!sp.uitSleutel) sp.uitSleutel = Math.random().toString(36).slice(2, 10); return {wij:sp.club, zij:S.M ? S.M.opp : null, jij:sp.uitSleutel, jijUit:sp.uiterlijk || null}; }
+export function ploegen(){ const sp = S && S.sp; if (!sp) return {}; if (!sp.uitSleutel) sp.uitSleutel = Math.random().toString(36).slice(2, 10); return {wij:sp.club, zij:S.M ? S.M.opp : null, jij:sp.uitSleutel, jijUit:sp.uiterlijk || null, tenues:tenuesVanWedstrijd()}; }
+// De tenues van deze wedstrijd: landen bij een interland, anders de clubs (bij een kleurconflict speelt de uitploeg in het uittenue)
+export function tenuesVanWedstrijd(){
+  const M = S && S.M, sp = S && S.sp; if (!M || !sp) return null;
+  if (M.inter) return wedstrijdTenues(landTenue(M.inter.land), landTenue(M.zij), M.thuis !== false);
+  const opp = M.opp ?? (M.eerste && M.eerste.opp);
+  return wedstrijdTenues(clubTenue(sp.club), opp != null ? clubTenue(opp) : landTenue(''), M.thuis !== false);
+}
+// Shirtkleur per rol, voor het 2D-veld en de eenvoudige poppen
+export const kleurenVan = T => { const t = T && T.ploegen && T.ploegen.tenues; if (!t) return PITCH_KLEUR; const k = {R:'#222'}; for (const r in t) k[r] = t[r].shirt; return k; };
 export const rugnummerVeilig = () => { try { return S.M && (S.M.inter || S.M.o23) ? '' : rugnummer(); } catch (e){ return ''; } };
 export function pitchSpeel(el, a, klaar){
   const cv = pitchCanvas(el), {sc, st} = animScript(a), snel = instel().anim === 'snel' ? .5 : 1;

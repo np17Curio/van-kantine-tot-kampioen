@@ -26,11 +26,14 @@ export function rugTeam(id){
   if (sel.some(x => x.st === undefined)){
     // Status in de groep: één aanvoerder, soms een clublegende, de rest gemengd
     // Reserves zijn vaker jonkie of bankspeler, basisspelers vaker vaste waarde of fan-favoriet
-    sel.forEach(x => { if (x.st === undefined) x.st = pick(x.basis === false ? [0, 0, 1, 1, 1, 2] : [0, 1, 1, 2, 2, 2, 3, 3]); });
+    // Nieuwkomer ben je alleen als je net binnen bent (uit de jeugd of gekocht)
+    sel.forEach(x => { if (x.st === undefined) x.st = net(x) ? 0 : pick(x.basis === false ? [1, 1, 1, 2] : [1, 2, 2, 2, 3, 3]); });
     const basis = sel.filter(x => x.basis !== false);
     if (!sel.some(x => x.st === AANV)) pick(basis).st = AANV;
     if (rnd() < .2 && !sel.some(x => x.st === LEGENDE)) pick(basis.filter(x => x.st !== AANV)).st = LEGENDE;
   }
+  // Wie al een tijd bij de club is, is geen nieuwkomer meer (ook in oude opslag, waar dat willekeurig was)
+  sel.forEach(x => { if (x.st === 0 && !net(x)) x.st = 1; });
   return sel;
 }
 export function vrijNummer(bezet, van, tot){ const l = []; for (let n = van; n <= tot; n++) if (!bezet.has(n)) l.push(n); return l.length ? pick(l) : tot + 1; }
@@ -50,6 +53,11 @@ export function rugnummer(){
 }
 export function zetRug(nr){ const sp = S.sp; sp.rug = {club:ck(sp.club), nr}; (sp.rugHist = sp.rugHist || {})[ck(sp.club)] = nr; }
 export const stNaam = st => STATUS[st].n;
+// Net bij de selectie gekomen: de laatste 14 weken uit de jeugd doorgestroomd of gekocht
+export const NET_WEKEN = 14;
+export const netUitJeugd = x => !!x.jeugd && (S.weekNr || 0) - (x.sindsWeek || 0) < NET_WEKEN;
+export const netGekocht = x => x.nieuwWeek !== undefined && (S.weekNr || 0) - x.nieuwWeek < NET_WEKEN;
+export const net = x => netUitJeugd(x) || netGekocht(x);
 // De trainer vragen om een ander nummer. Wat hij zegt hangt af van jouw status en die van de speler die het nummer heeft
 export function rugVraag(nr){
   const sp = S.sp, w = S.week, mijn = rugnummer(); nr = +nr; if (!w || w.rug || !nr || nr === mijn) return;

@@ -1,5 +1,5 @@
 import { S, club } from '../../core/state.js';
-import { pick, rnd, shuffle } from '../../core/utils.js';
+import { clamp, pick, randInt, rnd, shuffle } from '../../core/utils.js';
 import { CLUBS, DIVS, ROUNDS, divClubs } from '../../data/gegevens.js';
 import { simGoals, teamUitslag } from './competitie.js';
 import { ck } from '../transfers/buitenland.js';
@@ -24,20 +24,32 @@ export const POS_NAAM = {K:'Keeper', V:'Verdediger', M:'Middenvelder', A:'Aanval
 // Wie er echt op het veld staat (geen keeper, geen reserve): voor kansen en kaarten in het verslag
 export const inVeld = P => P.filter(x => x.basis && x.pos !== 'K');
 export function selectie(id){
-  const sel = S.sel = S.sel || {}; id = ck(id);
+  const sel = S.sel = S.sel || {}, club = id; id = ck(id);
   if (!sel[id]) sel[id] = [];
   const lijst = sel[id];
   // Oude opslag had 9 spelers zonder positie: die houden naam, nummer en band, en de groep wordt aangevuld
   if (lijst.length && !lijst[0].pos) lijst.forEach((x, i) => { x.pos = i < 2 ? 'A' : i < 6 ? 'M' : 'V'; x.basis = true; });
-  if (lijst.length < 21) vulAan(lijst);
+  // Aanvullen van een bestaande selectie (na een verkoop of als er spelers stoppen): dat zijn jongens uit de eigen jeugd
+  if (lijst.length < 21) vulAan(lijst, lijst.length >= 15 ? club : null);
+  // Elke speler heeft een klasse en een leeftijd (oude opslag: nu uitdelen, rond de sterkte van de club)
+  if (lijst.some(x => x.k === undefined)){ const s = CLUBS[club] ? CLUBS[club].s : 50; lijst.forEach(x => { if (x.k === undefined) geefKlasse(x, s); }); }
   return lijst;
 }
-function vulAan(lijst){
+// Klasse (zelfde schaal als jouw klasse) en leeftijd: basisspelers rond de clubsterkte, de bank wat lager, de jeugd jong en nog laag
+export function geefKlasse(x, s){
+  if (x.jeugd){ x.k = s + randInt(-12, -5); x.lft = randInt(17, 19); }
+  else if (x.basis){ x.k = s + randInt(-4, 4); x.lft = randInt(22, 31); }
+  else { x.k = s + randInt(-10, -2); x.lft = randInt(19, 32); }
+  x.k = clamp(x.k, 25, 95);
+}
+function vulAan(lijst, jeugdVan){
   const vrij = shuffle(ACHTERNAMEN.filter(n => !lijst.some(x => x.n === n)));
   for (const [pos, o] of Object.entries(OPBOUW)){
     for (let i = lijst.filter(x => x.pos === pos).length; i < o.g.length; i++){
       const basis = i < o.basis;
-      lijst.push({v:pick(VOORL), n:vrij.pop(), g:o.g[i], a:o.a[i], pos, basis});
+      const x = {v:pick(VOORL), n:vrij.pop(), g:o.g[i], a:o.a[i], pos, basis};
+      if (jeugdVan != null){ x.jeugd = true; x.sindsWeek = S.weekNr || 0; (S.jeugdIn = S.jeugdIn || []).push({club:jeugdVan, v:x.v, n:x.n, pos, week:x.sindsWeek}); if (S.jeugdIn.length > 80) S.jeugdIn = S.jeugdIn.slice(-80); }
+      lijst.push(x);
     }
   }
 }

@@ -130,3 +130,25 @@ kbd{font-family:var(--f-mono);font-size:.8em;border:1px solid var(--lijn);border
   .hubtab{padding:7px 9px 5px;font-size:.9rem}
 }
 @media (prefers-reduced-motion:reduce){.toast,.modalvak{animation:none}.meter i{transition:none}}
+.actgroep.verhaal{grid-column:1/-1}
+.actgroep.verhaal .keuzes{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+#contractPanel .contractfeiten .label{display:block;margin-bottom:2px}
+/* Teamoverzicht: de klasse van elke speler */
+.selectiefeiten{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:8px 0}
+.selectiefeiten > div{display:grid;gap:2px}
+.selectietabel td,.selectietabel th{white-space:nowrap}
+.selectietabel td:nth-child(2){white-space:normal}
+.selectietabel tr.linie td{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--mist);padding-top:10px}
+@media (max-width:560px){.selectietabel .col-lft,.selectietabel .col-rol{display:none}}
+.selectietabel th,.selectietabel td{text-align:left}
+.selectietabel td:nth-child(3),.selectietabel td:nth-child(4),.selectietabel th:nth-child(3),.selectietabel th:nth-child(4){text-align:right}
+/* Clublogo's */
+.logo{flex:none;display:inline-block;vertical-align:middle}
+.clubnaam{display:inline-flex;align-items:center;gap:6px}
+.vs .ploeg{display:flex;align-items:center;gap:8px;min-width:0}
+.vs .ploeg.r{justify-content:flex-end}
+.bod .club{display:flex;align-items:center;gap:8px}
+.selectiekop{display:flex;align-items:center;gap:10px}
+.score .team{display:flex;align-items:center;gap:8px;min-width:0}
+.score .team.r{justify-content:flex-end}
+@media (max-width:560px){.score .team .logo{width:24px;height:24px}.vs .ploeg .logo{width:28px;height:28px}}

@@ -14,6 +14,7 @@ import { bepaalPromotie, voerPromotieUit } from './kampioen.js';
 import { fmt1, gemiddelde } from '../speler/o23.js';
 import { checkStatus, nieuweTabellen, statusPunten } from '../speler/status.js';
 import { nieuweWeek, verhoog } from '../week.js';
+import { talentSeizoen } from '../speler/talent.js';
 
 /* ===================== Seizoen ===================== */
 export function ontwikkel(){
@@ -73,7 +74,12 @@ export function naSeizoen(){
   const sp = S.sp;
   S.vorigGem = gemCijfer() ?? S.vorigGem;
   sp.leeftijd++;
+  sp.ovrVorig = ovr(sp); // voor de trend in het teamoverzicht
+  // Eerst het talent bijstellen (sterk seizoen, prijzen), zodat de groei van dit jaar al onder het nieuwe plafond valt
+  const tal = talentSeizoen(S.eind.gem, S.eind.prijzen.length + (S.eind.svs.jij ? 1 : 0));
   S.eind.ontw = ontwikkel();
+  if (tal) S.eind.ontw.unshift(tal);
+  sp.potSz = 0;
   S.eind.ontw.push(...seizoenGeld());
   sp.sponsors = (sp.sponsors || []).filter(d => { d.jaren--; if (d.jaren <= 0){ S.eind.ontw.push(`Je contract met ${d.merk} loopt af.`); return false; } return true; });
   if (sp.leeftijd === 18 && sp.school && sp.school.cijfers.length){
