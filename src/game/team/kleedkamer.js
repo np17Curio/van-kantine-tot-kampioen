@@ -5,6 +5,7 @@ import { selectie } from '../competitie/spelers.js';
 import { onrust } from '../speler/kalmte.js';
 import { ck } from '../transfers/buitenland.js';
 import { plafond, verhoog } from '../week.js';
+import { vormBonus } from '../competitie/vorm.js';
 
 /* ===================== Kleedkamer: je band met teamgenoten ===================== */
 // Per club een eigen kleedkamer. Bij een nieuwe club begin je opnieuw
@@ -23,10 +24,11 @@ export const bandLabel = v => v >= 80 ? ['Maatje', 'r-veilig'] : v >= 60 ? ['Goe
 export const teamBonus = () => clamp((chemie() - 50) / 50, -1, 1) + Math.min(1.5, (S.week && S.week.boost) || 0);
 // De kracht van jouw ploeg in een wedstrijd. Jij, de sfeer, het oppeppen en de tactiek helpen samen hooguit 3 punten:
 // genoeg om een sterkere ploeg soms te verrassen, niet om het verschil in sterkte weg te poetsen.
+// Daarbovenop de teamvorm (de laatste uitslagen in de competitie, ±2).
 export const EXTRA_MAX = 3;
 export function teamKracht(basis, {speelt = false, thuis = false, tactiek = 0, bonus = true} = {}){
   const jij = speelt ? clamp((ovr(S.sp) - basis) * .15, -2, 2) : 0;
-  return basis + (thuis ? 2 : 0) + clamp(jij + (bonus ? teamBonus() : 0) + tactiek, -EXTRA_MAX, EXTRA_MAX);
+  return basis + (thuis ? 2 : 0) + clamp(jij + (bonus ? teamBonus() : 0) + tactiek, -EXTRA_MAX, EXTRA_MAX) + (bonus ? vormBonus(S.sp.club) : 0);
 }
 export function maatActie(naam, id){
   const sp = S.sp, w = S.week; if (w.maat) return; const x = selectie(sp.club).find(y => y.n === naam); if (!x) return;

@@ -32,6 +32,7 @@ import { ontvangst, reunieAftrap, reunieMet, reunieNaWedstrijd } from './reunie.
 import { nieuweWeek, verhoog } from '../week.js';
 import { animAnderen, animPush, animSoort, animVariant } from '../../render/pitch.js';
 import { talentNaWedstrijd } from '../speler/talent.js';
+import { reeksTekst, vormBonus } from '../competitie/vorm.js';
 
 /* ===================== Wedstrijd ===================== */
 // Achtergrondgoals als jij meespeelt (naast jouw momenten): factor voor jullie en voor de tegenstander
@@ -182,7 +183,7 @@ export function startWedstrijd(){
   }
 
   const T = teamKracht(c.s, {speelt:rol === 'basis' || rol === 'invaller', thuis:fx.thuis, tactiek:matchup(clubTactiek(sp.club), clubTactiek(fx.opp))});
-  const O = opp.s + (fx.thuis ? 0 : 2);
+  const O = opp.s + (fx.thuis ? 0 : 2) + vormBonus(fx.opp);
   const M = {opp:fx.opp, oppS:opp.s, wij:c.n, zij:opp.n, thuis:fx.thuis, rol, us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false, derby:isDerby(fx.opp), fel:!!S.ss.rivaalFel};
   S.M = M;
   const derbyRegel = M.derby ? {m:'', t:`DERBY tegen aartsrivaal ${opp.n}! Het stadion kookt, overal vuurwerk en spandoeken.${M.fel ? ' Na de woorden in de krant is de sfeer extra vijandig.' : ''}`, k:'info'} : null;
@@ -307,7 +308,7 @@ export function eindeWedstrijd(){
     if (sp.pos === 'VERD' && M.them === 0 && M.rol === 'basis') M.cijfer += .5;
     M.cijfer = Math.round(clamp(M.cijfer, 3, 10) * 10) / 10;
     sp.vert = clamp(sp.vert + (M.cijfer - (M.rol === 'invaller' ? 6.0 : 6.3)) * 6 - (M.rood ? 8 : 0), 0, 100);
-    sp.vorm = clamp(sp.vorm * .5 + (M.cijfer - 6.5), -3, 3);
+    sp.vorm = clamp(sp.vorm * .5 + (M.cijfer - 6.5) + (M.us > M.them ? .2 : M.us < M.them ? -.2 : 0), -3, 3); // een winnende ploeg geeft vertrouwen
     sp.rep = clamp(sp.rep + ((M.cijfer - 6.5) * 1.2 + M.goals + M.assists * .5) * (1 + (3 - Math.min(club().t, 4)) * .3), 0, 100);
     staminaNaWedstrijd(M);
     S.ss.wed++; S.ss.g += M.goals; S.ss.a += M.assists; S.ss.c.push(M.cijfer);
@@ -343,6 +344,7 @@ export function eindeWedstrijd(){
   if (M.us > M.them){ mod('moraal', 4); iedereen(1); }
   else if (M.us < M.them) mod('moraal', -4);
   speelRonde(S.ronde, M.us, M.them, M.doelen || []);
+  M.reeksTekst = reeksTekst(S.sp.club);
   (S.ss.uitslagen = S.ss.uitslagen || [])[S.ronde] = {r: M.us > M.them ? 'W' : M.us < M.them ? 'V' : 'G', s:`${stand2()} tegen ${CLUBS[M.opp].n}`, mee:speelde};
   M.statusTekst = checkStatus();
   M.agentTekst = agentCheck();

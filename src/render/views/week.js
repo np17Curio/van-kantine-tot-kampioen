@@ -40,6 +40,7 @@ import { balk, vSeizoenStrip } from './zijbalk.js';
 import { vBankVraag } from '../../game/team/bankverzoek.js';
 import { vSelectie } from './selectie.js';
 import { clubLogo } from '../../data/logos.js';
+import { vormBolletjes, vormBonus, vormLabel } from '../../game/competitie/vorm.js';
 
 // Het weekscherm is een hub met tabbladen; elke nieuwe week begint op "Deze week"
 const WEEK_TABS = [['week', 'Deze week'], ['team', 'Team'], ['carriere', 'Carrière'], ['prive', 'Privé'], ['winkel', 'Winkel']];
@@ -66,13 +67,14 @@ function vVooruitblik(fx, opp, vo){
   const aandeel = Math.round(clamp(c.s / (c.s + opp.s), .1, .9) * 100);
   const tags = [fx.thuis ? '<span class="tag">Thuis</span>' : '<span class="tag">Uit</span>', reunieMet(fx.opp) ? '<span class="tag twee">Je oude club!</span>' : '', isDerby(fx.opp) ? '<span class="tag teveel">Derby tegen je aartsrivaal</span>' : ''];
   // Wie is favoriet? Jullie kracht (met jou, de sfeer en de tactiek) tegen die van de tegenstander
-  if (!sp.o23){ const T = teamKracht(c.s, {speelt:true, thuis:fx.thuis, tactiek:matchup(clubTactiek(sp.club), clubTactiek(fx.opp))}), O = opp.s + (fx.thuis ? 0 : 2), d = T - O;
+  if (!sp.o23){ const T = teamKracht(c.s, {speelt:true, thuis:fx.thuis, tactiek:matchup(clubTactiek(sp.club), clubTactiek(fx.opp))}), O = opp.s + (fx.thuis ? 0 : 2) + vormBonus(fx.opp), d = T - O;
     tags.unshift(d <= -3 ? '<span class="tag teveel">Jullie zijn de underdog</span>' : d >= 3 ? '<span class="tag omhoog">Jullie zijn favoriet</span>' : '<span class="tag">Gelijkwaardig</span>'); }
   for (const k of bekersVan(sp.club)){ const b = S.ss.bekers[k]; if (b && b.levend.includes(sp.club) && b.winnaar === null && BEKERS[k].schema[b.rondes.length] === S.ronde + 1) tags.push(`<span class="tag omhoog">Daarna: ${esc(BEKERS[k].naam)}, ${esc(bekerRondeNaam(k, b.rondes.length).toLowerCase())}</span>`); }
   return `<div class="vooruit">
     <span class="label">Wedstrijd ${S.ronde + 1} van ${AANTAL_RONDES}${sp.o23 ? ` · het 1e elftal speelt ${fx.thuis ? 'thuis' : 'uit'} tegen ${esc(opp.n)}` : ''}</span>
     <div class="vs"><div class="ploeg ${fx.thuis ? 'mij' : ''}">${clubLogo(fx.thuis ? sp.club : fx.opp, 40)}<b>${esc(fx.thuis ? wij : zij)}</b></div><span class="vsteken">vs</span><div class="ploeg r ${fx.thuis ? '' : 'mij'}"><b>${esc(fx.thuis ? zij : wij)}</b>${clubLogo(fx.thuis ? fx.opp : sp.club, 40)}</div></div>
     <div class="kracht" title="Sterkte ${c.s} tegen ${opp.s}"><span class="niv">${esc(c.n)} ${c.s}</span><span class="krachtbalk"><i style="width:${aandeel}%"></i></span><span class="niv">${opp.s} ${esc(opp.n)}</span></div>
+    ${sp.o23 ? '' : vVormDuel(fx)}
     ${vTactiekDuel(fx.opp)}
     <div class="rij">${tags.filter(Boolean).join('')}</div>
     <p class="opst"><span class="label">Verwachte opstelling</span><span class="risico ${vo.cls}">${vo.k}</span><span class="muted">${esc(vo.reden)}</span></p>
@@ -80,6 +82,12 @@ function vVooruitblik(fx, opp, vo){
   </div>`;
 }
 
+// Teamvorm van beide ploegen: de laatste 5 uitslagen
+function vVormDuel(fx){
+  const een = id => { const [l, cls] = vormLabel(id); return `<span class="vormploeg">${vormBolletjes(id)}<span class="risico ${cls}">${l}</span></span>`; };
+  const [a, b] = fx.thuis ? [S.sp.club, fx.opp] : [fx.opp, S.sp.club];
+  return `<p class="opst vormduel"><span class="label">Vorm</span>${een(a)}<span class="muted">tegen</span>${een(b)}</p>`;
+}
 // Welke stijl speelt de tegenstander, en ligt die jullie?
 function vTactiekDuel(opp){
   const wij = clubTactiek(S.sp.club), zij = clubTactiek(opp), m = matchup(wij, zij);

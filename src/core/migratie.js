@@ -1,4 +1,4 @@
-import { CLUBS, JEUGD, zetClubs } from '../data/gegevens.js';
+import { CLUBS, ELITE_NAAM, JEUGD, zetClubs } from '../data/gegevens.js';
 import { zetLand } from '../data/landen.js';
 import { maakSchoolvraag } from '../game/prive/school.js';
 import { niveauVoor } from '../game/speler/status.js';
@@ -7,6 +7,7 @@ import { niveauVoor } from '../game/speler/status.js';
 export function herstel(st){
   if (st) zetClubs(st.clubs || null);
   zetLand(st && st.land || 'Nederland');
+  for (let i = 0; i < 8; i++) CLUBS[i].n = st && st.slots && st.slots[i] ? st.slots[i].n : ELITE_NAAM[i]; // de Europese Elite
   // Oudere opslag zonder status-gegevens bijwerken
   if (st && st.sp && st.sp.status === undefined) Object.assign(st.sp, {status:10, clubWed:0, clubSz:0, statusNiveau:0, sindsTransfer:10, legendeHier:false});
   // Versie 4: een tiener die net bij de senioren zit, is weer een jonkie

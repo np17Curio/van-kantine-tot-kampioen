@@ -1,6 +1,6 @@
 import { S, VERSIE, club, ovr, salarisVoor, seizoenLabel, setS } from '../../core/state.js';
 import { clamp, randInt } from '../../core/utils.js';
-import { AANV, BASE, CLUBS, JEUGD, LEGENDE, OPST_BASIS, POS, STATUS, zetClubs } from '../../data/gegevens.js';
+import { AANV, BASE, CLUBS, JEUGD, LEGENDE, OPST_BASIS, POS, STATUS, zetClubs, ELITE_NAAM } from '../../data/gegevens.js';
 import { SPEEL_LANDEN, zetLand } from '../../data/landen.js';
 import { nieuweBekers } from '../competitie/beker.js';
 import { opstMax } from '../team/opstelling.js';
@@ -102,6 +102,7 @@ export function nieuwSpel(naam, pos, herkomst, land, opties = {}){
   zetClubs(null);
   land = SPEEL_LANDEN.includes(land) ? land : 'Nederland';
   zetLand(land);
+  for (let i = 0; i < 8; i++) CLUBS[i].n = ELITE_NAAM[i]; // nieuwe carrière: de oorspronkelijke Europese Elite
   const lft = LEEFTIJDEN.includes(opties.leeftijd) ? opties.leeftijd : 15, V = startVoor(lft);
   const st = POS[pos].start, a = {};
   for (const k in st) a[k] = st[k] + V.extra + randInt(-3, 3);

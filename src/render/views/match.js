@@ -27,6 +27,7 @@ export function vO23End(){
     ${M.bonus ? `<p class="melding">${esc(M.bonus.tekst)}</p>` : ''}
     ${M.groei ? `<p class="muted">Door je goede spel groeit je ${ATTR[M.groei].toLowerCase()} met 1.</p>` : ''}
     ${M.talent ? `<p class="muted">${esc(M.talent)}</p>` : ''}
+    ${M.reeksTekst ? `<p class="melding">${esc(M.reeksTekst)}</p>` : ''}
     <p class="muted">${esc(M.eersteTekst)}</p></div>` + vLog()
     + knop(S.ronde + 1 === 7 ? 'Naar de winterstop' : S.ronde + 1 >= AANTAL_RONDES ? 'Seizoen afsluiten' : 'Volgende week', naWedstrijd);
 }
@@ -102,6 +103,7 @@ export function vMatchEnd(){
     if (M.bonus) html += `<p class="melding">${esc(M.bonus.tekst)}</p>`;
     if (M.groei) html += `<p class="muted">Door je goede spel groeit je ${ATTR[M.groei].toLowerCase()} met 1.</p>`;
     if (M.talent) html += `<p class="muted">${esc(M.talent)}</p>`;
+    if (M.reeksTekst) html += `<p class="melding">${esc(M.reeksTekst)}</p>`;
     if (M.blessureNieuw) html += `<p style="color:var(--fout)">Je hebt je geblesseerd en ligt ${M.blessureNieuw} ${M.blessureNieuw === 1 ? 'week' : 'weken'} uit. Te weinig rust genomen?</p>`;
     if (M.kampioen) html += `<div class="kampioen"><span class="label">Kampioen!</span><h2>🏆 ${esc(club().n)}</h2><p>${esc(M.kampioenTekst)}</p></div>`;
     if (M.recordTekst) html += `<div class="kampioen"><span class="label">Record!</span>${[].concat(M.recordTekst).map(t => `<p>${esc(t)}</p>`).join('')}</div>`;

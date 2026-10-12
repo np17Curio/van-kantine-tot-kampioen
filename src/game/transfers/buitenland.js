@@ -5,6 +5,7 @@ import { LAND_DATA, NL, SPEEL_LANDEN, thuisLand, zetLand } from '../../data/land
 import { nl } from '../prive/school.js';
 import { nieuweTabellen } from '../speler/status.js';
 import { transferScore } from './transfers.js';
+import { pasSlotsToe } from '../competitie/europa.js';
 
 /* ===================== Verhuizen naar een ander land ===================== */
 // Club-sleutel per land: club 12 in Engeland is een andere club dan club 12 in Nederland. De Europese Elite (0-7) is overal dezelfde.
@@ -39,10 +40,11 @@ export function buitenlandseBods(modus){
 // Wisselen van land: de stand van het oude land bewaren (wie in welke divisie speelt) en die van het nieuwe land laden
 export function wisselLand(nl){
   const oud = thuisLand(), L = S.landen = S.landen || {};
-  L[oud] = {clubs:CLUBS.map(c => [c.t, c.s]), vorig:S.vorig || null};
+  L[oud] = {clubs:CLUBS.map(c => [c.t, c.s]), vorig:S.vorig || null, slots:S.slots || null};
   S.land = nl; zetLand(nl);
   const st = L[nl];
   zetClubs(st ? st.clubs : null); S.clubs = st ? st.clubs : null;
   S.vorig = st ? st.vorig : null;
+  S.slots = st && st.slots ? st.slots : null; pasSlotsToe(); // de Europese Elite zoals die in dat land bekend is
   S.tab = nieuweTabellen();
 }

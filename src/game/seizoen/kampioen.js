@@ -6,6 +6,7 @@ import { simNacompetitie } from '../competitie/nacompetitie.js';
 import { KRANTEN } from '../media/nieuws.js';
 import { roddel } from '../media/roddel.js';
 import { isProf } from '../prive/sponsors.js';
+import { europeseWissels, nieuweIdentiteit } from '../competitie/europa.js';
 
 /* ===================== Kampioen, promotie en degradatie ===================== */
 // Kampioen zodra niemand je nog kan inhalen (of na de laatste speelronde bovenaan)
@@ -33,11 +34,14 @@ export function bepaalPromotie(){
   }
   const po = S.ss.po && S.ss.po.every(p => p.w !== undefined) ? S.ss.po : (S.ss.po = simNacompetitie());
   for (const p of po) if (p.w === p.laag) wissels.push({id:p.laag, van:p.t + 1, naar:p.t, po:true}, {id:p.hoog, van:p.t, naar:p.t + 1, po:true});
-  return wissels;
+  // De Europese Elite: buitenlandse degradanten gaan terug naar hun land, en een kampioen uit een ander land speelt een play-off
+  return europeseWissels(wissels, stand(0));
 }
 export function voerPromotieUit(wissels){
   const sp = S.sp;
-  wissels.forEach(w => { const c = CLUBS[w.id]; c.t = w.naar; c.s = clamp(c.s + (w.naar < w.van ? 2 : -2), 30, 95); });
+  wissels.forEach(w => { const c = CLUBS[w.id]; c.t = w.naar; if (w.naar !== w.van) c.s = clamp(c.s + (w.naar < w.van ? 2 : -2), 30, 95); if (w.nieuw) nieuweIdentiteit(w.id, w.nieuw); });
+  // Voor de stand van het nieuwe seizoen: wie is er gepromoveerd, gedegradeerd of nieuw
+  S.nieuwInDiv = {jaar:S.jaar + 1, op:wissels.filter(w => w.naar < w.van).map(w => w.id), neer:wissels.filter(w => w.naar > w.van && !w.nieuw).map(w => w.id), nieuw:wissels.filter(w => w.nieuw).map(w => w.id)};
   S.clubs = CLUBS.map(c => [c.t, c.s]);
   // Je eigen club promoveert: een beter contract dat bij het nieuwe niveau past
   const mijn = wissels.find(w => w.id === sp.club);

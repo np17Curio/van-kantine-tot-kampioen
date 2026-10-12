@@ -1,8 +1,9 @@
 import { S, club } from '../../core/state.js';
 import { clamp, pick, randInt, rnd, shuffle } from '../../core/utils.js';
-import { CLUBS, DIVS, ROUNDS, divClubs } from '../../data/gegevens.js';
-import { simGoals, teamUitslag } from './competitie.js';
+import { CLUBS, DIVS, divClubs } from '../../data/gegevens.js';
+import { rondeParen, simGoals, speelLijst, teamUitslag } from './competitie.js';
 import { ck } from '../transfers/buitenland.js';
+import { vormBonus } from './vorm.js';
 
 /* ===================== Spelers van alle clubs ===================== */
 // Elke club heeft een vaste selectie (verzonnen namen). Spitsen scoren vaker, middenvelders geven vaker assists
@@ -71,14 +72,14 @@ export function willekeurigDoel(club, zonderJij){
 export function speelRonde(r, mijnVoor, mijnTegen, doelen){
   const res = S.ss.res = S.ss.res || {};
   for (let t = 0; t < DIVS.length; t++){
-    const lijst = divClubs(t), ronde = (res[t] = res[t] || [])[r] = [];
-    for (const [h, u] of ROUNDS[r]){
+    const lijst = speelLijst(t), ronde = (res[t] = res[t] || [])[r] = [];
+    for (const [h, u] of rondeParen(t, r)){
       const H = lijst[h], U = lijst[u];
       let gh, gu;
       const mijn = H === S.sp.club || U === S.sp.club;
       if (H === S.sp.club){ gh = mijnVoor; gu = mijnTegen; }
       else if (U === S.sp.club){ gh = mijnTegen; gu = mijnVoor; }
-      else [gh, gu] = simGoals(CLUBS[H].s, CLUBS[U].s, true);
+      else [gh, gu] = simGoals(CLUBS[H].s + vormBonus(H), CLUBS[U].s + vormBonus(U), true); // teamvorm: winnen geeft vertrouwen
       teamUitslag(H, gh, gu); teamUitslag(U, gu, gh);
       ronde.push([H, U, gh, gu]);
       // Wie scoorde er? Bij jouw wedstrijd staat dat in het verslag, anders wordt het verdeeld

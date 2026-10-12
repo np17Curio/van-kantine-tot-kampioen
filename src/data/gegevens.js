@@ -23,6 +23,7 @@ CLUBS.filter(c => c.t === AMATEUR).map(c => CLUBS.indexOf(c)).forEach((id, i) =>
 // Startniveau en -sterkte van elke club. Door promotie en degradatie verandert dat; de stand van zaken staat in S.clubs
 export const CLUBS_BASIS = CLUBS.map(c => [c.t, c.s]);
 // Thuisland van de vaste clubs uit de Europese Elite (0-7): één competitie met topclubs uit heel Europa
+export const ELITE_NAAM = CLUBS.slice(0, 8).map(c => c.n); // de oorspronkelijke namen (een plaats kan van club wisselen)
 export const ELITE_LAND = ['Spanje', 'Italië', 'Denemarken', 'Frankrijk', 'Portugal', 'Oekraïne', 'Duitsland', 'Engeland'];
 export function zetClubs(lijst){ (lijst || CLUBS_BASIS).forEach(([t, s], i) => { if (CLUBS[i]){ CLUBS[i].t = t; CLUBS[i].s = s; } }); }
 

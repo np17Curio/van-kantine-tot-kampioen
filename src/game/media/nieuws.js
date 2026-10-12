@@ -6,6 +6,7 @@ import { stand } from '../competitie/spelers.js';
 import { fmt1, gemiddelde } from '../speler/o23.js';
 import { stand2 } from '../wedstrijd/wedstrijd.js';
 import { clubLogo } from '../../data/logos.js';
+import { vormBolletjes } from '../competitie/vorm.js';
 
 /* ===================== Het nieuws ===================== */
 // Na elke clubwedstrijd verschijnen krantenkoppen over je ploeg en over jou, op basis van wat er echt gebeurde
@@ -148,6 +149,8 @@ export function zone(t, i, n){
   if (t < AMATEUR && i === n - 2) return 'pod';
   return null;
 }
+// Gepromoveerd (▲), gedegradeerd (▼) of nieuw in de competitie, alleen in het eerste deel van het nieuwe seizoen
+const wisselTeken = id => { const w = S.nieuwInDiv; if (!w || w.jaar !== S.jaar || S.ronde > 4) return ''; return w.nieuw.includes(id) ? ' <span class="wt nieuw" title="Nieuw in deze competitie">nieuw</span>' : w.op.includes(id) ? ' <span class="wt op" title="Gepromoveerd">▲</span>' : w.neer.includes(id) ? ' <span class="wt neer" title="Gedegradeerd">▼</span>' : ''; };
 export function vCompetitieKaart(){
   const sp = S.sp, c = club(), t = c.t, tab = tmp.comp || 'stand';
   const tabs = [['stand', 'Stand'], ['g', 'Topscorers'], ['a', 'Assists'], ['uit', 'Uitslagen']];
@@ -155,8 +158,8 @@ export function vCompetitieKaart(){
   if (tab === 'stand'){
     const st = stand(t);
     inhoud = `<div class="tabelwrap"><table class="tabel">
-      <thead><tr><th>#</th><th>Club</th><th>G</th><th>DS</th><th>Pt</th></tr></thead>
-      <tbody>${st.map((id, i) => { const e = S.tab[id], z = zone(t, i, st.length); return `<tr class="${id === sp.club ? 'mij' : ''}${z ? ' z-' + z : ''}"${z ? ` title="${ZONES[z]}"` : ''}><td>${i + 1}</td><td><span class="clubnaam">${clubLogo(id, 16)}${esc(CLUBS[id].n)}</span></td><td>${e.g}</td><td>${e.dv - e.dt > 0 ? '+' : ''}${e.dv - e.dt}</td><td>${e.pt}</td></tr>`; }).join('')}</tbody>
+      <thead><tr><th>#</th><th>Club</th><th>G</th><th>DS</th><th>Pt</th><th class="vk">Vorm</th></tr></thead>
+      <tbody>${st.map((id, i) => { const e = S.tab[id], z = zone(t, i, st.length); return `<tr class="${id === sp.club ? 'mij' : ''}${z ? ' z-' + z : ''}"${z ? ` title="${ZONES[z]}"` : ''}><td>${i + 1}</td><td><span class="clubnaam">${clubLogo(id, 16)}${esc(CLUBS[id].n)}${wisselTeken(id)}</span></td><td>${e.g}</td><td>${e.dv - e.dt > 0 ? '+' : ''}${e.dv - e.dt}</td><td>${e.pt}</td><td class="vk">${vormBolletjes(id)}</td></tr>`; }).join('')}</tbody>
     </table></div>${t === JEUGD ? '' : `<div class="zones">${Object.entries(ZONES).filter(([k]) => (t > 0 || (k !== 'prom' && k !== 'po')) && (t < AMATEUR || (k !== 'pod' && k !== 'degr'))).map(([k, l]) => `<span class="z-${k}">${l}</span>`).join('')}</div>`}`;
   } else if (tab === 'uit'){
     const n = gespeeldeRondes(t);

@@ -3,6 +3,7 @@ import { clamp, shuffle } from '../../core/utils.js';
 import { CLUBS, DIVS, ELITE_LAND, JEUGD, MIN, divClubs } from '../../data/gegevens.js';
 import { SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
 import { vreemdeClub } from './buitenland.js';
+import { slotLand } from '../competitie/europa.js';
 
 /* ===================== Zaakwaarnemer ===================== */
 export const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -31,14 +32,14 @@ export function clubIndex(){
   return uit;
 }
 // Uit welk land komt een club uit de Europese Elite? De vaste topclubs hebben een eigen land, een gepromoveerde club het jouwe
-export const eliteLand = d => d.club < 8 ? ELITE_LAND[d.club] : d.land || thuisLand();
+export const eliteLand = d => d.club < 8 ? slotLand(d.club) : d.land || thuisLand();
 // De hele Europese Elite (zoals die nu speelt)
 export const eliteClubs = () => divClubs(0).map(i => doelVan(i));
 // Alle clubs van een niveau in een land (voor de eisen en de clublijst). Niveau 0: de Elite-clubs uit dat land
 export function clubsVanNiveau(land, t){
   const l = land || thuisLand();
   if (t === 0){
-    const vast = ELITE_LAND.map((x, i) => i).filter(i => ELITE_LAND[i] === l).map(i => doelVan(i));
+    const vast = ELITE_LAND.map((x, i) => i).filter(i => CLUBS[i].t === 0 && slotLand(i) === l).map(i => doelVan(i));
     if (l === thuisLand()) return vast.concat(divClubs(0).filter(i => i >= 8).map(i => doelVan(i)));
     const uit = []; for (let id = 8; id < 40; id++) if (vreemdeClub(l, id).t === 0) uit.push({club:id, land:l});
     return vast.concat(uit);

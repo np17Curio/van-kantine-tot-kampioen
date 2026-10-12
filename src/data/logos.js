@@ -56,7 +56,7 @@ export function logoOnderdelen(id){
 }
 const cache = {};
 export function clubLogo(id, maat = 28){
-  const key = id + '|' + maat; if (cache[key]) return cache[key];
+  const key = id + '|' + maat + '|' + (CLUBS[id] ? CLUBS[id].n : ''); if (cache[key]) return cache[key];
   const o = logoOnderdelen(id); if (!o) return '';
   const {t, vorm, symbool, ini, jaar} = o, d = VORMEN[vorm], cid = 'lg' + id + 'x' + maat;
   const wit = '#f6f6f6', donker = '#15161c', licht = c => { const n = parseInt(c.slice(1), 16); return ((n >> 16) * .299 + ((n >> 8) & 255) * .587 + (n & 255) * .114) > 150; };

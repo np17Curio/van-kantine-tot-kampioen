@@ -24,7 +24,7 @@ export const LAND_DATA = {
     kranten:{5:['The Club Gazette', 'Village Chronicle', 'Youth Football Weekly'], 4:['County Herald', 'The Club Gazette', 'Grassroots Weekly'], 3:['County Herald', 'Football Today', 'The Daily Ball'], 2:['The Daily Ball', 'Football Today', 'Match Night TV'], 1:['The Daily Ball', 'Football Today', 'Match Night TV']},
     roddel:['The Sunday Scandal', 'Celebrity Weekly', 'The Daily Ball']},
   'Duitsland':{divs:['Bundesklasse', 'Zweite Klasse', 'Regionalklasse', 'Kreisliga', 'Jugendliga U19'], beker:'Pokal',
-    clubs:['FC Westerhausen', 'Borussia Lindenfeld', 'SV Rheinauen', 'Eintracht Waldberg', 'VfB Steinbrück', '1. FC Ostmark', 'TSV Bergheide', 'Fortuna Elbstadt',
+    clubs:['FC Westerhausen', 'Borussia Lindenfeld', 'SV Rheinauen', 'Eintracht Waldberg', 'VfB Steinbrück', '1. FC Ostmark', 'TSV Bergfelden', 'Fortuna Elbstadt',
       'SC Moorbach', 'VfL Tannenau', 'Arminia Kessel', 'SpVgg Hügelland', 'Union Rotfeld', 'FC Mühlhagen', 'Kickers Altdorf', 'SV Sandkuhle',
       'TuS Kleinwalde', 'SV Bachhausen', 'FC Wiesental', 'VfR Dornbach', 'SG Heuberg', 'TSG Lindach', 'SC Brunnen', 'FV Feldmark',
       'FC Bratwurst', 'SV Bierzelt', 'TSV Lederhose', 'Kreisliga Kickers', 'FC Brezel', 'SpVgg Sauerkraut', 'SV Gemütlich', 'FC Feierabend'],
@@ -80,3 +80,17 @@ export const NL_VRAAG = /Nederland|Nederlandse|5 mei/;
 export const nietNL = () => S && S.land && S.land !== 'Nederland';
 
 export const PRIJS_CLUB = new RegExp(`^(Kampioen|${BEKER_ALT}|Champions League|Europa Cup|Jeugdbeker|Promotie)`), PRIJS_IND = /^(Topscorer|Assistkoning|Speler van het Seizoen|Gouden Bal|Maatschappelijk|Clublegende|Beste speler|Clubtopscorer|Competitierecord|Standbeeld|Rugnummer)/, PRIJS_LAND = /^(WK|EK|Copa América|Afrika Cup|Azië Cup|Gold Cup) \d{4} met /;
+
+// Clubnamen voor nieuwe clubs (een fusieclub in jouw land, of een nieuwe kampioen in de Europese Elite)
+export const NIEUWE_CLUBS = {
+  Nederland:['FC Zuiderwaard','SV Klinkerveen','Achilles Duinrand','VV Grachtenstad','SC Westerkwartier','FC Lingewaard','RKSV Maasoever','FC Eemland'],
+  'België':['KV Leiedal','Royal Ardennenstad','SK Maasbos','FC Brabantia Zuid','RC Kempenstad','KSV Waaslandia','Union Zennevallei','SV Ourthe'],
+  Engeland:['Riverside Athletic','Northgate United','Kingsbridge Rovers','Moorland City','Harbourside Albion','Westfield Town','Ironbridge FC','Highcliff Wanderers'],
+  Duitsland:['SV Rheinwerder','FC Elbstadt','TSV Hohenkamm','Borussia Moorbach','SG Neckartal','VfR Ostseeburg','FC Waldsee','Eintracht Lindenhof'],
+  Frankrijk:['AS Côte Bleue','Racing Vallée-Noire','FC Montrésor','Stade Bellerive','Olympique Lavande','US Rochefleur','SC Garonne','AC Mont-Clair'],
+  Spanje:['CD Puerto Sol','Atlético Sierra Norte','Real Valdeoro','UD Costa Brava','SD Olivares Altos','CF Río Claro','Racing Mesana','Deportivo Alcalá Verde'],
+  'Italië':['AC Lagonero','US Montevalle','FC Portoverde','SS Collina','Sporting Vallescura','AS Marittima','Calcio Torrebianca','Virtus Fiumara'],
+  Portugal:['SC Ribamar','FC Serra Alta','Académica Douro','CD Mareira','Vitória Costa Verde','União Lusitana','SC Alvorada','Desportivo Tejo'],
+  Denemarken:['FC Øresund','Aalvik BK','Silkeby IF','FC Jyllandshavn','Bornholt BK','Lyngby Fjord'],
+  'Oekraïne':['FK Stepovyi','Dnipro-Zirka','Metalurh Azovsk','Karpaty Verkhovyna','Zorya Polissya','FK Chornomorets-Sud']
+};

@@ -19,6 +19,7 @@ import { staminaNaWedstrijd } from '../wedstrijd/stamina.js';
 import { planWedstrijd, verderSpelen } from '../wedstrijd/wedstrijd.js';
 import { animPush, reeksStrafschoppen } from '../../render/pitch.js';
 import { scorebord, vFit, vLog } from '../../render/views/match.js';
+import { vormBonus } from './vorm.js';
 
 /* ===================== Nacompetitie ===================== */
 // Na het seizoen: de kampioen promoveert en de laatste degradeert meteen. De nummer 2 speelt één wedstrijd tegen de
@@ -51,7 +52,7 @@ export function startNacompetitie(p){
   else if (sp.geschorst > 0) rol = 'geschorst';
   else { const sc = opstellingScore() + randInt(-6, 6); rol = sc >= 50 ? 'basis' : sc >= 12 ? 'invaller' : 'tribune'; if (rol !== 'basis') reden = ' ' + opstellingReden(); }
   const speelt = rol === 'basis' || rol === 'invaller';
-  const T = teamKracht(c.s, {speelt, thuis}), O = opp.s + (thuis ? 0 : 2);
+  const T = teamKracht(c.s, {speelt, thuis}), O = opp.s + (thuis ? 0 : 2) + vormBonus(oppId);
   const M = {po:{t:p.t, soort, boven:DIVS[p.t], onder:DIVS[p.t + 1]}, opp:oppId, oppS:opp.s, wij:c.n, zij:opp.n, thuis, rol, us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false};
   S.M = M;
   const inzet = soort === 'promotie' ? `Win je, dan promoveer je naar de ${DIVS[p.t]}. Verlies je, dan blijf je in de ${DIVS[p.t + 1]}.` : `Win je, dan blijf je in de ${DIVS[p.t]}. Verlies je, dan degradeer je naar de ${DIVS[p.t + 1]}.`;
