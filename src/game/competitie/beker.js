@@ -11,7 +11,7 @@ import { carCijfer } from '../seizoen/carriere.js';
 import { recordsNaWedstrijd } from '../seizoen/records.js';
 import { fmt1 } from '../speler/o23.js';
 import { checkStatus, statusPunten, wedstrijdPunten } from '../speler/status.js';
-import { teamBonus } from '../team/kleedkamer.js';
+import { teamKracht } from '../team/kleedkamer.js';
 import { opstellingReden, opstellingScore } from '../team/opstelling.js';
 import { maakPers, modFans, vPers } from '../wedstrijd/fans-pers.js';
 import { focusNaWedstrijd } from '../wedstrijd/focus.js';
@@ -99,7 +99,7 @@ export function startBeker(k, m){
   else if (sp.fit < 20) rol = 'rust';
   else { const sc = opstellingScore() + randInt(-6, 6); rol = sc >= 50 ? 'basis' : sc >= 12 ? 'invaller' : 'tribune'; if (rol !== 'basis') reden = ' ' + opstellingReden(); }
   const speelt = rol === 'basis' || rol === 'invaller';
-  const T = c.s + (speelt ? (ovr(sp) - c.s) * .15 : 0) + (thuis && !finale ? 2 : 0) + teamBonus(), O = opp.s + (!thuis && !finale ? 2 : 0);
+  const T = teamKracht(c.s, {speelt, thuis:thuis && !finale}), O = opp.s + (!thuis && !finale ? 2 : 0);
   const M = {beker:{k, naam:BEKERS[k].naam, ronde:rondeNaam, finale}, opp:oppId, oppS:opp.s, wij:c.n, zij:opp.n, thuis, rol, us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false};
   S.M = M;
   M.log.push({m:'', t:`${k === 'cl' ? 'De Champions League-hymne klinkt door het stadion. Kippenvel. ' : ''}${BEKERS[k].naam} · ${rondeNaam}${finale ? ' in een uitverkocht stadion' : ''}. ${rol === 'basis' ? 'Je staat in de basis.' : rol === 'invaller' ? 'Je begint op de bank.' + reden : rol === 'o23' ? 'Je speelt bij de O23 en kijkt vanaf de tribune.' : rol === 'blessure' ? 'Je bent geblesseerd en kijkt vanaf de tribune.' : rol === 'rust' ? 'Je bent kapot en krijgt rust.' : 'De trainer laat je buiten de selectie.' + reden}`, k:'rust'});

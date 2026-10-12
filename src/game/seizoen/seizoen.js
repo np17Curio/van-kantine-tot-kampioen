@@ -15,6 +15,7 @@ import { fmt1, gemiddelde } from '../speler/o23.js';
 import { checkStatus, nieuweTabellen, statusPunten } from '../speler/status.js';
 import { nieuweWeek, verhoog } from '../week.js';
 import { talentSeizoen } from '../speler/talent.js';
+import { doelInfo } from '../transfers/zaakwaarnemer.js';
 
 /* ===================== Seizoen ===================== */
 export function ontwikkel(){
@@ -101,7 +102,7 @@ export function startNieuwSeizoen(){
   S.jaar++; S.ronde = 0; S.tab = nieuweTabellen(); S.ss = {wed:0, g:0, a:0, c:[], bods:0};
   S.ss.bekers = nieuweBekers();
   const ag = S.sp.agent;
-  if (ag && ag.doel != null && !ag.gehaald) ag.antwoord = `Nieuw seizoen. Voor ${CLUBS[ag.doel].n} begint de teller weer bij nul: laat het opnieuw zien.`;
+  if (ag && ag.doel != null && !ag.gehaald) ag.antwoord = `Nieuw seizoen. Voor ${doelInfo().n} begint de teller weer bij nul: laat het opnieuw zien.`;
   S.eind = null;
   nieuweWeek(true);
 }

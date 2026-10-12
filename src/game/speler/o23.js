@@ -14,6 +14,7 @@ import { planWedstrijd, verderSpelen } from '../wedstrijd/wedstrijd.js';
 import { verhoog } from '../week.js';
 import { staminaNaWedstrijd } from '../wedstrijd/stamina.js';
 import { talentNaWedstrijd } from './talent.js';
+import { teamKracht } from '../team/kleedkamer.js';
 
 /* ===================== O23 en verhuur ===================== */
 export const gemiddelde = l => l.reduce((a, b) => a + b, 0) / l.length;
@@ -60,7 +61,7 @@ export function startO23(){
   const sp = S.sp, c = club(), fx = fixture(S.ronde), opp = CLUBS[fx.opp];
   const [a, b] = simGoals(c.s, opp.s, fx.thuis);
   const wijS = c.s - 8, oppS = opp.s - 8, thuis = rnd() < .5;
-  const T = wijS + (ovr(sp) - wijS) * .15 + (thuis ? 2 : 0), O = oppS + (thuis ? 0 : 2);
+  const T = teamKracht(wijS, {speelt:true, thuis, bonus:false}), O = oppS + (thuis ? 0 : 2);
   const M = {o23:true, eerste:{us:a, them:b, opp:fx.opp, thuis:fx.thuis}, oppS, wij:`${c.n} O23`, zij:`${opp.n} O23`, thuis, rol:'basis', us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false};
   S.M = M;
   planWedstrijd(M, T, O);

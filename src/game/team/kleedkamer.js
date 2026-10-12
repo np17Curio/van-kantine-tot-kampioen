@@ -1,4 +1,4 @@
-import { S, mod } from '../../core/state.js';
+import { S, mod, ovr } from '../../core/state.js';
 import { clamp, pick, randInt, rnd } from '../../core/utils.js';
 import { ATTR, TRAINBAAR } from '../../data/gegevens.js';
 import { selectie } from '../competitie/spelers.js';
@@ -19,8 +19,15 @@ export function zetBand(naam, d){ const k = kleedkamer(); k.rel[naam] = clamp((k
 export function iedereen(d){ selectie(S.sp.club).forEach(x => zetBand(x.n, d)); }
 export const chemie = () => { const r = Object.values(kleedkamer().rel); return r.length ? r.reduce((a, b) => a + b, 0) / r.length : 50; };
 export const bandLabel = v => v >= 80 ? ['Maatje', 'r-veilig'] : v >= 60 ? ['Goed', 'r-veilig'] : v >= 40 ? ['Neutraal', 'r-gem'] : v >= 20 ? ['Koel', 'r-riskant'] : ['Vijand', 'r-riskant'];
-// Teamsterkte: sfeer in de groep en een opgepept team (aanvoerder) helpen een beetje
-export const teamBonus = () => (chemie() - 50) / 25 + ((S.week && S.week.boost) || 0);
+// Teamsterkte: sfeer in de groep en een opgepept team (aanvoerder) helpen een beetje (sfeer ±1, opgepept hooguit +1,5)
+export const teamBonus = () => clamp((chemie() - 50) / 50, -1, 1) + Math.min(1.5, (S.week && S.week.boost) || 0);
+// De kracht van jouw ploeg in een wedstrijd. Jij, de sfeer, het oppeppen en de tactiek helpen samen hooguit 3 punten:
+// genoeg om een sterkere ploeg soms te verrassen, niet om het verschil in sterkte weg te poetsen.
+export const EXTRA_MAX = 3;
+export function teamKracht(basis, {speelt = false, thuis = false, tactiek = 0, bonus = true} = {}){
+  const jij = speelt ? clamp((ovr(S.sp) - basis) * .15, -2, 2) : 0;
+  return basis + (thuis ? 2 : 0) + clamp(jij + (bonus ? teamBonus() : 0) + tactiek, -EXTRA_MAX, EXTRA_MAX);
+}
 export function maatActie(naam, id){
   const sp = S.sp, w = S.week; if (w.maat) return; const x = selectie(sp.club).find(y => y.n === naam); if (!x) return;
   let t;

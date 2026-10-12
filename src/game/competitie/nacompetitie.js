@@ -11,7 +11,7 @@ import { carCijfer } from '../seizoen/carriere.js';
 import { seizoenEinde } from '../seizoen/seizoen.js';
 import { fmt1 } from '../speler/o23.js';
 import { checkStatus, statusPunten, wedstrijdPunten } from '../speler/status.js';
-import { teamBonus } from '../team/kleedkamer.js';
+import { teamKracht } from '../team/kleedkamer.js';
 import { opstellingReden, opstellingScore } from '../team/opstelling.js';
 import { focusNaWedstrijd } from '../wedstrijd/focus.js';
 import { MOMENTS, kans } from '../wedstrijd/momenten.js';
@@ -51,7 +51,7 @@ export function startNacompetitie(p){
   else if (sp.geschorst > 0) rol = 'geschorst';
   else { const sc = opstellingScore() + randInt(-6, 6); rol = sc >= 50 ? 'basis' : sc >= 12 ? 'invaller' : 'tribune'; if (rol !== 'basis') reden = ' ' + opstellingReden(); }
   const speelt = rol === 'basis' || rol === 'invaller';
-  const T = c.s + (speelt ? (ovr(sp) - c.s) * .15 : 0) + (thuis ? 2 : 0) + teamBonus(), O = opp.s + (thuis ? 0 : 2);
+  const T = teamKracht(c.s, {speelt, thuis}), O = opp.s + (thuis ? 0 : 2);
   const M = {po:{t:p.t, soort, boven:DIVS[p.t], onder:DIVS[p.t + 1]}, opp:oppId, oppS:opp.s, wij:c.n, zij:opp.n, thuis, rol, us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false};
   S.M = M;
   const inzet = soort === 'promotie' ? `Win je, dan promoveer je naar de ${DIVS[p.t]}. Verlies je, dan blijf je in de ${DIVS[p.t + 1]}.` : `Win je, dan blijf je in de ${DIVS[p.t]}. Verlies je, dan degradeer je naar de ${DIVS[p.t + 1]}.`;

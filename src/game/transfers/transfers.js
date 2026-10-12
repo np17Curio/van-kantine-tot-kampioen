@@ -12,7 +12,7 @@ import { doorstroomEisen } from '../speler/doorstroom.js';
 import { huurClubs, huurNodig, terugVanHuur } from '../speler/o23.js';
 import { startStatus, statusNaam, statusNiveau, statusPunten } from '../speler/status.js';
 import { buitenlandseBods, ck, clubInfo, isBuitenland, wisselLand } from './buitenland.js';
-import { agentReset } from './zaakwaarnemer.js';
+import { agentReset, doelBod, doelInfo, doelVan, infoVan, isDoel, isHier, sleutel } from './zaakwaarnemer.js';
 import { fans, modFans, rivaal, zetFans } from '../wedstrijd/fans-pers.js';
 import { bewaarVertrek } from '../wedstrijd/reunie.js';
 import { nieuweWeek } from '../week.js';
@@ -118,12 +118,13 @@ export function openVenster(soort){
   }
   if (sp.transferlijst && modus === 'normaal') intro += ' Je staat op de transferlijst: je club laat je gaan als je een club kiest.';
   let bods = maakAanbiedingen(modus), agentBod = null;
-  const ag = sp.agent;
-  if (ag && ag.doel != null && ag.gehaald && ag.doel !== sp.club){
-    const dc = CLUBS[ag.doel];
-    bods = bods.filter(b => b.club !== ag.doel);
-    bods.unshift({club:ag.doel, salaris:Math.round(salarisVoor(dc.t, ovr(sp)) * 1.05 / 100) * 100, jaren: dc.t >= AMATEUR ? 1 : sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4), som: club().t < AMATEUR && dc.t < AMATEUR ? waarde(sp) : 0, viaAgent:true});
-    agentBod = ag.doel;
+  // De droomclub van je zaakwaarnemer (een club in het buitenland komt in de zomer, met een overstap naar dat land)
+  const ag = sp.agent, dd = doelBod();
+  if (dd && ag.gehaald && !isHier(dd) && (!dd.land || soort === 'zomer')){
+    const dc = infoVan(dd), key = sleutel(dd);
+    bods = bods.filter(b => sleutel(doelVan(b.club, b.land)) !== key);
+    bods.unshift({club:dd.club, ...(dd.land ? {land:dd.land} : {}), salaris:Math.round(salarisVoor(dc.t, ovr(sp)) * 1.05 / 100) * 100, jaren: dc.t >= AMATEUR ? 1 : sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4), som: club().t < AMATEUR && dc.t < AMATEUR ? waarde(sp) : 0, viaAgent:true});
+    agentBod = key;
   }
   if (terug && terug.koop != null && !bods.some(b => b.club === terug.koop)){
     const hc = CLUBS[terug.koop];
@@ -136,7 +137,7 @@ export function openVenster(soort){
   }
   if (bods.some(b => b.doorstroom)) intro += ` De trainer van het 1e elftal van ${CLUBS[club().ouder].n} heeft je zien spelen en wil je erbij hebben!`;
   else if (modus === 'normaal' && !bods.length && !huurNodig()) intro += jeugd && sp.leeftijd < 16 ? ' Je bent nog jong. Blijf je ontwikkelen in de jeugd.' : ' Er meldt zich geen enkele club. Gewoon doorwerken en laten zien wat je kan!';
-  if (agentBod != null) intro += ` Je zaakwaarnemer heeft goed nieuws: ${CLUBS[agentBod].n} wil je hebben!`;
+  if (agentBod != null) intro += ` Je zaakwaarnemer heeft goed nieuws: ${doelInfo().n}${dd.land ? ` uit ${dd.land}` : ''} wil je hebben!`;
   const huurOpties = modus === 'normaal' && huurNodig() && !sp.transferlijst ? huurClubs() : null;
   if (huurOpties && huurOpties.length) intro = `${club().n} wil je verhuren, zodat je elders wedstrijden speelt en jezelf kunt bewijzen. ` + intro;
   if (terug) intro = terug.tekst + (terug.koop != null ? ` ${CLUBS[terug.koop].n} wil je definitief overnemen!` : '') + ' ' + intro;
@@ -149,7 +150,7 @@ export function openVenster(soort){
 // Voert een clubwissel uit en geeft een tekst terug over wat er gebeurt
 export function wissel(o, hoe){
   const sp = S.sp, oc = club(), oud = {n:oc.n, t:oc.t, s:oc.s}, oudStatus = sp.status, teksten = [], oudId = sp.club, oudLand = thuisLand(), landWissel = isBuitenland(o);
-  const naarRivaal = !landWissel && rivaal(oudId) === o.club && oud.t !== JEUGD;
+  const naarRivaal = !landWissel && rivaal(oudId) === o.club && oud.t !== JEUGD, naarDoel = isDoel(o); // vóór de landwissel bepalen
   if (hoe === 'geforceerd') modFans(-20, oudId);
   bewaarVertrek(oudId, hoe, naarRivaal);
   if (naarRivaal){ zetFans(oudId, 5); if (sp.fans[ck(o.club)] === undefined) zetFans(o.club, 35); }
@@ -163,7 +164,7 @@ export function wissel(o, hoe){
   if (landWissel){ S.car.hist.push(`${seizoenLabel()}: verhuisd van ${oudLand} naar ${o.land}`); teksten.push(`Je verhuist naar ${o.land}! Je speelt voortaan in de ${DIVS[nieuw.t]}.`);
     if (o.land === (S.startLand || 'Nederland')) krantMelding(`${sp.naam} keert terug naar ${o.land}`, `Na zijn avontuur in ${oudLand} speelt hij weer in eigen land, bij ${nieuw.n}.`, KRANTEN[0]);
     else krantMelding(`${sp.naam} kiest voor avontuur in ${o.land}`, `De speler van ${oud.n} tekent bij ${nieuw.n}. "Ik wil een nieuwe uitdaging," zegt hij.`, KRANTEN[0]);
-    if (sp.agent && sp.agent.doel != null) agentReset(`Je speelt nu in ${o.land}. Heb je hier een droomclub? Zeg het maar.`); }
+    if (sp.agent && sp.agent.doel != null && !naarDoel) agentReset(`Je speelt nu in ${o.land}. Heb je hier een droomclub? Zeg het maar.`); }
   const prijs = o.som ? ` voor ${geldTxt(o.som)}` : '';
   if (hoe === 'doorstroom') S.car.hist.push(`${seizoenLabel()}: doorgestroomd naar het 1e elftal van ${nieuw.n}`);
   else if (hoe === 'weg') S.car.hist.push(`${seizoenLabel()}: weggestuurd bij ${oud.n} → ${nieuw.n}`);
@@ -189,7 +190,7 @@ export function wissel(o, hoe){
     if (sp.relatie.getrouwd || sp.relatie.samen || rnd() < .3 + sp.relatie.band / 200) teksten.push(`${naam} verhuist mee naar het buitenland!${kinderen().length ? ' De kinderen gaan er naar een internationale school.' : ''}`);
     else teksten.push(eindRelatie(`${naam} wil niet mee naar het buitenland. Jullie gaan uit elkaar.`));
   }
-  if (sp.agent && sp.agent.doel === o.club) agentReset(`Gelukt! Je speelt nu bij ${nieuw.n}. Heb je een nieuw doel? Zeg het maar.`);
+  if (sp.agent && naarDoel) agentReset(`Gelukt! Je speelt nu bij ${nieuw.n}${landWissel ? ` in ${o.land}` : ''}. Heb je een nieuw doel? Zeg het maar.`);
   return teksten.join(' ');
 }
 export function transferNieuws(hoe, oud, nieuw, o){
@@ -206,7 +207,7 @@ export function transferNieuws(hoe, oud, nieuw, o){
 }
 export function teken(o){
   const sp = S.sp, V = S.venster;
-  if (V.agentBod != null && o.club !== V.agentBod) agentReset(`Je koos niet voor ${CLUBS[V.agentBod].n}. Zeg het maar als je een nieuw doel hebt.`);
+  if (V.agentBod != null && !isDoel(o) && doelInfo()) agentReset(`Je koos niet voor ${doelInfo().n}. Zeg het maar als je een nieuw doel hebt.`);
   if (o.club !== sp.club || isBuitenland(o)) S.verhuisTekst = wissel(o, o.viaAgent ? 'droom' : o.doorstroom ? 'doorstroom' : V.modus === 'weg' ? 'weg' : 'vertrek');
   else {
     mod('vert', 5); sp.transferlijst = false; sp.transferWens = false;
@@ -230,7 +231,7 @@ export function blijf(){
   const V = S.venster;
   if (S.sp.transferlijst){ S.sp.transferlijst = false; S.sp.transferWens = false; S.verhuisTekst = `Je blijft toch bij ${club().n}. De club haalt je van de transferlijst.`; mod('vert', 2); sluitVenster(); return; }
   if (V.huurOpties && V.huurOpties.length){ mod('vert', -8); statusPunten(-3); S.verhuisTekst = `Je weigert de verhuur. De trainer is er niet blij mee: je moet knokken voor je plek bij ${club().n}.`; sluitVenster(); return; }
-  if (V.agentBod != null) agentReset(`Je zei nee tegen ${CLUBS[V.agentBod].n}. Zeg het maar als je een nieuw doel hebt.`);
+  if (V.agentBod != null && doelInfo()) agentReset(`Je zei nee tegen ${doelInfo().n}. Zeg het maar als je een nieuw doel hebt.`);
   if (V.bods.length){ statusPunten(3); S.verhuisTekst = `Je blijft bij ${club().n}. De fans waarderen je trouw.`; }
   sluitVenster();
 }

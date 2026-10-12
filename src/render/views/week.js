@@ -23,7 +23,7 @@ import { welkomTekst } from '../../game/speler/startverhaal.js';
 import { verhaalActiviteiten, verhaalTitel } from '../../game/speler/verhaal.js';
 import { O23_EIS, fmt1, gemiddelde } from '../../game/speler/o23.js';
 import { aanvoerderActie, isAanvoerder, kleedPersonen, teamUitjePrijs } from '../../game/team/aanvoerder.js';
-import { band, bandLabel, chemie, maatActie } from '../../game/team/kleedkamer.js';
+import { band, bandLabel, chemie, maatActie, teamKracht } from '../../game/team/kleedkamer.js';
 import { tactiekOpst, verwachteOpstelling } from '../../game/team/opstelling.js';
 import { netGekocht, netUitJeugd, rugTeam, stNaam, vRugnummer } from '../../game/team/rugnummers.js';
 import { TACTIEKEN, TRAIN_FIT, WINT_VAN, clubTactiek, inzicht, matchup, pasScore, tactiekEig, zwaarste } from '../../game/team/tactiek.js';
@@ -65,6 +65,9 @@ function vVooruitblik(fx, opp, vo){
   const sp = S.sp, c = club(), wij = sp.o23 ? `${c.n} O23` : c.n, zij = sp.o23 ? `${opp.n} O23` : opp.n;
   const aandeel = Math.round(clamp(c.s / (c.s + opp.s), .1, .9) * 100);
   const tags = [fx.thuis ? '<span class="tag">Thuis</span>' : '<span class="tag">Uit</span>', reunieMet(fx.opp) ? '<span class="tag twee">Je oude club!</span>' : '', isDerby(fx.opp) ? '<span class="tag teveel">Derby tegen je aartsrivaal</span>' : ''];
+  // Wie is favoriet? Jullie kracht (met jou, de sfeer en de tactiek) tegen die van de tegenstander
+  if (!sp.o23){ const T = teamKracht(c.s, {speelt:true, thuis:fx.thuis, tactiek:matchup(clubTactiek(sp.club), clubTactiek(fx.opp))}), O = opp.s + (fx.thuis ? 0 : 2), d = T - O;
+    tags.unshift(d <= -3 ? '<span class="tag teveel">Jullie zijn de underdog</span>' : d >= 3 ? '<span class="tag omhoog">Jullie zijn favoriet</span>' : '<span class="tag">Gelijkwaardig</span>'); }
   for (const k of bekersVan(sp.club)){ const b = S.ss.bekers[k]; if (b && b.levend.includes(sp.club) && b.winnaar === null && BEKERS[k].schema[b.rondes.length] === S.ronde + 1) tags.push(`<span class="tag omhoog">Daarna: ${esc(BEKERS[k].naam)}, ${esc(bekerRondeNaam(k, b.rondes.length).toLowerCase())}</span>`); }
   return `<div class="vooruit">
     <span class="label">Wedstrijd ${S.ronde + 1} van ${AANTAL_RONDES}${sp.o23 ? ` · het 1e elftal speelt ${fx.thuis ? 'thuis' : 'uit'} tegen ${esc(opp.n)}` : ''}</span>

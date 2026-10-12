@@ -17,7 +17,7 @@ import { kalmte, onrust } from '../speler/kalmte.js';
 import { checkO23, eindeO23, startO23 } from '../speler/o23.js';
 import { checkStatus, statusNiveau, statusPunten, wedstrijdPunten } from '../speler/status.js';
 import { isAanvoerder } from '../team/aanvoerder.js';
-import { band, iedereen, teamBonus } from '../team/kleedkamer.js';
+import { band, iedereen, teamKracht } from '../team/kleedkamer.js';
 import { opstellingReden, opstellingScore } from '../team/opstelling.js';
 import { clubTactiek, erbij, matchup } from '../team/tactiek.js';
 import { openVenster } from '../transfers/transfers.js';
@@ -34,13 +34,18 @@ import { animAnderen, animPush, animSoort, animVariant } from '../../render/pitc
 import { talentNaWedstrijd } from '../speler/talent.js';
 
 /* ===================== Wedstrijd ===================== */
+// Achtergrondgoals als jij meespeelt (naast jouw momenten): factor voor jullie en voor de tegenstander
+export const BG = {wij:.5, zij:.85};
 // Plant de goals van teamgenoten/tegenstander en jouw momenten in
 export function planWedstrijd(M, T, O, vast){
   if (M.focusStart === undefined) M.focusStart = Math.round(S.sp.focus ?? 65);
   const sp = S.sp, rol = M.rol;
   const lu = 1.3 * Math.pow(T / O, 3), lt = 1.3 * Math.pow(O / T, 3);
-  // Zit je niet in het veld, dan staat de uitslag al vast (vast = {us, them})
-  const bgUs = vast ? vast.us : poisson(lu * .6), bgThem = vast ? vast.them : poisson(lt * .7);
+  // Zit je niet in het veld, dan staat de uitslag al vast (vast = {us, them}).
+  // Speel je mee, dan komen jouw goals en assists uit je momenten. De rest van het spel weegt het sterkteverschil zwaarder mee,
+  // zodat een zwakke ploeg niet alles wint omdat jij goed bent.
+  const r4 = Math.pow(T / O, 4);
+  const bgUs = vast ? vast.us : poisson(1.3 * r4 * BG.wij), bgThem = vast ? vast.them : poisson(1.3 / r4 * BG.zij);
   // Wedstrijdverslag: kansen voor beide ploegen (hoe beter het team, hoe meer kansen), kaarten, rust en blessuretijd
   const kansUs = clamp(poisson(1.5 + lu * 2), 1, 7), kansThem = clamp(poisson(1.5 + lt * 2), 1, 7);
   for (let i = 0; i < kansUs; i++) M.ev.push({type:'kansUs', min:randInt(3, 89)});
@@ -58,7 +63,8 @@ export function planWedstrijd(M, T, O, vast){
   if (rol === 'invaller'){ start = randInt(58, 72); M.ev.push({type:'warm', min:start - randInt(5, 9)}); M.ev.push({type:'inval', min:start}); }
   if (rol !== 'basis' && rol !== 'invaller') return sorteerEv(M);
   const n = rol === 'basis' ? 3 + (rnd() < .5 ? 1 : 0) + (rnd() < .25 ? 1 : 0) + (sp.pos === 'VERD' ? 1 : 0) : 1 + (rnd() < .6 ? 1 : 0);
-  const nn = n;
+  // Tegen een duidelijk sterkere ploeg heb je de bal minder: soms een moment minder
+  const nn = n - (O - T >= 3 && n > 1 && rnd() < .6 ? 1 : 0);
   let extra = 0;
   if (telt(M) && !M.beker){
     const sel = selectie(S.sp.club), koel = sel.filter(x => band(x.n) < 30), maat = sel.filter(x => band(x.n) >= 80);
@@ -175,7 +181,7 @@ export function startWedstrijd(){
     else if (bank === 'rust' && (rol === 'basis' || rol === 'invaller')){ rol = 'bank'; reden = ' Op je eigen verzoek zit je deze wedstrijd op de bank om uit te rusten.'; }
   }
 
-  const T = c.s + (rol === 'basis' || rol === 'invaller' ? (ovr(sp) - c.s) * .15 : 0) + (fx.thuis ? 2 : 0) + teamBonus() + matchup(clubTactiek(sp.club), clubTactiek(fx.opp));
+  const T = teamKracht(c.s, {speelt:rol === 'basis' || rol === 'invaller', thuis:fx.thuis, tactiek:matchup(clubTactiek(sp.club), clubTactiek(fx.opp))});
   const O = opp.s + (fx.thuis ? 0 : 2);
   const M = {opp:fx.opp, oppS:opp.s, wij:c.n, zij:opp.n, thuis:fx.thuis, rol, us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false, derby:isDerby(fx.opp), fel:!!S.ss.rivaalFel};
   S.M = M;
