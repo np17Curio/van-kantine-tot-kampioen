@@ -38,7 +38,7 @@ export function nacompetitie(){
   const sp = S.sp, paren = nacompetitieParen();
   S.ss.po = paren;
   let mijn = null;
-  for (const p of paren){ if (p.hoog === sp.club || p.laag === sp.club){ p.wacht = true; mijn = p; } else simPaar(p); }
+  for (const p of paren){ if (!sp.clubloos && (p.hoog === sp.club || p.laag === sp.club)){ p.wacht = true; mijn = p; } else simPaar(p); }
   if (!mijn) return seizoenEinde();
   startNacompetitie(mijn);
 }

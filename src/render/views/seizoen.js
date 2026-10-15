@@ -38,8 +38,8 @@ function vPoZonderWissel(E){
 export function vSeizoenEinde(){
   const E = S.eind;
   return `<div class="verhaal"><span class="label">Einde seizoen ${seizoenLabel()}</span>
-    <h2>${E.plek === 1 ? 'Kampioen!' : `${E.plek}e plaats`}</h2>
-    <p>${esc(E.clubNaam)} eindigt als ${E.plek}e in de ${E.divisie}.${E.plek === 1 ? ' Er wordt gefeest tot diep in de nacht.' : E.plek >= 7 ? ' Een seizoen om snel te vergeten.' : ''}</p>
+    <h2>${E.clubloos ? 'Een seizoen zonder club' : E.plek === 1 ? 'Kampioen!' : `${E.plek}e plaats`}</h2>
+    <p>${E.clubloos ? `Je zat ${S.sp.clubloos.weken} ${S.sp.clubloos.weken === 1 ? 'week' : 'weken'} zonder club. Je trainde alleen, terwijl de competitie zonder jou doorging.` : `${esc(E.clubNaam)} eindigt als ${E.plek}e in de ${E.divisie}.${E.plek === 1 ? ' Er wordt gefeest tot diep in de nacht.' : E.plek >= 7 ? ' Een seizoen om snel te vergeten.' : ''}`}</p>
     <p>Jouw seizoen: ${E.wed} wedstrijden, ${E.g} goals, ${E.a} assists, gemiddeld cijfer ${E.gem === null ? '–' : E.gem.toFixed(1).replace('.', ',')}.</p>
     ${E.topscorer ? `<p class="muted">Topscorer van de ${E.divisie}: ${esc(E.topscorer)}.</p>` : ''}
     ${vSpelerVanHetSeizoen(E)}</div>

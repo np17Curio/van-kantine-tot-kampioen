@@ -7,7 +7,7 @@ import { kandidaatClubs, wissel } from './transfers.js';
 /* ===================== Transferbod tijdens het seizoen ===================== */
 export function maakBodEvent(){
   const sp = S.sp, eigen = club();
-  if (sp.o23 || sp.huur) return null;
+  if (sp.o23 || sp.huur || sp.clubloos) return null;
   if (eigen.t > 3 || (S.ss.bods || 0) >= 2 || (sp.sindsTransfer || 0) < 3 || S.ronde === 6 || S.ronde >= AANTAL_RONDES - 1) return null;
   const kand = kandidaatClubs(); if (!kand.length) return null;
   const cl = sp.clausule && sp.clausule.club === sp.club ? sp.clausule : null;

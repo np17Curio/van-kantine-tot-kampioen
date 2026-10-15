@@ -38,6 +38,7 @@ export function toernooiLand(){
 export function toernooiSelectie(){
   const soort = toernooiSoort(), land = toernooiLand(), sp = S.sp; if (!soort || !land || sp.leeftijd < 17) return null;
   const naam = soort === 'WK' ? 'WK' : CONT_TOERNOOI[tLand(land).c], jaar = S.jaar + 1, titel = `${naam} ${jaar}`, lw = lidw(naam), basis = {titel, land, naam, jaar, mee:false};
+  if (sp.clubloos) return {...basis, reden:`Je zit zonder club. De bondscoach neemt je niet mee naar ${lw} ${titel}.`};
   if (sp.blessure > 0) return {...basis, reden:`Je bent geblesseerd en mist ${lw} ${titel}. Balen!`};
   if (!magInterland()) return {...basis, reden:`Je speelt niet op een hoog genoeg niveau. De bondscoach van ${land} neemt je niet mee naar ${lw} ${titel}.`};
   const d = interScore(land) - interDrempel(land);

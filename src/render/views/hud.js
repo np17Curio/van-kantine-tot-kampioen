@@ -16,16 +16,16 @@ export function vHud(inSpel){
   const hulp = `<button class="hudknop" data-hulp aria-label="Hulp, sneltoetsen en instellingen" title="Hulp en instellingen">?</button>`;
   if (!inSpel) return `${merk}<div class="hudrechts">${hulp}</div>`;
   const sp = S.sp, c = club();
-  const status = sp.o23 ? 'Bij de O23' : statusNaam(statusNiveau());
+  const status = sp.clubloos ? 'Zonder club' : sp.o23 ? 'Bij de O23' : statusNaam(statusNiveau());
   return `<div class="hudspeler">
       <div class="hudovr" title="Klasse (overall)">${ovr(sp)}</div>
-      <div class="hudnaam"><b>${sp.o23 ? '' : `<span class="muted">#${rugnummer()}</span> `}${esc(sp.naam)}</b>
-        <span class="niv">${POS[sp.pos].n} · ${sp.leeftijd} jr · ${esc(c.n)}${sp.o23 ? ' O23' : ''}${sp.huur ? ` · gehuurd van ${esc(CLUBS[sp.huur.ouder].n)}` : ''}</span></div>
+      <div class="hudnaam"><b>${sp.o23 || sp.clubloos ? '' : `<span class="muted">#${rugnummer()}</span> `}${esc(sp.naam)}</b>
+        <span class="niv">${POS[sp.pos].n} · ${sp.leeftijd} jr · ${sp.clubloos ? 'zonder club' : esc(c.n)}${sp.o23 ? ' O23' : ''}${sp.huur ? ` · gehuurd van ${esc(CLUBS[sp.huur.ouder].n)}` : ''}</span></div>
     </div>
     <div class="hudmeters">${meter('FIT', 'Fitheid', sp.fit)}${meter('FOC', 'Focus', sp.focus ?? 65, true)}${meter('MOR', 'Moraal', sp.moraal)}</div>
     <div class="hudinfo">
       <span class="chip">${seizoenLabel()} · <b>wk ${Math.min(S.ronde + 1, AANTAL_RONDES)}/${AANTAL_RONDES}</b></span>
-      <span class="chip">${NIVEAU[c.t]} · <b>${status}</b></span>
+      <span class="chip">${sp.clubloos ? '' : `${NIVEAU[c.t]} · `}<b>${status}</b></span>
       <span class="chip geld"><b>${geldTxt(sp.geld)}</b></span>
       ${sp.blessure > 0 ? `<span class="chip alarm">Geblesseerd · ${sp.blessure} wk</span>` : ''}${sp.geschorst > 0 ? `<span class="chip alarm">Geschorst</span>` : ''}
     </div>

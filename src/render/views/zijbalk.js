@@ -20,6 +20,7 @@ import { PERS, mijnPers } from '../../game/speler/persoonlijkheid.js';
 export function balk(l, v, cls = ''){ return `<div class="balk ${cls}"><span>${l}</span><span class="b"><i style="width:${clamp(v, 0, 100)}%"></i></span><span class="v">${Math.round(v)}</span></div>`; }
 export function vStatus(){
   const sp = S.sp, n = statusNiveau(), d = statusDrempel();
+  if (sp.clubloos) return `<div class="status"><span class="label">Status</span><div class="statusnaam">Zonder club</div><p class="muted klein-tekst">Al ${sp.clubloos.weken} ${sp.clubloos.weken === 1 ? 'week' : 'weken'}. Bij een nieuwe club begin je opnieuw.</p></div>`;
   const segs = STATUS.map((s, i) => {
     const max = i < STATUS.length - 1 ? STATUS[i + 1].min : 100;
     const vul = n >= LEGENDE ? 100 : clamp((sp.status - s.min) / (max - s.min), 0, 1) * 100;
@@ -89,7 +90,7 @@ export function vZij(){
   const spelerKaart = () => `<div class="kaart">
       <div>${knop(tmp.stats ? 'Terug naar het spel' : '📊 Mijn carrière', () => { tmp.stats = !tmp.stats; }, 'klein')}</div>
       <div class="speler"><div class="ovr">${ovr(sp)}<small>KLASSE</small></div>
-        <div><div class="naam">${sp.o23 ? '' : `<span class="muted">#${rugnummer()}</span> `}${esc(sp.naam)}</div><div class="muted">${POS[sp.pos].n} · ${sp.leeftijd} jaar · ${esc(c.n)}${sp.o23 ? ' O23' : ''}${sp.huur ? ` (gehuurd van ${esc(CLUBS[sp.huur.ouder].n)})` : ''}</div><div class="label" title="Verwachting van scouts">Talent ${sterren(sp.pot)}</div></div></div>
+        <div><div class="naam">${sp.o23 || sp.clubloos ? '' : `<span class="muted">#${rugnummer()}</span> `}${esc(sp.naam)}</div><div class="muted">${POS[sp.pos].n} · ${sp.leeftijd} jaar · ${sp.clubloos ? 'zonder club' : esc(c.n)}${sp.o23 ? ' O23' : ''}${sp.huur ? ` (gehuurd van ${esc(CLUBS[sp.huur.ouder].n)})` : ''}</div><div class="label" title="Verwachting van scouts">Talent ${sterren(sp.pot)}</div></div></div>
       ${mijnPers().length ? `<div class="perschips">${mijnPers().map(id => `<span class="tag pers" title="In het veld: ${esc(PERS[id].veld)} Buiten het veld: ${esc(PERS[id].buiten)}">${PERS[id].i} ${PERS[id].n}</span>`).join('')}</div>` : ''}
       ${vStatus()}
       <div class="balken">${TRAINBAAR.map(k => balk(ATTR[k], sp.a[k])).join('')}</div>

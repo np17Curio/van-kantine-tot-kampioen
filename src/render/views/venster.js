@@ -7,7 +7,7 @@ import { gaHuren } from '../../game/speler/o23.js';
 import { rolBijClub } from '../../game/speler/status.js';
 import { clubInfo, isBuitenland, okey } from '../../game/transfers/buitenland.js';
 import { ohStart, vOnderhandel } from '../../game/transfers/onderhandelen.js';
-import { blijf, teken } from '../../game/transfers/transfers.js';
+import { blijf, blijfWachten, teken, zonderClub } from '../../game/transfers/transfers.js';
 import { vMarkt } from '../../game/transfers/markt.js';
 import { clubLogo } from '../../data/logos.js';
 
@@ -44,7 +44,7 @@ export function huurKaart(id){
 }
 export function vVenster(){
   const V = S.venster, sp = S.sp;
-  let html = `<div class="verhaal"><span class="label">Transfermarkt · ${sp.ontbonden ? 'zonder club' : V.soort === 'winter' ? 'winterstop' : 'zomer'}</span><h2>${V.modus === 'huur' ? 'Verhuurd' : V.huurOpties && V.huurOpties.length ? 'Je club wil je verhuren' : V.modus === 'weg' ? (sp.ontbonden ? 'Contract ontbonden!' : 'Weggestuurd!') : V.modus === 'vrij' ? 'Transfervrij' : V.modus === 'jeugdKlaar' ? 'Klaar voor de senioren' : V.bods.length ? 'Er is interesse!' : 'Stil op de markt'}</h2><p>${esc(V.intro)}</p></div>`;
+  let html = `<div class="verhaal"><span class="label">Transfermarkt · ${sp.ontbonden ? 'zonder club' : V.soort === 'winter' ? 'winterstop' : 'zomer'}</span><h2>${V.modus === 'huur' ? 'Verhuurd' : V.huurOpties && V.huurOpties.length ? 'Je club wil je verhuren' : V.modus === 'weg' ? (sp.ontbonden ? 'Contract ontbonden!' : 'Weggestuurd!') : V.modus === 'vrij' ? 'Transfervrij' : V.modus === 'clubloos' ? (V.bods.length ? 'Eindelijk interesse!' : 'Nog steeds zonder club') : V.modus === 'jeugdKlaar' ? 'Klaar voor de senioren' : V.bods.length ? 'Er is interesse!' : 'Stil op de markt'}</h2><p>${esc(V.intro)}</p></div>`;
   if (V.melding) html += `<p class="melding">${esc(V.melding)}</p>`;
   if (V.huurOpties && V.huurOpties.length) html += `<div class="aanbod">${V.huurOpties.map(huurKaart).join('')}</div>`;
   const kaarten = [];
@@ -52,6 +52,10 @@ export function vVenster(){
   if (V.verlenging) kaarten.push(bodKaart(V.verlenging, club().t === JEUGD ? 'Blijven' : 'Verlengen'));
   V.bods.forEach(o => kaarten.push(bodKaart(o, clubInfo(o).t <= 3 ? 'Ja, ik wil hierheen' : 'Tekenen')));
   if (kaarten.length) html += `<div class="aanbod">${kaarten.join('')}</div>`;
+  if (V.modus === 'weg' || V.modus === 'vrij') html += V.bods.length
+    ? knop('Geen van deze clubs: ik wacht op iets beters', zonderClub, 'klein', 'data-bevestig="Je zit dan zonder club en zonder salaris, tot er een club belt." data-ja="Ja, ik wacht"')
+    : knop('Verder zonder club', zonderClub);
+  if (V.modus === 'clubloos') html += knop(V.bods.length ? 'Nee, ik blijf wachten' : 'Verder zonder club', blijfWachten, V.bods.length ? 'klein' : 'hoofd');
   html += vMarkt();
   if (V.soort === 'zomer' && sp.leeftijd >= 33) html += knop('Stoppen met voetbal', () => stoppen(`Op je ${sp.leeftijd}e kies je zelf het moment: je stopt als voetballer.`), 'klein', 'data-bevestig="Dit is het einde van je spelerscarrière. Dit kun je niet terugdraaien." data-ja="Ja, ik stop"');
   return html;

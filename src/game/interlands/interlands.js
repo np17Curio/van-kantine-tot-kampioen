@@ -9,7 +9,7 @@ import { nieuweWeek } from '../week.js';
 import { staminaNaWedstrijd } from '../wedstrijd/stamina.js';
 
 /* ===================== Interlands ===================== */
-export const magInterland = () => club().t <= 2 && S.sp.leeftijd >= 17 && !S.sp.o23;
+export const magInterland = () => club().t <= 2 && S.sp.leeftijd >= 17 && !S.sp.o23 && !S.sp.clubloos;
 export function landenVoor(){
   const sp = S.sp; if (!sp.herkomst) return [];
   return sp.land ? [sp.land] : [...new Set([sp.herkomst.geboren, sp.herkomst.vader, sp.herkomst.moeder])];

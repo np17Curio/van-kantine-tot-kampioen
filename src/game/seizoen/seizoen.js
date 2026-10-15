@@ -37,7 +37,7 @@ export function ontwikkel(){
 }
 
 export function seizoenEinde(){
-  const sp = S.sp, t = club().t, st = stand(t), plek = st.indexOf(sp.club) + 1;
+  const sp = S.sp, los = !!sp.clubloos, t = club().t, st = stand(t), plek = los ? 0 : st.indexOf(sp.club) + 1;
   const gem = gemCijfer();
   const prijzen = [];
   if (plek === 1) prijzen.push(`Kampioen ${DIVS[t]} ${seizoenLabel()}`);
@@ -57,20 +57,19 @@ export function seizoenEinde(){
   else if (gb.telt && gb.plek <= 3) S.car.hist.push(`${seizoenLabel()}: ${gb.plek}e bij de verkiezing van de Gouden Bal`);
   S.car.prijzen.push(...prijzen);
   if (plek === 1){ mod('rep', 8); mod('moraal', 10); }
-  sp.clubSz++;
-  statusPunten(3 + (plek === 1 ? 8 : 0) + prijzen.length * 2);
-  const statusTekst = checkStatus();
-  S.car.hist.push(`${seizoenLabel()}: ${plek}e met ${club().n} · ${S.ss.wed} wedstrijden, ${S.ss.g} goals, ${S.ss.a} assists`);
-  const wissels = bepaalPromotie(), mijnWissel = wissels.find(w => w.id === sp.club);
+  if (!los){ sp.clubSz++; statusPunten(3 + (plek === 1 ? 8 : 0) + prijzen.length * 2); }
+  const statusTekst = los ? null : checkStatus();
+  S.car.hist.push(los ? `${seizoenLabel()}: seizoen zonder club${S.ss.wed ? ` (${S.ss.wed} wedstrijden, ${S.ss.g} goals, ${S.ss.a} assists)` : ''}` : `${seizoenLabel()}: ${plek}e met ${club().n} · ${S.ss.wed} wedstrijden, ${S.ss.g} goals, ${S.ss.a} assists`);
+  const wissels = bepaalPromotie(), mijnWissel = los ? null : wissels.find(w => w.id === sp.club);
   if (mijnWissel && mijnWissel.naar < mijnWissel.van) prijzen.push(`Promotie naar de ${DIVS[mijnWissel.naar]}${mijnWissel.po ? ' via de nacompetitie' : ''} ${seizoenLabel()}`);
   if (mijnWissel && !mijnWissel.po) S.car.hist.push(`${seizoenLabel()}: ${mijnWissel.naar < mijnWissel.van ? 'gepromoveerd' : 'gedegradeerd'} met ${club().n} naar de ${DIVS[mijnWissel.naar]}`);
-  (S.car.seizoenen = S.car.seizoenen || []).push({s:seizoenLabel(), club:club().n, div:DIVS[t], wed:S.ss.wed + (S.ss.bw || 0), g:S.ss.g + (S.ss.bg || 0), a:S.ss.a + (S.ss.ba || 0), gem: gem === null ? null : Math.round(gem * 10) / 10, plek, beker:bekerResultaat(sp.club)});
-  S.eind = {gb, plek, t, divisie:DIVS[t], clubNaam:club().n, prijzen, wed:S.ss.wed, g:S.ss.g, a:S.ss.a, gem, statusTekst, topscorer:S.ss.topscorer, svs:{naam:svs.winnaar && svs.winnaar.naam, club:svs.winnaar && svs.winnaar.club, jij:!!(svs.winnaar && svs.winnaar.jij), plek:svs.plek, reden:svs.reden}, wissels, mijnWissel, po:(S.ss.po || []).find(p => p.hoog === sp.club || p.laag === sp.club) || null, poAlle:S.ss.po || [], toernooi:toernooiSelectie()};
+  (S.car.seizoenen = S.car.seizoenen || []).push({s:seizoenLabel(), club:los ? 'Zonder club' : club().n, div:DIVS[t], wed:S.ss.wed + (S.ss.bw || 0), g:S.ss.g + (S.ss.bg || 0), a:S.ss.a + (S.ss.ba || 0), gem: gem === null ? null : Math.round(gem * 10) / 10, plek, beker:los ? null : bekerResultaat(sp.club)});
+  S.eind = {clubloos:los, gb, plek, t, divisie:DIVS[t], clubNaam:los ? 'Zonder club' : club().n, prijzen, wed:S.ss.wed, g:S.ss.g, a:S.ss.a, gem, statusTekst, topscorer:S.ss.topscorer, svs:{naam:svs.winnaar && svs.winnaar.naam, club:svs.winnaar && svs.winnaar.club, jij:!!(svs.winnaar && svs.winnaar.jij), plek:svs.plek, reden:svs.reden}, wissels, mijnWissel, po:los ? null : (S.ss.po || []).find(p => p.hoog === sp.club || p.laag === sp.club) || null, poAlle:S.ss.po || [], toernooi:toernooiSelectie()};
   // De krant: bij Speler van het Seizoen en topscorer een foto van jou met de prijs
   const bron = KRANTEN[t], krant = [], wanneer = `einde seizoen ${seizoenLabel()}`;
   if (S.eind.svs.jij) krant.push({bron:bron[0], kop:`${sp.naam} is de Speler van het Seizoen`, tekst:`De ${DIVS[t]} kiest ${sp.naam} van ${club().n} als beste speler: ${S.ss.g} goals, ${S.ss.a} assists${gem !== null ? ` en gemiddeld een ${gem.toFixed(1).replace('.', ',')}` : ''}.`, wanneer, foto:fotoVan('svs', `${sp.naam} met de bokaal voor Speler van het Seizoen.`)});
   if (ik && ik.g > 0 && ik.g >= rs[0].g) krant.push({bron:bron[1 % bron.length], kop:`Gouden Schoen voor ${sp.naam}`, tekst:`Met ${ik.g} goals is ${sp.naam} de topscorer van de ${DIVS[t]}. Niemand scoorde vaker.`, wanneer, foto:fotoVan('topscorer', `Topscorer ${sp.naam} met de Gouden Schoen.`)});
-  const rv = rivaalSeizoen(); if (rv){ krant.push({bron:bron[0], kop:rv.kop, tekst:rv.tekst, wanneer}); S.eind.rivaal = rv; }
+  const rv = rivaalSeizoen(); if (rv){ krant.push({bron:bron[0], kop:rv.kop, tekst:rv.tekst, wanneer}); S.eind.rivaal = rv; if (rv.prijs){ S.car.prijzen.push(rv.prijs); S.eind.prijzen.push(rv.prijs); } }
   for (const k of europaKrant(wissels).slice(0, 3)) krant.push({bron:KRANTEN[0][0], kop:k.kop, tekst:k.tekst, wanneer});
   S.eind.krant = krant; S.nieuws = krant.concat(S.nieuws || []).slice(0, 6);
   S.fase = 'seizoenEinde';
@@ -94,7 +93,7 @@ export function naSeizoen(){
     else { S.eind.ontw.push(`Je bent 18, maar je bent gezakt voor je examen (gemiddeld ${fmt1(g)}). Je stopt met school en gaat vol voor het voetbal.`); S.car.hist.push(`${seizoenLabel()}: gezakt voor het examen`); mod('moraal', -5); }
     sp.ouders.boos = false;
   }
-  sp.contract--;
+  if (!sp.clubloos) sp.contract--;
   sp.rep = clamp(sp.rep * .92, 0, 100);
   sp.blessure = 0; sp.fit = 95;
   // Promotie en degradatie gaan nu in: de nieuwe competities beginnen met een lege stand

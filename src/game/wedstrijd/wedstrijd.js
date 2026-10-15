@@ -38,7 +38,7 @@ import { reeksTekst, vormBonus } from '../competitie/vorm.js';
 // Achtergrondgoals als jij meespeelt (naast jouw momenten): factor voor jullie en voor de tegenstander
 export const BG = {wij:.5, zij:.85};
 import { pers } from '../speler/persoonlijkheid.js';
-import { naRivaalDuel, rivaalNaam, speeltTegenRivaal } from '../speler/rivaal.js';
+import { naRivaalDuel, rivaalNaam, speeltTegenRivaal, rivaal } from '../speler/rivaal.js';
 // Hoe vaak de keeper van een veel sterkere ploeg jouw goal hooguit voorkomt
 export const KEEPER_MAX = .3;
 // VAR: kijkt soms mee bij een goal. Bij elke goal (van jou, je teamgenoten en de tegenstander): 10% check, 40% daarvan afgekeurd.
@@ -233,7 +233,10 @@ export function startWedstrijd(){
   if (derbyRegel) M.log.push(derbyRegel);
   reunieAftrap(M);
   fansVoorAftrap(M);
-  if (speeltTegenRivaal(fx.opp)){ M.rivaal = true; M.log.push({m:"1'", t:`Je rivaal ${rivaalNaam()} staat in de basis bij ${opp.n}. Vandaag laat je zien wie de beste is.`, k:'info'}); }
+  if (speeltTegenRivaal(fx.opp)){ M.rivaal = true; M.log.push({m:"1'", t:`Je rivaal ${rivaalNaam()} staat in de basis bij ${opp.n}. Vandaag laat je zien wie de beste is.`, k:'info'});
+    const R = rivaal();
+    if (R.voorbereid){ M.rivaalBonus = .08; M.log.push({m:"1'", t:`Je hebt zijn wedstrijden geanalyseerd. Je weet precies wat hij gaat doen (focus +${focusBoost(8)}).`, k:'info'}); }
+    if (R.uitgedaagd) M.log.push({m:"1'", t:'Na jouw woorden in de krant zijn alle ogen op jullie gericht. Dit duel telt dubbel.', k:'info'}); }
   planWedstrijd(M, T, O);
   M.log.push({m:"1'", t:`Aftrap! ${rol === 'basis' ? (sp.statusNiveau >= AANV ? 'Met de aanvoerdersband om je arm leid je het team het veld op.' : statusNiveau() <= 1 ? 'De trainer geeft je als bankspeler een kans in de basis. Grijp hem!' : 'Je staat in de basis.') : 'Je begint op de bank.' + reden}`, k:''});
   S.fase = 'match';
@@ -253,6 +256,7 @@ export function verderSpelen(){
       if (M.rood || M.gewisseld !== undefined) continue;
       const type = (!e.varPen && e.min >= 84 && M.us <= M.them && rnd() < .6) ? 'laatsteMinuut' : e.m;
       M.pending = bouwMoment(type);
+      if (e.rivaal && type !== 'laatsteMinuut') M.pending.rivaal = true;
       if (e.rivaal && type !== 'laatsteMinuut') M.pending.tekst = `Daar is hij: je rivaal ${rivaalNaam()}. Dit is jullie duel. ` + M.pending.tekst;
       if (e.via && type !== 'laatsteMinuut') M.pending.tekst = `${e.via} zoekt je op met een perfecte pass. Jullie zijn maatjes en weten elkaar blind te vinden. ` + M.pending.tekst;
       return;

@@ -77,9 +77,9 @@ export function speelRonde(r, mijnVoor, mijnTegen, doelen){
     for (const [h, u] of rondeParen(t, r)){
       const H = lijst[h], U = lijst[u];
       let gh, gu;
-      const mijn = H === S.sp.club || U === S.sp.club;
-      if (H === S.sp.club){ gh = mijnVoor; gu = mijnTegen; }
-      else if (U === S.sp.club){ gh = mijnTegen; gu = mijnVoor; }
+      const ik = S.sp.clubloos ? null : S.sp.club, mijn = H === ik || U === ik; // zonder club speelt je vorige club gewoon
+      if (H === ik){ gh = mijnVoor; gu = mijnTegen; }
+      else if (U === ik){ gh = mijnTegen; gu = mijnVoor; }
       else [gh, gu] = simGoals(CLUBS[H].s + vormBonus(H), CLUBS[U].s + vormBonus(U), true); // teamvorm: winnen geeft vertrouwen
       teamUitslag(H, gh, gu); teamUitslag(U, gu, gh);
       ronde.push([H, U, gh, gu]);

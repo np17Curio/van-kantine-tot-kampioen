@@ -103,7 +103,7 @@ export function bekerWeek(){
   const B = S.ss.bekers, sp = S.sp; let mijn = null, mijnK = null;
   for (const k in B){
     if (!BEKERS[k].schema.includes(S.ronde) || B[k].winnaar !== null || B[k].levend.length < 2) continue;
-    const doetMee = B[k].levend.includes(sp.club);
+    const doetMee = !sp.clubloos && B[k].levend.includes(sp.club);
     const m = speelBekerRonde(k, doetMee);
     if (m){ mijn = m; mijnK = k; }
   }

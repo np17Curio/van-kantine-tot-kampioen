@@ -12,6 +12,7 @@ import { checkStatus, statusPunten } from './speler/status.js';
 import { openVenster } from './transfers/transfers.js';
 import { verhaalEvents } from './speler/verhaal.js';
 import { persEvents } from './speler/persEvents.js';
+import { rivaal, rivaalEvents } from './speler/rivaal.js';
 
 /* ===================== Gebeurtenissen ===================== */
 export function eindRelatie(tekst){
@@ -32,6 +33,8 @@ export function maakEvent(){
   { const v = verhaalEvents(); if (v.length && rnd() < .3) return pick(v); }
   // Daarna iets dat bij je persoonlijkheid hoort (een rebel krijgt andere dingen voor zijn kiezen dan een prof)
   { const p = persEvents(); if (p.length && rnd() < .25) return pick(p); }
+  // Je rivaal: hij reageert op jouw uitdaging, of er gebeurt iets tussen jullie
+  { const R = rivaal(); if (R && (R.reactie || rnd() < .12)){ const r = rivaalEvents(); if (r.length) return pick(r); } }
   const sp = S.sp, n = pick(selectie(S.sp.club)).n, t = club().t, jong = sp.leeftijd < 18, bekend = t <= 2, meid = pick(MEIDEN);
   const lief = sp.relatie ? sp.relatie.naam : '';
 
@@ -277,8 +280,8 @@ export function kiesEvent(i){
   if (!oudeLiefde && sp.relatie) roddel(`${sp.naam} heeft een nieuwe liefde`, `${sp.naam} is gespot met ${sp.relatie.naam}. Volgens vrienden is het "echt iets serieus".`);
   if (oudeLiefde && !sp.relatie) roddel(`Het is uit tussen ${sp.naam} en ${oudeLiefde}`, 'Vrienden zeggen dat het al een tijdje niet goed ging.');
   S.week.tekst.push(t);
-  const st = checkStatus(); if (st) S.week.tekst.push(st);
+  const st = sp.clubloos ? null : checkStatus(); if (st) S.week.tekst.push(st);
   if (S.volgEv){ S.ev = S.volgEv; S.volgEv = null; S.fase = 'event'; }
   else if (S.naVenster){ S.naVenster = false; S.ev = null; openVenster('winter'); }
-  else { S.ev = null; S.fase = 'week'; }
+  else { S.ev = null; S.fase = sp.clubloos ? 'clubloos' : 'week'; }
 }

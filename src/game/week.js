@@ -24,7 +24,8 @@ import { doeVerhaal, isVerhaalActiviteit } from './speler/verhaal.js';
 import { talentDoorbraak } from './speler/talent.js';
 import { pers } from './speler/persoonlijkheid.js';
 import { ouders } from './prive/familie.js';
-import { maakRivaal } from './speler/rivaal.js';
+import { maakRivaal, raceWeek, rivaalPrikkel } from './speler/rivaal.js';
+import { clubloosWeek } from './speler/clubloos.js';
 
 /* ===================== Week ===================== */
 export function nieuweWeek(eerste){
@@ -50,15 +51,17 @@ export function nieuweWeek(eerste){
     if (sp.geld >= huur) sp.geld -= huur;
     else { const was = woning().n.toLowerCase(); sp.woning = 'ouders'; mod('moraal', -6); if (sp.relatie) sp.relatie.samen = false; S.week.tekst.push(`Je kunt de huur van je ${was} niet meer betalen. Je trekt weer in bij je ouders.`); }
   }
-  if (!sp.o23 && !(sp.rug && sp.rug.club === ck(sp.club))) rugnummer();
+  if (!sp.o23 && !sp.clubloos && !(sp.rug && sp.rug.club === ck(sp.club))) rugnummer();
   if (sp.rugMelding){ S.week.tekst.push(sp.rugMelding); sp.rugMelding = null; }
   kalmWeek(eerste);
-  tuchtWeek(eerste);
+  if (!sp.clubloos) tuchtWeek(eerste);
   relatieWeek(eerste);
+  raceWeek(eerste); // je rivaal: de race en zijn blessure
   buitenWeek(eerste);
-  kleedWeek(eerste);
+  if (!sp.clubloos) kleedWeek(eerste);
   familieWeek(eerste);
-  S.fase = 'week';
+  S.fase = sp.clubloos ? 'clubloos' : 'week';
+  clubloosWeek(eerste); // zonder club: weken tellen, moraal en fitheid zakken
   // Sponsorgeld komt per week binnen. Een merk stopt als je reputatie te ver zakt of als je geen prof meer bent
   const stop = [];
   sp.sponsors = (sp.sponsors || []).filter(d => {
@@ -69,14 +72,14 @@ export function nieuweWeek(eerste){
   const sGeld = sp.sponsors.reduce((a, d) => a + d.bedrag, 0) / AANTAL_RONDES;
   sp.geld += sGeld; S.car.sponsor = (S.car.sponsor || 0) + sGeld;
   stop.forEach(t => S.week.tekst.push(t));
-  if (eerste && club().t === JEUGD){ sp.o19klaar = false; const u = doorstroomUitleg(); if (u) S.week.tekst.push(u); }
+  if (eerste && !sp.clubloos && club().t === JEUGD){ sp.o19klaar = false; const u = doorstroomUitleg(); if (u) S.week.tekst.push(u); }
   if (!eerste && sp.relatie && sp.relatie.band < 25 && rnd() < .35){ mod('focus', -4); S.week.tekst.push(`Je hebt vaak ruzie met ${sp.relatie.naam}. Dat kost je concentratie.`); }
   if (!eerste && sp.items.console && rnd() < .12){ mod('fit', -6); S.week.tekst.push('Je hebt tot 2 uur \'s nachts gegamed. Je bent een beetje moe.'); }
-  const st = checkStatus(); if (st) S.week.tekst.push(st);
+  const st = sp.clubloos ? null : checkStatus(); if (st) S.week.tekst.push(st);
   // Een gebeurtenis die deze week klaarstaat (zoals een jubileum) verschijnt nu
   if (S.wachtEv){ S.ev = S.wachtEv; S.wachtEv = null; S.fase = 'event'; }
 }
-export function trainKans(){ const sp = S.sp; return clamp((sp.pot - ovr(sp)) / 20, .12, .7) + (sp.items.trainer ? .2 : 0) + pers('train'); }
+export function trainKans(){ const sp = S.sp; return clamp((sp.pot - ovr(sp)) / 20, .12, .7) + (sp.items.trainer ? .2 : 0) + pers('train') + rivaalPrikkel(); }
 // Plafond per eigenschap: met jouw talent kun je een eigenschap niet eindeloos opkrikken
 export const PLAFOND_MARGE = 10;
 export const plafond = () => Math.min(99, S.sp.pot + PLAFOND_MARGE);
