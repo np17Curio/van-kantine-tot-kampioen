@@ -69,14 +69,27 @@ export function naRivaalDuel(M){
   const R = rivaal(); if (!R || !M.rivaal) return null;
   const won = M.us > M.them, gel = M.us === M.them; R.onderling[won ? 'w' : gel ? 'g' : 'v']++;
   let inzet = '';
+  const hijG = (M.doelen || []).filter(d => d.club === M.opp && d.s && d.s.n === R.n).length;
   if (R.uitgedaagd){ // je had hem uitgedaagd: dit duel telde dubbel
     if (won){ mod('rep', 5); statusPunten(4); mod('moraal', 5); inzet = ' Je had hem uitgedaagd en je maakt je woorden waar. De pers is lyrisch.'; }
     else if (!gel){ mod('rep', -4); mod('moraal', -8); inzet = ' Je had hem uitgedaagd... en je verliest. De pers lacht je uit.'; }
     else inzet = ' Na al die grote woorden: gelijk. Niemand is overtuigd.';
   }
   if (won) zetBand(-5);
+  // Man tegen man: zijn cijfer tegen het jouwe (alleen als je zelf speelde)
+  const speelde = M.rol === 'basis' || M.rol === 'invaller';
+  let cijferRegel = '';
+  if (speelde){
+    const hij = Math.round(clamp(6.2 + hijG * .9 + (M.them > M.us ? .3 : M.them < M.us ? -.3 : 0) + rnd() * 1.2 - .6, 4, 9.5) * 10) / 10, jij = M.cijfer, f = x => x.toFixed(1).replace('.', ',');
+    const cd = R.cijferDuels = R.cijferDuels || {w:0, v:0};
+    if (jij > hij){ cd.w++; mod('moraal', 3); cijferRegel = ` Cijfers: jij ${f(jij)}, hij ${f(hij)}. Het duel is voor jou.`; }
+    else if (jij < hij){ cd.v++; mod('moraal', -3); cijferRegel = ` Cijfers: jij ${f(jij)}, hij ${f(hij)}. Hij was vandaag beter.`; }
+    else cijferRegel = ` Cijfers: allebei een ${f(jij)}.`;
+    if (R.grootSpraak){ if (jij >= 7){ mod('rep', 2); cijferRegel += ' Je grote woorden in het interview maak je waar.'; } else { mod('rep', -2); cijferRegel += ' Na je grote woorden in het interview valt dit tegen.'; } }
+  } else if (hijG){ mod('moraal', -2); cijferRegel = ` Jij kon niets doen, en hij scoorde.`; }
+  R.grootSpraak = false; inzet += cijferRegel;
   R.uitgedaagd = false; R.voorbereid = false;
-  const hijG = (M.doelen || []).filter(d => d.club === M.opp && d.s && d.s.n === R.n).length, naam = rivaalNaam();
+  const naam = rivaalNaam();
   if (M.goals || hijG) krantMelding(M.goals > hijG ? `${S.sp.naam} wint het duel met rivaal ${naam}` : hijG > M.goals ? `Rivaal ${naam} steelt de show tegen ${S.sp.naam}` : `${S.sp.naam} en ${naam} houden elkaar in evenwicht`,
     `${M.goals ? `${S.sp.naam} scoorde ${M.goals}x` : `${S.sp.naam} scoorde niet`}, ${hijG ? `${naam} ${hijG}x` : `${naam} niet`}. Onderling: ${R.onderling.w} zeges, ${R.onderling.g} gelijk, ${R.onderling.v} nederlagen.`);
   return `Het duel met je rivaal ${naam}: ${won ? 'jij wint deze keer!' : gel ? 'gelijk, niemand wint.' : 'hij heeft deze keer gewonnen.'} Onderling: ${R.onderling.w}-${R.onderling.g}-${R.onderling.v}.${inzet}`;
@@ -213,4 +226,45 @@ export function raceWeek(eerste){
   if (rs.verschil > 0 && M.achter && !M.ingehaald){ M.ingehaald = true; mod('moraal', 3); krantMelding(`${S.sp.naam} haalt rivaal ${naam} in`, `Met ${rs.jij} ${rs.woord} staat hij nu voor in de race.`); S.week.tekst.push(`Je hebt je rivaal ingehaald: ${rs.jij} tegen ${rs.hij} ${rs.woord}!`); }
   if (rs.verschil >= 3 && !M.jijUit){ M.jijUit = true; mod('rep', 1); krantMelding(`${S.sp.naam} laat rivaal ${naam} achter zich`, `${rs.jij} tegen ${rs.hij} ${rs.woord}: de race lijkt beslist.`); }
   if (rs.verschil < 0) M.achter = true;
+}
+
+/* ----- Het duel: momenten, het interview vooraf ----- */
+// Bestaande momenten (die al animaties hebben), passend bij je positie
+export const RIVAAL_MOMENTEN = {SPITS:['eenOpEen', 'kopduel', 'volley'], MID:['counter', 'diepteBal', 'eenOpEen'], VERD:['tackle', 'verdedigen', 'kopduel']};
+const VOORZET = [
+  n => `Daar is hij: je rivaal ${n}. Dit is jullie duel.`,
+  n => `${n} staat recht tegenover je. Het hele stadion weet wat dit betekent.`,
+  n => `Weer jij tegen ${n}. Hij grijnst: "Kom maar op."`,
+  n => `${n} zet zich schrap. Dit is het moment om te laten zien wie de beste is.`,
+];
+export function rivaalVoorzet(M, e){
+  const n = rivaalNaam();
+  if (e.provo) return `Je rivaal ${n} loopt langs en fluistert iets in je oor.`;
+  const g = M.rivVoorzet = M.rivVoorzet || []; let vrij = VOORZET.map((_, i) => i).filter(i => !g.includes(i)); if (!vrij.length){ g.length = 0; vrij = VOORZET.map((_, i) => i); }
+  const i = pick(vrij); g.push(i); return VOORZET[i](n);
+}
+// Het interview in de week van het duel (één keer, niet verplicht)
+export function voorDuelVraag(){
+  const w = S.week; if (!w) return null; if (w.rivaalPers) return w.rivaalPers;
+  const R = rivaal(), naam = rivaalNaam(), rs = raceStand(), o = R.onderling;
+  const vraag = rs && rs.verschil < 0 ? `Zondag tegen ${naam}. Hij heeft meer ${rs.woord} dan jij. Hoe ga je hem stoppen?`
+    : rs && rs.verschil > 0 ? `Zondag tegen ${naam}. Jij staat voor in de race. Voel je de druk?`
+    : R.band <= -40 ? `Zondag tegen ${naam}. Jullie kunnen elkaar niet uitstaan, zeggen ze. Klopt dat?`
+    : `Zondag tegen je rivaal ${naam}. Onderling staat het ${o.w}-${o.g}-${o.v}. Wat verwacht je?`;
+  return w.rivaalPers = {vraag, klaar:false, opts:[
+    {s:'b', l:'Respectvol', t:`"${naam} is een goede speler. Maar zondag wil ik winnen."`, e:'focus +4 · jullie band wordt beter'},
+    {s:'z', l:'Zelfverzekerd', t:'"Ik ben in vorm. Hij gaat het merken."', e:'moraal +3 · speel je goed (7 of hoger), dan reputatie +2; anders −2'},
+    {s:'u', l:'Uitdagend', t:'"Na zondag weet iedereen wie de beste is."', e:'het duel telt dubbel · reputatie, volgers · jullie band wordt slechter'}]};
+}
+export function voorDuelAntwoord(i){
+  const P = voorDuelVraag(), R = rivaal(), sp = S.sp, naam = rivaalNaam(); if (!P || P.klaar) return;
+  const o = P.opts[i]; P.klaar = true; P.keuze = i;
+  if (o.s === 'b'){ mod('focus', 4); zetBand(5); P.uit = 'Een rustig antwoord. Je bent gefocust op het duel.'; }
+  else if (o.s === 'z'){ mod('moraal', 3); R.grootSpraak = true; P.uit = 'Stoere woorden. Nu moet je het zondag wel waarmaken.'; }
+  else {
+    R.uitgedaagd = true; zetBand(-10); mod('rep', 2); social().volgers = Math.round(social().volgers * 1.03 + 60);
+    krantMelding(`${sp.naam}: "Na zondag weet iedereen wie de beste is"`, `Het duel met ${naam} wordt beladen. "Laat hem maar praten," zegt ${naam}.`);
+    R.persReactie = pick([`${naam} heeft het interview gelezen. Bij het warmlopen roept hij: "Praatjes vullen geen gaatjes!"`, `${naam} reageerde in de krant: "Laat hem maar praten. Op het veld zien we het wel."`]);
+    P.uit = 'De kop van morgen staat al vast. Het duel telt dubbel: winnen levert veel op, verliezen kost veel.';
+  }
 }

@@ -13,6 +13,7 @@ import { ck } from '../transfers/buitenland.js';
 import { focusBoost } from './momenten.js';
 import { balk } from '../../render/views/zijbalk.js';
 import { pers } from '../speler/persoonlijkheid.js';
+import { rivaal as rivaalObj, rivaalNaam, zetBand } from '../speler/rivaal.js';
 
 /* ===================== Derby's, fans en persconferenties ===================== */
 // Elke club heeft een vaste aartsrivaal (de buurclub in de lijst). Spelen ze niet meer in dezelfde divisie, dan krijgt de club een rivaal uit de eigen divisie
@@ -93,6 +94,7 @@ export function maakPers(M, soort){
   if (soort === 'finale') v = won
     ? {vraag:`Je hebt de finale gewonnen! Wat gaat er door je heen?`, b:'"Dit is voor de fans en voor mijn familie. Zonder hen was dit niet gelukt."', z:'"Dit is pas het begin. Ik wil nog veel meer prijzen."', u:`"${zij} dacht dat ze favoriet waren. Nou, mooi niet."`, doel:'tegenstander'}
     : {vraag:`Verloren in de finale. Hoe voel je je?`, b:'"Leeg. Maar we komen sterker terug, dat beloof ik."', z:'"Volgend jaar staan we hier weer, en dan winnen we."', u:'"De scheidsrechter heeft deze finale beslist, niet wij."', doel:'scheids'};
+  else if (M.rivaal){ const n = rivaalNaam(); v = {vraag:`Je speelde tegen je rivaal ${n}. Wie was vandaag de beste?`, b:`"${n} is een goede speler. We maken elkaar beter."`, z:won ? '"Dat zag iedereen toch? Ik."' : '"Vandaag hij misschien. Maar de race is nog lang."', u:`"${n}? Ik heb hem de hele wedstrijd niet gezien."`, doel:'rivaalSpeler'}; }
   else if (M.derby) v = won
     ? {vraag:`Gewonnen van aartsrivaal ${zij}. Wat betekent dat?`, b:'"Heel veel, vooral voor de supporters. Maar het zijn ook maar drie punten."', z:'"Wij zijn de beste club van de regio. Dat weet nu iedereen."', u:`"${zij}? Die spelen al jaren in onze schaduw."`, doel:'rivaal'}
     : verl ? {vraag:`Verloren van ${zij}. Hoe hard komt dat aan?`, b:'"Heel hard. Sorry aan onze fans, die verdienen beter."', z:'"Dit was een ongelukje. De volgende derby is van ons."', u:`"Ze hadden puur geluk. Volgende keer pakken we ze, en goed ook."`, doel:'rivaal'}
@@ -108,6 +110,7 @@ export function persAntwoord(i){
   const sp = S.sp, M = S.M, P = M && M.pers; if (!P || P.klaar) return;
   const o = P.opts[i], so = social(), naam = sp.naam; P.klaar = true; P.keuze = i;
   const citaat = o.t.replace(/^"|"$/g, '');
+  if (P.doel === 'rivaalSpeler' && o.s === 'b') zetBand(5);
   if (o.s === 'b'){ mod('rep', 1); mod('vert', 2); modFans(2); P.uit = 'Een netjes antwoord. De trainer knikt goedkeurend en de fans waarderen je bescheidenheid. Reputatie +1 · vertrouwen +2 · fans +2.'; }
   else if (o.s === 'z'){ const n = Math.round(30 + so.volgers * .02); so.volgers += n; mod('rep', 1); sp.grootSpraak = true;
     P.uit = `Stoere taal! +${volgersTxt(n)} volgers. Maar let op: speel je volgende week slecht, dan wordt dit tegen je gebruikt. Speel je goed, dan krijg je extra respect.`; }
@@ -115,7 +118,8 @@ export function persAntwoord(i){
     const n = Math.round(60 + so.volgers * .05); so.volgers += n;
     const kop = `${naam}: "${citaat.length > 70 ? citaat.slice(0, 67) + '...' : citaat}"`;
     let uit = `Boem. Dit gaat viral: +${volgersTxt(n)} volgers. `;
-    if (P.doel === 'rivaal'){ modFans(4); S.ss.rivaalFel = true; uit += `De fans smullen ervan (fans +4), maar bij ${P.zij} zijn ze woedend. De volgende derby wordt extra fel: meer kans op kaarten en opstootjes.`; krantMelding(kop, `Na de derby gooide ${naam} olie op het vuur. Bij ${P.zij} hangen ze het artikel op in de kleedkamer.`); }
+    if (P.doel === 'rivaalSpeler'){ zetBand(-10); const R = rivaalObj(); if (R) R.reactie = true; uit += `Je rivaal leest het ook. Hij gaat reageren, dat weet je zeker.`; krantMelding(kop, `Na het duel haalt ${naam} uit naar zijn rivaal ${rivaalNaam()}.`); }
+    else if (P.doel === 'rivaal'){ modFans(4); S.ss.rivaalFel = true; uit += `De fans smullen ervan (fans +4), maar bij ${P.zij} zijn ze woedend. De volgende derby wordt extra fel: meer kans op kaarten en opstootjes.`; krantMelding(kop, `Na de derby gooide ${naam} olie op het vuur. Bij ${P.zij} hangen ze het artikel op in de kleedkamer.`); }
     else if (P.doel === 'trainer'){ onrust(3, 'Gedoe met de trainer'); mod('vert', -8); statusPunten(-2); uit += 'De trainer leest het de volgende ochtend in de krant. Hij is er niet blij mee. Vertrouwen −8.'; krantMelding(kop, `${naam} wijst na een slechte wedstrijd naar de trainer. "Dit lossen we intern op," zegt de club.`); }
     else if (P.doel === 'team'){ iedereen(-4); mod('vert', -3); uit += 'Je teamgenoten zijn er niet blij mee. Band met iedereen −4, vertrouwen −3.'; krantMelding(kop, `Onrust bij ${club().n}: ${naam} haalt uit naar zijn eigen teamgenoten.`); }
     else if (P.doel === 'club'){ modFans(-10); mod('rep', 2); uit += 'Grote clubs horen het wel, maar de fans van je eigen club zijn beledigd. Fans −10, reputatie +2.'; krantMelding(kop, `Opvallende woorden van ${naam}. De supporters van ${club().n} reageren boos op social media.`); }

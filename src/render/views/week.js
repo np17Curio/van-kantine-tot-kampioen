@@ -42,7 +42,7 @@ import { vSelectie } from './selectie.js';
 import { clubLogo } from '../../data/logos.js';
 import { laatsteUitslagen, vormBolletjes, vormBonus, vormLabel } from '../../game/competitie/vorm.js';
 import { heeft } from '../../game/speler/persoonlijkheid.js';
-import { RIVAAL_ACTIES, actiefRivaal, bandLabel as rivaalBand, doeRivaalActie, kanRivaalActie, raceStand, rivaal, rivaalNaam, rivaalPrikkel, rivaalSpeler, rivaalStats, speeltTegenRivaal, volgendDuel } from '../../game/speler/rivaal.js';
+import { voorDuelAntwoord, voorDuelVraag, RIVAAL_ACTIES, actiefRivaal, bandLabel as rivaalBand, doeRivaalActie, kanRivaalActie, raceStand, rivaal, rivaalNaam, rivaalPrikkel, rivaalSpeler, rivaalStats, speeltTegenRivaal, volgendDuel } from '../../game/speler/rivaal.js';
 import { PERS } from '../../game/speler/persoonlijkheid.js';
 
 // Het weekscherm is een hub met tabbladen; elke nieuwe week begint op "Deze week"
@@ -65,6 +65,16 @@ function teamOpen(){
   return (w.maat ? 0 : 1) + (isAanvoerder() && !kleedPersonen().aanv ? 1 : 0);
 }
 
+// Het interview in de week van het duel met je rivaal (niet verplicht)
+function vRivaalInterview(fx){
+  if (S.sp.o23 || !speeltTegenRivaal(fx.opp)) return '';
+  const P = voorDuelVraag(); if (!P) return '';
+  const kop = `<span class="label">Interview voor het duel met ${esc(rivaalNaam())}</span>`;
+  if (P.klaar) return `<div class="paneel">${kop}<p class="muted">"${esc(P.vraag)}"</p><p><b>Jij:</b> ${esc(P.opts[P.keuze].t)}</p><p class="melding">${esc(P.uit)}</p></div>`;
+  return `<div class="paneel" id="rivaalInterview">${kop}<p>Een verslaggever wacht je op na de training: <b>"${esc(P.vraag)}"</b></p>
+    <div class="keuzes">${P.opts.map((o, i) => keuzeKnop(o.l, `${esc(o.t)} · ${o.e}`, () => voorDuelAntwoord(i), 'data-blijf')).join('')}</div>
+    <p class="muted klein-tekst">Je hoeft niet te antwoorden.</p></div>`;
+}
 function vVooruitblik(fx, opp, vo){
   const sp = S.sp, c = club(), wij = sp.o23 ? `${c.n} O23` : c.n, zij = sp.o23 ? `${opp.n} O23` : opp.n;
   const aandeel = Math.round(clamp(c.s / (c.s + opp.s), .1, .9) * 100);
@@ -151,7 +161,7 @@ function vDezeWeek(){
     ${S.ronde === 0 ? `<h2>${eersteKeer ? `Welkom bij ${esc(club().n)}` : 'Nieuw seizoen'}</h2>` : ''}`;
   if (eersteKeer) html += `<p>${esc(welkomTekst(sp))}</p>`;
   else if (S.ronde === 0) html += `<p>Een nieuw seizoen bij ${esc(club().n)} in de ${DIVS[club().t]}. Alles begint weer bij nul.</p>`;
-  html += `</div>` + vVooruitblik(fx, opp, vo);
+  html += `</div>` + vVooruitblik(fx, opp, vo) + vRivaalInterview(fx);
   html += vReunie();
   if (sp.o23){ const c = sp.o23.cijfers; html += `<div class="paneel"><span class="label">Bij de O23</span><p>${O23_EIS}</p><p class="muted">${c.length ? 'Je cijfers bij de O23: ' + c.map(fmt1).join(' · ') : 'Je hebt nog geen wedstrijd gespeeld bij de O23.'}</p></div>`; }
   if (sp.huur){ const c = sp.huur.cijfers; html += `<div class="paneel"><span class="label">Op huurbasis tot de zomer</span><p>Je speelt bij ${esc(club().n)} en gaat in de zomer terug naar ${esc(CLUBS[sp.huur.ouder].n)}. Hoe beter je hier speelt, hoe beter je plek daar. Gemiddeld een 7,0 of hoger en ze rekenen op je.</p><p class="muted">${c.length ? `Gemiddeld cijfer hier: ${fmt1(gemiddelde(c))} (${c.length} ${c.length === 1 ? 'wedstrijd' : 'wedstrijden'})` : 'Je hebt hier nog niet gespeeld.'}</p></div>`; }
@@ -201,7 +211,7 @@ function vRivaal(){
     ${race}
     <div class="feiten"><div><span class="label">Club</span><b>${r ? `${clubLogo(r.id, 16)} ${esc(CLUBS[r.id].n)}${r.id === sp.club ? ' (jouw club!)' : ''}` : '–'}</b></div><div><span class="label">Leeftijd</span><b>${R.lft}</b></div>
       <div><span class="label">Klasse</span><b>${R.k} <span class="muted">(jij ${ik})</span></b></div><div><span class="label">Dit seizoen</span><b>${st.g} G · ${st.a} A <span class="muted">(jij ${S.ss.g || 0} G · ${S.ss.a || 0} A)</span></b></div>
-      <div><span class="label">Onderling</span><b>${R.onderling.w}W ${R.onderling.g}G ${R.onderling.v}V</b></div><div><span class="label">Volgende duel</span><b>${d ? `week ${d.ronde + 1} · ${d.thuis ? 'thuis' : 'uit'}` : '–'}</b></div></div>
+      <div><span class="label">Onderling</span><b>${R.onderling.w}W ${R.onderling.g}G ${R.onderling.v}V</b></div><div><span class="label">Cijferduels</span><b>${R.cijferDuels ? `${R.cijferDuels.w} gewonnen · ${R.cijferDuels.v} verloren` : '–'}</b></div><div><span class="label">Volgende duel</span><b>${d ? `week ${d.ronde + 1} · ${d.thuis ? 'thuis' : 'uit'}` : '–'}</b></div></div>
     ${acties ? `<span class="label">Wat doe je met je rivaal? <span class="niv">1 keer per week</span></span>${acties}` : ''}
     ${R.hist.length ? `<p class="muted klein-tekst">Vorige seizoenen: ${R.hist.slice(-4).map(esc).join(' · ')}</p>` : ''}</section>`;
 }

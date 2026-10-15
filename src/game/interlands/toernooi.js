@@ -1,9 +1,9 @@
-import { S, mod, ovr } from '../../core/state.js';
+import { S, mod, ovr, seizoenLabel } from '../../core/state.js';
 import { knop } from '../../core/ui.js';
 import { clamp, esc, pick, randInt, rnd } from '../../core/utils.js';
 import { LANDEN } from '../../data/gegevens.js';
 import { simGoals } from '../competitie/competitie.js';
-import { interDrempel, interScore, magInterland } from './interlands.js';
+import { interDrempel, interScore, landenVoor, magInterland } from './interlands.js';
 import { KRANTEN, vKrant } from '../media/nieuws.js';
 import { krantMelding } from '../media/roddel.js';
 import { social } from '../prive/social.js';
@@ -41,13 +41,36 @@ export function toernooiSelectie(){
   if (sp.clubloos) return {...basis, reden:`Je zit zonder club. De bondscoach neemt je niet mee naar ${lw} ${titel}.`};
   if (sp.blessure > 0) return {...basis, reden:`Je bent geblesseerd en mist ${lw} ${titel}. Balen!`};
   if (!magInterland()) return {...basis, reden:`Je speelt niet op een hoog genoeg niveau. De bondscoach van ${land} neemt je niet mee naar ${lw} ${titel}.`};
+  // Nog niet gekozen en meer landen mogelijk? Dan is een eindtoernooi een keuze: het is officieel, dus daarna zit je vast
+  const vrij = !sp.land && landenVoor().length > 1;
+  if (vrij){
+    const opties = landenVoor().filter(l => interScore(l) - interDrempel(l) >= -1).map(l => { const n = soort === 'WK' ? 'WK' : CONT_TOERNOOI[tLand(l).c]; return {land:l, naam:n, titel:`${n} ${jaar}`}; });
+    if (opties.length){
+      const wie = opties.map(o => o.land).join(' en '), waar = [...new Set(opties.map(o => `${lidw(o.naam)} ${o.titel}`))].join(' of ');
+      const rest = opties.length === 1 ? `voor ${landenVoor().filter(l => l !== opties[0].land).join(' of ')}` : 'voor het andere land';
+      return {...opties[0], jaar, mee:true, keuze:opties, reden:`${wie} ${opties.length > 1 ? 'willen' : 'wil'} je meenemen naar ${waar}. Let op: een eindtoernooi is officieel. Ga je mee, dan kies je definitief voor dat land en kun je daarna niet meer ${rest} uitkomen.`};
+    }
+  }
   const d = interScore(land) - interDrempel(land);
   if (d >= -1) return {...basis, mee:true, reden:`De bondscoach van ${land} heeft zijn selectie bekendgemaakt: jij gaat mee naar ${lw} ${titel}!`};
   return d >= -7 ? {...basis, reden:`Net niet: de bondscoach van ${land} laat je thuis voor ${lw} ${titel}. Met betere cijfers was je erbij geweest.`} : null;
 }
-export function startToernooi(){
+// Nee zeggen tegen het eindtoernooi: je houdt je keuze open (de bondscoaches zijn teleurgesteld)
+export function toernooiAfzeggen(){
+  const E = S.eind, T0 = E && E.toernooi, sp = S.sp; if (!T0 || !T0.mee || E.toernooiKlaar) return;
+  (T0.keuze || [{land:T0.land}]).forEach(o => { sp.bonds[o.land] = clamp((sp.bonds[o.land] ?? 40) - 8, 0, 100); });
+  E.toernooiKlaar = true; T0.mee = false;
+  T0.reden = `Je zegt nee tegen ${(T0.keuze || [T0]).map(o => o.land).join(' en ')}. Je blijft thuis en houdt je keuze nog open.`;
+}
+export function startToernooi(keus){
   const E = S.eind, T0 = E && E.toernooi, sp = S.sp;
   if (!T0 || !T0.mee || E.toernooiKlaar || S.tw) return;
+  if (T0.keuze){ // je kiest zelf voor welk land je meegaat (definitief)
+    const o = typeof keus === 'string' && T0.keuze.find(x => x.land === keus); if (!o) return;
+    Object.assign(T0, {land:o.land, naam:o.naam, titel:o.titel});
+    S.car.hist.push(`${seizoenLabel()}: kiest definitief voor ${o.land} (${o.titel})`);
+    krantMelding(`${sp.naam} kiest voor ${o.land}`, `Hij gaat mee naar ${lidw(o.naam)} ${o.titel}. Daarmee ligt zijn keuze vast: vanaf nu komt hij alleen nog uit voor ${o.land}.`);
+  }
   const mijn = tLand(T0.land);
   sp.land = T0.land;
   const pool = alleLanden().filter(l => l.n !== mijn.n && (T0.naam === 'WK' || l.c === mijn.c)).sort((a, b) => b.s - a.s);

@@ -2,7 +2,7 @@ import { S, resetTmp, seizoenLabel, setS, tmp, wis } from '../../core/state.js';
 import { keuzeKnop, knop } from '../../core/ui.js';
 import { clamp, esc, geldTxt } from '../../core/utils.js';
 import { CLUBS, DIVS, JEUGD } from '../../data/gegevens.js';
-import { lidw, startToernooi } from '../../game/interlands/toernooi.js';
+import { lidw, startToernooi, toernooiAfzeggen } from '../../game/interlands/toernooi.js';
 import { vKrant } from '../../game/media/nieuws.js';
 import { vBekerUitslagen } from '../../game/competitie/beker.js';
 import { isProf } from '../../game/prive/sponsors.js';
@@ -53,7 +53,7 @@ export function vSeizoenEinde(){
     ${E.prijzen.length ? `<div><span class="label">Prijzen</span><div class="prijzen" style="margin-top:6px">${E.prijzen.map(p => `<span class="prijs">${esc(p)}</span>`).join('')}</div></div>` : ''}
     ${vKrant(E.krant)}
     ${E.toernooi && E.toernooi.reden ? `<div class="${E.toernooi.mee ? 'kampioen' : 'paneel'}"><span class="label">${esc(E.toernooi.titel)}</span><p>${esc(E.toernooi.reden)}</p></div>` : ''}
-    ${E.plek === 1 && !E.feest ? '' : E.toernooi && E.toernooi.mee && !E.toernooiKlaar ? knop(`Op naar ${lidw(E.toernooi.naam)} ${esc(E.toernooi.titel)}!`, startToernooi) : knop('Naar de zomer', naSeizoen)}`;
+    ${E.plek === 1 && !E.feest ? '' : E.toernooi && E.toernooi.mee && !E.toernooiKlaar ? (E.toernooi.keuze ? `<div class="rij">${E.toernooi.keuze.map(o => knop(`Ja, ik kies voor ${esc(o.land)}: op naar ${lidw(o.naam)} ${esc(o.titel)}`, () => startToernooi(o.land), 'hoofd', `data-bevestig="Na dit toernooi kun je alleen nog voor ${esc(o.land)} uitkomen. Dit kun je niet terugdraaien." data-ja="Ja, ik kies voor ${esc(o.land)}"`)).join('')}${knop('Nee, ik kies nog niet en blijf thuis', toernooiAfzeggen, 'klein')}</div>` : knop(`Op naar ${lidw(E.toernooi.naam)} ${esc(E.toernooi.titel)}!`, startToernooi)) : knop('Naar de zomer', naSeizoen)}`;
 }
 export function vOntwikkeling(){
   const sp = S.sp;
