@@ -116,8 +116,8 @@ export function rivaalVenster(soort){
 
 /* ----- De band met je rivaal, acties, gebeurtenissen en de race ----- */
 export const zetBand = d => { const R = rivaal(); if (R) R.band = clamp(R.band + d, -100, 100); };
-export const BANDEN = [[-60, 'Aartsvijand'], [-20, 'Vijand'], [20, 'Concurrent'], [60, 'Respect'], [101, 'Vriendschap']];
-export const bandLabel = (b = rivaal() ? rivaal().band : 0) => BANDEN.find(([g]) => b < g)[1];
+export const BANDEN = [[-60, 'Aartsvijand'], [-20, 'Vijand'], [19, 'Concurrent'], [59, 'Respect'], [100, 'Vriendschap']];
+export const bandLabel = (b = rivaal() ? rivaal().band : 0) => BANDEN.find(([g]) => b <= g)[1];
 export const actiefRivaal = () => { const R = rivaal(); return !!(R && !R.gestopt && rivaalSpeler() && !S.trainer); };
 // De race: goals voor een spits, assists voor de rest
 export function raceStand(){
