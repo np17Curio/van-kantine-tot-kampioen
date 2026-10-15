@@ -12,7 +12,7 @@ export function ohStart(o){ tmp.oh = {club:o.club, key:okey(o), verl:!!o.verleng
 export const clausuleBedrag = () => Math.max(100000, Math.round(waarde(S.sp) * 1.8 / 100000) * 100000);
 export function ohKans(o, x){
   const sp = S.sp, c = clubInfo(o);
-  let k = .92 - OH_SAL[x.sal][2] - OH_TEKEN[x.teken][2] - (x.clausule ? (c.t === 0 ? .2 : .12) : 0);
+  let k = .92 - OH_SAL[x.sal][2] - OH_TEKEN[x.teken][2] - (x.clausule ? (c.t === 1 && c.s >= 80 ? .2 : .12) : 0);
   const dj = x.jaren - o.jaren; if (dj > 0) k -= dj * (sp.leeftijd >= 30 ? .15 : .04); else if (dj < 0) k -= -dj * .05;
   k += clamp((ovr(sp) - c.s) * .01, -.1, .15); // ben je beter dan de club, dan willen ze je graag
   if (club().t !== JEUGD) k += .08; // je zaakwaarnemer onderhandelt mee

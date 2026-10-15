@@ -1,5 +1,5 @@
 import { S } from '../core/state.js';
-import { CLUBS, DIVS } from './gegevens.js';
+import { CLUBS, DIVS, ELITE_ID, ELITE_THUIS } from './gegevens.js';
 import { BEKERS } from '../game/competitie/beker.js';
 import { KRANTEN } from '../game/media/nieuws.js';
 import { RODDELBLADEN } from '../game/media/roddel.js';
@@ -68,6 +68,7 @@ export function zetLand(land){
   const L = LAND_DATA[land] || null;
   for (let i = 1; i <= 5; i++) DIVS[i] = L ? L.divs[i - 1] : NL.divs[i];
   for (let i = 8; i < 40; i++) CLUBS[i].n = L ? L.clubs[i - 8] : NL.clubs[i];
+  if (ELITE_THUIS[land]) CLUBS[ELITE_ID].n = ELITE_THUIS[land].n; // de oude Elite-club van dit land
   CLUBS.forEach(c => { if (c.ouder !== undefined) c.n = CLUBS[c.ouder].n + ' O19'; });
   for (let t = 1; t <= 5; t++) KRANTEN[t] = (L ? L.kranten[t] : NL.kranten[t]).slice();
   // Internationale kranten, plus de grootste sportkrant van je eigen land

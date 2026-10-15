@@ -12,6 +12,7 @@ import { iedereen } from '../team/kleedkamer.js';
 import { ck } from '../transfers/buitenland.js';
 import { focusBoost } from './momenten.js';
 import { balk } from '../../render/views/zijbalk.js';
+import { pers } from '../speler/persoonlijkheid.js';
 
 /* ===================== Derby's, fans en persconferenties ===================== */
 // Elke club heeft een vaste aartsrivaal (de buurclub in de lijst). Spelen ze niet meer in dezelfde divisie, dan krijgt de club een rivaal uit de eigen divisie
@@ -39,7 +40,7 @@ export function fansVoorAftrap(M){
 export function fansNaWedstrijd(M, speelde){
   const sp = S.sp, won = M.us > M.them, verl = M.us < M.them, zij = CLUBS[M.opp].n;
   const voor = Math.round(fans());
-  if (speelde) modFans((M.cijfer - 6.5) * 2.5 + M.goals * 1.5 + M.assists * .5 - (M.rood ? 6 : 0) + (won ? 1 : verl ? -1 : 0));
+  if (speelde) modFans((M.cijfer - 6.5) * 2.5 + M.goals * 1.5 + M.assists * .5 - (M.rood ? 6 : 0) + (won ? 1 : verl ? -1 : 0) + pers('fans'));
   else modFans((50 - fans()) * .03);
   if (M.derby){
     const d = S.car.derby = S.car.derby || {w:0, g:0, v:0, goals:0};

@@ -14,6 +14,7 @@ import { band, kleedkamer, zetBand } from '../team/kleedkamer.js';
 // zwakker. Jouw eigen club doet meestal ook mee: nieuwe teamgenoten komen binnen, of een maat vertrekt. Alles komt in de krant.
 const MAX_DELTA = 2; // per club per periode hooguit ±2 sterkte
 // Over welke competitie gaat het: jouw niveau; vanuit de jeugd het eerste elftal van je club (de Amateurklasse)
+const isRivaal = x => !!(S.sp && S.sp.rivaal && x.n === S.sp.rivaal.n && x.v === S.sp.rivaal.v);
 export function marktComp(){
   const c = club(), jeugd = c.t === JEUGD;
   return {t:jeugd ? AMATEUR : c.t, mijn:jeugd ? c.ouder : S.sp.club, jeugd};
@@ -48,7 +49,7 @@ function neemOp(naar, speler){
   if (selN[0] && selN[0].k !== undefined) herschik(selN);
 }
 // van = null: een transfervrije speler uit het buitenland
-function noteerDeal(van, naar, speler, soort, extra = {}){
+export function noteerDeal(van, naar, speler, soort, extra = {}){
   const tv = van == null ? null : CLUBS[van].t, som = tv != null && tv <= 3 ? Math.round(BASE[tv] * (.12 + rnd() * .35) / 1000) * 1000 : 0;
   const d = {jaar:S.jaar, soort, van, naar, v:speler.v, n:speler.n, pos:speler.pos, som, ...extra};
   (S.transfers = S.transfers || []).push(d);
@@ -64,17 +65,18 @@ function kiesSpeler(van, naar){
   return goed.length ? pick(goed) : kand.length && rnd() < .3 ? pick(kand) : null;
 }
 const gewogenClub = (lijst, w) => { let tot = 0; const g = lijst.map(i => (tot += w(i), tot)); const r = rnd() * tot; return lijst[g.findIndex(x => x >= r)]; };
-export function clubTransfers(soort){
+// zonderMijn: in de trainersmodus doet jouw club niet automatisch mee (jij koopt en verkoopt zelf)
+export function clubTransfers(soort, {zonderMijn = false} = {}){
   const sleutel = `${S.jaar}-${soort}`; if (S.marktKlaar === sleutel) return [];
   S.marktKlaar = sleutel;
   const {t, mijn, jeugd} = marktComp(), comp = divClubs(t), sMax = Math.max(...comp.map(i => CLUBS[i].s));
   const onder = t < AMATEUR ? divClubs(t + 1).sort((a, b) => CLUBS[b].s - CLUBS[a].s).slice(0, 3) : [];
-  const boven = t > 0 ? divClubs(t - 1).sort((a, b) => CLUBS[a].s - CLUBS[b].s).slice(0, 4) : [];
+  const boven = t > 1 ? divClubs(t - 1).sort((a, b) => CLUBS[a].s - CLUBS[b].s).slice(0, 4) : [];
   const jeugdStart = (S.jeugdIn || []).length;
   const gestopt = soort === 'zomer' ? ontwikkelSpelers(divClubs(t).includes(mijn) ? divClubs(t) : divClubs(t).concat(mijn), mijn) : [];
   const delta = {}, deals = [], n = soort === 'zomer' ? randInt(5, 8) : randInt(3, 5);
-  const koperOk = i => CLUBS[i].s <= sMax + 2;
-  let mijnMee = rnd() < .7;
+  const koperOk = i => CLUBS[i].s <= sMax + 2 && !(zonderMijn && i === mijn);
+  let mijnMee = !zonderMijn && rnd() < .7;
   for (let poging = 0; poging < n * 4 && deals.length < n; poging++){
     let koper, verkoper, hoger = false;
     if (mijnMee){
@@ -89,11 +91,12 @@ export function clubTransfers(soort){
       verkoper = k.length ? pick(k) : null; hoger = false;
     }
     if (koper == null || verkoper == null || koper === verkoper) continue;
+    if (zonderMijn && (koper === mijn || verkoper === mijn)) continue;
     if (deals.some(d => d.van === verkoper && d.naar === koper)) continue;
     const speler = kiesSpeler(verkoper, koper); if (!speler) continue;
     const d = doeDeal(verkoper, koper, speler, hoger, delta, soort); if (d) deals.push(d);
   }
-  const inhaal = inhaalAankopen(comp, onder, soort);
+  const inhaal = inhaalAankopen(zonderMijn ? comp.filter(i => i !== mijn) : comp, onder, soort);
   deals.push(...inhaal.deals);
   if (soort === 'zomer') jeugdDoorstroom(comp.includes(mijn) ? comp : comp.concat(mijn));
   S.clubs = CLUBS.map(c => [c.t, c.s]);
@@ -157,11 +160,12 @@ export function ontwikkelSpelers(clubs, mijn){
   for (const id of clubs){
     const sel = selectie(id);
     for (const x of sel){
+      if (isRivaal(x)) continue; // je rivaal groeit mee met jou (rivaal.js)
       x.lft = (x.lft || 25) + 1; x.kVorig = x.k;
       const [lo, hi] = GROEI(x.lft); x.k = clamp(x.k + randInt(lo, hi) + (x.basis && x.lft <= 25 && rnd() < .5 ? 1 : 0), 25, 95);
     }
     // stoppen: 34 jaar en ouder (de keeper mag tot 36)
-    for (const x of sel.filter(x => x.lft >= (x.pos === 'K' ? 36 : 34))){ sel.splice(sel.indexOf(x), 1); if (id === mijn){ gestopt.push(x); delete kleedkamer().rel[x.n]; } }
+    for (const x of sel.filter(x => !isRivaal(x) && x.lft >= (x.pos === 'K' ? 36 : 34))){ sel.splice(sel.indexOf(x), 1); if (id === mijn){ gestopt.push(x); delete kleedkamer().rel[x.n]; } }
     selectie(id); // aanvullen met jeugd
     herschik(sel);
     // clubsterkte richting het niveau van de basiself

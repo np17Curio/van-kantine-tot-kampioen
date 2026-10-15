@@ -17,6 +17,7 @@ import { nieuweWeek, verhoog } from '../week.js';
 import { talentSeizoen } from '../speler/talent.js';
 import { doelInfo } from '../transfers/zaakwaarnemer.js';
 import { europaKrant } from '../competitie/europa.js';
+import { rivaalOuder, rivaalSeizoen } from '../speler/rivaal.js';
 
 /* ===================== Seizoen ===================== */
 export function ontwikkel(){
@@ -69,6 +70,7 @@ export function seizoenEinde(){
   const bron = KRANTEN[t], krant = [], wanneer = `einde seizoen ${seizoenLabel()}`;
   if (S.eind.svs.jij) krant.push({bron:bron[0], kop:`${sp.naam} is de Speler van het Seizoen`, tekst:`De ${DIVS[t]} kiest ${sp.naam} van ${club().n} als beste speler: ${S.ss.g} goals, ${S.ss.a} assists${gem !== null ? ` en gemiddeld een ${gem.toFixed(1).replace('.', ',')}` : ''}.`, wanneer, foto:fotoVan('svs', `${sp.naam} met de bokaal voor Speler van het Seizoen.`)});
   if (ik && ik.g > 0 && ik.g >= rs[0].g) krant.push({bron:bron[1 % bron.length], kop:`Gouden Schoen voor ${sp.naam}`, tekst:`Met ${ik.g} goals is ${sp.naam} de topscorer van de ${DIVS[t]}. Niemand scoorde vaker.`, wanneer, foto:fotoVan('topscorer', `Topscorer ${sp.naam} met de Gouden Schoen.`)});
+  const rv = rivaalSeizoen(); if (rv){ krant.push({bron:bron[0], kop:rv.kop, tekst:rv.tekst, wanneer}); S.eind.rivaal = rv; }
   for (const k of europaKrant(wissels).slice(0, 3)) krant.push({bron:KRANTEN[0][0], kop:k.kop, tekst:k.tekst, wanneer});
   S.eind.krant = krant; S.nieuws = krant.concat(S.nieuws || []).slice(0, 6);
   S.fase = 'seizoenEinde';
@@ -81,6 +83,7 @@ export function naSeizoen(){
   // Eerst het talent bijstellen (sterk seizoen, prijzen), zodat de groei van dit jaar al onder het nieuwe plafond valt
   const tal = talentSeizoen(S.eind.gem, S.eind.prijzen.length + (S.eind.svs.jij ? 1 : 0));
   S.eind.ontw = ontwikkel();
+  rivaalOuder(ovr(sp) - sp.ovrVorig); // je rivaal groeit (of zakt) net als jij
   if (tal) S.eind.ontw.unshift(tal);
   sp.potSz = 0;
   S.eind.ontw.push(...seizoenGeld());

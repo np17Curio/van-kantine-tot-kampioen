@@ -27,7 +27,7 @@ import { vormBonus } from './vorm.js';
 // Bij gelijkspel strafschoppen. De jeugd doet niet mee.
 export function nacompetitieParen(){
   const paren = [];
-  for (let t = 0; t < AMATEUR; t++){ const boven = stand(t), onder = stand(t + 1); paren.push({t, hoog:boven[boven.length - 2], laag:onder[1]}); }
+  for (let t = 1; t < AMATEUR; t++){ const boven = stand(t), onder = stand(t + 1); if (boven.length >= 2 && onder.length >= 2) paren.push({t, hoog:boven[boven.length - 2], laag:onder[1]}); }
   return paren;
 }
 // Een paar zonder jou: simuleren (de club van het hogere niveau speelt thuis)

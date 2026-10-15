@@ -167,3 +167,14 @@ kbd{font-family:var(--f-mono);font-size:.8em;border:1px solid var(--lijn);border
 .wt{font-size:.6rem;font-family:var(--f-mono);margin-left:2px}
 .wt.op{color:#4ade80}.wt.neer{color:#f87171}.wt.nieuw{color:var(--lamp);text-transform:uppercase}
 .pd.europa{display:block;line-height:1.4;margin-bottom:6px}
+
+/* Trainer: eisen van het bestuur, opstelling en transfers */
+.eisen-bestuur{display:grid;gap:6px}
+.eisrij{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--lijn)}
+.eisrij:last-of-type{border-bottom:none}
+.formaties{flex-wrap:wrap;gap:6px}
+.formaties .klein.actief,.trsel .klein.actief{border-color:var(--lamp);color:var(--lamp)}
+.trsel td:first-child,.trsel th:first-child{text-align:left}
+.trsel td:nth-child(2).klein-tekst{text-align:left}
+.trinhoud{display:grid;gap:12px;margin-top:12px}
+@media (max-width:560px){.eisrij{grid-template-columns:minmax(0,1fr) auto}.eisrij .muted{grid-column:1}}

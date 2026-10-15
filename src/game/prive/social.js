@@ -5,6 +5,7 @@ import { RODDELBLADEN, krantMelding, roddel } from '../media/roddel.js';
 import { isProf } from './sponsors.js';
 import { statusPunten } from '../speler/status.js';
 import { modFans } from '../wedstrijd/fans-pers.js';
+import { pers } from '../speler/persoonlijkheid.js';
 
 /* ===================== Social media ===================== */
 export function volgersTxt(n){ n = Math.round(n); if (n < 1000) return String(n); if (n < 1e6) return (n / 1000).toFixed(n < 1e4 ? 1 : 0).replace('.', ',').replace(',0', '') + 'k'; return (n / 1e6).toFixed(1).replace('.', ',').replace(',0', '') + ' mln'; }
@@ -37,7 +38,8 @@ export function volgersNaWedstrijd(M){
   if (M.cijfer === null || M.cijfer === undefined) return;
   const so = social(), t = club().t, schaal = (1 + (5 - Math.min(t, 5)) * .8) * (1 + S.sp.rep / 20);
   const voor = so.volgers;
-  so.volgers = Math.max(0, Math.round(so.volgers + ((M.cijfer - 6) * 6 + M.goals * 15 + M.assists * 6 + (M.kampioen ? 80 : 0)) * schaal));
+  const groei = ((M.cijfer - 6) * 6 + M.goals * 15 + M.assists * 6 + (M.kampioen ? 80 : 0)) * schaal;
+  so.volgers = Math.max(0, Math.round(so.volgers + (groei > 0 ? groei * pers('volgers') : groei)));
   M.volgers = so.volgers - voor;
   M.volgerTekst = volgerMijlpaal();
 }

@@ -37,9 +37,25 @@ import { reeksTekst, vormBonus } from '../competitie/vorm.js';
 /* ===================== Wedstrijd ===================== */
 // Achtergrondgoals als jij meespeelt (naast jouw momenten): factor voor jullie en voor de tegenstander
 export const BG = {wij:.5, zij:.85};
+import { pers } from '../speler/persoonlijkheid.js';
+import { naRivaalDuel, rivaalNaam, speeltTegenRivaal } from '../speler/rivaal.js';
+// Hoe vaak de keeper van een veel sterkere ploeg jouw goal hooguit voorkomt
+export const KEEPER_MAX = .3;
+// VAR: kijkt soms mee bij een goal. Bij elke goal (van jou, je teamgenoten en de tegenstander): 10% check, 40% daarvan afgekeurd.
+export const VAR = {jij:{check:.1, af:.4}, tegen:{check:.1, af:.4}};
+// Kans dat de VAR bij een kans van jouw ploeg alsnog een penalty geeft
+export const VAR_PENALTY = .015;
+const VAR_REDEN = ['buitenspel', 'een duwfout in de aanloop', 'hands', 'een overtreding op de keeper'];
+export function varCheck(soort){ const v = VAR[soort]; if (rnd() >= v.check) return null; return rnd() < v.af ? 'af' : 'ok'; }
+function varTegen(M, zij, op){
+  const v = varCheck('tegen'); if (!v) return null;
+  if (v === 'ok'){ M.log.push({m:M.min + "'", t:'De VAR bekijkt het doelpunt van ' + zij + '...', k:'info'}); return null; }
+  M.varAf = (M.varAf || 0) + 1;
+  return {t:`${op} scoort voor ${zij}... maar VAR! Na de beelden wordt de goal afgekeurd voor ${pick(VAR_REDEN)}. ${stand2()}`, k:'info'};
+}
 // Plant de goals van teamgenoten/tegenstander en jouw momenten in
 export function planWedstrijd(M, T, O, vast){
-  if (M.focusStart === undefined) M.focusStart = Math.round(S.sp.focus ?? 65);
+  if (M.focusStart === undefined){ if (pers('focusStart')) mod('focus', pers('focusStart')); M.focusStart = Math.round(S.sp.focus ?? 65); }
   const sp = S.sp, rol = M.rol;
   const lu = 1.3 * Math.pow(T / O, 3), lt = 1.3 * Math.pow(O / T, 3);
   // Zit je niet in het veld, dan staat de uitslag al vast (vast = {us, them}).
@@ -80,6 +96,8 @@ export function planWedstrijd(M, T, O, vast){
   { const ka = kalmte(); if (ka < 55 && rnd() < (55 - ka) / 35) M.ev.push({type:'moment', min:randInt(start + 1, 89), m:pick(['opstootje', 'provocatie'])}); }
   // Derby: er gaat altijd iemand op je lontje staan
   if (M.derby){ M.ev.push({type:'moment', min:randInt(start + 1, 89), m:pick(['opstootje', 'provocatie'])}); if (M.fel && rnd() < .6) M.ev.push({type:'moment', min:randInt(start + 1, 89), m:'opstootje'}); }
+  // Tegen je rivaal: een extra duel met hem
+  if (M.rivaal) M.ev.push({type:'moment', min:randInt(start + 1, 89), m:pick(['eenOpEen', 'tackle']), rivaal:true});
   sorteerEv(M);
 }
 // Volgorde binnen dezelfde minuut: warmlopen, invallen, de rest, en rust/blessuretijd als laatste
@@ -102,7 +120,7 @@ export function verslag(e, M){
   const opS = T ? (e.type === 'them' ? gewogen(T, 'g') : pick(inVeld(T))) : null, op = T ? opS.n : pick(TEGENSTANDERS);
   const coach = M.inter ? 'De bondscoach' : 'De trainer', jijSpeelt = M.rol === 'basis' || (M.rol === 'invaller' && M.idx > M.ev.findIndex(x => x.type === 'inval'));
   switch (e.type){
-    case 'us': { M.us++; const l = [
+    case 'us': { if (!e.varPen){ const va = varTegen(M, wij, tm); if (va) return va; } M.us++; const l = [
       `GOAL! ${tm} kopt een voorzet van ${tm2} binnen. ${stand2()}`,
       `GOAL! ${tm} schiet van afstand raak. ${stand2()}`,
       `GOAL! Na een mooie combinatie met ${tm2} schuift ${tm} de bal in de hoek. ${stand2()}`,
@@ -112,7 +130,7 @@ export function verslag(e, M){
       const t = uniek(M, 'us', l), i = l.indexOf(t);
       doelOns(M, tmS, [0, 2, 5].includes(i) ? tm2S : null);
       return {t, k:'goal'}; }
-    case 'them': { M.them++; const T2 = T ? T.filter(x => x !== opS) : null, ag = T2 && rnd() < .6 ? gewogen(T2, 'a') : null;
+    case 'them': { if (!e.varPen){ const va = varTegen(M, zij, op); if (va) return va; } M.them++; const T2 = T ? T.filter(x => x !== opS) : null, ag = T2 && rnd() < .6 ? gewogen(T2, 'a') : null;
       const l = [
       `Tegengoal. ${op} van ${zij} kopt raak${ag ? ` uit een voorzet van ${ag.n}` : ''}. ${stand2()}`,
       `Tegengoal. ${zij} countert snel en ${op} maakt het af${ag ? ` na een pass van ${ag.n}` : ''}. ${stand2()}`,
@@ -122,7 +140,15 @@ export function verslag(e, M){
       const t = uniek(M, 'them', l), i = l.indexOf(t);
       doelHun(M, opS, i <= 1 ? ag : null);
       return {t, k:'tegen'}; }
-    case 'kansUs': return {t:uniek(M, 'kansUs', [
+    case 'kansUs':
+      // Soms ziet de VAR nog een overtreding in het strafschopgebied: alsnog een penalty
+      if (rnd() < VAR_PENALTY){
+        const jij = jijSpeelt && !M.rood && M.gewisseld === undefined;
+        if (jij) M.ev.splice(M.idx, 0, {type:'moment', min:e.min, m:'penalty', varPen:true});
+        else if (rnd() < .75) M.ev.splice(M.idx, 0, {type:'us', min:e.min, varPen:true});
+        return {t:`VAR! Na de beelden krijgt ${wij} alsnog een penalty: ${tm} werd in het strafschopgebied onderuitgehaald.${jij ? ' Jij pakt de bal.' : ''}`, k:'info'};
+      }
+      return {t:uniek(M, 'kansUs', [
       `Kans voor ${wij}! ${tm} schiet net naast.`,
       `${tm} raakt de paal! Zo dichtbij.`,
       `Kopbal van ${tm}, maar de keeper tikt hem over de lat.`,
@@ -135,7 +161,13 @@ export function verslag(e, M){
       `${tm2} geeft een prachtige voorzet, maar niemand komt erbij.`,
       `${tm} probeert het van afstand. De bal zeilt over de lat.`,
       `De scheidsrechter fluit voor buitenspel. Het doelpunt van ${tm} telt niet.`]), k:''};
-    case 'kansThem': return {t:uniek(M, 'kansThem', [
+    case 'kansThem':
+      // Ook de tegenstander kan via de VAR alsnog een penalty krijgen
+      if (rnd() < VAR_PENALTY){
+        if (rnd() < .75) M.ev.splice(M.idx, 0, {type:'them', min:e.min, varPen:true});
+        return {t:`VAR! Na de beelden krijgt ${zij} alsnog een penalty: ${op} werd in het strafschopgebied geraakt.`, k:'info'};
+      }
+      return {t:uniek(M, 'kansThem', [
       `${op} van ${zij} schiet op de paal. Pfoe!`,
       `Jullie keeper redt knap op een schot van ${op}.`,
       `Kopbal van ${op} gaat net over. Gevaarlijk.`,
@@ -201,6 +233,7 @@ export function startWedstrijd(){
   if (derbyRegel) M.log.push(derbyRegel);
   reunieAftrap(M);
   fansVoorAftrap(M);
+  if (speeltTegenRivaal(fx.opp)){ M.rivaal = true; M.log.push({m:"1'", t:`Je rivaal ${rivaalNaam()} staat in de basis bij ${opp.n}. Vandaag laat je zien wie de beste is.`, k:'info'}); }
   planWedstrijd(M, T, O);
   M.log.push({m:"1'", t:`Aftrap! ${rol === 'basis' ? (sp.statusNiveau >= AANV ? 'Met de aanvoerdersband om je arm leid je het team het veld op.' : statusNiveau() <= 1 ? 'De trainer geeft je als bankspeler een kans in de basis. Grijp hem!' : 'Je staat in de basis.') : 'Je begint op de bank.' + reden}`, k:''});
   S.fase = 'match';
@@ -218,8 +251,9 @@ export function verderSpelen(){
     else if (e.type === 'inval'){ staminaStart(M, e.min); M.log.push({m:e.min + "'", t: M.inter ? 'De bondscoach roept je. Je mag erin!' : 'De trainer roept je. Je mag erin!', k:'ok'}); }
     else if (e.type === 'moment'){
       if (M.rood || M.gewisseld !== undefined) continue;
-      const type = (e.min >= 84 && M.us <= M.them && rnd() < .6) ? 'laatsteMinuut' : e.m;
+      const type = (!e.varPen && e.min >= 84 && M.us <= M.them && rnd() < .6) ? 'laatsteMinuut' : e.m;
       M.pending = bouwMoment(type);
+      if (e.rivaal && type !== 'laatsteMinuut') M.pending.tekst = `Daar is hij: je rivaal ${rivaalNaam()}. Dit is jullie duel. ` + M.pending.tekst;
       if (e.via && type !== 'laatsteMinuut') M.pending.tekst = `${e.via} zoekt je op met een perfecte pass. Jullie zijn maatjes en weten elkaar blind te vinden. ` + M.pending.tekst;
       return;
     }
@@ -231,10 +265,15 @@ export function verderSpelen(){
 export function kies(i){
   const M = S.M, opt = pOpts(M.pending)[i];
   const ok = rnd() < kans(opt);
-  const out = (ok ? opt.ok : opt.mis)();
+  let out = (ok ? opt.ok : opt.mis)();
+  // Tegen een veel sterkere ploeg haalt hun keeper soms ook een goede kans van jou eruit
+  // VAR bij jouw goal
+  if (out.goal){ const v = varCheck('jij'); if (v === 'af'){ M.varAf = (M.varAf || 0) + 1; out = {...out, goal:false, d:Math.max(0, (out.d || 0) - .5), t:`${out.t.replace(/[.!]*$/, '')}... maar dan: VAR! Na lang kijken wordt je goal afgekeurd voor ${pick(VAR_REDEN)}.`}; } else if (v === 'ok') out = {...out, t:`${out.t} De VAR kijkt nog even mee... de goal telt!`}; }
+  if (out.goal && !M.o23 && !M.inter){ const gat = (M.oppS ?? CLUBS[M.opp].s) - club().s;
+    if (gat > 2 && rnd() < Math.min(KEEPER_MAX, (gat - 2) * .05)) out = {...out, goal:false, t:`${out.t.replace(/[.!]*$/, '')}... maar de keeper van ${M.zij} haalt hem er met een wereldredding uit!`, d:Math.max(.1, (out.d || 0) - .4)}; }
   { const soort = animSoort(M.pending.type, opt.l); if (soort) animPush(M, {type:M.pending.type, label:opt.l, soort, variant:animVariant(M.pending.type, opt.l), ok, goal:!!out.goal, assist:!!out.assist, team:!!out.teamGoal, tegen:!!out.tegen, geel:!!out.geel, rood:!!out.rood}); }
   gebruik(M, opt);
-  const fVoor = S.sp.focus ?? 65; if (ok) focusBoost(1); else mod('focus', -1);
+  const fVoor = S.sp.focus ?? 65; if (ok) focusBoost(1); else mod('focus', -1 * pers('focusMis'));
   const m = M.min + "'";
   M.log.push({m, t:`[${opt.l}] ${out.t}`, k: ok ? 'ok' : 'mis'});
   if (fVoor < FLOW && S.sp.focus >= FLOW) M.log.push({m, t:'Alles lukt! Je zit helemaal in de flow.', k:'info'});
@@ -328,7 +367,7 @@ export function eindeWedstrijd(){
       if (ovr(sp) < sp.pot + 3){ verhoog(k, 1); M.groei = k; }
     }
     M.talent = talentNaWedstrijd(M.cijfer);
-    if (sp.fit < 30 && rnd() < .12){ sp.blessure = randInt(1, 4); M.blessureNieuw = sp.blessure; }
+    if (sp.fit < 30 && rnd() < .12 * pers('blessure')){ sp.blessure = Math.max(1, randInt(1, 4) - pers('herstel')); M.blessureNieuw = sp.blessure; }
   } else {
     M.cijfer = null;
     if (M.rol === 'tribune'){ mod('vert', 3); statusPunten(-1); }
@@ -342,9 +381,10 @@ export function eindeWedstrijd(){
     if (sp.blessure > 0) sp.blessure--;
   }
   if (M.us > M.them){ mod('moraal', 4); iedereen(1); }
-  else if (M.us < M.them) mod('moraal', -4);
+  else if (M.us < M.them) mod('moraal', -4 * pers('nederlaagMoraal'));
   speelRonde(S.ronde, M.us, M.them, M.doelen || []);
   M.reeksTekst = reeksTekst(S.sp.club);
+  M.rivaalTekst = naRivaalDuel(M);
   (S.ss.uitslagen = S.ss.uitslagen || [])[S.ronde] = {r: M.us > M.them ? 'W' : M.us < M.them ? 'V' : 'G', s:`${stand2()} tegen ${CLUBS[M.opp].n}`, mee:speelde};
   M.statusTekst = checkStatus();
   M.agentTekst = agentCheck();

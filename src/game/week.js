@@ -1,6 +1,6 @@
 import { S, club, mod, ovr } from '../core/state.js';
 import { clamp, rnd } from '../core/utils.js';
-import { AANTAL_RONDES, ATTR, JEUGD } from '../data/gegevens.js';
+import { AANTAL_RONDES, ATTR, JEUGD, TRAINBAAR } from '../data/gegevens.js';
 import { maakEvent } from './gebeurtenissen.js';
 import { uitgaanKrant } from './media/uitgaan-krant.js';
 import { buitenWeek } from './prive/buiten-week.js';
@@ -22,15 +22,20 @@ import { maakBodEvent } from './transfers/transferbod.js';
 import { focusBoost } from './wedstrijd/momenten.js';
 import { doeVerhaal, isVerhaalActiviteit } from './speler/verhaal.js';
 import { talentDoorbraak } from './speler/talent.js';
+import { pers } from './speler/persoonlijkheid.js';
+import { ouders } from './prive/familie.js';
+import { maakRivaal } from './speler/rivaal.js';
 
 /* ===================== Week ===================== */
 export function nieuweWeek(eerste){
   const sp = S.sp; S.weekNr = (S.weekNr || 0) + 1;
+  if (!sp.rivaal && !S.trainer) maakRivaal(); // je vaste rivaal (ook voor oude opslag)
   if (!eerste){
     const deals = sp.sponsors || [];
     sp.fit = clamp(sp.fit + 14 + (sp.items.fysio ? 8 : 0) + (sp.items.hoogtekamer ? 4 : 0) + (sp.items.jet ? 2 : 0) + (deals.some(d => d.cat === 'drank') ? 2 : 0), 0, 100);
     sp.moraal = clamp(sp.moraal + (60 - sp.moraal) * .08 + woningMoraal() + (sp.relatie && sp.relatie.samen ? 1 : 0) + ((sp.kinderen || []).length ? 1 : 0) + (sp.items.school ? 1 : 0) + (sp.relatie ? 1 : 0) + Math.min(2, dieren().length) + (sp.statusNiveau >= 3 ? 1 : 0), 0, 100);
     if (sp.relatie) sp.relatie.weken++;
+    if (pers('familie')){ const o = ouders(); o.band = clamp(o.band + 1, 0, 100); if (sp.relatie) sp.relatie.band = clamp(sp.relatie.band + 1, 0, 100); if (sp.moraal < 50) sp.moraal = clamp(sp.moraal + 2, 0, 100); }
     sp.sindsTransfer = (sp.sindsTransfer || 0) + 1;
     if (sp.woning === 'villa') mod('fit', 2);
     if (sp.items.matras) mod('fit', 2);
@@ -71,7 +76,7 @@ export function nieuweWeek(eerste){
   // Een gebeurtenis die deze week klaarstaat (zoals een jubileum) verschijnt nu
   if (S.wachtEv){ S.ev = S.wachtEv; S.wachtEv = null; S.fase = 'event'; }
 }
-export function trainKans(){ const sp = S.sp; return clamp((sp.pot - ovr(sp)) / 20, .12, .7) + (sp.items.trainer ? .2 : 0); }
+export function trainKans(){ const sp = S.sp; return clamp((sp.pot - ovr(sp)) / 20, .12, .7) + (sp.items.trainer ? .2 : 0) + pers('train'); }
 // Plafond per eigenschap: met jouw talent kun je een eigenschap niet eindeloos opkrikken
 export const PLAFOND_MARGE = 10;
 export const plafond = () => Math.min(99, S.sp.pot + PLAFOND_MARGE);
@@ -109,8 +114,14 @@ export function doeActiviteit(soort, attr){
   } else if (soort === 'trainer'){
     mod('fit', -12); mod('vert', 7);
     t = 'Je blijft na de training hangen en vraagt de trainer om extra oefeningen. Hij knikt goedkeurend.';
+  } else if (soort === 'extra'){
+    // Voetbalgek: nog een uur doorgaan als de rest al onder de douche staat
+    mod('fit', -6); mod('vert', 1);
+    const k = TRAINBAAR.filter(x => sp.a[x] < plafond()).sort((a, b) => sp.a[a] - sp.a[b])[0];
+    if (k && rnd() < .35){ const voor = sp.a[k]; verhoog(k, 1); t = `Als iedereen al naar huis is, sta jij nog op het veld. Je ${ATTR[k].toLowerCase()} gaat van ${voor} naar ${sp.a[k]}.`; }
+    else t = 'Je blijft na de training nog een uur ballen. Moe maar voldaan ga je naar huis.';
   } else if (soort === 'uit'){
-    mod('moraal', 10); mod('fit', -6); mod('focus', -3);
+    mod('moraal', 10 + pers('uitMoraal')); mod('fit', -6); mod('focus', -3 + pers('uitFocus'));
     if (rnd() < .3){ mod('rep', -3); mod('vert', -6); statusPunten(-3);
       t = sp.leeftijd < 18 ? 'Je hangt tot laat met vrienden in het dorp. Je komt te laat op de training en de trainer is niet blij.' : isProf() ? 'Gezellig avondje met de selectie... tot er een foto van jou op een tafel in de krant staat. De trainer is niet blij.' : 'Gezellig avondje met de selectie... maar je komt veel te laat thuis en verslaapt je voor de training. De trainer is niet blij.';
       if (sp.leeftijd >= 18){ ergernis(10); uitgaanKrant(rnd() < .5 ? 'feest' : 'boete', true); }

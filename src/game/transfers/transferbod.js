@@ -17,7 +17,7 @@ export function maakBodEvent(){
   const w = Math.max(waarde(sp), 50000);
   const betaalt = cl && rnd() < .5;
   const som = betaalt ? cl.bedrag : Math.round(w * (.85 + rnd() * .6) / 10000) * 10000;
-  const bod = {club:id, som, salaris:Math.round(salarisVoor(c.t, ovr(sp)) * (1 + rnd() * .3) / 1000) * 1000, jaren: sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4)};
+  const bod = {club:id, som, salaris:Math.round(salarisVoor(c.t, ovr(sp), c.s) * (1 + rnd() * .3) / 1000) * 1000, jaren: sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4)};
   // Kans dat je club het bod accepteert: hoger bod = makkelijker, aanvoerder/legende = moeilijker
   const akkoord = betaalt ? 1 : clamp(.4 + (som / w - 1) * 1.2 + (eigen.t - c.t) * .15 - Math.max(0, lvl - 1) * .08, .05, .95);
   const rol = rolBijClub(id);

@@ -5,6 +5,7 @@ import { gewogen, ploeg, telt } from '../competitie/spelers.js';
 import { chemie } from '../team/kleedkamer.js';
 import { tactiekKans, tactiekMoment } from '../team/tactiek.js';
 import { stamina } from './stamina.js';
+import { pers, persKans, persMomentFactor } from '../speler/persoonlijkheid.js';
 
 /* ===================== Wedstrijdmomenten ===================== */
 export const goal = (t, d) => ({t, d, goal:true});
@@ -154,7 +155,9 @@ export const MOMENTS = {
 };
 
 // Extra moeilijkheid per eigenschap tegen ploegen van Europees topniveau
-export const TOP_EXTRA = {afw:1.5, pas:.35, drib:.35, verd:0, cond:0, kalm:0};
+export const TOP_EXTRA = {afw:1, pas:.3, drib:.3, verd:0, cond:0, kalm:0};
+export const KALM_KNIK = 64; // tot deze sterkte telt de tegenstander bij kalmte-acties gewoon mee
+export const TOP_VANAF = 82; // vanaf welke sterkte een tegenstander extra lastig is (geleidelijk, geen sprong)
 // Focus: hoe hoger, hoe meer er lukt. Vanaf 80 zit je in de flow (extra bonus), onder de 35 gaat het snel mis
 export const FLOW = 80, SLECHTE_FOCUS = 35;
 export const focusEffect = f => (f - 60) / 400 + (f >= FLOW ? .04 : 0) - (f < SLECHTE_FOCUS ? .05 : 0);
@@ -163,15 +166,17 @@ export const focusWinst = n => { const f = S.sp.focus ?? 65; return Math.min(Mat
 export function focusBoost(n){ const echt = focusWinst(n); mod('focus', echt); return echt; }
 export function focusStaat(f){ return f >= FLOW ? {k:'In de flow', cls:'r-veilig', t:'je acties lukken vaker'} : f < SLECHTE_FOCUS ? {k:'Slechte focus', cls:'r-riskant', t:'je maakt sneller fouten'} : null; }
 // Stamina: hoe vermoeider, hoe vaker het misgaat (onder de 25 ben je echt leeg)
-export const staminaEffect = st => (st - 60) / 300 - (st < 25 ? .06 : 0);
+export const staminaEffect = st => { const e = (st - 60) / 300 - (st < 25 ? .06 : 0); return e < 0 ? e * pers('staminaStraf') : e; };
 export function kans(opt){
   const sp = S.sp, M = S.M;
   const oppS = M.oppS ?? CLUBS[M.opp].s;
   // Topteams zijn extra lastig: vooral hun keepers (schieten), maar ook in de rest van het spel
-  // Alleen tegen ploegen van Europese-topniveau (sterkte 79+), dus niet in de Topdivisie
-  const top = oppS >= 79 ? oppS - 72 : 0;
-  const moeilijk = opt.b + (oppS - 48) + top * (TOP_EXTRA[opt.st] || 0);
-  return clamp(.5 + (statWaarde(opt.st) - moeilijk) / 45 + sp.vorm * .03 + staminaEffect(stamina(M)) + (sp.moraal - 50) / 500 + focusEffect(sp.focus ?? 65) + (opt.st === 'pas' && telt(M) ? (chemie() - 50) / 600 : 0) + (sp.items.analist ? .02 : 0) + tactiekKans(opt.st), .05, .95);
+  // Pas vanaf sterkte 82 en geleidelijk: tegen 84 een beetje, tegen de allerbesten (88-90) duidelijk
+  const top = Math.max(0, oppS - TOP_VANAF);
+  // Kalmte (rustig blijven, niet reageren) wordt tegen een betere ploeg maar half zo veel lastiger: kalmte groeit niet mee met je klasse
+  const tegen = opt.st === 'kalm' && oppS > KALM_KNIK ? (KALM_KNIK - 48) + (oppS - KALM_KNIK) * .5 : oppS - 48;
+  const moeilijk = opt.b + tegen + top * (TOP_EXTRA[opt.st] || 0);
+  return clamp(.5 + (statWaarde(opt.st) - moeilijk) / 45 + sp.vorm * .03 + staminaEffect(stamina(M)) + (sp.moraal - 50) / 500 + focusEffect(sp.focus ?? 65) + (opt.st === 'pas' && telt(M) ? (chemie() - 50) / 600 : 0) + (sp.items.analist ? .02 : 0) + tactiekKans(opt.st) + persKans(opt.st, M.pending && M.pending.type), .05, .95);
 }
 export function risico(p){ return p > .7 ? ['Veilig','r-veilig'] : p >= .45 ? ['Gemiddeld','r-gem'] : ['Riskant','r-riskant']; }
 export const KAART_MOMENTEN = ['tackle', 'opstootje', 'provocatie', 'verdedigen'];
@@ -184,7 +189,7 @@ export const pOpts = p => p.idx.map(i => MOMENTS[p.type].opts[i]);
 export function kiesMomentType(){
   // De speelstijl van je club bepaalt mee wat voor momenten je krijgt
   const basis = MOMENT_POOL[S.sp.pos], pool = {}; let tot = 0;
-  for (const k in basis){ pool[k] = basis[k] * tactiekMoment(k); tot += pool[k]; }
+  for (const k in basis){ pool[k] = basis[k] * tactiekMoment(k) * persMomentFactor(k); tot += pool[k]; }
   let r = rnd() * tot; for (const k in pool){ r -= pool[k]; if (r <= 0) return k; }
   return Object.keys(pool)[0];
 }

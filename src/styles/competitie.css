@@ -65,7 +65,7 @@
 .krant.metfoto{max-width:min(100%,50ch)}
 /* Stand: wie promoveert, wie speelt nacompetitie, wie degradeert */
 .tabel tr[class*="z-"] td:first-child{box-shadow:inset 3px 0 0 var(--zone)}
-.z-prom{--zone:var(--goed)}.z-po{--zone:#9be7b4}.z-pod{--zone:#fb923c}.z-degr{--zone:var(--fout)}
+.z-cl{--zone:#60a5fa}.z-eur{--zone:#a78bfa}.z-prom{--zone:var(--goed)}.z-po{--zone:#9be7b4}.z-pod{--zone:#fb923c}.z-degr{--zone:var(--fout)}
 .zones{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:.68rem;color:var(--mist)}
 .zones span{display:inline-flex;align-items:center;gap:5px}
 .zones span::before{content:"";width:3px;height:11px;border-radius:2px;background:var(--zone)}

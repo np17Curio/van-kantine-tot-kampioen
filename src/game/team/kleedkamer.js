@@ -6,6 +6,7 @@ import { onrust } from '../speler/kalmte.js';
 import { ck } from '../transfers/buitenland.js';
 import { plafond, verhoog } from '../week.js';
 import { vormBonus } from '../competitie/vorm.js';
+import { pers } from '../speler/persoonlijkheid.js';
 
 /* ===================== Kleedkamer: je band met teamgenoten ===================== */
 // Per club een eigen kleedkamer. Bij een nieuwe club begin je opnieuw
@@ -16,12 +17,12 @@ export function kleedkamer(){
   return sp.kleed;
 }
 export const band = naam => kleedkamer().rel[naam] ?? 50;
-export function zetBand(naam, d){ const k = kleedkamer(); k.rel[naam] = clamp((k.rel[naam] ?? 50) + d, 0, 100); if (d <= -5) onrust(-d * .5, `Ruzie met ${naam}`); }
+export function zetBand(naam, d){ const k = kleedkamer(); if (d > 0) d *= pers('band'); k.rel[naam] = clamp((k.rel[naam] ?? 50) + d, 0, 100); if (d <= -5) onrust(-d * .5 * pers('ruzie'), `Ruzie met ${naam}`); }
 export function iedereen(d){ selectie(S.sp.club).forEach(x => zetBand(x.n, d)); }
 export const chemie = () => { const r = Object.values(kleedkamer().rel); return r.length ? r.reduce((a, b) => a + b, 0) / r.length : 50; };
 export const bandLabel = v => v >= 80 ? ['Maatje', 'r-veilig'] : v >= 60 ? ['Goed', 'r-veilig'] : v >= 40 ? ['Neutraal', 'r-gem'] : v >= 20 ? ['Koel', 'r-riskant'] : ['Vijand', 'r-riskant'];
 // Teamsterkte: sfeer in de groep en een opgepept team (aanvoerder) helpen een beetje (sfeer ±1, opgepept hooguit +1,5)
-export const teamBonus = () => clamp((chemie() - 50) / 50, -1, 1) + Math.min(1.5, (S.week && S.week.boost) || 0);
+export const teamBonus = () => clamp((chemie() - 50) / 50, -1, 1) + Math.min(1.5, (S.week && S.week.boost) || 0) + pers('teamBonus');
 // De kracht van jouw ploeg in een wedstrijd. Jij, de sfeer, het oppeppen en de tactiek helpen samen hooguit 3 punten:
 // genoeg om een sterkere ploeg soms te verrassen, niet om het verschil in sterkte weg te poetsen.
 // Daarbovenop de teamvorm (de laatste uitslagen in de competitie, ±2).

@@ -8,6 +8,7 @@ import { ergernis } from '../team/tucht.js';
 import { ck } from '../transfers/buitenland.js';
 import { modFans } from '../wedstrijd/fans-pers.js';
 import { balk } from '../../render/views/zijbalk.js';
+import { pers } from './persoonlijkheid.js';
 
 /* ===================== Kalmte ===================== */
 // Kalmte = basis (moraal, leeftijd, aanvoerder, mentale coach) min wat je dwarszit: lage focus, ruzies thuis, in de kleedkamer of met de fans.
@@ -17,7 +18,7 @@ export function onrust(n, reden){
   const k = kalmData(); k.onrust = clamp(k.onrust + n, 0, 60);
   if (reden){ const r = k.red.find(x => x.t === reden); if (r){ r.w = 4; r.n += n; } else k.red.push({t:reden, w:4, n}); }
 }
-export function kalmBasis(){ const sp = S.sp; return sp.moraal * .5 + sp.leeftijd * 1.2 + 10 + (sp.statusNiveau >= AANV ? 8 : 0) + (sp.items.mentaal ? 6 : 0); }
+export function kalmBasis(){ const sp = S.sp; return sp.moraal * .5 + sp.leeftijd * 1.2 + 10 + (sp.statusNiveau >= AANV ? 8 : 0) + (sp.items.mentaal ? 6 : 0) + pers('kalm'); }
 // Wat er nu aan je trekt (live), met hoeveel punten
 export function kalmMinpunten(){
   const sp = S.sp, l = [], f = sp.focus ?? 65;
@@ -50,7 +51,7 @@ export function kalmWeek(eerste){
   k.vorig = nu;
 }
 // Ruzie tijdens het stappen: hoe lager je kalmte, hoe groter de kans
-export const kroegKans = () => clamp((60 - kalmte()) / 70, 0, .5);
+export const kroegKans = () => clamp((60 - kalmte()) / 70 * pers('kroeg'), 0, .5);
 export function kroegEvent(){
   const sp = S.sp, prof = isProf(), boete = Math.max(100, Math.round(sp.salaris * .05 / 100) * 100);
   return {soort:'prive', tekst:pick([`Laat op de avond botst iemand tegen je aan. Je drankje valt op de grond. "Kijk uit waar je loopt," snauwt hij.${prof ? ' Hij herkent je: "Hé, jij bent toch die voetballer? Stelt niks voor."' : ''}`, `Bij de bar begint een groepje jongens je uit te lachen.${prof ? ` "${club().n} speelt voor geen meter, en jij al helemaal niet."` : ''} Je voelt je bloed koken.`]), opts:[

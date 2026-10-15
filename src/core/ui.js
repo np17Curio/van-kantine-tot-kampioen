@@ -12,6 +12,7 @@ import { vTrainer, vTrainerAanbod, vTrainerSeizoen, vTrainerUitslag, vZijTrainer
 import { vVenster } from '../render/views/venster.js';
 import { vEvent, vWeek } from '../render/views/week.js';
 import { vZij } from '../render/views/zijbalk.js';
+import { vAnalist, vAnalistSeizoen, vAnalistUitslag, vEigenaar, vEigenaarAanbod, vEigenaarSeizoen, vZijNa } from '../render/views/nacarriere.js';
 
 /* ===================== Weergave ===================== */
 // Elke knop krijgt een index in ACTS; de klik-handler in main.js voert die functie uit en tekent opnieuw.
@@ -31,9 +32,9 @@ export function tabBalk(tabs, actief, kies, cls = 'hubtabs'){
 
 export function render(){
   resetActs();
-  const veld = document.getElementById('veld'), trainerFase = S && /^trainer/.test(S.fase);
-  veld.innerHTML = S && tmp.stats ? vStats() : S ? ({week:vWeek, oproep:vOproep, event:vEvent, match:vMatch, matchEnd:vMatchEnd, venster:vVenster, seizoenEinde:vSeizoenEinde, ontwikkeling:vOntwikkeling, toernooi:vToernooi, toernooiEinde:vToernooiEinde, einde:vEinde, trainerAanbod:vTrainerAanbod, trainer:vTrainer, trainerUitslag:vTrainerUitslag, trainerSeizoen:vTrainerSeizoen}[S.fase] || vStart)() : vStart();
-  document.getElementById('zij').innerHTML = S && S.trainer && trainerFase ? vZijTrainer() : S && S.fase !== 'einde' && !trainerFase ? vZij() : vZijStart();
+  const veld = document.getElementById('veld'), trainerFase = S && /^(trainer|analist|eigenaar)/.test(S.fase);
+  veld.innerHTML = S && tmp.stats ? vStats() : S ? ({week:vWeek, oproep:vOproep, event:vEvent, match:vMatch, matchEnd:vMatchEnd, venster:vVenster, seizoenEinde:vSeizoenEinde, ontwikkeling:vOntwikkeling, toernooi:vToernooi, toernooiEinde:vToernooiEinde, einde:vEinde, trainerAanbod:vTrainerAanbod, trainer:vTrainer, trainerUitslag:vTrainerUitslag, trainerSeizoen:vTrainerSeizoen, analist:vAnalist, analistUitslag:vAnalistUitslag, analistSeizoen:vAnalistSeizoen, eigenaarAanbod:vEigenaarAanbod, eigenaar:vEigenaar, eigenaarSeizoen:vEigenaarSeizoen}[S.fase] || vStart)() : vStart();
+  document.getElementById('zij').innerHTML = S && /^(analist|eigenaar)/.test(S.fase) ? (vZijNa() || vZijStart()) : S && S.trainer && trainerFase ? vZijTrainer() : S && S.fase !== 'einde' && !trainerFase ? vZij() : vZijStart();
   const hud = document.getElementById('hud');
   hud.innerHTML = vHud(!!(S && !trainerFase && S.fase !== 'einde'));
   document.body.dataset.fase = S ? (tmp.stats ? 'stats' : S.fase) : 'start';

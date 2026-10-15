@@ -28,7 +28,7 @@ export function kanContractVragen(){
 // Waar de club mee begint
 export function clubVoorstel(){
   const sp = S.sp, t = club().t, max = t >= AMATEUR ? 2 : 4;
-  return {salaris:Math.max(sp.salaris, Math.round(salarisVoor(t, ovr(sp)) / 100) * 100), jaren:clamp(Math.max(sp.contract, 0) + 1, 1, max)};
+  return {salaris:Math.max(sp.salaris, Math.round(salarisVoor(t, ovr(sp), club().s) / 100) * 100), jaren:clamp(Math.max(sp.contract, 0) + 1, 1, max)};
 }
 export function contractKans(x){
   const sp = S.sp, c = club(), b = clubVoorstel(), g = gemCijfer();

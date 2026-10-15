@@ -7,8 +7,9 @@ export const MIN  = [78, 67, 58, 50, 43, 0];       // klasse die nodig is om int
 export const REF  = [82, 70, 60, 51, 43, 33];      // referentie-klasse voor salaris
 export const BASE = [3000000, 450000, 70000, 22000, 3000, 400]; // jaarbedrag bij referentie
 export const CLUBS = [
-  {n:'Real Montclaro',t:0,s:90},{n:'AC Vellano',t:0,s:88},{n:'FC Nordhavn',t:0,s:86},{n:'Olympique Lumière',t:0,s:85},
-  {n:'Sporting Alvor',t:0,s:83},{n:'Dynamo Kravets',t:0,s:82},{n:'Rapid Steinau',t:0,s:80},{n:'Celtic Harbour',t:0,s:79},
+  // (0-7: de plaatsen van de oude Europese Elite; die bestaat niet meer, de clubs spelen nu in de competitie van hun eigen land)
+  {n:'Real Montclaro',t:-1,s:90},{n:'AC Vellano',t:-1,s:88},{n:'FC Nordhavn',t:-1,s:86},{n:'Olympique Lumière',t:-1,s:85},
+  {n:'Sporting Alvor',t:-1,s:83},{n:'Dynamo Kravets',t:-1,s:82},{n:'Rapid Steinau',t:-1,s:80},{n:'Celtic Harbour',t:-1,s:79},
   {n:'FC Lagewaard',t:1,s:78},{n:'Sparta Dijkstad',t:1,s:76},{n:'FC Polderstad',t:1,s:75},{n:'SC Heideveld',t:1,s:74},
   {n:'Quick Duinwijk',t:1,s:72},{n:'Fortuna Molenburg',t:1,s:71},{n:'Achilles Veenhoven',t:1,s:69},{n:'Victoria Zoutkamp',t:1,s:68},
   {n:'RKSV Dijkzicht',t:2,s:66},{n:'FC Turfhaven',t:2,s:64},{n:'VV De Brug',t:2,s:63},{n:'SC Wadden',t:2,s:62},
@@ -20,8 +21,16 @@ export const CLUBS = [
 ];
 // Jeugdteams (O19) van de amateurclubs
 CLUBS.filter(c => c.t === AMATEUR).map(c => CLUBS.indexOf(c)).forEach((id, i) => CLUBS.push({n:CLUBS[id].n + ' O19', t:JEUGD, s:37 - i, ouder:id}));
+// Gastplaatsen voor de Champions League en de Europa Cup: elk seizoen de topclubs uit de andere landen (geen competitie)
+export const GAST_START = CLUBS.length, GASTEN = 20;
+for (let i = 0; i < GASTEN; i++) CLUBS.push({n:'Europese gast', t:-1, s:75, gast:null});
+export const isGast = id => id >= GAST_START && id < GAST_START + GASTEN;
 // Startniveau en -sterkte van elke club. Door promotie en degradatie verandert dat; de stand van zaken staat in S.clubs
 export const CLUBS_BASIS = CLUBS.map(c => [c.t, c.s]);
+// De topclubs van de oude Elite spelen in de hoogste competitie van hun eigen land (op de laatste plaats daarvan, id 15)
+export const ELITE_THUIS = {Spanje:{n:'Real Montclaro', s:90}, 'Italië':{n:'AC Vellano', s:88}, Frankrijk:{n:'Olympique Lumière', s:85}, Portugal:{n:'Sporting Alvor', s:83}, Duitsland:{n:'Rapid Steinau', s:80}, Engeland:{n:'Celtic Harbour', s:79}};
+export const ELITE_ID = 15;
+export function landBasis(land){ const b = CLUBS_BASIS.map(x => x.slice()), e = ELITE_THUIS[land]; if (e) b[ELITE_ID] = [1, e.s]; return b; }
 // Thuisland van de vaste clubs uit de Europese Elite (0-7): één competitie met topclubs uit heel Europa
 export const ELITE_NAAM = CLUBS.slice(0, 8).map(c => c.n); // de oorspronkelijke namen (een plaats kan van club wisselen)
 export const ELITE_LAND = ['Spanje', 'Italië', 'Denemarken', 'Frankrijk', 'Portugal', 'Oekraïne', 'Duitsland', 'Engeland'];
@@ -52,6 +61,9 @@ export const STATUS = [
   {min:90, n:'Clublegende'}
 ];
 export const STATUS_KORT = ['Jonkie', 'Bank&shy;speler', 'Vaste waarde', 'Fan&shy;favoriet', 'Aan&shy;voerder', 'Club&shy;legende'];
+// Wat betekent elke status? (elke stap is een stap omhoog)
+export const STATUS_UITLEG = ['Je zit meestal op de tribune of op de bank en valt hooguit eens in.', 'Je bent een vaste wissel: je valt regelmatig in en maakt kans op een basisplaats.', 'Je staat in de basis.', 'Je staat in de basis en de fans zingen je naam.', 'Jij draagt de aanvoerdersband.', 'Je naam staat voor altijd in de clubboeken.'];
+export const STATUS_ROL = ['nieuw in de groep', 'vaste wissel', 'basisspeler', 'publiekslieveling', 'de leider van het team', 'een legende'];
 export const AANV = 4, LEGENDE = 5; // index van aanvoerder en clublegende
 // Startwaarde voor de opstelling per statusniveau (basisplaats vanaf 50)
 export const OPST_BASIS = [22, 36, 60, 68, 76, 72];

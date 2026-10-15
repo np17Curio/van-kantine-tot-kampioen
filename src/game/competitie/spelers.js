@@ -72,7 +72,8 @@ export function willekeurigDoel(club, zonderJij){
 export function speelRonde(r, mijnVoor, mijnTegen, doelen){
   const res = S.ss.res = S.ss.res || {};
   for (let t = 0; t < DIVS.length; t++){
-    const lijst = speelLijst(t), ronde = (res[t] = res[t] || [])[r] = [];
+    const lijst = speelLijst(t); if (lijst.length < 8) continue; // niveau 0 (de oude Europese Elite) bestaat niet meer
+    const ronde = (res[t] = res[t] || [])[r] = [];
     for (const [h, u] of rondeParen(t, r)){
       const H = lijst[h], U = lijst[u];
       let gh, gu;

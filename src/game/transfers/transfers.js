@@ -17,6 +17,8 @@ import { fans, modFans, rivaal, zetFans } from '../wedstrijd/fans-pers.js';
 import { bewaarVertrek } from '../wedstrijd/reunie.js';
 import { nieuweWeek } from '../week.js';
 import { clubTransfers, naMarkt } from './markt.js';
+import { pers } from '../speler/persoonlijkheid.js';
+import { rivaalVenster } from '../speler/rivaal.js';
 
 /* ===================== Transfers ===================== */
 export function transferScore(){
@@ -43,7 +45,7 @@ export function maakAanbiedingen(modus){
   const omhoog = kandidaatClubs();
   let ids = [];
   if (modus === 'normaal' || modus === 'vrij' || modus === 'jeugdKlaar'){
-    const k = (rnd() < .6 ? 1 : 0) + (rnd() < .35 ? 1 : 0) + (sp.transferWens ? 1 : 0) + (eigen.t > 0 && score >= MIN[eigen.t - 1] + 4 ? 1 : 0);
+    const k = (rnd() < .6 ? 1 : 0) + (rnd() < .35 ? 1 : 0) + (sp.transferWens ? 1 : 0) + (eigen.t > 1 && score >= MIN[eigen.t - 1] + 4 ? 1 : 0);
     ids = shuffle(omhoog).slice(0, Math.min(3, k, omhoog.length));
     // Op de transferlijst: je club werkt mee, dus er melden zich altijd een paar clubs (ook van je eigen niveau of net lager)
     if (sp.transferlijst && ids.length < 2){
@@ -75,7 +77,7 @@ export function maakAanbiedingen(modus){
   }
   return ids.map(i => {
     const c = CLUBS[i];
-    return {club:i, salaris:Math.round(salarisVoor(c.t, o) * (.9 + rnd() * .3) / 100) * 100,
+    return {club:i, salaris:Math.round(salarisVoor(c.t, o, c.s) * (.9 + rnd() * .3) / 100) * 100,
       jaren: c.t >= AMATEUR ? 1 : sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4),
       som: (modus === 'normaal' && eigen.t < AMATEUR) ? waarde(sp) : 0,
       doorstroom: eigen.t === JEUGD && i === eigen.ouder};
@@ -85,6 +87,7 @@ export function maakAanbiedingen(modus){
 export function openVenster(soort){
   const sp = S.sp;
   clubTransfers(soort); // de andere clubs (en die van jou) kopen en verkopen ook
+  const rvTekst = rivaalVenster(soort);
   let terug = null;
   if (sp.huur){
     if (soort === 'winter'){
@@ -123,16 +126,16 @@ export function openVenster(soort){
   if (dd && ag.gehaald && !isHier(dd) && (!dd.land || soort === 'zomer')){
     const dc = infoVan(dd), key = sleutel(dd);
     bods = bods.filter(b => sleutel(doelVan(b.club, b.land)) !== key);
-    bods.unshift({club:dd.club, ...(dd.land ? {land:dd.land} : {}), salaris:Math.round(salarisVoor(dc.t, ovr(sp)) * 1.05 / 100) * 100, jaren: dc.t >= AMATEUR ? 1 : sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4), som: club().t < AMATEUR && dc.t < AMATEUR ? waarde(sp) : 0, viaAgent:true});
+    bods.unshift({club:dd.club, ...(dd.land ? {land:dd.land} : {}), salaris:Math.round(salarisVoor(dc.t, ovr(sp), dc.s) * 1.05 / 100) * 100, jaren: dc.t >= AMATEUR ? 1 : sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4), som: club().t < AMATEUR && dc.t < AMATEUR ? waarde(sp) : 0, viaAgent:true});
     agentBod = key;
   }
   if (terug && terug.koop != null && !bods.some(b => b.club === terug.koop)){
     const hc = CLUBS[terug.koop];
-    bods.unshift({club:terug.koop, salaris:Math.round(salarisVoor(hc.t, ovr(sp)) / 100) * 100, jaren:randInt(2, 3), som:waarde(sp), huurKoop:true});
+    bods.unshift({club:terug.koop, salaris:Math.round(salarisVoor(hc.t, ovr(sp), hc.s) / 100) * 100, jaren:randInt(2, 3), som:waarde(sp), huurKoop:true});
   }
   let verlenging = null, blijven = false;
   if (modus === 'normaal'){
-    if (soort === 'zomer' && sp.contract <= 0) verlenging = {club:sp.club, salaris:Math.round(salarisVoor(club().t, ovr(sp)) * (statusNiveau() >= LEGENDE ? 1.2 : 1) / 100) * 100, jaren: club().t >= AMATEUR ? 1 : sp.leeftijd >= 31 ? 1 : randInt(2, 3), verlenging:true};
+    if (soort === 'zomer' && sp.contract <= 0) verlenging = {club:sp.club, salaris:Math.round(salarisVoor(club().t, ovr(sp), club().s) * (statusNiveau() >= LEGENDE ? 1.2 : 1) / 100) * 100, jaren: club().t >= AMATEUR ? 1 : sp.leeftijd >= 31 ? 1 : randInt(2, 3), verlenging:true};
     else blijven = true;
   }
   if (bods.some(b => b.doorstroom)) intro += ` De trainer van het 1e elftal van ${CLUBS[club().ouder].n} heeft je zien spelen en wil je erbij hebben!`;
@@ -142,6 +145,7 @@ export function openVenster(soort){
   if (huurOpties && huurOpties.length) intro = `${club().n} wil je verhuren, zodat je elders wedstrijden speelt en jezelf kunt bewijzen. ` + intro;
   if (terug) intro = terug.tekst + (terug.koop != null ? ` ${CLUBS[terug.koop].n} wil je definitief overnemen!` : '') + ' ' + intro;
   if (soort === 'zomer'){ const bl = buitenlandseBods(modus); if (bl.length){ bods = bods.concat(bl); intro += ` Er is ook interesse uit het buitenland: ${[...new Set(bl.map(b => b.land))].join(' en ')}!`; } }
+  if (rvTekst) intro += ' ' + rvTekst;
   S.venster = {soort, modus, intro, bods, verlenging, blijven, agentBod, huurOpties};
   sp.transferWens = false;
   S.fase = 'venster';
@@ -162,6 +166,7 @@ export function wissel(o, hoe){
   sp.salaris = o.salaris; sp.contract = o.jaren; sp.sindsTransfer = 0;
   S.car.clubs.push({club:o.club, van:S.jaar, land:thuisLand(), n:nieuw.n});
   if (landWissel){ S.car.hist.push(`${seizoenLabel()}: verhuisd van ${oudLand} naar ${o.land}`); teksten.push(`Je verhuist naar ${o.land}! Je speelt voortaan in de ${DIVS[nieuw.t]}.`);
+    if (pers('heimwee')){ mod('moraal', -pers('heimwee')); teksten.push('Je mist je familie nu al. De eerste weken in een nieuw land zijn zwaar.'); }
     if (o.land === (S.startLand || 'Nederland')) krantMelding(`${sp.naam} keert terug naar ${o.land}`, `Na zijn avontuur in ${oudLand} speelt hij weer in eigen land, bij ${nieuw.n}.`, KRANTEN[0]);
     else krantMelding(`${sp.naam} kiest voor avontuur in ${o.land}`, `De speler van ${oud.n} tekent bij ${nieuw.n}. "Ik wil een nieuwe uitdaging," zegt hij.`, KRANTEN[0]);
     if (sp.agent && sp.agent.doel != null && !naarDoel) agentReset(`Je speelt nu in ${o.land}. Heb je hier een droomclub? Zeg het maar.`); }
@@ -185,7 +190,7 @@ export function wissel(o, hoe){
   if (sp.statusNiveau >= 3) teksten.push('De fans kennen je al: je bent meteen een fanfavoriet!');
   else if (sp.statusNiveau === 2) teksten.push('De trainer ziet je meteen als vaste waarde.');
   else teksten.push(`Je begint als ${statusNaam(sp.statusNiveau).toLowerCase()}: je moet je basisplaats nog verdienen.`);
-  if (sp.relatie && ((nieuw.t === 0 && oud.t !== 0) || landWissel)){
+  if (sp.relatie && ((nieuw.t === 1 && nieuw.s >= 80 && !(oud.t === 1 && oud.s >= 80)) || landWissel)){
     const naam = sp.relatie.naam;
     if (sp.relatie.getrouwd || sp.relatie.samen || rnd() < .3 + sp.relatie.band / 200) teksten.push(`${naam} verhuist mee naar het buitenland!${kinderen().length ? ' De kinderen gaan er naar een internationale school.' : ''}`);
     else teksten.push(eindRelatie(`${naam} wil niet mee naar het buitenland. Jullie gaan uit elkaar.`));

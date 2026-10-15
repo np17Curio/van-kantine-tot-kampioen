@@ -7,8 +7,11 @@ import { SPEEL_LANDEN, zetLand } from '../../data/landen.js';
 import { nieuwSpel } from '../../game/speler/status.js';
 import { LEEFTIJDEN, START } from '../../game/speler/startverhaal.js';
 import { HAAR, HAAR_NAAM, HUID, KAPSEL_KEUZE, willekeurigUiterlijk } from '../../data/uiterlijk.js';
+import { MAX_PERS, PERS, kanErBij, willekeurigePers, wisselPers } from '../../game/speler/persoonlijkheid.js';
 
 export const HERKOMST_IDS = ['geboren', 'vader', 'moeder'];
+// Opslag downloaden en laden (de afhandeling zit in main.js)
+export const opslagKnoppen = () => `<div class="rij opslag"><button class="klein" id="opslagDown" type="button">💾 Opslag downloaden</button><label class="klein bestandknop">📂 Opslag laden<input type="file" id="opslagLaad" accept=".json,application/json" hidden></label></div>`;
 
 export function landSelect(id, label){
   return `<div><label class="label" for="${id}">${label}</label><select id="${id}">${LANDEN_LIJST.map(n => `<option ${tmp[id] === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></div>`;
@@ -34,6 +37,14 @@ function vUiterlijk(){
       <div>${knop('🎲 Verras me', () => { tmp.uiterlijk = willekeurigUiterlijk(); tmp.uitSleutel = Math.random().toString(36).slice(2, 10); }, 'klein', 'data-blijf')}</div>
     </div></div>`;
 }
+// Wie ben je? Maximaal 3 persoonlijkheden, die bepalen hoe je bent in en buiten het veld
+function vPersoonlijkheid(){
+  const l = tmp.pers || (tmp.pers = []);
+  return `<div><span class="label">Persoonlijkheid · kies er maximaal ${MAX_PERS} (${l.length}/${MAX_PERS})</span>
+    <div class="keuzes persoonlijkheden" style="margin-top:6px">${Object.entries(PERS).map(([id, p]) => { const aan = l.includes(id), waarom = kanErBij(l, id);
+      return `<button class="keuze pers ${aan ? 'aan' : ''} ${!aan && waarom ? 'geblokt' : ''}" aria-pressed="${aan}" ${!aan && waarom ? `aria-disabled="true" title="${esc(waarom)}"` : ''} data-i="${act(() => { tmp.pers = wisselPers(tmp.pers || [], id); })}" data-blijf><span class="t">${p.i} ${p.n}</span><span class="v"><b>In het veld:</b> ${esc(p.veld)}</span><span class="v"><b>Buiten het veld:</b> ${esc(p.buiten)}</span>${!aan && waarom ? `<span class="s fouttxt">${esc(waarom)}</span>` : ''}</button>`; }).join('')}</div>
+    <div class="rij" style="margin-top:6px">${knop('🎲 Verras me', () => { tmp.pers = willekeurigePers(2); }, 'klein', 'data-blijf')}${l.length ? knop('Geen persoonlijkheid', () => { tmp.pers = []; }, 'klein', 'data-blijf') : '<span class="muted klein-tekst">Je mag ook niets kiezen: dan ben je een gewone speler.</span>'}</div></div>`;
+}
 // Hoe oud ben je? Elke leeftijd is een ander verhaal
 function vLeeftijd(){
   return `<div><span class="label">Leeftijd en verhaal</span><div class="keuzes leeftijden" style="margin-top:6px">${LEEFTIJDEN.map(l => { const V = START[l];
@@ -50,13 +61,15 @@ export function vStart(){
       <p class="muted">Ook buiten het veld gebeurt van alles: school, feestjes, ongelukjes, de liefde en de media. Jouw keuzes bepalen je reputatie.</p>
     </div>
     ${opgeslagen ? `<div class="rij">${knop(`Verder met ${esc(opgeslagen.sp.naam)}`, () => { setS(herstel(opgeslagen)); })}<span class="muted">${esc(CLUBS[opgeslagen.sp.club].n)} · ${opgeslagen.sp.leeftijd} jaar</span></div>` : ''}
+    ${opslagKnoppen()}
     ${vUiterlijk()}
     ${vLeeftijd()}
+    ${vPersoonlijkheid()}
     <div><span class="label">Positie</span><div class="keuzes" style="margin-top:6px">${posKnop('SPITS')}${posKnop('MID')}${posKnop('VERD')}</div></div>
     <div style="display:grid;gap:8px"><span class="label">Afkomst</span>${vHerkomstKeuze()}<p class="muted klein-tekst">Hiermee bepaal je voor welke landen je later interlands kunt spelen.</p></div>
     <div style="display:grid;gap:8px"><label class="label" for="opgroei">Waar groei je op?</label><select id="opgroei">${SPEEL_LANDEN.map(n => `<option ${opgroeiKeuze() === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
-      <p class="muted klein-tekst">Hier begin je je carrière. Elk land heeft zijn eigen competitie, clubs en kranten. De Europese Elite is voor iedereen hetzelfde.</p></div>
-    ${knop('Start carrière', () => { nieuwSpel((tmp.naam || '').trim() || 'Daan de Kanon', tmp.pos, herkomstUitTmp(), opgroeiKeuze(), {leeftijd:tmp.leeftijd || 15, uiterlijk:tmp.uiterlijk, sleutel:tmp.uitSleutel}); },'hoofd', opgeslagen ? `data-bevestig="Je opgeslagen carrière met ${esc(opgeslagen.sp.naam)} wordt overschreven." data-ja="Ja, nieuwe carrière"` : '')}`;
+      <p class="muted klein-tekst">Hier begin je je carrière. Elk land heeft zijn eigen competitie, clubs en kranten. De nummers 1 en 2 van elke hoogste competitie spelen de Champions League.</p></div>
+    ${knop('Start carrière', () => { nieuwSpel((tmp.naam || '').trim() || 'Daan de Kanon', tmp.pos, herkomstUitTmp(), opgroeiKeuze(), {leeftijd:tmp.leeftijd || 15, uiterlijk:tmp.uiterlijk, sleutel:tmp.uitSleutel, pers:tmp.pers || []}); },'hoofd', opgeslagen ? `data-bevestig="Je opgeslagen carrière met ${esc(opgeslagen.sp.naam)} wordt overschreven." data-ja="Ja, nieuwe carrière"` : '')}`;
 }
 // Spelregels in het kort: op het startscherm en in het hulpvenster (?)
 const UITLEG = [
@@ -73,7 +86,7 @@ const UITLEG = [
 export const hulpInhoud = () => `<dl class="uitleg">${UITLEG.map(([k, t]) => `<dt>${k}</dt><dd>${t}</dd>`).join('')}</dl>`;
 export function vZijStart(){
   return `<div class="kaart"><h3>De weg naar boven</h3>
-    <div class="ladder">${DIVS.map((d, i) => `<div><span class="label">${NIVEAU[i]}</span><b>${d}</b></div>`).reverse().join('')}</div>
+    <div class="ladder">${DIVS.slice(1).map((d, i) => `<div><span class="label">${NIVEAU[i + 1]}</span><b>${d}</b></div>`).reverse().join('')}<div><span class="label">Europa</span><b>Champions League (nummers 1 en 2)</b></div></div>
     <details id="hulpPanel" class="uitlegpanel" ${tmp.hulpOpen ? 'open' : ''}><summary class="label">Hoe werkt het?</summary>${hulpInhoud()}</details>
     <p class="muted klein-tekst">Tip: met de <b>?</b> rechtsboven vind je de sneltoetsen en spelregels.</p></div>`;
 }

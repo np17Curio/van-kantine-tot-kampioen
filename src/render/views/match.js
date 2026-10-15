@@ -9,7 +9,7 @@ import { social, volgersTxt } from '../../game/prive/social.js';
 import { fmt1 } from '../../game/speler/o23.js';
 import { vPers } from '../../game/wedstrijd/fans-pers.js';
 import { focusStaat, kans, pOpts, risico } from '../../game/wedstrijd/momenten.js';
-import { WAARSCHUW, actieKosten, stamina } from '../../game/wedstrijd/stamina.js';
+import { WAARSCHUW, actieKosten, isRoutinier, stamina } from '../../game/wedstrijd/stamina.js';
 import { vReunieEinde } from '../../game/wedstrijd/reunie.js';
 import { kies, mijnNaam, stand2 } from '../../game/wedstrijd/wedstrijd.js';
 import { vPitch } from '../pitch.js';
@@ -28,6 +28,7 @@ export function vO23End(){
     ${M.groei ? `<p class="muted">Door je goede spel groeit je ${ATTR[M.groei].toLowerCase()} met 1.</p>` : ''}
     ${M.talent ? `<p class="muted">${esc(M.talent)}</p>` : ''}
     ${M.reeksTekst ? `<p class="melding">${esc(M.reeksTekst)}</p>` : ''}
+    ${M.rivaalTekst ? `<p class="melding">${esc(M.rivaalTekst)}</p>` : ''}
     <p class="muted">${esc(M.eersteTekst)}</p></div>` + vLog()
     + knop(S.ronde + 1 === 7 ? 'Naar de winterstop' : S.ronde + 1 >= AANTAL_RONDES ? 'Seizoen afsluiten' : 'Volgende week', naWedstrijd);
 }
@@ -45,12 +46,12 @@ export function vStamina(M){
   if (!M.stam || M.klaar || M.rood) return '';
   if (M.gewisseld !== undefined) return `<div class="stamina uit"><span class="label">Gewisseld (${M.gewisseld}')</span><span class="muted klein-tekst">Je stamina was op.</span></div>`;
   const st = Math.round(stamina(M)), kl = st > 50 ? 'hoog' : st >= 25 ? 'mid' : 'laag', alarm = M.rol === 'basis' && st < M.wisselGrens + WAARSCHUW;
-  return `<div class="stamina ${kl}${alarm ? ' alarm' : ''}" title="Elke minuut en elke actie kost stamina. Moeilijke acties kosten meer. Is hij op, dan wisselt de trainer je."><span class="label">Stamina</span><div class="stambalk"><i style="width:${st}%"></i></div><b>${st}</b>${alarm ? '<span class="klein-tekst">Wisselgevaar</span>' : ''}</div>`;
+  return `<div class="stamina ${kl}${alarm ? ' alarm' : ''}" title="Elke minuut en elke actie kost stamina. Moeilijke acties kosten meer. Is hij op, dan wisselt de trainer je.${isRoutinier() ? ` Op jouw leeftijd (${S.sp.leeftijd}) raak je sneller leeg, vooral na een uur; een goede conditie helpt.` : ''}"><span class="label">Stamina</span><div class="stambalk"><i style="width:${st}%"></i></div><b>${st}</b>${alarm ? '<span class="klein-tekst">Wisselgevaar</span>' : ''}</div>`;
 }
 // Na afloop: hoeveel fitheid kostte het, en werd je gewisseld?
 export function vFit(M){
   if (M.fitVoor === undefined) return '';
-  return (M.gewisseld !== undefined ? `<p class="fouttxt">De trainer wisselde je in de ${M.gewisseld}e minuut: je stamina was op.</p>` : '') + `<p class="muted">Fitheid: ${M.fitVoor} → ${S.sp.fit}.</p>`;
+  return (M.gewisseld !== undefined ? `<p class="fouttxt">De trainer wisselde je in de ${M.gewisseld}e minuut: je stamina was op${isRoutinier() ? `. Op je ${S.sp.leeftijd}e gaat de stamina sneller op; met conditietraining hou je het langer vol` : ''}.</p>` : '') + `<p class="muted">Fitheid: ${M.fitVoor} → ${S.sp.fit}.</p>`;
 }
 // Nieuwe regels sinds de vorige weergave verschijnen één voor één, alsof je de wedstrijd live volgt
 export const REGEL_TEMPO = .22;
@@ -67,7 +68,7 @@ export function vMatch(){
   let keuzeHtml = '';
   if (M.pending){
     const f = Math.round(S.sp.focus ?? 65), fs = focusStaat(f);
-    keuzeHtml = `<p class="moment nieuw" ${wacht}><b>${M.min}'</b> · ${esc(M.pending.tekst)}</p><p class="opst nieuw" ${wacht}><span class="label">Focus ${f}</span>${fs ? `<span class="risico ${fs.cls}">${fs.k}</span><span class="muted klein-tekst">${fs.t}</span>` : '<span class="muted klein-tekst">Lukt een actie, dan groeit je focus. Mislukt ze, dan zakt hij.</span>'}</p><div class="keuzes nieuw" ${wacht}>${pOpts(M.pending).map((o, i) => {
+    keuzeHtml = `<p class="moment nieuw" ${wacht}><b>${M.min}'</b> · ${esc(M.pending.tekst)}</p><p class="opst nieuw" ${wacht}><span class="label">Focus ${f}</span>${fs ? `<span class="risico ${fs.cls}">${fs.k}</span><span class="muted klein-tekst">${fs.t}</span>` : '<span class="muted klein-tekst">Lukt een actie, dan groeit je focus. Mislukt ze, dan zakt hij.</span>'}</p>${(M.oppS ?? 0) >= 85 && !M.o23 ? `<p class="muted klein-tekst nieuw" ${wacht}>Tegen een topclub is scoren extra lastig: hun keeper is van wereldklasse.</p>` : ''}<div class="keuzes nieuw" ${wacht}>${pOpts(M.pending).map((o, i) => {
       const [r, cls] = risico(kans(o)), kost = actieKosten(o);
       return `<button class="keuze" data-i="${act(() => kies(i))}"><span class="t">${esc(o.l)}</span><span class="s">${ATTR[o.st]} ${statWaarde(o.st)} <span class="risico ${cls}">${r}</span><span class="stamkost${kost >= 6 ? ' zwaar' : ''}" title="Kost ${kost} stamina">−${kost} ⚡</span>${o.kaart ? `<span class="kaartrisico ${o.kaart}">${o.kaart === 'rood' ? 'kans op rood' : 'kans op geel'}</span>` : ''}</span></button>`;
     }).join('')}</div>`;
@@ -104,6 +105,7 @@ export function vMatchEnd(){
     if (M.groei) html += `<p class="muted">Door je goede spel groeit je ${ATTR[M.groei].toLowerCase()} met 1.</p>`;
     if (M.talent) html += `<p class="muted">${esc(M.talent)}</p>`;
     if (M.reeksTekst) html += `<p class="melding">${esc(M.reeksTekst)}</p>`;
+    if (M.rivaalTekst) html += `<p class="melding">${esc(M.rivaalTekst)}</p>`;
     if (M.blessureNieuw) html += `<p style="color:var(--fout)">Je hebt je geblesseerd en ligt ${M.blessureNieuw} ${M.blessureNieuw === 1 ? 'week' : 'weken'} uit. Te weinig rust genomen?</p>`;
     if (M.kampioen) html += `<div class="kampioen"><span class="label">Kampioen!</span><h2>🏆 ${esc(club().n)}</h2><p>${esc(M.kampioenTekst)}</p></div>`;
     if (M.recordTekst) html += `<div class="kampioen"><span class="label">Record!</span>${[].concat(M.recordTekst).map(t => `<p>${esc(t)}</p>`).join('')}</div>`;

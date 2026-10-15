@@ -1,6 +1,6 @@
 import { S, VERSIE, club, ovr, salarisVoor, seizoenLabel, setS } from '../../core/state.js';
 import { clamp, randInt } from '../../core/utils.js';
-import { AANV, BASE, CLUBS, JEUGD, LEGENDE, OPST_BASIS, POS, STATUS, zetClubs, ELITE_NAAM } from '../../data/gegevens.js';
+import { AANV, BASE, CLUBS, JEUGD, LEGENDE, OPST_BASIS, POS, STATUS, zetClubs, ELITE_NAAM, landBasis } from '../../data/gegevens.js';
 import { SPEEL_LANDEN, zetLand } from '../../data/landen.js';
 import { nieuweBekers } from '../competitie/beker.js';
 import { opstMax } from '../team/opstelling.js';
@@ -9,6 +9,7 @@ import { nieuweWeek } from '../week.js';
 import { LEEFTIJDEN, startClub, startIntro, startVoor } from './startverhaal.js';
 import { fotoVan } from '../media/nieuws.js';
 import { krantMelding } from '../media/roddel.js';
+import { MAX_PERS, PERS, pers } from './persoonlijkheid.js';
 
 /* ===================== Status bij de club ===================== */
 // Startstatus bij een nieuwe club: hoe beter je bent dan de club en hoe bekender je bent, hoe hoger
@@ -23,7 +24,7 @@ export function niveauVoor(pt, sz, wed, legende, t, leeftijd){
   if (legende) return LEGENDE;
   let n = 0;
   STATUS.forEach((s, i) => { if (pt >= s.min) n = i; });
-  if (n === 0 && wed >= 10) n = 1; // na 10 wedstrijden ben je geen nieuwkomer meer
+  if (n === 0 && wed >= 10 && pt >= 8) n = 1; // na 10 wedstrijden ben je geen nieuwkomer meer, als je niet slecht speelt
   if (n >= LEGENDE && sz < 4) n = AANV;
   if (n >= AANV && (sz < 1 || leeftijd < (t === JEUGD ? 16 : 21))) n = AANV - 1;
   return n;
@@ -31,7 +32,7 @@ export function niveauVoor(pt, sz, wed, legende, t, leeftijd){
 export const aanvLeeftijd = () => club().t === JEUGD ? 16 : 21;
 export function statusNiveau(){ const sp = S.sp; return niveauVoor(sp.status, sp.clubSz, sp.clubWed, sp.legendeHier, club().t, sp.leeftijd); }
 export function statusNaam(n){ return n === 0 && S.sp.leeftijd < 21 ? 'Jonkie' : STATUS[n].n; }
-export function statusPunten(d){ S.sp.status = clamp(S.sp.status + d, 0, 100); }
+export function statusPunten(d){ if (d > 0) d *= pers('status'); S.sp.status = clamp(S.sp.status + d, 0, 100); }
 // Punten per wedstrijd: langzaam omhoog, na een slechte wedstrijd hard omlaag
 export function wedstrijdPunten(c, goals, assists, gewonnen, rood, inval){
   // Een invaller heeft minder minuten om op te vallen, dus de trainer beoordeelt hem iets milder
@@ -42,8 +43,10 @@ export function wedstrijdPunten(c, goals, assists, gewonnen, rood, inval){
 export function statusDrempel(){
   const sp = S.sp, n = statusNiveau(); if (n >= LEGENDE) return null;
   const doel = n + 1, nodig = [];
-  if (sp.status < STATUS[doel].min) nodig.push(`${Math.ceil(STATUS[doel].min - sp.status)} punten`);
-  if (doel === 1 && sp.clubWed < 10) nodig[0] = `${nodig[0] || '0 punten'} (of ${10 - sp.clubWed} wedstrijden spelen)`;
+  if (sp.status < STATUS[doel].min) nodig.push(`${Math.ceil(STATUS[doel].min - sp.status)} statuspunten`);
+  // Bankspeler: verdien het met goede wedstrijden, of hoor er na 10 wedstrijden vanzelf bij (als je niet slecht speelt)
+  if (doel === 1 && sp.clubWed < 10) nodig[0] = sp.status >= 8 ? `${nodig[0]} met goede wedstrijden (of nog ${10 - sp.clubWed} wedstrijden spelen)` : `${nodig[0]} met goede wedstrijden (of na ${10 - sp.clubWed} wedstrijden, als je dan minstens 8 statuspunten hebt)`;
+  else if (doel === 1) nodig[0] = `${nodig[0]} met goede wedstrijden`;
   if (doel === AANV){ if (sp.clubSz < 1) nodig.push('1 heel seizoen bij de club'); if (sp.leeftijd < aanvLeeftijd()) nodig.push(`minimaal ${aanvLeeftijd()} jaar`); }
   if (doel === LEGENDE && sp.clubSz < 4) nodig.push(`${4 - sp.clubSz} ${4 - sp.clubSz === 1 ? 'seizoen' : 'seizoenen'} meer bij de club`);
   return {naam:STATUS[doel].n, nodig};
@@ -99,8 +102,8 @@ export function nieuweTabellen(){ const tab = {}; CLUBS.forEach((c, i) => tab[i]
 // opties: {leeftijd: 15 | 18 | 23, uiterlijk: {huid, haar, kapsel}, sleutel (voor lengte, bouw en manier van bewegen, net als op het portret)}.
 // Zonder opties: een 15-jarige met een toevallig uiterlijk
 export function nieuwSpel(naam, pos, herkomst, land, opties = {}){
-  zetClubs(null);
   land = SPEEL_LANDEN.includes(land) ? land : 'Nederland';
+  zetClubs(landBasis(land)); // de startstand van dat land (met zijn topclub uit de oude Elite)
   zetLand(land);
   for (let i = 0; i < 8; i++) CLUBS[i].n = ELITE_NAAM[i]; // nieuwe carrière: de oorspronkelijke Europese Elite
   const lft = LEEFTIJDEN.includes(opties.leeftijd) ? opties.leeftijd : 15, V = startVoor(lft);
@@ -109,13 +112,13 @@ export function nieuwSpel(naam, pos, herkomst, land, opties = {}){
   const id = startClub(V), jeugd = V.t === JEUGD, klasse = ovr({pos, a});
   // In de jeugd een bankspeler; bij de senioren eerst een jonkie of nieuwkomer
   const status = jeugd ? 28 : V.id === 'bewijs' ? 10 : 8, niveau = jeugd ? 1 : 0;
-  const sp = {naam, pos, leeftijd:lft, a, pot:Math.max(randInt(...V.pot), klasse + (V.id === 'bewijs' ? 10 : 6)), fit:90, vorm:0, moraal:60, rep:V.rep, vert:V.vert,
+  const sp = {naam, pos, leeftijd:lft, a, pot:Math.max(randInt(...V.pot), klasse + (V.id === 'bewijs' ? 10 : 6)), fit:90, vorm:0, moraal:60, rep:V.rep + (Array.isArray(opties.pers) ? opties.pers.reduce((a, id) => a + ((PERS[id] && PERS[id].fx.rep) || 0), 0) : 0), vert:V.vert,
     salaris:jeugd ? BASE[JEUGD] : Math.round(salarisVoor(V.t, klasse) * (V.id === 'bewijs' ? .7 : 1)), contract:1, club:id, geld:V.geld, blessure:0, items:{}, transferWens:false,
     relatie:null, rijbewijs:V.rijbewijs, rij:{lessen:V.rijbewijs ? 5 : 0, theorie:V.rijbewijs}, woning:V.woning, auto:V.auto, hond:false, status, clubWed:0, clubSz:0, statusNiveau:niveau, sindsTransfer:10, legendeHier:false,
     focus:65, school:{cijfers:[], gehad:[]}, ouders:{boos:false, trots:false},
     herkomst: herkomst || {geboren:'Nederland', vader:'Nederland', moeder:'Nederland'}, land:null, bonds:{}, agent:{doel:null, antwoord:null, gehaald:false, sugg:null},
-    startVerhaal:V.id, ...(opties.uiterlijk ? {uiterlijk:{...opties.uiterlijk}} : {}), ...(opties.sleutel ? {uitSleutel:opties.sleutel} : {}), ...(V.id === 'bewijs' ? {bewijs:{klaar:null}} : {})};
-  setS({v:VERSIE, mig4:true, mig5:true, land, startLand:land, sp, jaar:2026, ronde:0, tab:nieuweTabellen(), ss:{wed:0,g:0,a:0,c:[],bods:0}, vorigGem:6.5,
+    pers:Array.isArray(opties.pers) ? opties.pers.filter(p => PERS[p]).slice(0, MAX_PERS) : [], startVerhaal:V.id, ...(opties.uiterlijk ? {uiterlijk:{...opties.uiterlijk}} : {}), ...(opties.sleutel ? {uitSleutel:opties.sleutel} : {}), ...(V.id === 'bewijs' ? {bewijs:{klaar:null}} : {})};
+  setS({v:VERSIE, mig4:true, mig5:true, mig6:true, land, startLand:land, sp, jaar:2026, ronde:0, tab:nieuweTabellen(), ss:{wed:0,g:0,a:0,c:[],bods:0}, vorigGem:6.5,
     car:{wed:0,g:0,a:0,clubs:[{club:sp.club, van:2026, land}], prijzen:[], hist:[], maxOvr:ovr(sp), maxWaarde:0, int:{}},
     fase:'week', week:null, ev:null, M:null, venster:null, eind:null});
   const wie = V.id === 'wonder' ? 'als wonderkind van 15' : V.id === 'normaal' ? 'als 18-jarige' : 'als 23-jarige laatbloeier, met een proefcontract,';

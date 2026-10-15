@@ -1,12 +1,13 @@
-import { CLUBS, ELITE_NAAM, JEUGD, zetClubs } from '../data/gegevens.js';
+import { CLUBS, ELITE_NAAM, GAST_START, JEUGD, landBasis, zetClubs } from '../data/gegevens.js';
 import { zetLand } from '../data/landen.js';
 import { maakSchoolvraag } from '../game/prive/school.js';
 import { niveauVoor } from '../game/speler/status.js';
 
 // Na herladen bestaan functies in opgeslagen gebeurtenissen niet meer: zet het spel terug naar een veilige stap
 export function herstel(st){
-  if (st) zetClubs(st.clubs || null);
+  if (st) zetClubs(st.clubs || landBasis(st.land || 'Nederland'));
   zetLand(st && st.land || 'Nederland');
+  if (st && st.gasten) st.gasten.forEach((x, i) => { if (CLUBS[GAST_START + i]) Object.assign(CLUBS[GAST_START + i], x); }); // de Europese gasten van dit seizoen
   for (let i = 0; i < 8; i++) CLUBS[i].n = st && st.slots && st.slots[i] ? st.slots[i].n : ELITE_NAAM[i]; // de Europese Elite
   // Oudere opslag zonder status-gegevens bijwerken
   if (st && st.sp && st.sp.status === undefined) Object.assign(st.sp, {status:10, clubWed:0, clubSz:0, statusNiveau:0, sindsTransfer:10, legendeHier:false});

@@ -31,27 +31,19 @@ function clubRij(d, metLand){
   const [tag, cls] = stapTag(d), c = infoVan(d);
   return `<div class="clubrij ${isHier(d) ? 'mijn' : ''}"><div><span><b>${esc(c.n)}</b> <span class="niv">· ${metLand ? `${esc(eliteLand(d))} · ` : ''}sterkte ${c.s}</span></span><span class="tag ${cls}">${tag}</span></div>${isHier(d) ? '' : knop('Kies', () => { tmp.clubLijstOpen = false; kiesDoel(d); }, 'klein', 'data-blijf data-naar="agentPanel"')}</div>`;
 }
-// Alle clubs per niveau: de Europese Elite (de wereldtop, één competitie met clubs uit heel Europa) en per land (je eigen land eerst)
+// Alle clubs per niveau, per land (je eigen land eerst). De topclubs van Europa spelen in de hoogste competitie van hun land
 export function vClubOverzicht(){
-  const eigen = club(), hier = thuisLand(), keuzes = ['elite', hier, ...SPEEL_LANDEN.filter(l => l !== hier)];
+  const eigen = club(), hier = thuisLand(), keuzes = [hier, ...SPEEL_LANDEN.filter(l => l !== hier)];
   const land = keuzes.includes(tmp.agentLand) ? tmp.agentLand : hier, thuis = land === hier;
-  const naam = l => l === 'elite' ? `🏆 ${DIVS[0]}` : l === hier ? `${esc(l)} (hier)` : `🌍 ${esc(l)}`;
+  const naam = l => l === hier ? `${esc(l)} (hier)` : `🌍 ${esc(l)}`;
   let h = `<details class="clubs" id="clubLijstPanel" ${tmp.clubLijstOpen ? 'open' : ''}><summary class="label">Alle clubs per niveau</summary>
     <div class="landkeuze">${keuzes.map(l => knop(naam(l), () => { tmp.agentLand = l; tmp.clubLijstOpen = true; }, `klein${l === land ? ' actief' : ''}`, 'data-blijf data-naar="clubLijstPanel"')).join('')}</div>`;
-  if (land === 'elite'){
-    const ds = eliteClubs().sort((a, b) => infoVan(b).s - infoVan(a).s);
-    return h + `<div class="clubgroep"><span class="label">${NIVEAU[0]} · ${DIVS[0]} · topclubs uit heel Europa${eigen.t === 0 ? ' · hier speel jij' : ''}</span>${ds.map(d => clubRij(d, true)).join('')}</div></details>`;
-  }
   if (!thuis && S.sp.leeftijd < 18) h += `<p class="muted klein-tekst">Naar het buitenland kan pas vanaf je 18e.</p>`;
-  for (let t = 0; t <= AMATEUR; t++){
+  for (let t = 1; t <= AMATEUR; t++){
     const ds = clubsVanNiveau(land, t).sort((a, b) => infoVan(b).s - infoVan(a).s);
-    if (t === 0){
-      h += `<div class="clubgroep"><span class="label">${NIVEAU[0]} · ${DIVS[0]}${thuis && eigen.t === 0 ? ' · hier speel jij' : ''}</span>${ds.length ? ds.map(d => clubRij(d)).join('') : `<p class="muted klein-tekst">Geen club uit ${esc(land)} in de ${DIVS[0]}.</p>`}</div>`;
-      continue;
-    }
     if (!ds.length) continue;
     const div = thuis ? DIVS[t] : infoVan(ds[0]).div;
-    h += `<div class="clubgroep"><span class="label">${NIVEAU[t]} · ${esc(div)}${thuis && eigen.t === t ? ' · hier speel jij' : ''}</span>${ds.map(d => clubRij(d)).join('')}</div>`;
+    h += `<div class="clubgroep"><span class="label">${NIVEAU[t]} · ${esc(div)}${thuis && eigen.t === t ? ' · hier speel jij' : ''}${t === 1 ? ' · de nummers 1 en 2 spelen Champions League' : ''}</span>${ds.map(d => clubRij(d)).join('')}</div>`;
   }
   return h + `</details>`;
 }

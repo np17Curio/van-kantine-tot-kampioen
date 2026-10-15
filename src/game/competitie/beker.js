@@ -22,12 +22,15 @@ import { animPush, reeksStrafschoppen } from '../../render/pitch.js';
 import { scorebord, vFit, vLog } from '../../render/views/match.js';
 import { staminaNaWedstrijd } from '../wedstrijd/stamina.js';
 import { vormBonus } from './vorm.js';
+import { GAST_START, GASTEN } from '../../data/gegevens.js';
+import { SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
+import { ck, vreemdeClub } from '../transfers/buitenland.js';
 
 /* ===================== Beker ===================== */
 // Elke competitie heeft een beker: knock-out, bij gelijkspel strafschoppen. Bekerwedstrijden vallen tussen de speelrondes
 export const BEKERS = {
   nat:  {naam:'Nationale Beker', niveaus:[1, 2, 3, 4], schema:[2, 5, 8, 10, 13], rondes:['1/16 finale', '1/8 finale', 'Kwartfinale', 'Halve finale', 'Finale']},
-  cl:   {naam:'Champions League', niveaus:[],          schema:[3, 9, 12],         rondes:['Kwartfinale', 'Halve finale', 'Finale'], europa:true},
+  cl:   {naam:'Champions League', niveaus:[],          schema:[3, 6, 9, 12],      rondes:['Achtste finale', 'Kwartfinale', 'Halve finale', 'Finale'], europa:true},
   eur:  {naam:'Europa Cup',      niveaus:[],           schema:[3, 9, 12],         rondes:['Kwartfinale', 'Halve finale', 'Finale'], europa:true},
   jeugd:{naam:'Jeugdbeker',      niveaus:[JEUGD],      schema:[3, 9, 13],         rondes:['Kwartfinale', 'Halve finale', 'Finale']}
 };
@@ -37,14 +40,30 @@ export function nieuweBekers(){
   for (const k in BEKERS){ const clubs = BEKERS[k].europa ? eu[k] : CLUBS.map((c, i) => i).filter(i => BEKERS[k].niveaus.includes(CLUBS[i].t)); b[k] = {levend:shuffle(clubs), rondes:[], winnaar:null}; }
   return b;
 }
-// Europees voetbal: de beste 4 van de Europese Elite en de beste 4 van de Topdivisie spelen de Champions League, de rest de Europa Cup.
-// De volgorde komt uit de eindstand van vorig seizoen (S.vorig); zonder eindstand telt de clubsterkte
+// Europees voetbal: de nummers 1 en 2 van de hoogste competitie van elk land spelen de Champions League (16 clubs),
+// de nummers 3 en 4 van jouw land en de nummer 3 van 6 andere landen de Europa Cup (8 clubs).
+// Jouw land: de eindstand van vorig seizoen (S.vorig), zonder eindstand de clubsterkte. Andere landen: op sterkte,
+// met wat toeval (die competities worden niet gespeeld). Zij doen mee via de gastplaatsen in CLUBS.
+export function vulGasten(){
+  const andere = SPEEL_LANDEN.filter(l => l !== thuisLand()), cl = [], eur = [];
+  let g = GAST_START;
+  const zet = (land, id, rang, lijst) => { const c = vreemdeClub(land, id); Object.assign(CLUBS[g], {n:c.n, s:c.s, t:-1, gast:{land, id, rang}}); if (S.sel) delete S.sel[ck(g)]; lijst.push(g); g++; };
+  andere.forEach((land, k) => {
+    const top = []; for (let id = 8; id < 40; id++){ const c = vreemdeClub(land, id); if (c.t === 1) top.push([id, c.s + rnd() * 10]); } // een gesimuleerde eindstand: de sterkste wint meestal, niet altijd
+    top.sort((a, b) => b[1] - a[1]);
+    if (top[0]) zet(land, top[0][0], 1, cl); if (top[1]) zet(land, top[1][0], 2, cl);
+    if (k < 6 && top[2]) zet(land, top[2][0], 3, eur);
+  });
+  S.gasten = CLUBS.slice(GAST_START, GAST_START + GASTEN).map(c => ({n:c.n, s:c.s, gast:c.gast}));
+  return {cl, eur};
+}
+// Na laden: de gasten van dit seizoen terugzetten (namen en sterkte)
+export function zetGasten(){ (S.gasten || []).forEach((x, i) => { if (CLUBS[GAST_START + i]) Object.assign(CLUBS[GAST_START + i], x); }); }
 export function europeseClubs(){
   const V = S.vorig || {};
   const sleutel = id => V[id] ? V[id].t * 20 + V[id].plek : 200 - CLUBS[id].s;
-  const rang = t => divClubs(t).sort((a, b) => sleutel(a) - sleutel(b));
-  const e = rang(0), d = rang(1);
-  return {cl:e.slice(0, 4).concat(d.slice(0, 4)), eur:e.slice(4).concat(d.slice(4))};
+  const top = divClubs(1).sort((a, b) => sleutel(a) - sleutel(b)), g = vulGasten();
+  return {cl:top.slice(0, 2).concat(g.cl), eur:top.slice(2, 4).concat(g.eur)};
 }
 // Alle bekers waar een club dit seizoen in zit (een club uit de Topdivisie speelt de Nationale Beker en een Europese beker)
 export const bekersVan = id => { const B = S.ss.bekers; if (!B) return []; return Object.keys(B).filter(k => B[k].levend.includes(id) || B[k].rondes.some(r => r.some(m => m.h === id || m.u === id))); };

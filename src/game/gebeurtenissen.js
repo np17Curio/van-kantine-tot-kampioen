@@ -11,6 +11,7 @@ import { VAKKEN, schoolCijfer } from './prive/school.js';
 import { checkStatus, statusPunten } from './speler/status.js';
 import { openVenster } from './transfers/transfers.js';
 import { verhaalEvents } from './speler/verhaal.js';
+import { persEvents } from './speler/persEvents.js';
 
 /* ===================== Gebeurtenissen ===================== */
 export function eindRelatie(tekst){
@@ -29,6 +30,8 @@ export function eindRelatie(tekst){
 export function maakEvent(){
   // Eerst je eigen verhaal (wonderkind, gewone start of laatbloeier): zolang er nog iets te beleven is, vaak voorrang
   { const v = verhaalEvents(); if (v.length && rnd() < .3) return pick(v); }
+  // Daarna iets dat bij je persoonlijkheid hoort (een rebel krijgt andere dingen voor zijn kiezen dan een prof)
+  { const p = persEvents(); if (p.length && rnd() < .25) return pick(p); }
   const sp = S.sp, n = pick(selectie(S.sp.club)).n, t = club().t, jong = sp.leeftijd < 18, bekend = t <= 2, meid = pick(MEIDEN);
   const lief = sp.relatie ? sp.relatie.naam : '';
 

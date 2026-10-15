@@ -14,7 +14,8 @@ export function afstand(a, b){
   for (let i = 1; i <= m; i++){ const cur = [i]; for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = cur; }
   return prev[n];
 }
-export const SENIOR = CLUBS.map((c, i) => i).filter(i => CLUBS[i].t !== JEUGD);
+// De seniorenclubs van je land (8-39): niet de jeugdteams, en niet de onzichtbare plaatsen (oude Elite, Europese gasten)
+export const SENIOR = CLUBS.map((c, i) => i).filter(i => i >= 8 && i < 40);
 // Een doel is {club, land}: land is null voor een club uit het land waar je nu speelt.
 // De Europese Elite (0-7) is in elk land dezelfde, dus die clubs horen altijd bij "hier".
 export const doelVan = (id, land) => ({club:id, land: id < 8 || !land || land === thuisLand() ? null : land});
@@ -96,7 +97,7 @@ export function vraagAgent(){
   const r = zoekClub(q);
   if (r.doel) return kiesDoel(r.doel);
   if (r.sugg){ ag.sugg = r.sugg; ag.antwoord = `"${q}"? Bedoel je een van deze clubs?`; return; }
-  const tip = shuffle(divClubs(Math.max(0, club().t - 1))).slice(0, 2).map(i => CLUBS[i].n);
+  const tip = shuffle(divClubs(Math.max(1, club().t - 1))).slice(0, 2).map(i => CLUBS[i].n);
   ag.antwoord = `"${q}" ken ik niet. Typ een club uit het spel, bijvoorbeeld ${tip.join(' of ')}. Tijdens het typen krijg je suggesties.`;
 }
 export function kiesDoel(doel){

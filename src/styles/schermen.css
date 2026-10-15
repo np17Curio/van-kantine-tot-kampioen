@@ -105,3 +105,14 @@ select{background:var(--diep);border:1px solid var(--lijn);border-radius:6px;pad
 .keuze.leeftijd .v{font-size:.84rem;line-height:1.35;color:var(--krijt)}
 @media (max-width:560px){.aanmaken{grid-template-columns:110px minmax(0,1fr);gap:10px}}
 @media (prefers-reduced-motion:reduce){.kleurvlak{transition:none}}
+
+/* Persoonlijkheid */
+.persoonlijkheden{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.keuze.pers .v{font-size:.8rem;line-height:1.35;color:var(--krijt)}
+.keuze.pers.geblokt{opacity:.45}
+.perschips{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
+.tag.pers{cursor:help}
+
+/* Opslag downloaden en laden */
+.opslag{gap:6px;flex-wrap:wrap}
+.bestandknop{cursor:pointer;display:inline-flex;align-items:center}

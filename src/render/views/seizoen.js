@@ -15,6 +15,9 @@ import { fmt1 } from '../../game/speler/o23.js';
 import { startTrainer } from '../../game/trainer.js';
 import { openVenster } from '../../game/transfers/transfers.js';
 import { vTrainerSamenvatting } from './trainer.js';
+import { vNaSamenvatting } from './nacarriere.js';
+import { startAnalist } from '../../game/nacarriere/analist.js';
+import { goedkoopste, kanEigenaar, startEigenaar } from '../../game/nacarriere/eigenaar.js';
 
 // Wie werd Speler van het Seizoen, en hoe deed jij het in de verkiezing
 function vSpelerVanHetSeizoen(E){
@@ -62,6 +65,15 @@ export function vOntwikkeling(){
     ${sp.leeftijd >= 30 ? `<div class="paneel"><span class="label">Je bent ${sp.leeftijd}</span><p>Je mag nu zelf kiezen wanneer je stopt. Op je 35e is het hoe dan ook voorbij. Daarna kun je trainer worden.</p>${tmp.stopVraag ? `<p>Weet je het zeker? Dit is het einde van je spelerscarrière.</p><div class="rij">${knop('Ja, ik stop', () => { tmp.stopVraag = false; stoppen(`Op je ${sp.leeftijd}e kies je zelf het moment. Je speelt je afscheidswedstrijd voor een uitverkocht stadion.`); }, 'klein')}${knop('Nee, nog een seizoen', () => { tmp.stopVraag = false; }, 'klein', 'data-blijf')}</div>` : knop('Stoppen met voetbal', () => { tmp.stopVraag = true; }, 'klein', 'data-blijf')}</div>` : ''}`;
 }
 
+// Na je carrière: trainer, commentator of clubeigenaar (wat je al gedaan hebt, kan niet nog een keer)
+function vWatNu(){
+  const kan = kanEigenaar(), opties = [];
+  if (!(S.trainer && S.trainer.gestopt)) opties.push(keuzeKnop('📋 Trainer worden', 'Stel de opstelling op, koop en verkoop spelers en haal de eisen van het bestuur.', startTrainer));
+  if (!(S.analist && S.analist.gestopt)) opties.push(keuzeKnop('🎙️ Commentator / tv-analist', 'Bespreek elke week een topwedstrijd. Goede voorspellingen en een pakkende stijl trekken kijkers.', startAnalist));
+  if (!(S.eigenaar && S.eigenaar.gestopt)) opties.push(kan ? keuzeKnop('🏟️ Clubeigenaar', `Koop een club met je spaargeld (${geldTxt(S.sp.geld)}) en bepaal het beleid: budget, trainer, stadion en jeugd.`, startEigenaar)
+    : `<button class="keuze" disabled title="Te weinig spaargeld"><span class="t">🏟️ Clubeigenaar</span><span class="s">Een club kopen en een eerste seizoen draaien kost minstens ${geldTxt(goedkoopste())}. Je hebt ${geldTxt(S.sp.geld)}.</span></button>`);
+  return opties.length ? `<div class="paneel"><span class="label">Wat nu?</span><p>Je kent het spel als geen ander. Hoe blijf je erbij?</p><div class="keuzes" style="margin-top:6px">${opties.join('')}</div></div>` : '';
+}
 export function vEinde(){
   const sp = S.sp, C = S.car;
   const sc = carriereScore(), titel = eindTitel(sc), cijfer = clamp(4 + sc / 30, 4, 10), bs = besteSeizoen(), eer = S.einde.eer || [];
@@ -78,6 +90,7 @@ export function vEinde(){
     ${Object.keys(C.int || {}).length ? `<div><span class="label">Interlands</span>${Object.entries(C.int).map(([n, st]) => `<p>${esc(n)}: ${st.caps} interlands, ${st.g} goals, ${st.a} assists</p>`).join('')}</div>` : ''}
     <div><span class="label">Prijzenkast</span><div class="prijzen" style="margin-top:6px">${C.prijzen.length ? C.prijzen.map(p => `<span class="prijs">${esc(p)}</span>`).join('') : '<span class="muted">Leeg. Maar de kantine was altijd gezellig.</span>'}</div></div>
     <div class="verhaal"><span class="label">Loopbaan</span>${C.hist.map(h => `<p class="muted">${esc(h)}</p>`).join('')}</div>
-    ${S.trainer && S.trainer.gestopt ? vTrainerSamenvatting() : `<div class="paneel"><span class="label">Wat nu?</span><p>Je kent het spel als geen ander. Word je trainer?</p>${knop('Trainer worden', startTrainer)}</div>`}
+    ${S.trainer && S.trainer.gestopt ? vTrainerSamenvatting() : ''}${vNaSamenvatting()}
+    ${vWatNu()}
     ${knop('Nieuwe carrière', () => { wis(); setS(null); resetTmp(); }, 'hoofd', 'data-bevestig="Je opgeslagen carrière wordt gewist." data-ja="Ja, opnieuw beginnen"')}`;
 }

@@ -1,11 +1,11 @@
 import { S, club, ovr, salarisVoor, waarde } from '../../core/state.js';
 import { pick, randInt, rnd } from '../../core/utils.js';
-import { CLUBS, CLUBS_BASIS, JEUGD, MIN, zetClubs } from '../../data/gegevens.js';
+import { CLUBS, CLUBS_BASIS, ELITE_ID, ELITE_THUIS, JEUGD, MIN, divClubs, landBasis, zetClubs } from '../../data/gegevens.js';
 import { LAND_DATA, NL, SPEEL_LANDEN, thuisLand, zetLand } from '../../data/landen.js';
 import { nl } from '../prive/school.js';
 import { nieuweTabellen } from '../speler/status.js';
 import { transferScore } from './transfers.js';
-import { pasSlotsToe } from '../competitie/europa.js';
+import { pasSlotsToe, slotLand } from '../competitie/europa.js';
 
 /* ===================== Verhuizen naar een ander land ===================== */
 // Club-sleutel per land: club 12 in Engeland is een andere club dan club 12 in Nederland. De Europese Elite (0-7) is overal dezelfde.
@@ -13,9 +13,9 @@ import { pasSlotsToe } from '../competitie/europa.js';
 export const ck = id => (id < 8 || thuisLand() === 'Nederland') ? id : thuisLand() + '|' + id;
 // Een club uit een ander land (voor biedingen uit het buitenland): naam, niveau en sterkte uit de opgeslagen stand van dat land
 export function vreemdeClub(land, id){
-  const st = S.landen && S.landen[land] && S.landen[land].clubs ? S.landen[land].clubs[id] : CLUBS_BASIS[id], L = LAND_DATA[land];
-  const n = land === 'Nederland' ? NL.clubs[id] : L.clubs[id - 8];
-  return {n, t:st[0], s:st[1], land, div: st[0] === 0 ? 'Europese Elite' : land === 'Nederland' ? NL.divs[st[0]] : L.divs[st[0] - 1]};
+  const st = (S.landen && S.landen[land] && S.landen[land].clubs ? hervormStand(S.landen[land].clubs, land) : landBasis(land))[id] || [-1, 50], L = LAND_DATA[land];
+  const n = id === ELITE_ID && ELITE_THUIS[land] ? ELITE_THUIS[land].n : land === 'Nederland' ? NL.clubs[id] : L.clubs[id - 8];
+  return {n, t:st[0], s:st[1], land, div: st[0] < 1 ? '' : land === 'Nederland' ? NL.divs[st[0]] : L.divs[st[0] - 1]};
 }
 export const isBuitenland = o => !!(o && o.land && o.land !== thuisLand());
 export const clubInfo = o => isBuitenland(o) ? vreemdeClub(o.land, o.club) : CLUBS[o.club];
@@ -23,7 +23,7 @@ export const okey = o => (isBuitenland(o) ? o.land + '|' : '') + o.club;
 // In de zomer melden zich soms clubs uit een ander land (vanaf semi-prof, vanaf je 18e)
 export function buitenlandseBods(modus){
   const sp = S.sp, eigen = club(), o = ovr(sp), score = transferScore();
-  if (!(modus === 'normaal' || modus === 'vrij') || eigen.t === JEUGD || eigen.t === 0 || eigen.t > 3 || sp.leeftijd < 18 || sp.o23 || sp.huur) return [];
+  if (!(modus === 'normaal' || modus === 'vrij') || eigen.t === JEUGD || eigen.t < 1 || eigen.t > 3 || sp.leeftijd < 18 || sp.o23 || sp.huur) return [];
   if (rnd() > .18 + Math.min(.15, sp.rep / 300) + (sp.transferlijst ? .2 : 0) - (sp.imago > 0 ? .12 : 0)) return [];
   const landen = SPEEL_LANDEN.filter(l => l !== thuisLand()), uit = [], aantal = rnd() < .3 ? 2 : 1;
   for (let k = 0; k < aantal; k++){
@@ -32,10 +32,48 @@ export function buitenlandseBods(modus){
     for (let id = 8; id < 40; id++){ const c = vreemdeClub(land, id); if (c.t >= Math.max(1, eigen.t - 1) && c.t <= Math.min(3, eigen.t) && score >= MIN[c.t] - 2 && c.s <= o + 8) kand.push(id); }
     if (!kand.length) continue;
     const id = pick(kand), c = vreemdeClub(land, id);
-    uit.push({club:id, land, salaris:Math.round(salarisVoor(c.t, o) * (1 + rnd() * .3) / 100) * 100, jaren: sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4),
+    uit.push({club:id, land, salaris:Math.round(salarisVoor(c.t, o, c.s) * (1 + rnd() * .3) / 100) * 100, jaren: sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4),
       som: sp.contract > 0 && eigen.t <= 2 ? Math.round(Math.max(waarde(sp), 50000) * (.9 + rnd() * .4) / 10000) * 10000 : 0});
   }
   return uit;
+}
+// De oude Europese Elite (niveau 0) omzetten: alle clubs van een land (8-39) opnieuw over niveau 1-4 (8 per niveau),
+// wie in de Elite zat bovenaan; de plaatsen 0-7 doen nergens meer mee. Een stand in de nieuwe vorm blijft hetzelfde.
+// De oude Elite-club van het land (Real Montclaro in Spanje, …) komt op plaats ELITE_ID in de hoogste competitie.
+export function hervormStand(lijst, land){
+  if (!lijst || !lijst.slice(0, 8).some(x => x[0] === 0)) return lijst;
+  const uit = lijst.map(x => x.slice()), ids = []; for (let i = 8; i < 40; i++) ids.push(i);
+  const e = ELITE_THUIS[land]; if (e) uit[ELITE_ID] = [0, Math.max(uit[ELITE_ID][1], e.s)];
+  ids.sort((a, b) => (uit[a][0] - uit[b][0]) || (uit[b][1] - uit[a][1]));
+  ids.forEach((id, k) => { uit[id][0] = 1 + Math.floor(k / 8); });
+  for (let i = 0; i < 8; i++) uit[i][0] = -1;
+  return uit;
+}
+// Eenmalig voor een bestaande carrière (aan het einde van een seizoen): de Elite opheffen, hier en in de bewaarde andere landen
+export function hervormEuropa(){
+  S.mig6 = true;
+  const nu = CLUBS.map(c => [c.t, c.s]), had = nu.slice(0, 8).some(x => x[0] === 0), oudT = S.sp && S.sp.club != null ? CLUBS[S.sp.club].t : 1;
+  if (had){ const n = hervormStand(nu, thuisLand()); zetClubs(n); S.clubs = n; }
+  if (S.landen) for (const l in S.landen) if (S.landen[l] && S.landen[l].clubs) S.landen[l].clubs = hervormStand(S.landen[l].clubs, l);
+  if (had) verhuisEigenClub(oudT);
+  if (had){ (S.krantWacht = S.krantWacht || []).push({bron:'De Sportkrant', kop:'De Europese Elite bestaat niet meer', tekst:'De beste clubs van Europa spelen voortaan in hun eigen competitie. De nummers 1 en 2 van elk land strijden in de Champions League.', wanneer:'zomer'}); if (S.car) S.car.hist.push(`${S.jaar}: de Europese Elite is opgeheven, de Champions League is het nieuwe Europese toernooi`); }
+  return had;
+}
+// Speelde je bij een van de plaatsen 0-7 (een buitenlandse Elite-club)? Die club speelt nu in zijn eigen land: je gaat mee.
+// Kan dat niet (een land zonder competitie in het spel, of een fusieclub die verdwijnt), dan neemt de sterkste club
+// van (ongeveer) jouw niveau je over.
+function verhuisEigenClub(oudT){
+  const sp = S.sp, oud = sp && sp.club; if (oud == null || oud >= 8) return;
+  const naam = CLUBS[oud].n, land = slotLand(oud), e = ELITE_THUIS[land];
+  let nieuw, tekst;
+  if (e && e.n === naam && SPEEL_LANDEN.includes(land)){ if (land !== thuisLand()) wisselLand(land); nieuw = ELITE_ID; tekst = `${naam} speelt voortaan in de hoogste competitie van ${land}. Jij gaat mee.`; }
+  else { nieuw = divClubs(Math.min(Math.max(1, oudT), 4)).sort((a, b) => CLUBS[b].s - CLUBS[a].s)[0]; tekst = `${naam} doet niet meer mee. Je contract gaat over naar ${CLUBS[nieuw].n}.`; }
+  sp.club = nieuw;
+  if (S.trainer && S.trainer.club === oud) S.trainer.club = nieuw;
+  if (S.eigenaar && S.eigenaar.club === oud) S.eigenaar.club = nieuw;
+  if (S.sel) delete S.sel[ck(nieuw)];
+  (S.krantWacht = S.krantWacht || []).push({bron:'De Sportkrant', kop:`Nieuwe competitie voor ${naam}`, tekst, wanneer:'zomer'});
+  if (S.car) S.car.hist.push(`${S.jaar}: ${tekst}`);
 }
 // Wisselen van land: de stand van het oude land bewaren (wie in welke divisie speelt) en die van het nieuwe land laden
 export function wisselLand(nl){
@@ -43,7 +81,7 @@ export function wisselLand(nl){
   L[oud] = {clubs:CLUBS.map(c => [c.t, c.s]), vorig:S.vorig || null, slots:S.slots || null};
   S.land = nl; zetLand(nl);
   const st = L[nl];
-  zetClubs(st ? st.clubs : null); S.clubs = st ? st.clubs : null;
+  const lijst = st ? hervormStand(st.clubs, nl) : landBasis(nl); zetClubs(lijst); S.clubs = lijst;
   S.vorig = st ? st.vorig : null;
   S.slots = st && st.slots ? st.slots : null; pasSlotsToe(); // de Europese Elite zoals die in dat land bekend is
   S.tab = nieuweTabellen();

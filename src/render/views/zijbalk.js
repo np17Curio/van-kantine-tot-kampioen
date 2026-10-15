@@ -1,7 +1,7 @@
 import { S, club, gemCijfer, ovr, salarisLabel, seizoenLabel, sterren, tmp, waarde } from '../../core/state.js';
 import { knop, tabBalk } from '../../core/ui.js';
 import { clamp, esc, geldTxt } from '../../core/utils.js';
-import { AANTAL_RONDES, ATTR, CLUBS, DIVS, JEUGD, LEGENDE, POS, SPONSOR_CAT, STATUS, STATUS_KORT, TRAINBAAR, landInfo } from '../../data/gegevens.js';
+import { AANTAL_RONDES, ATTR, CLUBS, DIVS, JEUGD, LEGENDE, POS, SPONSOR_CAT, STATUS, STATUS_KORT, TRAINBAAR, landInfo, STATUS_ROL, STATUS_UITLEG } from '../../data/gegevens.js';
 import { vBekerKaart } from '../../game/competitie/beker.js';
 import { stand } from '../../game/competitie/spelers.js';
 import { interStatus, landenVoor, magInterland } from '../../game/interlands/interlands.js';
@@ -15,6 +15,7 @@ import { vKalmte } from '../../game/speler/kalmte.js';
 import { fmt1, gemiddelde } from '../../game/speler/o23.js';
 import { statusDrempel, statusNaam, statusNiveau } from '../../game/speler/status.js';
 import { rugnummer } from '../../game/team/rugnummers.js';
+import { PERS, mijnPers } from '../../game/speler/persoonlijkheid.js';
 
 export function balk(l, v, cls = ''){ return `<div class="balk ${cls}"><span>${l}</span><span class="b"><i style="width:${clamp(v, 0, 100)}%"></i></span><span class="v">${Math.round(v)}</span></div>`; }
 export function vStatus(){
@@ -22,15 +23,16 @@ export function vStatus(){
   const segs = STATUS.map((s, i) => {
     const max = i < STATUS.length - 1 ? STATUS[i + 1].min : 100;
     const vul = n >= LEGENDE ? 100 : clamp((sp.status - s.min) / (max - s.min), 0, 1) * 100;
-    return `<span class="seg ${i > n && vul > 0 ? 'geblokt' : ''}" title="${statusNaam(i)}"><i style="width:${vul}%"></i></span>`;
+    return `<span class="seg ${i > n && vul > 0 ? 'geblokt' : ''}" title="${statusNaam(i)}: ${STATUS_UITLEG[i]}"><i style="width:${vul}%"></i></span>`;
   }).join('');
   const namen = STATUS_KORT.map((s, i) => `<span class="${i === n ? 'nu' : i < n ? 'bereikt' : ''}">${i === 0 && sp.leeftijd >= 21 ? 'Nieuw&shy;komer' : s}</span>`).join('');
   return `<div class="status">
     <div class="rij" style="justify-content:space-between"><span class="label">Status bij ${esc(club().n)}</span><span class="label">${sp.clubWed} wed · ${sp.clubSz} ${sp.clubSz === 1 ? 'seizoen' : 'seizoenen'}</span></div>
     <div class="statusnaam">${sp.o23 ? 'Bij de O23' : statusNaam(n)}</div>
+    ${sp.o23 ? '' : `<p class="muted klein-tekst statusrol">${STATUS_UITLEG[n]}</p>`}
     <div class="segs">${segs}</div>
     <div class="treden">${namen}</div>
-    <p class="muted klein-tekst">${sp.o23 ? 'Bewijs jezelf bij de O23 om terug te komen bij de selectie.' : d ? `Volgende: ${d.naam} · nog ${d.nodig.join(' en ')}` : 'Hoger kan niet. Je naam staat voor altijd in de clubboeken.'}</p>
+    <p class="muted klein-tekst">${sp.o23 ? 'Bewijs jezelf bij de O23 om terug te komen bij de selectie.' : d ? `Volgende stap omhoog: ${d.naam} (${STATUS_ROL[n + 1]}) · nog ${d.nodig.join(' en ')}` : 'Hoger kan niet. Je naam staat voor altijd in de clubboeken.'}</p>
   </div>`;
 }
 export function vSeizoenStrip(){
@@ -88,6 +90,7 @@ export function vZij(){
       <div>${knop(tmp.stats ? 'Terug naar het spel' : '📊 Mijn carrière', () => { tmp.stats = !tmp.stats; }, 'klein')}</div>
       <div class="speler"><div class="ovr">${ovr(sp)}<small>KLASSE</small></div>
         <div><div class="naam">${sp.o23 ? '' : `<span class="muted">#${rugnummer()}</span> `}${esc(sp.naam)}</div><div class="muted">${POS[sp.pos].n} · ${sp.leeftijd} jaar · ${esc(c.n)}${sp.o23 ? ' O23' : ''}${sp.huur ? ` (gehuurd van ${esc(CLUBS[sp.huur.ouder].n)})` : ''}</div><div class="label" title="Verwachting van scouts">Talent ${sterren(sp.pot)}</div></div></div>
+      ${mijnPers().length ? `<div class="perschips">${mijnPers().map(id => `<span class="tag pers" title="In het veld: ${esc(PERS[id].veld)} Buiten het veld: ${esc(PERS[id].buiten)}">${PERS[id].i} ${PERS[id].n}</span>`).join('')}</div>` : ''}
       ${vStatus()}
       <div class="balken">${TRAINBAAR.map(k => balk(ATTR[k], sp.a[k])).join('')}</div>
       <div class="balken2">${balk('Fitheid', sp.fit, 'st')}${balk('Moraal', sp.moraal, 'st')}${balk('Focus', sp.focus ?? 65, 'st')}${vKalmte()}${balk('Vertrouwen', sp.vert, 'st')}${balk('Reputatie', sp.rep, 'st')}</div>
