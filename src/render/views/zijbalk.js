@@ -4,7 +4,7 @@ import { clamp, esc, geldTxt } from '../../core/utils.js';
 import { AANTAL_RONDES, ATTR, CLUBS, DIVS, JEUGD, LEGENDE, POS, SPONSOR_CAT, STATUS, STATUS_KORT, TRAINBAAR, landInfo, STATUS_ROL, STATUS_UITLEG } from '../../data/gegevens.js';
 import { vBekerKaart } from '../../game/competitie/beker.js';
 import { stand } from '../../game/competitie/spelers.js';
-import { interStatus, landenVoor, magInterland } from '../../game/interlands/interlands.js';
+import { interStatus, kanStoppenInter, kanTerugInter, landenVoor, magInterland, stopInternational, terugInternational } from '../../game/interlands/interlands.js';
 import { vCompetitieKaart, vNieuwsKaart } from '../../game/media/nieuws.js';
 import { dieren } from '../../game/prive/dieren.js';
 import { ouders } from '../../game/prive/familie.js';
@@ -58,9 +58,12 @@ export function vInterlandKaart(){
     return `<div class="landrij"><div><b>${esc(n)}</b> <span class="muted">· sterkte ${landInfo(n).s}</span>${st ? `<div class="muted klein-tekst">${st.caps} interlands · ${st.g} goals · ${st.a} assists</div>` : ''}</div><span class="risico ${cls}">${k}</span></div>`;
   }).join('');
   return `<div class="kaart"><h3>Interlands</h3>
-    <p class="muted klein-tekst">${sp.land ? `Je speelt voor ${esc(sp.land)}.` : landen.length > 1 ? `Je kunt uitkomen voor ${esc(lijst)}. Na je eerste officiële wedstrijd ligt je keuze vast.` : `Je kunt uitkomen voor ${esc(lijst)}.`}</p>
+    ${sp.interStop ? `<p>Je bent in ${sp.interStop.jaar}/${String((sp.interStop.jaar + 1) % 100).padStart(2, '0')} gestopt als international${sp.interStop.caps ? ` (${sp.interStop.caps} interlands, ${sp.interStop.g} goals voor ${esc(sp.interStop.land)})` : ''}.</p>` : ''}
+    <p class="muted klein-tekst">${sp.interStop ? '' : sp.land ? `Je speelt voor ${esc(sp.land)}.` : landen.length > 1 ? `Je kunt uitkomen voor ${esc(lijst)}. Na je eerste officiële wedstrijd ligt je keuze vast.` : `Je kunt uitkomen voor ${esc(lijst)}.`}</p>
     ${rijen}
-    <p class="muted klein-tekst">${sp.o23 ? 'Zolang je bij de O23 speelt, roept geen bondscoach je op.' : magInterland() ? 'Interlandperiodes: na wedstrijd 4 en na wedstrijd 11.' : `Bondscoaches kijken pas naar je als je prof bent (${DIVS[2]} of hoger) en minstens 17.`}</p></div>`;
+    ${kanStoppenInter() ? `<div class="rij">${knop('Stoppen als international', () => { const t = stopInternational(); if (t && S.week) S.week.tekst.push(t); }, 'klein', 'data-bevestig="Je wordt niet meer opgeroepen en gaat niet meer naar eindtoernooien. Later terugkeren kan, maar alleen als de bondscoach je dan nog wil." data-ja="Ja, ik stop"')}</div>` : ''}
+    ${kanTerugInter() ? `<div class="rij">${knop('Terugkeren als international', () => { const t = terugInternational(); if (t && S.week) S.week.tekst.push(t); }, 'klein')}</div>` : sp.interStop && S.jaar === sp.interStop.jaar ? '<p class="muted klein-tekst">Terugkeren kan vanaf volgend seizoen.</p>' : ''}
+    <p class="muted klein-tekst">${sp.interStop ? '' : sp.o23 ? 'Zolang je bij de O23 speelt, roept geen bondscoach je op.' : magInterland() ? 'Interlandperiodes: na wedstrijd 4 en na wedstrijd 11.' : `Bondscoaches kijken pas naar je als je prof bent (${DIVS[2]} of hoger) en minstens 17.`}</p></div>`;
 }
 export function vSchoolKaart(){
   const sp = S.sp; if (sp.leeftijd >= 18 || !sp.school) return '';

@@ -7,9 +7,10 @@ import { focusNaWedstrijd } from '../wedstrijd/focus.js';
 import { planWedstrijd, stand2, verderSpelen } from '../wedstrijd/wedstrijd.js';
 import { nieuweWeek } from '../week.js';
 import { staminaNaWedstrijd } from '../wedstrijd/stamina.js';
+import { krantMelding } from '../media/roddel.js';
 
 /* ===================== Interlands ===================== */
-export const magInterland = () => club().t <= 2 && S.sp.leeftijd >= 17 && !S.sp.o23 && !S.sp.clubloos;
+export const magInterland = () => club().t <= 2 && S.sp.leeftijd >= 17 && !S.sp.o23 && !S.sp.clubloos && !S.sp.interStop;
 export function landenVoor(){
   const sp = S.sp; if (!sp.herkomst) return [];
   return sp.land ? [sp.land] : [...new Set([sp.herkomst.geboren, sp.herkomst.vader, sp.herkomst.moeder])];
@@ -21,6 +22,7 @@ export function interScore(naam){
 }
 export const interDrempel = naam => landInfo(naam).s - 5;
 export function interStatus(naam){
+  if (S.sp.interStop) return ['Gestopt als international', 'r-gem'];
   if (S.sp.o23) return ['Niet bij de O23', 'r-riskant'];
   if (!magInterland()) return ['Eerst prof worden', 'r-riskant'];
   const d = interScore(naam) - interDrempel(naam);
@@ -96,6 +98,34 @@ export function naInterland(){
   nieuweWeek();
   S.week.tekst.unshift(`Terug van de interland: ${I.land} heeft ${uitslag} van ${M.zij} (${stand2()}). Jouw cijfer: ${M.cijfer.toFixed(1).replace('.', ',')}.`);
 }
+// Stoppen als international: geen oproepen en geen eindtoernooien meer (een comeback kan later, als de bondscoach je nog wil)
+export const kanStoppenInter = () => { const sp = S.sp; return !!(sp && sp.herkomst && sp.leeftijd >= 17 && !sp.interStop); };
+export function interLand(){ const sp = S.sp; if (sp.land) return sp.land; const l = Object.entries(S.car.int || {}).filter(([, x]) => x.caps > 0).sort((a, b) => b[1].caps - a[1].caps); return l.length ? l[0][0] : landenVoor()[0]; }
+export function stopInternational(){
+  const sp = S.sp; if (!kanStoppenInter()) return null;
+  const land = interLand(), st = (S.car.int || {})[land] || {caps:0, g:0};
+  sp.interStop = {jaar:S.jaar, land, caps:st.caps, g:st.g};
+  sp.bonds[land] = clamp((sp.bonds[land] ?? 40) - 10, 0, 100);
+  S.car.hist.push(`${seizoenLabel()}: ${st.caps ? `stopt als international (${st.caps} interlands, ${st.g} goals voor ${land})` : `zegt nee tegen het nationale team van ${land}`}`);
+  if (st.caps) krantMelding(`${sp.naam} stopt als international`, `Na ${st.caps} interlands en ${st.g} goals voor ${land} houdt hij ermee op.${st.caps >= 50 ? ' De bond bedankt hem voor jaren trouwe dienst.' : ' Hij wil zich richten op zijn club.'}`);
+  else krantMelding(`${sp.naam} zegt nee tegen het nationale team`, `De bondscoach van ${land} hoeft hem niet meer te bellen. "Ik kies voor mijn club," zegt hij.`);
+  return st.caps ? `Je stopt als international. ${st.caps} interlands en ${st.g} goals voor ${land}: daar mag je trots op zijn.` : `Je laat de bond van ${land} weten dat je niet beschikbaar bent voor het nationale team.`;
+}
+// Een comeback: vanaf het volgende seizoen, één poging per seizoen
+export const kanTerugInter = () => { const X = S.sp.interStop; return !!(X && S.jaar > X.jaar && X.poging !== S.jaar); };
+export function terugInternational(){
+  const sp = S.sp, X = sp.interStop; if (!kanTerugInter()) return null;
+  X.poging = S.jaar;
+  if (interScore(X.land) - interDrempel(X.land) >= -2){
+    sp.interStop = null; sp.bonds[X.land] = clamp((sp.bonds[X.land] ?? 40) + 5, 0, 100);
+    S.car.hist.push(`${seizoenLabel()}: terug in het nationale team van ${X.land}`);
+    krantMelding(`${sp.naam} keert terug in het nationale team`, `De bondscoach van ${X.land} is blij: "Met hem zijn we sterker."`);
+    return `De bondscoach van ${X.land} is blij: je bent weer welkom in het nationale team.`;
+  }
+  return `De bondscoach van ${X.land} ziet het (nog) niet zitten. Speel beter, en probeer het volgend seizoen opnieuw.`;
+}
+// Vanuit het oproepscherm: niet afzeggen maar helemaal stoppen
+export function stopVanuitOproep(){ const t = stopInternational(); S.oproep = null; nieuweWeek(); if (t) S.week.tekst.unshift(t); }
 export function zegAf(){
   const sp = S.sp, namen = S.oproep.landen.map(l => l.land);
   namen.forEach(n => { sp.bonds[n] = clamp((sp.bonds[n] ?? 40) - 10, 0, 100); });

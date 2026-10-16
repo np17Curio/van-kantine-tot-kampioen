@@ -473,6 +473,7 @@ export function vervolgNaRonde(){
   }
   if (S.ronde >= AANTAL_RONDES) return nacompetitie(); // eerst de nacompetitie, daarna het seizoenseinde
   if (S.ronde === 4 || S.ronde === 11){
+    if (S.sp.interStop && !S.sp.clubloos){ nieuweWeek(); mod('fit', 10); mod('moraal', 2); S.week.tekst.unshift('Interlandperiode. Jij bent gestopt als international en hebt een week rust.'); return; }
     const o = maakOproep();
     if (o && o.landen.length){ S.oproep = o; S.fase = 'oproep'; return; }
     nieuweWeek();

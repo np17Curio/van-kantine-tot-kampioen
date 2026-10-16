@@ -2,7 +2,7 @@ import { S, club } from '../../core/state.js';
 import { knop } from '../../core/ui.js';
 import { esc } from '../../core/utils.js';
 import { landInfo } from '../../data/gegevens.js';
-import { interRol, landenVoor, naInterland, startInterland, zegAf } from '../../game/interlands/interlands.js';
+import { interRol, landenVoor, naInterland, startInterland, stopVanuitOproep, zegAf } from '../../game/interlands/interlands.js';
 import { naToernooiWedstrijd, vTwTabel } from '../../game/interlands/toernooi.js';
 import { scorebord, vFit, vLog } from './match.js';
 
@@ -19,7 +19,7 @@ export function vOproep(){
       ${vast ? `<p class="muted klein-tekst">Let op: dit is een officiële wedstrijd. Daarna kun je alleen nog voor ${esc(x.land)} uitkomen.</p>` : ''}
       <div class="rij">${knop(`Opkomen voor ${esc(x.land)}`, () => startInterland(x.land), 'hoofd middel')}</div></div>`;
   }
-  return h + `</div><div>${knop('Afzeggen', zegAf, 'klein')}</div>`;
+  return h + `</div><div class="rij">${knop('Afzeggen', zegAf, 'klein')}${knop('Ik stop als international', stopVanuitOproep, 'klein', 'data-bevestig="Je wordt niet meer opgeroepen en gaat niet meer naar eindtoernooien. Later terugkeren kan, maar alleen als de bondscoach je dan nog wil." data-ja="Ja, ik stop"')}</div>`;
 }
 export function vInterEnd(){
   const M = S.M, I = M.inter, st = S.car.int[I.land];
