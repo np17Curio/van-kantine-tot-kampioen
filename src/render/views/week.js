@@ -44,6 +44,7 @@ import { laatsteUitslagen, vormBolletjes, vormBonus, vormLabel } from '../../gam
 import { heeft } from '../../game/speler/persoonlijkheid.js';
 import { voorDuelAntwoord, voorDuelVraag, RIVAAL_ACTIES, actiefRivaal, bandLabel as rivaalBand, doeRivaalActie, kanRivaalActie, raceStand, rivaal, rivaalNaam, rivaalPrikkel, rivaalSpeler, rivaalStats, speeltTegenRivaal, volgendDuel } from '../../game/speler/rivaal.js';
 import { PERS } from '../../game/speler/persoonlijkheid.js';
+import { fmtPunt, goudenBalStand } from '../../game/seizoen/gouden-bal.js';
 
 // Het weekscherm is een hub met tabbladen; elke nieuwe week begint op "Deze week"
 const WEEK_TABS = [['week', 'Deze week'], ['team', 'Team'], ['carriere', 'Carrière'], ['prive', 'Privé'], ['winkel', 'Winkel']];
@@ -192,7 +193,27 @@ function vTeamTab(){
   return h || `<p class="muted">Bij de O23 heb je geen eigen kleedkamer. Bewijs jezelf eerst.</p>`;
 }
 function vCarriereTab(){
-  return vRivaal() + vAgent() + vContract() + vVertrek();
+  return vGoudenBal() + vRivaal() + vAgent() + vContract() + vVertrek();
+}
+// De opbouw van je Gouden Bal-punten (ook in het eindscherm)
+export function vGbOpbouw(O, titel){
+  if (!O) return '';
+  return `<span class="label">${titel}</span><table class="gbopbouw">${O.rij.map(r => `<tr><td>${esc(r.l)}</td><td class="${r.v < 0 ? 'omlaag' : r.v > 0 ? 'omhoog' : 'muted'}">${fmtPunt(r.v)}</td></tr>`).join('')}
+    ${O.f < 1 ? `<tr><td class="muted" colspan="2">Op dit niveau telt alles × ${String(O.f).replace('.', ',')} (in de hoogste competitie × 1)</td></tr>` : ''}
+    <tr class="totaal"><td>Totaal</td><td>${O.totaal}</td></tr></table>`;
+}
+// De Gouden Bal-race: hoe sta je ervoor tegen de wereldsterren, en wat moet je doen om te winnen?
+function vGoudenBal(){
+  const sp = S.sp; if (sp.o23 || S.trainer) return '';
+  const G = goudenBalStand(), top = G.lijst.slice(0, 6), jij = G.lijst.find(x => x.jij), inTop = top.includes(jij);
+  const rij = (x, i) => `<li class="${x.jij ? 'mij' : ''}"><span>${i + 1}. ${esc(x.naam)} <span class="muted">· ${esc(x.club)}</span></span><b>${x.score}</b></li>`;
+  return `<section id="goudenBalPanel" class="paneel sectie"><h3 class="sectiekop">Gouden Bal-race <span class="niv">verwachting · jij ${G.plek}e van ${G.lijst.length}</span></h3>
+    <p class="muted klein-tekst">Punten als het seizoen zo doorgaat (jouw goals en assists doorgerekend: ${G.prognose.g} goals, ${G.prognose.a} assists). De sterren scoren aan het einde nog wat hoger of lager.</p>
+    <ol class="gb gbrace">${top.map(rij).join('')}${inTop ? '' : `<li class="mij"><span>${G.plek}. ${esc(jij.naam)} <span class="muted">· ${esc(jij.club)}</span></span><b>${jij.score}</b></li>`}</ol>
+    <p>${G.plek === 1 ? 'Je staat bovenaan! Houd dit vol.' : `Je hebt nog ongeveer <b>${G.gat} punten</b> nodig om ${esc(G.top.naam)} in te halen.`}</p>
+    ${vGbOpbouw(G.onderdelen, 'Zo komen jouw punten tot stand')}
+    ${G.delta !== null && G.delta !== undefined ? `<p class="${G.delta < 0 ? 'fouttxt' : G.delta > 0 ? 'goedtxt' : 'muted'}">Sinds vorige week: ${G.delta > 0 ? '↑' : G.delta < 0 ? '↓' : '='}${Math.abs(G.delta)} ${Math.abs(G.delta) === 1 ? 'punt' : 'punten'}${G.verschil.length ? '' : '.'}</p>${G.verschil.length ? `<ul class="tips">${G.verschil.map(v => `<li><b class="${v.d < 0 ? 'omlaag' : 'omhoog'}">${esc(v.l)} ${fmtPunt(v.d)}</b>${v.waarom ? `: ${esc(v.waarom)}` : ''}</li>`).join('')}</ul>` : ''}` : ''}
+    <span class="label">Wat levert punten op?</span><ul class="tips">${G.tips.map(t => `<li>${esc(t)}</li>`).join('')}</ul></section>`;
 }
 // Je vaste rivaal: wie hij is, hoe jullie band is, de race, het volgende duel en wat je met hem kunt doen
 function vRivaal(){
@@ -210,7 +231,7 @@ function vRivaal(){
     <div class="balk st"><span>Jullie band</span><span class="b"><i style="width:${bandPct}%"></i></span><span class="v">${esc(rivaalBand(band))}</span></div>
     ${race}
     <div class="feiten"><div><span class="label">Club</span><b>${r ? `${clubLogo(r.id, 16)} ${esc(CLUBS[r.id].n)}${r.id === sp.club ? ' (jouw club!)' : ''}` : '–'}</b></div><div><span class="label">Leeftijd</span><b>${R.lft}</b></div>
-      <div><span class="label">Klasse</span><b>${R.k} <span class="muted">(jij ${ik})</span></b></div><div><span class="label">Dit seizoen</span><b>${st.g} G · ${st.a} A <span class="muted">(jij ${S.ss.g || 0} G · ${S.ss.a || 0} A)</span></b></div>
+      <div><span class="label">Klasse</span><b>${R.k}${R.kVorig != null && R.k !== R.kVorig ? ` <span class="${R.k > R.kVorig ? 'omhoog' : 'omlaag'}">${R.k > R.kVorig ? '↑' : '↓'}${Math.abs(R.k - R.kVorig)}</span>` : ''} <span class="muted">(jij ${ik})</span></b>${ik - R.k >= 6 ? '<span class="muted klein-tekst">Je loopt op hem uit</span>' : R.k - ik >= 6 ? '<span class="muted klein-tekst">Hij is je ver vooruit</span>' : ''}</div><div><span class="label">Dit seizoen</span><b>${st.g} G · ${st.a} A <span class="muted">(jij ${S.ss.g || 0} G · ${S.ss.a || 0} A)</span></b></div>
       <div><span class="label">Onderling</span><b>${R.onderling.w}W ${R.onderling.g}G ${R.onderling.v}V</b></div><div><span class="label">Cijferduels</span><b>${R.cijferDuels ? `${R.cijferDuels.w} gewonnen · ${R.cijferDuels.v} verloren` : '–'}</b></div><div><span class="label">Volgende duel</span><b>${d ? `week ${d.ronde + 1} · ${d.thuis ? 'thuis' : 'uit'}` : '–'}</b></div></div>
     ${acties ? `<span class="label">Wat doe je met je rivaal? <span class="niv">1 keer per week</span></span>${acties}` : ''}
     ${R.hist.length ? `<p class="muted klein-tekst">Vorige seizoenen: ${R.hist.slice(-4).map(esc).join(' · ')}</p>` : ''}</section>`;

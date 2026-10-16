@@ -172,7 +172,7 @@ export function openVenster(soort){
   const huurOpties = modus === 'normaal' && huurNodig() && !sp.transferlijst ? huurClubs() : null;
   if (huurOpties && huurOpties.length) intro = `${club().n} wil je verhuren, zodat je elders wedstrijden speelt en jezelf kunt bewijzen. ` + intro;
   if (terug) intro = terug.tekst + (terug.koop != null ? ` ${CLUBS[terug.koop].n} wil je definitief overnemen!` : '') + ' ' + intro;
-  if (soort === 'zomer' && modus !== 'clubloos'){ const bl = buitenlandseBods(modus); if (bl.length){ bods = bods.concat(bl); intro += ` Er is ook interesse uit het buitenland: ${[...new Set(bl.map(b => b.land))].join(' en ')}!`; } }
+  if (soort === 'zomer' && modus !== 'clubloos'){ const bl = buitenlandseBods(modus); if (bl.length){ bods = bods.concat(bl); const gs = bl.find(b => b.gescout); intro += `${gs ? ` ${clubInfo(gs).n} uit ${gs.land} heeft je het hele seizoen gevolgd en doet een bod!` : ''} Er is ook interesse uit het buitenland: ${[...new Set(bl.map(b => b.land))].join(' en ')}!`; } sp.scout = null; }
   if (rvTekst) intro += ' ' + rvTekst;
   S.venster = {soort, modus, intro, bods, verlenging, blijven, agentBod, huurOpties};
   sp.transferWens = false;
@@ -250,6 +250,7 @@ export function teken(o){
     mod('vert', 5); sp.transferlijst = false; sp.transferWens = false;
     sp.salaris = o.salaris; sp.contract = o.jaren;
     S.car.hist.push(`${seizoenLabel()}: ${club().t === JEUGD ? 'nog een jaar in de' : 'contract verlengd bij'} ${club().n}`);
+    S.verhuisTekst = `Je contract bij ${club().n} loopt nu nog ${o.jaren} jaar (tot ${S.jaar + 1 + o.jaren}).`;
   }
   sp.clausule = o.clausule ? {bedrag:o.clausule, club:o.club} : null;
   if (o.tekengeld){ sp.geld += o.tekengeld; S.verhuisTekst = (S.verhuisTekst ? S.verhuisTekst + ' ' : '') + `Je krijgt ${geldTxt(o.tekengeld)} tekengeld op je rekening.`; }

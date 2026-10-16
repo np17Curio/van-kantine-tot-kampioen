@@ -11,7 +11,7 @@ import { vPers } from '../../game/wedstrijd/fans-pers.js';
 import { focusStaat, kans, pOpts, risico } from '../../game/wedstrijd/momenten.js';
 import { WAARSCHUW, actieKosten, isRoutinier, stamina } from '../../game/wedstrijd/stamina.js';
 import { vReunieEinde } from '../../game/wedstrijd/reunie.js';
-import { kies, mijnNaam, stand2 } from '../../game/wedstrijd/wedstrijd.js';
+import { kies, mijnNaam, stand2, VAR_KEUZES, varKeuze, varTekst } from '../../game/wedstrijd/wedstrijd.js';
 import { vPitch } from '../pitch.js';
 import { vInterEnd } from './interland.js';
 import { vSeizoenStrip } from './zijbalk.js';
@@ -66,7 +66,9 @@ export function vLog(){
 export function vMatch(){
   const M = S.M, wacht = `style="animation-delay:${(Math.min(nieuweRegels(), 20) * REGEL_TEMPO).toFixed(2)}s"`;
   let keuzeHtml = '';
-  if (M.pending){
+  if (M.varKeuze){
+    keuzeHtml = `<p class="moment nieuw varmoment" ${wacht}><b>${M.min}'</b> · 📺 VAR-check op jouw goal! De scheidsrechter bekijkt de beelden. Wat doe je?</p><div class="keuzes">${VAR_KEUZES.map((o, i) => `<button class="keuze" data-i="${act(() => varKeuze(i))}"><span class="t">${esc(o.l)}</span><span class="s">${esc(o.s)}</span></button>`).join('')}</div>`;
+  } else if (M.pending){
     const f = Math.round(S.sp.focus ?? 65), fs = focusStaat(f);
     keuzeHtml = `<p class="moment nieuw" ${wacht}><b>${M.min}'</b> · ${esc(M.pending.tekst)}</p><p class="opst nieuw" ${wacht}><span class="label">Focus ${f}</span>${fs ? `<span class="risico ${fs.cls}">${fs.k}</span><span class="muted klein-tekst">${fs.t}</span>` : '<span class="muted klein-tekst">Lukt een actie, dan groeit je focus. Mislukt ze, dan zakt hij.</span>'}</p>${(M.oppS ?? 0) >= 85 && !M.o23 ? `<p class="muted klein-tekst nieuw" ${wacht}>Tegen een topclub is scoren extra lastig: hun keeper is van wereldklasse.</p>` : ''}<div class="keuzes nieuw" ${wacht}>${pOpts(M.pending).map((o, i) => {
       const [r, cls] = risico(kans(o)), kost = actieKosten(o);
@@ -106,6 +108,7 @@ export function vMatchEnd(){
     if (M.talent) html += `<p class="muted">${esc(M.talent)}</p>`;
     if (M.reeksTekst) html += `<p class="melding">${esc(M.reeksTekst)}</p>`;
     if (M.rivaalTekst) html += `<p class="melding">${esc(M.rivaalTekst)}</p>`;
+    if (varTekst(M)) html += `<p class="melding var">${esc(varTekst(M))}</p>`;
     if (M.blessureNieuw) html += `<p style="color:var(--fout)">Je hebt je geblesseerd en ligt ${M.blessureNieuw} ${M.blessureNieuw === 1 ? 'week' : 'weken'} uit. Te weinig rust genomen?</p>`;
     if (M.kampioen) html += `<div class="kampioen"><span class="label">Kampioen!</span><h2>🏆 ${esc(club().n)}</h2><p>${esc(M.kampioenTekst)}</p></div>`;
     if (M.recordTekst) html += `<div class="kampioen"><span class="label">Record!</span>${[].concat(M.recordTekst).map(t => `<p>${esc(t)}</p>`).join('')}</div>`;

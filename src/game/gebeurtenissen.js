@@ -13,6 +13,7 @@ import { openVenster } from './transfers/transfers.js';
 import { verhaalEvents } from './speler/verhaal.js';
 import { persEvents } from './speler/persEvents.js';
 import { rivaal, rivaalEvents } from './speler/rivaal.js';
+import { scoutEvent } from './transfers/buitenland.js';
 
 /* ===================== Gebeurtenissen ===================== */
 export function eindRelatie(tekst){
@@ -33,6 +34,8 @@ export function maakEvent(){
   { const v = verhaalEvents(); if (v.length && rnd() < .3) return pick(v); }
   // Daarna iets dat bij je persoonlijkheid hoort (een rebel krijgt andere dingen voor zijn kiezen dan een prof)
   { const p = persEvents(); if (p.length && rnd() < .25) return pick(p); }
+  // Scouts uit het buitenland (de overstap kan pas in de zomer)
+  if (rnd() < .1){ const sc = scoutEvent(); if (sc) return sc; }
   // Je rivaal: hij reageert op jouw uitdaging, of er gebeurt iets tussen jullie
   { const R = rivaal(); if (R && (R.reactie || rnd() < .12)){ const r = rivaalEvents(); if (r.length) return pick(r); } }
   const sp = S.sp, n = pick(selectie(S.sp.club)).n, t = club().t, jong = sp.leeftijd < 18, bekend = t <= 2, meid = pick(MEIDEN);

@@ -18,6 +18,7 @@ import { vTrainerSamenvatting } from './trainer.js';
 import { vNaSamenvatting } from './nacarriere.js';
 import { startAnalist } from '../../game/nacarriere/analist.js';
 import { goedkoopste, kanEigenaar, startEigenaar } from '../../game/nacarriere/eigenaar.js';
+import { vGbOpbouw } from './week.js';
 
 // Wie werd Speler van het Seizoen, en hoe deed jij het in de verkiezing
 function vSpelerVanHetSeizoen(E){
@@ -43,6 +44,7 @@ export function vSeizoenEinde(){
     <p>Jouw seizoen: ${E.wed} wedstrijden, ${E.g} goals, ${E.a} assists, gemiddeld cijfer ${E.gem === null ? '–' : E.gem.toFixed(1).replace('.', ',')}.</p>
     ${E.topscorer ? `<p class="muted">Topscorer van de ${E.divisie}: ${esc(E.topscorer)}.</p>` : ''}
     ${vSpelerVanHetSeizoen(E)}</div>
+    ${E.gb && E.gb.onderdelen ? `<details class="paneel"><summary class="label" style="cursor:pointer">Gouden Bal: zo kwamen jouw punten tot stand</summary>${vGbOpbouw(E.gb.onderdelen, 'Jouw punten')}</details>` : ''}
     ${E.gb && (E.gb.plek <= 10 || E.t <= 2) ? `<div class="paneel"><span class="label">Gouden Bal ${seizoenLabel()} · beste speler van de wereld</span>${E.gb.plek === 1 && E.gb.telt ? `<div class="kampioen"><h2>🏆 Jij wint de Gouden Bal!</h2><p>Je bent de beste speler van de wereld.</p></div>` : ''}
       <ol class="gb">${E.gb.lijst.slice(0, 5).map(x => `<li class="${x.jij ? 'mij' : ''}">${esc(x.naam)} <span class="muted">· ${esc(x.club)}</span></li>`).join('')}</ol>
       ${E.gb.plek > 5 ? `<p class="muted">${E.gb.telt ? `Jij eindigt als ${E.gb.plek}e.` : 'Je speelde te weinig wedstrijden om mee te doen.'}</p>` : ''}</div>` : E.gb ? `<p class="muted">De Gouden Bal gaat dit jaar naar ${esc(E.gb.lijst[0].naam)} (${esc(E.gb.lijst[0].club)}).</p>` : ''}

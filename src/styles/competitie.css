@@ -69,3 +69,7 @@
 .zones{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:.68rem;color:var(--mist)}
 .zones span{display:inline-flex;align-items:center;gap:5px}
 .zones span::before{content:"";width:3px;height:11px;border-radius:2px;background:var(--zone)}
+
+.gbrace{margin:8px 0;padding-left:0;list-style:none}.gbrace li{display:flex;justify-content:space-between;gap:8px;padding:3px 6px;border-radius:4px}.gbrace li.mij{background:rgba(212,255,58,.12);font-weight:700}
+.tips{margin:6px 0 0 18px;padding:0}.tips li{margin:2px 0;font-size:.92em}
+.gbopbouw{width:100%;border-collapse:collapse;margin:6px 0 8px;font-size:.92em}.gbopbouw td{padding:3px 6px;border-bottom:1px solid rgba(255,255,255,.06)}.gbopbouw td:last-child{text-align:right;white-space:nowrap;font-weight:700}.gbopbouw .totaal td{border-top:2px solid rgba(255,255,255,.2);font-weight:800}

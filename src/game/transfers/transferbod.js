@@ -1,4 +1,5 @@
-import { S, club, mod, ovr, salarisVoor, waarde } from '../../core/state.js';
+import { S, club, mod, ovr, salarisVoor, seizoenLabel, waarde } from '../../core/state.js';
+import { krantMelding } from '../media/roddel.js';
 import { clamp, geldTxt, pick, randInt, rnd } from '../../core/utils.js';
 import { AANTAL_RONDES, AANV, CLUBS, DIVS } from '../../data/gegevens.js';
 import { rolBijClub, statusNiveau, statusPunten } from '../speler/status.js';
@@ -34,8 +35,19 @@ export function maakBodEvent(){
       return `${oud} wijst het bod van ${c.n} af.`;
     }},
     {l:`Nee, ik blijf bij ${oud}`, f(){ statusPunten(5); mod('vert', 5); mod('moraal', 3); return `Je kiest voor ${oud}. De fans hangen een spandoek op: "${sp.naam} is van ons!"`; }},
-    {l:'Het bod gebruiken voor meer salaris', f(){
-      if (rnd() < .45 + lvl * .07){ sp.salaris = Math.round(Math.max(sp.salaris * 1.25, bod.salaris * .9) / 1000) * 1000; sp.contract = Math.max(sp.contract, 3); return `${oud} wil je niet kwijt en geeft je een nieuw contract: ${geldTxt(sp.salaris)} per jaar.`; }
+    {l:'Het bod gebruiken om meer salaris te vragen', f(){
+      if (rnd() < .45 + lvl * .07){
+        // De club wil je houden: jij kiest of je een langer contract tekent (de jaren staan erbij)
+        const nu = Math.max(sp.contract, 0), nieuw = Math.round(Math.max(sp.salaris * 1.25, bod.salaris * .9) / 1000) * 1000, klein = Math.round(sp.salaris * 1.1 / 1000) * 1000;
+        const N = sp.leeftijd >= 31 ? nu + 1 : Math.max(nu + 1, 3);
+        S.volgEv = {soort:'transfer', tekst:`${oud} wil je niet kwijt en biedt een nieuw contract: ${geldTxt(nieuw)} per jaar voor ${N} jaar (tot ${S.jaar + N}). Je huidige contract loopt nog ${nu} ${nu === 1 ? 'jaar' : 'jaar'}. Wat doe je?`, opts:[
+          {l:`Tekenen: ${N} jaar voor ${geldTxt(nieuw)} per jaar`, f(){ sp.salaris = nieuw; sp.contract = N; S.ss.contractRond = true; S.car.hist.push(`${seizoenLabel()}: nieuw contract bij ${oud} tot ${S.jaar + N} (${geldTxt(nieuw)} per jaar)`);
+            if (club().t <= 3) krantMelding(`${sp.naam} verlengt bij ${oud} tot ${S.jaar + N}`, `Na de interesse van ${c.n} houdt ${oud} hem graag binnen.`);
+            return `Je tekent bij! Je contract loopt nu nog ${N} jaar (tot ${S.jaar + N}), voor ${geldTxt(nieuw)} per jaar.`; }},
+          {l:`Alleen meer salaris, mijn contract blijft ${nu} jaar`, f(){ sp.salaris = Math.max(sp.salaris, klein); return `Je salaris gaat omhoog naar ${geldTxt(sp.salaris)} per jaar. Je contract loopt gewoon nog ${nu} jaar.`; }},
+          {l:'Laat maar, alles blijft zoals het is', f(){ return 'Je bedankt de club. Je salaris en je contract blijven zoals ze zijn.'; }}]};
+        return `${oud} wil je niet kwijt.`;
+      }
       mod('vert', -6); statusPunten(-4); return `${oud} vindt het hebberig. Je salaris blijft gelijk en de trainer kijkt je anders aan.`; }}
   ]};
 }

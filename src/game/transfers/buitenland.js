@@ -1,4 +1,4 @@
-import { S, club, ovr, salarisVoor, waarde } from '../../core/state.js';
+import { S, club, gemCijfer, mod, ovr, salarisVoor, waarde } from '../../core/state.js';
 import { pick, randInt, rnd } from '../../core/utils.js';
 import { CLUBS, CLUBS_BASIS, ELITE_ID, ELITE_THUIS, JEUGD, MIN, divClubs, landBasis, zetClubs } from '../../data/gegevens.js';
 import { LAND_DATA, NL, SPEEL_LANDEN, thuisLand, zetLand } from '../../data/landen.js';
@@ -6,6 +6,7 @@ import { nl } from '../prive/school.js';
 import { nieuweTabellen } from '../speler/status.js';
 import { transferScore } from './transfers.js';
 import { pasSlotsToe, slotLand } from '../competitie/europa.js';
+import { modFans } from '../wedstrijd/fans-pers.js';
 
 /* ===================== Verhuizen naar een ander land ===================== */
 // Club-sleutel per land: club 12 in Engeland is een andere club dan club 12 in Nederland. De Europese Elite (0-7) is overal dezelfde.
@@ -24,18 +25,27 @@ export const okey = o => (isBuitenland(o) ? o.land + '|' : '') + o.club;
 export function buitenlandseBods(modus){
   const sp = S.sp, eigen = club(), o = ovr(sp), score = transferScore();
   if (!(modus === 'normaal' || modus === 'vrij') || eigen.t === JEUGD || eigen.t < 1 || eigen.t > 3 || sp.leeftijd < 18 || sp.o23 || sp.huur) return [];
-  if (rnd() > .18 + Math.min(.15, sp.rep / 300) + (sp.transferlijst ? .2 : 0) - (sp.imago > 0 ? .12 : 0)) return [];
-  const landen = SPEEL_LANDEN.filter(l => l !== thuisLand()), uit = [], aantal = rnd() < .3 ? 2 : 1;
+  const gem = gemCijfer() ?? S.vorigGem ?? 6.5, uit = [];
+  const past = (land, id) => { const c = vreemdeClub(land, id); return c.t >= Math.max(1, eigen.t - 1) && c.t <= Math.min(3, eigen.t) && score >= MIN[c.t] - 2 && c.s <= o + 8; };
+  // Scouts van een buitenlandse club volgden je dit seizoen: dat bod komt er zeker (als je nog goed genoeg bent)
+  const sc = sp.scout; if (sc && sc.land !== thuisLand() && past(sc.land, sc.club)) uit.push(bodVan(sc.land, sc.club, true));
+  const kans = .35 + Math.min(.2, sp.rep / 200) + (gem >= 7 ? .15 : gem >= 6.5 ? .07 : 0) + (sp.transferlijst ? .2 : 0) - (sp.imago > 0 ? .12 : 0);
+  if (rnd() > kans) return uit;
+  const landen = SPEEL_LANDEN.filter(l => l !== thuisLand()), aantal = rnd() < .15 ? 3 : rnd() < .4 ? 2 : 1;
   for (let k = 0; k < aantal; k++){
-    const land = pick(landen.filter(l => !uit.some(b => b.land === l)));
+    const vrij = landen.filter(l => !uit.some(b => b.land === l)); if (!vrij.length) break;
+    const land = pick(vrij);
     const kand = [];
-    for (let id = 8; id < 40; id++){ const c = vreemdeClub(land, id); if (c.t >= Math.max(1, eigen.t - 1) && c.t <= Math.min(3, eigen.t) && score >= MIN[c.t] - 2 && c.s <= o + 8) kand.push(id); }
+    for (let id = 8; id < 40; id++) if (past(land, id)) kand.push(id);
     if (!kand.length) continue;
-    const id = pick(kand), c = vreemdeClub(land, id);
-    uit.push({club:id, land, salaris:Math.round(salarisVoor(c.t, o, c.s) * (1 + rnd() * .3) / 100) * 100, jaren: sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4),
-      som: sp.contract > 0 && eigen.t <= 2 ? Math.round(Math.max(waarde(sp), 50000) * (.9 + rnd() * .4) / 10000) * 10000 : 0});
+    uit.push(bodVan(land, pick(kand)));
   }
   return uit;
+}
+function bodVan(land, id, gescout){
+  const sp = S.sp, eigen = club(), o = ovr(sp), c = vreemdeClub(land, id);
+  return {club:id, land, ...(gescout ? {gescout:true} : {}), salaris:Math.round(salarisVoor(c.t, o, c.s) * (1 + rnd() * .3) / 100) * 100, jaren: sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4),
+      som: sp.contract > 0 && eigen.t <= 2 ? Math.round(Math.max(waarde(sp), 50000) * (.9 + rnd() * .4) / 10000) * 10000 : 0};
 }
 // De oude Europese Elite (niveau 0) omzetten: alle clubs van een land (8-39) opnieuw over niveau 1-4 (8 per niveau),
 // wie in de Elite zat bovenaan; de plaatsen 0-7 doen nergens meer mee. Een stand in de nieuwe vorm blijft hetzelfde.
@@ -85,4 +95,18 @@ export function wisselLand(nl){
   S.vorig = st ? st.vorig : null;
   S.slots = st && st.slots ? st.slots : null; pasSlotsToe(); // de Europese Elite zoals die in dat land bekend is
   S.tab = nieuweTabellen();
+}
+
+// Tijdens het seizoen: scouts van een buitenlandse club op de tribune (de overstap zelf kan pas in de zomer)
+export function scoutEvent(){
+  if (!S.ss || !S.ss.c) return null;
+  const sp = S.sp, eigen = club(), gem = gemCijfer();
+  if (sp.scout || sp.clubloos || sp.o23 || sp.huur || eigen.t < 1 || eigen.t > 3 || sp.leeftijd < 18 || !((gem !== null && gem >= 6.8) || sp.rep >= 40)) return null;
+  const o = ovr(sp), score = transferScore(), land = pick(SPEEL_LANDEN.filter(l => l !== thuisLand())), kand = [];
+  for (let id = 8; id < 40; id++){ const c = vreemdeClub(land, id); if (c.t >= Math.max(1, eigen.t - 1) && c.t <= Math.min(3, eigen.t) && score >= MIN[c.t] - 4 && c.s <= o + 8) kand.push(id); }
+  if (!kand.length) return null;
+  const id = pick(kand), c = vreemdeClub(land, id);
+  return {soort:'transfer', tekst:`Scouts van ${c.n} (${land}, ${c.div}) zaten bij je laatste wedstrijd op de tribune. Ze zijn onder de indruk. Je zaakwaarnemer belt: "Als je wilt, komen ze deze zomer met een bod."`, opts:[
+    {l:'Interesse tonen', f(){ sp.scout = {land, club:id}; return `Je zaakwaarnemer laat ${c.n} weten dat je openstaat voor een avontuur in ${land}. In de zomer komen ze met een bod, als je zo blijft spelen.`; }},
+    {l:'Ik blijf hier', f(){ mod('vert', 2); modFans(2); return `Je laat weten dat je je thuis voelt bij ${club().n}. De trainer en de fans horen het graag.`; }}]};
 }

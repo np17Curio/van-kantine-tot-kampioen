@@ -45,6 +45,9 @@
 .log .goal{color:var(--lamp);font-weight:700}.log .tegen{color:var(--fout);font-weight:700}
 .log .kaart{color:var(--kaart)}
 .log .info{color:var(--mist)}
+.log .var{color:#c4b5fd;font-weight:700;border-left:3px solid #8b5cf6;padding-left:6px;background:rgba(139,92,246,.1);border-radius:3px}
+.varmoment{border-color:#8b5cf6!important;background:rgba(139,92,246,.12)}
+.melding.var{border-color:#8b5cf6;color:#c4b5fd}
 .log .gevaar{color:var(--fout-zacht)}
 .log .rust{color:var(--krijt);font-weight:700}
 @keyframes regel{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}

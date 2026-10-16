@@ -21,7 +21,7 @@ const ACHTERGROND = [
   'Hij nam jouw plek in bij een jeugdselectie. Dat ben je nooit vergeten.',
   'De media noemen jullie al jaren in één adem. Jullie kunnen elkaar niet uitstaan.',
 ];
-export const rivaal = () => { const R = S.sp && S.sp.rivaal; if (R && R.band === undefined){ R.band = -20; R.race = {}; } return R; };
+export const rivaal = () => { const R = S.sp && S.sp.rivaal; if (R && R.band === undefined){ R.band = -20; R.race = {}; } if (R && R.pot === undefined) R.pot = Math.max(R.k + 6, S.sp.pot + randInt(-4, 4)); return R; };
 // Waar speelt hij nu? (een transfer van de computer kan hem verplaatsen: we zoeken op naam)
 export function rivaalSpeler(){
   const R = rivaal(); if (!R || R.gestopt) return null;
@@ -53,6 +53,7 @@ export function maakRivaal(){
   const persIds = Object.keys(PERS);
   sp.rivaal = {v:pick(VOORL), n:pick(NAMEN), lft:sp.leeftijd + randInt(-1, 1), k:clamp(ovr(sp) + randInt(-3, 3), 30, 95), club:id,
     achtergrond:pick(ACHTERGROND), karakter:pick(persIds), onderling:{w:0, g:0, v:0}, hist:[], seizoen:null, band:-20, race:{}};
+  sp.rivaal.pot = Math.max(sp.rivaal.k + 4, clamp(sp.pot + randInt(-4, 4), 40, 95)); sp.rivaal.kVorig = sp.rivaal.k;
   plaats(id);
   return sp.rivaal;
 }
@@ -101,7 +102,7 @@ export function rivaalSeizoen(){
   const doel = sp.pos === 'SPITS' ? 'g' : 'a', woord = doel === 'g' ? 'goals' : 'assists';
   const winst = jij[doel] > st[doel] ? 'jij' : jij[doel] < st[doel] ? 'hij' : 'gelijk';
   const tekst = `De race met je rivaal ${naam}: jij ${jij[doel]} ${woord}, hij ${st[doel]}. ${winst === 'jij' ? 'Dit seizoen ben jij de beste.' : winst === 'hij' ? 'Dit seizoen was hij beter. Volgend jaar pak je hem.' : 'Precies gelijk!'}`;
-  R.hist.push(`${S.jaar}: jij ${jij[doel]}, hij ${st[doel]} ${woord}`); if (R.hist.length > 12) R.hist.shift();
+  R.hist.push(`${S.jaar}: jij ${jij[doel]}, hij ${st[doel]} ${woord} · klasse ${R.k}`); if (R.hist.length > 12) R.hist.shift();
   R.seizoen = {jij:jij[doel], hij:st[doel], woord, winst};
   R.race = {};
   let prijs = null;
@@ -111,7 +112,12 @@ export function rivaalSeizoen(){
 }
 export function rivaalOuder(groeiJij){
   const R = rivaal(), r = rivaalSpeler(); if (!R) return;
-  R.lft++; R.k = clamp(R.k + groeiJij + randInt(-1, 1), 30, 95);
+  // De rest van zijn groei van dit seizoen (de helft kwam in de winterstop), en hij laat zich niet afschudden
+  const rest = R.groeiJaar === S.jaar ? (R.groeiRest || 0) : groeiSeizoen(R);
+  groei(R, rest);
+  const extra = (ovr(S.sp) - R.k >= 6 ? 1 : 0) + (R.seizoen && R.seizoen.winst === 'hij' ? 1 : 0);
+  if (extra && !(R.lft >= 31)){ zetK(R, R.k + extra); if (R.k > R.pot) R.pot = R.k; }
+  R.groeiRest = 0; R.lft++; R.kVorig = R.k;
   if (r){ r.x.k = R.k; r.x.lft = R.lft; }
   // op zijn 37e stopt hij
   if (R.lft >= 37 && !R.gestopt){ R.gestopt = true; if (r){ const sel = selectie(r.id); sel.splice(sel.indexOf(r.x), 1); selectie(r.id); }
@@ -219,6 +225,7 @@ function herstel(){
 // Elke week: de race volgen (mijlpalen één keer per seizoen) en zijn blessure aftellen
 export function raceWeek(eerste){
   const R = rivaal(); if (!R || R.gestopt || S.trainer) return;
+  if (S.ronde >= 7 && R.groeiJaar !== S.jaar && !S.sp.clubloos) rivaalWinter();
   if (!eerste && R.blessure > 0){ R.blessure--; if (R.blessure <= 0){ herstel(); S.week.tekst.push(`Je rivaal ${rivaalNaam()} is weer fit.`); } }
   if (eerste || S.sp.clubloos || !rivaalSpeler()) return;
   const rs = raceStand(), naam = rivaalNaam(), M = R.race = R.race || {};
@@ -267,4 +274,23 @@ export function voorDuelAntwoord(i){
     R.persReactie = pick([`${naam} heeft het interview gelezen. Bij het warmlopen roept hij: "Praatjes vullen geen gaatjes!"`, `${naam} reageerde in de krant: "Laat hem maar praten. Op het veld zien we het wel."`]);
     P.uit = 'De kop van morgen staat al vast. Het duel telt dubbel: winnen levert veel op, verliezen kost veel.';
   }
+}
+
+/* ----- Hij groeit: een eigen talent (pot) en een groeicurve per leeftijd ----- */
+export function groeiSeizoen(R){
+  const a = R.lft, [lo, hi] = a <= 18 ? [4, 6] : a <= 21 ? [3, 5] : a <= 24 ? [2, 3] : a <= 27 ? [1, 2] : a <= 30 ? [0, 1] : a <= 33 ? [-2, -1] : [-3, -2];
+  return randInt(lo, hi);
+}
+function zetK(R, k){ R.k = clamp(k, 30, 95); const r = rivaalSpeler(); if (r) r.x.k = R.k; }
+// Groei tot zijn talent (achteruitgang gaat altijd door)
+function groei(R, n){ if (n > 0) n = Math.min(n, Math.max(0, R.pot - R.k)); zetK(R, R.k + n); return n; }
+// In de winterstop: de helft van zijn groei van dit seizoen
+export function rivaalWinter(){
+  const R = rivaal(); if (!R || R.gestopt || R.groeiJaar === S.jaar) return;
+  R.groeiJaar = S.jaar;
+  const G = groeiSeizoen(R), half = G > 0 ? Math.ceil(G / 2) : Math.trunc(G / 2), voor = R.k;
+  groei(R, half); R.groeiRest = G - half;
+  const naam = rivaalNaam();
+  if (R.k - voor >= 3){ krantMelding(`Rivaal ${naam} is flink beter geworden`, `Zijn klasse gaat van ${voor} naar ${R.k}. ${S.sp.naam} is gewaarschuwd.`); if (S.week) S.week.tekst.push(`Je rivaal ${naam} is flink beter geworden (${voor} → ${R.k}).`); }
+  else if (R.k > voor && S.week) S.week.tekst.push(`Je rivaal ${naam} wordt beter: klasse ${voor} → ${R.k}.`);
 }
