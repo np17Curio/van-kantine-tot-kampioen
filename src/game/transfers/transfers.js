@@ -20,6 +20,7 @@ import { clubTransfers, naMarkt } from './markt.js';
 import { pers } from '../speler/persoonlijkheid.js';
 import { rivaalVenster } from '../speler/rivaal.js';
 import { wordClubloos } from '../speler/clubloos.js';
+import { partnerKans, startBuitenland, thuis as thuisStart } from '../prive/buitenland-leven.js';
 
 /* ===================== Transfers ===================== */
 export function transferScore(){
@@ -174,6 +175,7 @@ export function openVenster(soort){
   if (terug) intro = terug.tekst + (terug.koop != null ? ` ${CLUBS[terug.koop].n} wil je definitief overnemen!` : '') + ' ' + intro;
   if (soort === 'zomer' && modus !== 'clubloos'){ const bl = buitenlandseBods(modus); if (bl.length){ bods = bods.concat(bl); const gs = bl.find(b => b.gescout); intro += `${gs ? ` ${clubInfo(gs).n} uit ${gs.land} heeft je het hele seizoen gevolgd en doet een bod!` : ''} Er is ook interesse uit het buitenland: ${[...new Set(bl.map(b => b.land))].join(' en ')}!`; } sp.scout = null; }
   if (rvTekst) intro += ' ' + rvTekst;
+  if (sp.relatie) bods.forEach(b => { if (isBuitenland(b) && b.partnerMee === undefined) b.partnerMee = b.land === thuisStart() || rnd() < partnerKans(); });
   S.venster = {soort, modus, intro, bods, verlenging, blijven, agentBod, huurOpties};
   sp.transferWens = false;
   S.fase = 'venster';
@@ -222,7 +224,12 @@ export function wissel(o, hoe){
   if (sp.statusNiveau >= 3) teksten.push('De fans kennen je al: je bent meteen een fanfavoriet!');
   else if (sp.statusNiveau === 2) teksten.push('De trainer ziet je meteen als vaste waarde.');
   else teksten.push(`Je begint als ${statusNaam(sp.statusNiveau).toLowerCase()}: je moet je basisplaats nog verdienen.`);
-  if (sp.relatie && ((nieuw.t === 1 && nieuw.s >= 80 && !(oud.t === 1 && oud.s >= 80)) || landWissel)){
+  if (landWissel){ const t = startBuitenland(o.land); if (t) teksten.push(t); }
+  if (sp.relatie && landWissel){
+    const naam = sp.relatie.naam, mee = o.partnerMee ?? (o.land === thuisStart() || rnd() < partnerKans());
+    if (mee){ teksten.push(`${naam} verhuist met je mee!${kinderen().length ? ' De kinderen gaan mee.' : ''}`); if (sp.buitenland) sp.heimwee = Math.max(0, (sp.heimwee || 0) - 10); }
+    else { const kids = kinderen().length; teksten.push(eindRelatie(`${naam} blijft in ${oudLand}. Jullie gaan uit elkaar.`)); if (sp.buitenland){ sp.heimwee = Math.min(100, (sp.heimwee || 0) + 20 + (kids ? 10 : 0)); if (kids) teksten.push(`Je gaat ${kinderen().length === 1 ? kinderen()[0].naam : 'de kinderen'} heel erg missen.`); } }
+  } else if (sp.relatie && nieuw.t === 1 && nieuw.s >= 80 && !(oud.t === 1 && oud.s >= 80)){
     const naam = sp.relatie.naam;
     if (sp.relatie.getrouwd || sp.relatie.samen || rnd() < .3 + sp.relatie.band / 200) teksten.push(`${naam} verhuist mee naar het buitenland!${kinderen().length ? ' De kinderen gaan er naar een internationale school.' : ''}`);
     else teksten.push(eindRelatie(`${naam} wil niet mee naar het buitenland. Jullie gaan uit elkaar.`));

@@ -6,6 +6,9 @@ import { stoppen } from '../../game/seizoen/seizoen.js';
 import { gaHuren } from '../../game/speler/o23.js';
 import { rolBijClub } from '../../game/speler/status.js';
 import { clubInfo, isBuitenland, okey } from '../../game/transfers/buitenland.js';
+import { blijfVoorPartner, praatMetPartner } from '../../game/prive/buitenland-leven.js';
+import { kinderen } from '../../game/prive/gezin.js';
+import { thuisLand } from '../../data/landen.js';
 import { ohStart, vOnderhandel } from '../../game/transfers/onderhandelen.js';
 import { blijf, blijfWachten, teken, zonderClub } from '../../game/transfers/transfers.js';
 import { vMarkt } from '../../game/transfers/markt.js';
@@ -17,15 +20,18 @@ export function rolRij(id, cObj){
   const r = rolBijClub(id, cObj);
   return `<div class="rol"><span class="label">${hier ? 'Jouw rol hier' : 'Jouw rol daar'}</span><b>${r.status}</b><span class="risico ${r.plek[1]}">${r.plek[0]}</span></div>`;
 }
+// Wat er gebeurt als je toch gaat terwijl je partner niet mee wil
+function partnerWaarschuwing(o){ const r = S.sp.relatie, k = kinderen(); return `${r.naam} wil niet mee naar ${o.land}. Ga je toch, dan gaan jullie uit elkaar${r.getrouwd ? `: jullie scheiden en ${r.naam} krijgt de helft van je spaargeld` : ''}${k.length ? `, en ${k.length === 1 ? k[0].naam + ' blijft' : 'je kinderen blijven'} bij ${r.naam} in ${thuisLand()}` : ''}. Toch gaan?`; }
 export function bodKaart(o, label){
   const c = clubInfo(o), V = S.venster, bl = isBuitenland(o);
   const kanVragen = V.modus === 'normaal' && !o.gevraagd && (o.verlenging || c.t <= 3);
   return `<div class="bod ${o.club === S.sp.club && !bl ? 'huidig' : ''} ${o.doorstroom || o.viaAgent ? 'door' : ''}"><span class="label">${o.huurKoop ? 'Je huurclub wil je definitief overnemen' : o.viaAgent ? 'Droomclub · geregeld door je zaakwaarnemer' : o.doorstroom ? '1e elftal van je eigen club' : o.verlenging ? 'Je huidige club · nieuw contract' : bl ? `🌍 ${esc(o.land)} · ${NIVEAU[c.t]} · ${esc(c.div)}` : `${NIVEAU[c.t]} · ${DIVS[c.t]}`}</span><div class="club">${bl ? '' : clubLogo(o.club, 40)}<span>${esc(c.n)}</span></div>
     <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>${salarisLabel(c.t)}</dt><dd>${geldTxt(o.salaris)}</dd><dt>Contract</dt><dd>${o.jaren} jaar</dd>${o.som ? `<dt>Bod op jou</dt><dd>${geldTxt(o.som)}</dd>` : ''}</dl>
     ${rolRij(o.club, bl ? c : null)}
-    ${bl ? `<p class="muted klein-tekst">Je verhuist naar ${esc(o.land)}: nieuwe competitie, nieuwe clubs, nieuwe kranten.${S.sp.relatie ? ` Gaat ${esc(S.sp.relatie.naam)} mee?` : ''}</p>` : ''}
+    ${bl ? `<p class="muted klein-tekst">Je verhuist naar ${esc(o.land)}: nieuwe competitie, nieuwe clubs, nieuwe kranten, een nieuwe taal.</p>` : ''}
+    ${bl && S.sp.relatie && o.partnerMee !== undefined ? (o.partnerMee ? `<p class="goedtxt klein-tekst">💕 ${esc(S.sp.relatie.naam)} gaat met je mee naar ${esc(o.land)}.</p>` : `<p class="fouttxt klein-tekst">⚠ ${esc(S.sp.relatie.naam)} wil niet verhuizen naar ${esc(o.land)}.</p><div class="rij">${o.partnerGepraat ? '' : knop(`Met ${esc(S.sp.relatie.naam)} praten`, () => praatMetPartner(o), 'klein', 'data-blijf')}${knop(`Blijven voor ${esc(S.sp.relatie.naam)}`, () => blijfVoorPartner(o), 'klein', 'data-blijf')}</div>`) : ''}
     ${o.akkoord ? `<p class="goedtxt klein-tekst">Uitonderhandeld${o.tekengeld ? ` · tekengeld ${geldTxt(o.tekengeld)}` : ''}${o.clausule ? ` · afkoopclausule ${geldTxt(o.clausule)}` : ''}</p>` : ''}
-    <div class="rij">${knop(o.doorstroom ? 'Doorstromen' : label, () => teken(o), 'hoofd', 'style="font-size:1.05rem;padding:10px 16px"')}${kanVragen && !(tmp.oh && tmp.oh.key === okey(o)) ? knop('Onderhandelen', () => ohStart(o), 'klein', 'data-blijf') : ''}</div>
+    <div class="rij">${knop(o.doorstroom ? 'Doorstromen' : label, () => teken(o), 'hoofd', `style="font-size:1.05rem;padding:10px 16px"${bl && S.sp.relatie && o.partnerMee === false ? ` data-bevestig="${esc(partnerWaarschuwing(o))}" data-ja="Ja, ik ga toch"` : ''}`)}${kanVragen && !(tmp.oh && tmp.oh.key === okey(o)) ? knop('Onderhandelen', () => ohStart(o), 'klein', 'data-blijf') : ''}</div>
     ${kanVragen && tmp.oh && tmp.oh.key === okey(o) ? vOnderhandel(o) : ''}</div>`;
 }
 export function huidigKaart(){

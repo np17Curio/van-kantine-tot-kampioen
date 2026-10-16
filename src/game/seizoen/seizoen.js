@@ -18,6 +18,7 @@ import { talentSeizoen } from '../speler/talent.js';
 import { doelInfo } from '../transfers/zaakwaarnemer.js';
 import { europaKrant } from '../competitie/europa.js';
 import { rivaalOuder, rivaalSeizoen } from '../speler/rivaal.js';
+import { magAfscheid, maakAfscheid } from './afscheidswedstrijd.js';
 
 /* ===================== Seizoen ===================== */
 export function ontwikkel(){
@@ -115,4 +116,6 @@ export function stoppen(reden){
   S.car.hist.push(`${S.jaar}: einde carrière`);
   S.einde.eer = afscheid();
   S.fase = 'einde';
+  // Een clublegende krijgt een afscheidswedstrijd: zijn club tegen oud-ploeggenoten van al zijn clubs
+  if (magAfscheid()){ S.afscheidWed = maakAfscheid(); S.fase = 'afscheid'; }
 }

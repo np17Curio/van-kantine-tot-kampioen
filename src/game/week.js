@@ -27,6 +27,7 @@ import { ouders } from './prive/familie.js';
 import { maakRivaal, raceWeek, rivaalPrikkel } from './speler/rivaal.js';
 import { clubloosWeek } from './speler/clubloos.js';
 import { gbMoment } from './seizoen/gouden-bal.js';
+import { buitenlandWeek } from './prive/buitenland-leven.js';
 
 /* ===================== Week ===================== */
 export function nieuweWeek(eerste){
@@ -58,6 +59,7 @@ export function nieuweWeek(eerste){
   if (!sp.clubloos) tuchtWeek(eerste);
   relatieWeek(eerste);
   raceWeek(eerste); // je rivaal: de race en zijn blessure
+  buitenlandWeek(eerste); // in het buitenland: taal en heimwee
   if (!eerste) gbMoment(); // Gouden Bal: wat veranderde er sinds vorige week
   buitenWeek(eerste);
   if (!sp.clubloos) kleedWeek(eerste);

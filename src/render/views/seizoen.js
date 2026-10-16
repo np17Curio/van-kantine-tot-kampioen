@@ -83,6 +83,7 @@ export function vEinde(){
     <div class="groot" style="font-size:clamp(2.2rem,8vw,3.6rem)">${titel}</div>
     <p>Carrièrecijfer: <b>${fmt1(cijfer)}</b> <span class="muted">· op basis van je prijzen, goals, klasse en interlands</span></p>
     ${bs ? `<p class="muted">Beste seizoen: ${esc(bs.s)} bij ${esc(bs.club)} (${esc(bs.div)}): ${bs.wed} wedstrijden, ${bs.g} goals, ${bs.a} assists${bs.gem ? `, gemiddeld een ${fmt1(bs.gem)}` : ''}.</p>` : ''}</div>
+    ${S.einde.afscheidWed ? `<div class="kampioen"><span class="label">Je afscheidswedstrijd</span><p>${esc(S.einde.afscheidWed.tekst)}</p>${S.einde.afscheidWed.log.map(l => `<p class="muted klein-tekst">${l.m ? esc(l.m) + ' ' : ''}${esc(l.t)}</p>`).join('')}</div>` : ''}
     ${eer.length ? `<div class="kampioen"><span class="label">Afscheid als clublegende</span>${eer.map(e => `<p>${e.soort === 'standbeeld' ? '🗿' : '👕'} ${esc(e.t)}</p>`).join('')}</div>` : ''}
     ${vRecords()}
     <div class="feiten" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">

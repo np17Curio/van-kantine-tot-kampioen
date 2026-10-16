@@ -14,6 +14,7 @@ import { verhaalEvents } from './speler/verhaal.js';
 import { persEvents } from './speler/persEvents.js';
 import { rivaal, rivaalEvents } from './speler/rivaal.js';
 import { scoutEvent } from './transfers/buitenland.js';
+import { buitenlandEvents, buitenlandKans } from './prive/buitenland-leven.js';
 
 /* ===================== Gebeurtenissen ===================== */
 export function eindRelatie(tekst){
@@ -34,6 +35,8 @@ export function maakEvent(){
   { const v = verhaalEvents(); if (v.length && rnd() < .3) return pick(v); }
   // Daarna iets dat bij je persoonlijkheid hoort (een rebel krijgt andere dingen voor zijn kiezen dan een prof)
   { const p = persEvents(); if (p.length && rnd() < .25) return pick(p); }
+  // Leven in het buitenland: taal, heimwee, gezin
+  if (rnd() < buitenlandKans()){ const b = buitenlandEvents(); if (b.length) return pick(b); }
   // Scouts uit het buitenland (de overstap kan pas in de zomer)
   if (rnd() < .1){ const sc = scoutEvent(); if (sc) return sc; }
   // Je rivaal: hij reageert op jouw uitdaging, of er gebeurt iets tussen jullie

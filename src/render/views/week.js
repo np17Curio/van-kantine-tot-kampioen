@@ -45,6 +45,7 @@ import { heeft } from '../../game/speler/persoonlijkheid.js';
 import { voorDuelAntwoord, voorDuelVraag, RIVAAL_ACTIES, actiefRivaal, bandLabel as rivaalBand, doeRivaalActie, kanRivaalActie, raceStand, rivaal, rivaalNaam, rivaalPrikkel, rivaalSpeler, rivaalStats, speeltTegenRivaal, volgendDuel } from '../../game/speler/rivaal.js';
 import { PERS } from '../../game/speler/persoonlijkheid.js';
 import { fmtPunt, goudenBalStand } from '../../game/seizoen/gouden-bal.js';
+import { BUITENLAND_ACTIES, TAAL, doeBuitenlandActie, inBuitenland, kanBuitenlandActie, lesPrijs, taalLabel, taalNiveau, taalStraf, vluchtPrijs } from '../../game/prive/buitenland-leven.js';
 
 // Het weekscherm is een hub met tabbladen; elke nieuwe week begint op "Deze week"
 const WEEK_TABS = [['week', 'Deze week'], ['team', 'Team'], ['carriere', 'Carrière'], ['prive', 'Privé'], ['winkel', 'Winkel']];
@@ -294,7 +295,18 @@ export function vAanvoerder(){
     <div class="keuzes">${opties.map(([id, l, d]) => keuzeKnop(esc(l), esc(d), () => aanvoerderActie(id), `data-blijf ${klaar || (id === 'uitje' && sp.geld < prijs) ? 'disabled' : ''}`)).join('')}</div>
     <p class="muted klein-tekst">Sta je in de rust achter? Dan houd jij de toespraak.</p></div>`;
 }
-export function vBuiten(){
+// Leven in het buitenland: taal, heimwee en één actie per week
+function vBuitenlandLeven(){
+  if (!inBuitenland()) return '';
+  const sp = S.sp, B = sp.buitenland, t = taalNiveau(), h = Math.round(sp.heimwee || 0), straf = taalStraf(), T = TAAL[B.land] || 'de taal';
+  const acties = kanBuitenlandActie() ? `<div class="keuzes">${Object.entries(BUITENLAND_ACTIES).map(([id, a]) => keuzeKnop(a.n, id === 'les' ? `${a.s} · ${geldTxt(lesPrijs())}` : id === 'huis' ? `${a.s} · ${geldTxt(vluchtPrijs())}` : a.s, () => doeBuitenlandActie(id), 'data-blijf')).join('')}</div>` : '<p class="muted klein-tekst">Je hebt deze week al iets gedaan.</p>';
+  return `<section id="buitenlandPanel" class="paneel sectie"><h3 class="sectiekop">Leven in ${esc(B.land)} <span class="niv">${B.weken} ${B.weken === 1 ? 'week' : 'weken'}</span></h3>
+    <div class="balken2">${balk(`Taal: ${T}`, t, 'st')}${balk('Heimwee', h, 'st')}</div>
+    <p class="muted klein-tekst">${esc(taalLabel(t))}.${straf ? ` Je mist een deel van de uitleg van de trainer: je teambonus is −${String(straf).replace('.', ',')}.` : ' Je verstaat je teamgenoten goed.'}${h > 60 ? ' Je heimwee kost je elke week moraal.' : ''}</p>
+    <span class="label">Wat doe je deze week? <span class="niv">1 keer per week</span></span>${acties}</section>`;
+}
+export function vBuiten(){ return vBuitenlandLeven() + vBuitenBasis(); }
+function vBuitenBasis(){
   const sp = S.sp, w = S.week, r = sp.rij, wo = woning(), au = autoInfo();
   const samenvatting = [sp.leeftijd >= 18 ? (sp.relatie ? `${sp.relatie.getrouwd ? 'getrouwd' : sp.relatie.verloofd ? 'verloofd' : 'samen'} met ${sp.relatie.naam}` : 'single') : '', (sp.kinderen || []).length ? `${sp.kinderen.length} ${sp.kinderen.length === 1 ? 'kind' : 'kinderen'}` : '', dieren().length ? dieren().map(d => d.naam).join(', ') : '', `${volgersTxt(social().volgers)} volgers`, wo.id === 'ouders' ? 'woont bij je ouders' : wo.n.replace(/ (kopen|huren)$/, '').toLowerCase(), sp.rijbewijs ? (au ? au.n.toLowerCase() : 'rijbewijs, geen auto') : 'geen rijbewijs'].filter(Boolean).join(' · ');
   // Rijbewijs
