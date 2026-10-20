@@ -33,7 +33,7 @@ document.addEventListener('keydown', sneltoetsen);
 document.addEventListener('click', e => {
   if (!e.target.closest || !e.target.closest('#opslagDown')) return;
   const t = exporteer(); if (!t){ alert('Er is nog geen opgeslagen carrière.'); return; }
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], {type:'application/json'})); a.download = 'kantine-carriere.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], {type:'application/json'})); a.download = 'doorbreken-carriere.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 });
 document.addEventListener('change', async e => {
   if (e.target.id !== 'opslagLaad' || !e.target.files || !e.target.files[0]) return;
@@ -43,7 +43,7 @@ document.addEventListener('change', async e => {
   const m = document.getElementById('modal'); if (m && m.open) m.close();
   setS(herstel(r.d)); render();
 });
-document.addEventListener('toggle', e => { if (e.target.id === 'clubLijstPanel') tmp.clubLijstOpen = e.target.open; if (e.target.id === 'hulpPanel') tmp.hulpOpen = e.target.open; if (e.target.id === 'focusPanel' && tmp.focusOpen !== e.target.open){ tmp.focusOpen = e.target.open; render(); } }, true);
+document.addEventListener('toggle', e => { if (e.target.id === 'clubLijstPanel') tmp.clubLijstOpen = e.target.open; if (e.target.id === 'hulpPanel') tmp.hulpOpen = e.target.open; if (e.target.id === 'programmaPanel') tmp.programmaOpen = e.target.open; if (e.target.id === 'focusPanel' && tmp.focusOpen !== e.target.open){ tmp.focusOpen = e.target.open; render(); } }, true);
 window.addEventListener('resize', () => { const h = document.getElementById('hud'); if (h) document.documentElement.style.setProperty('--hud-h', h.offsetHeight + 'px'); });
 
 /* ===================== Hulp en instellingen ===================== */

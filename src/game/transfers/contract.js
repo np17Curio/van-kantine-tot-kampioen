@@ -1,9 +1,8 @@
 import { S, club, gemCijfer, mod, ovr, salarisLabel, salarisVoor, seizoenLabel, tmp } from '../../core/state.js';
 import { knop } from '../../core/ui.js';
 import { clamp, esc, geldTxt, rnd } from '../../core/utils.js';
-import { AGENT, AMATEUR, JEUGD } from '../../data/gegevens.js';
+import { AGENT } from '../../data/gegevens.js';
 import { krantMelding } from '../media/roddel.js';
-import { heeftProef } from '../speler/bewijs.js';
 import { statusNiveau, statusPunten } from '../speler/status.js';
 import { OH_SAL, OH_TEKEN, clausuleBedrag, ohLabel } from './onderhandelen.js';
 
@@ -14,11 +13,9 @@ export const CONTRACT_NA = 4, CONTRACT_WACHT = 5;
 // null als het mag, anders de reden waarom niet
 export function kanContractVragen(){
   const sp = S.sp, c = club();
-  if (c.t === JEUGD) return 'In de jeugd krijg je zakgeld. Over een contract onderhandelen kan pas bij de senioren.';
   if (sp.o23) return 'Bij de O23 is er niets te onderhandelen. Eerst terug in de selectie.';
   if (sp.huur) return 'Je bent verhuurd. Over je contract praat je met je eigen club, na de huurperiode.';
   if (sp.transferlijst) return 'Je staat op de transferlijst. De club gaat geen nieuw contract met je bespreken.';
-  if (heeftProef()) return 'Eerst je proeftijd halen. Pas daarna praat de club over een echt contract.';
   if (S.ss.contractRond) return 'Je hebt dit seizoen al een nieuw contract getekend. Volgend seizoen kun je het opnieuw vragen.';
   if ((sp.clubWed || 0) < CONTRACT_NA) return `Speel eerst ${CONTRACT_NA - (sp.clubWed || 0)} ${CONTRACT_NA - (sp.clubWed || 0) === 1 ? 'wedstrijd' : 'wedstrijden'} meer voor ${c.n}. Dan heb je iets om over te praten.`;
   const wacht = (S.ss.contractWacht ?? -99) - S.ronde;
@@ -27,7 +24,7 @@ export function kanContractVragen(){
 }
 // Waar de club mee begint
 export function clubVoorstel(){
-  const sp = S.sp, t = club().t, max = t >= AMATEUR ? 2 : 4;
+  const sp = S.sp, t = club().t, max = 4;
   return {salaris:Math.max(sp.salaris, Math.round(salarisVoor(t, ovr(sp), club().s) / 100) * 100), jaren:clamp(Math.max(sp.contract, 0) + 1, 1, max)};
 }
 export function contractKans(x){

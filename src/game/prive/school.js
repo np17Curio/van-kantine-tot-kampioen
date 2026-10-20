@@ -140,7 +140,7 @@ export function checkOuders(){
   const sp = S.sp, o = sp.ouders, l = sp.school.cijfers.slice(-4).map(x => x.c);
   if (l.length < 3) return null;
   const g = gemiddelde(l);
-  if (!o.boos && g < 5.5){ o.boos = true; o.trots = false; mod('focus', -10); mod('moraal', -8); return 'Je ouders zien je cijfers en zijn woest. "Eerst je school, dan pas voetbal!" Zolang je cijfers slecht zijn, mag je niet uit en houden ze je misschien thuis bij een wedstrijd.'; }
+  if (!o.boos && g < 5.5){ o.boos = true; o.trots = false; mod('focus', -10); mod('moraal', -8); return 'Je ouders zien je cijfers en zijn woest. "Eerst je school, dan pas voetbal!" Zolang je cijfers slecht zijn, mag je niet uit. En de onderwijscoach van de club houdt je rapport in de gaten.'; }
   if (o.boos && gemiddelde(l.slice(-2)) >= 6.5){ o.boos = false; mod('moraal', 6); mod('focus', 5); return 'Je ouders zien dat je cijfers weer beter worden. De ruzie is voorbij.'; }
   if (!o.boos && !o.trots && l.length >= 4 && g >= 7.5){ o.trots = true; mod('moraal', 6); return 'Je ouders zijn trots op je cijfers. Je vader hangt je rapport op de koelkast.'; }
   if (g < 7) o.trots = false;

@@ -1,6 +1,6 @@
 import { S, club, ovr } from '../../core/state.js';
 import { clamp } from '../../core/utils.js';
-import { AANV, JEUGD, OPST_BASIS } from '../../data/gegevens.js';
+import { AANV, OPST_BASIS } from '../../data/gegevens.js';
 import { statusNiveau } from '../speler/status.js';
 import { TACTIEKEN, clubTactiek, pasScore } from './tactiek.js';
 
@@ -24,7 +24,7 @@ function basisReden(twijfel){
   if (sp.vorm <= -1) return twijfel ? 'Je speelde slecht in de vorige wedstrijd. De trainer twijfelt of hij je laat starten.' : 'Je speelde slecht in de vorige wedstrijd. De trainer kiest voor iemand anders.';
   if (lvl === 0){
     const vorm = sp.vorm >= .8;
-    if (c.t !== JEUGD && sp.leeftijd < 20) return vorm ? 'Je bent nog een jonkie bij de senioren. De trainer laat je rustig wennen, maar hij ziet wel dat je in vorm bent: pak je minuten als invaller!' : 'Je bent nog een jonkie bij de senioren. De trainer laat je rustig wennen.';
+    if (sp.leeftijd < 20) return vorm ? 'Je bent nog een jonkie bij de senioren. De trainer laat je rustig wennen, maar hij ziet wel dat je in vorm bent: pak je minuten als invaller!' : 'Je bent nog een jonkie bij de senioren. De trainer laat je rustig wennen.';
     return vorm ? 'Je bent nieuw bij de club en moet je eerst bewijzen. Je bent in vorm: pak je minuten als invaller!' : 'Je bent nieuw bij de club. Je moet je eerst bewijzen.';
   }
   if (lvl === 1){

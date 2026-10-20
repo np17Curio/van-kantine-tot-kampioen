@@ -1,7 +1,8 @@
 import { S, club, seizoenLabel, tmp } from '../../core/state.js';
 import { knop } from '../../core/ui.js';
 import { clamp, esc, pick, shuffle } from '../../core/utils.js';
-import { AMATEUR, CLUBS, DIVS, JEUGD, divClubs } from '../../data/gegevens.js';
+import { CLUBS, DIVS, LAAGSTE, divClubs, ligaVan, rondeInWeek, AANTAL_RONDES } from '../../data/gegevens.js';
+import { thuisLand } from '../../data/landen.js';
 import { stand } from '../competitie/spelers.js';
 import { fmt1, gemiddelde } from '../speler/o23.js';
 import { stand2 } from '../wedstrijd/wedstrijd.js';
@@ -10,8 +11,7 @@ import { vormBolletjes } from '../competitie/vorm.js';
 
 /* ===================== Het nieuws ===================== */
 // Na elke clubwedstrijd verschijnen krantenkoppen over je ploeg en over jou, op basis van wat er echt gebeurde
-export const KRANTEN = {5:['Het Clubblad', 'Dorpskrant De Molen', 'Jeugdvoetbal Regio'], 4:['Regionaal Dagblad', 'Het Clubblad', 'Amateurvoetbal Nu'],
-  3:['Regionaal Dagblad', 'Voetbal Vandaag', 'De Sportkrant'], 2:['De Sportkrant', 'Voetbal Vandaag', 'Studio Voetbal'],
+export const KRANTEN = {2:['De Sportkrant', 'Voetbal Vandaag', 'Studio Voetbal'],
   1:['De Sportkrant', 'Voetbal Vandaag', 'Studio Voetbal'], 0:['Kickoff International', 'De Sportkrant', 'Europees Voetbalnieuws']};
 export const MIJLPAAL_G = [10, 25, 50, 100, 150, 200, 300], MIJLPAAL_W = [50, 100, 200, 300, 400, 500];
 // Hoeveel keer op rij (tot en met nu) geldt f voor de uitslagen van dit seizoen
@@ -102,7 +102,7 @@ export function maakNieuws(M, speelde){
 export const FOTO_ALT = {hattrick:'met de wedstrijdbal', motm:'met de Man of the Match-trofee', svs:'met de bokaal voor Speler van het Seizoen', topscorer:'met de Gouden Schoen'};
 export const fotoVan = (soort, onder) => ({soort, onder});
 function vFoto(f){
-  const door = club() && club().t >= 4 ? 'de clubfotograaf' : 'Studio Kantine';
+  const door = 'Studio Doorbraak';
   return `<figure class="krantfoto"><div class="lijst"><img data-foto="${esc(f.soort)}" alt="${esc(S.sp.naam + ' ' + (FOTO_ALT[f.soort] || ''))}" width="720" height="480"><span class="ontwikkel">Foto wordt ontwikkeld…</span></div><figcaption>${esc(f.onder)} <span>Foto: ${door}</span></figcaption></figure>`;
 }
 export function vKrant(items){
@@ -140,18 +140,20 @@ export function vUitslagen(t, r, zonderMijn){
 }
 export const gespeeldeRondes = t => (S.ss.res && S.ss.res[t] ? S.ss.res[t].length : 0);
 // Wat betekent een plek in de stand? Kampioen promoveert, de nummer 2 en de een-na-laatste spelen nacompetitie, de laatste degradeert
-export const ZONES = {cl:'Champions League', eur:'Europa Cup', prom:'Kampioen: promoveert', po:'Nacompetitie om promotie', pod:'Nacompetitie tegen degradatie', degr:'Degradeert'};
+export const ZONES = {cl:'Champions League', eur:'Europa Cup', prom:'Promoveert direct', po:'Nacompetitie om promotie', pod:'Nacompetitie tegen degradatie', degr:'Degradeert direct'};
+// Wat betekent plek i (van n) in league t? Volgens de regels van je land (LIGA in gegevens.js)
 export function zone(t, i, n){
-  if (t === JEUGD) return null;
-  if (t === 1) return i <= 1 ? 'cl' : i <= 3 ? 'eur' : i === n - 1 ? 'degr' : i === n - 2 ? 'pod' : null; // de hoogste competitie
-  if (i === 0 && t > 1) return 'prom';
-  if (i === 1 && t > 1) return 'po';
-  if (t < AMATEUR && i === n - 1) return 'degr';
-  if (t < AMATEUR && i === n - 2) return 'pod';
+  const L = ligaVan(thuisLand()), po = L.po;
+  if (t === 1) return i <= 1 ? 'cl' : i <= 3 ? 'eur' : i >= n - L.omlaag ? 'degr' : po.soort === 'barrage' && i === po.boven - 1 ? 'pod' : null; // de hoogste competitie
+  if (i < L.omhoog) return 'prom';
+  if (po.soort === 'barrage' ? i === po.onder - 1 : i >= po.van - 1 && i <= po.tot - 1) return 'po';
+  if (t < LAAGSTE && i >= n - L.omlaag) return 'degr';
   return null;
 }
+// De uitleg onder de stand
+export const zoneNaam = k => { const po = ligaVan(thuisLand()).po; return k === 'po' && po.soort === 'playoff' ? `Play-offs om promotie (nr. ${po.van}-${po.tot})` : ZONES[k]; };
 // Gepromoveerd (▲), gedegradeerd (▼) of nieuw in de competitie, alleen in het eerste deel van het nieuwe seizoen
-const wisselTeken = id => { const w = S.nieuwInDiv; if (!w || w.jaar !== S.jaar || S.ronde > 4) return ''; return w.nieuw.includes(id) ? ' <span class="wt nieuw" title="Nieuw in deze competitie">nieuw</span>' : w.op.includes(id) ? ' <span class="wt op" title="Gepromoveerd">▲</span>' : w.neer.includes(id) ? ' <span class="wt neer" title="Gedegradeerd">▼</span>' : ''; };
+const wisselTeken = id => { const w = S.nieuwInDiv; if (!w || w.jaar !== S.jaar || S.ronde > AANTAL_RONDES * .3) return ''; return w.nieuw.includes(id) ? ' <span class="wt nieuw" title="Nieuw in deze competitie">nieuw</span>' : w.op.includes(id) ? ' <span class="wt op" title="Gepromoveerd">▲</span>' : w.neer.includes(id) ? ' <span class="wt neer" title="Gedegradeerd">▼</span>' : ''; };
 export function vCompetitieKaart(){
   const sp = S.sp, c = club(), t = c.t, tab = tmp.comp || 'stand';
   const tabs = [['stand', 'Stand'], ['g', 'Topscorers'], ['a', 'Assists'], ['uit', 'Uitslagen']];
@@ -160,8 +162,8 @@ export function vCompetitieKaart(){
     const st = stand(t);
     inhoud = `<div class="tabelwrap"><table class="tabel">
       <thead><tr><th>#</th><th>Club</th><th>G</th><th>DS</th><th>Pt</th><th class="vk">Vorm</th></tr></thead>
-      <tbody>${st.map((id, i) => { const e = S.tab[id], z = zone(t, i, st.length); return `<tr class="${id === sp.club ? 'mij' : ''}${z ? ' z-' + z : ''}"${z ? ` title="${ZONES[z]}"` : ''}><td>${i + 1}</td><td><span class="clubnaam">${clubLogo(id, 16)}${esc(CLUBS[id].n)}${wisselTeken(id)}</span></td><td>${e.g}</td><td>${e.dv - e.dt > 0 ? '+' : ''}${e.dv - e.dt}</td><td>${e.pt}</td><td class="vk">${vormBolletjes(id)}</td></tr>`; }).join('')}</tbody>
-    </table></div>${t === JEUGD ? '' : `<div class="zones">${Object.entries(ZONES).filter(([k]) => (t > 1 || (k !== 'prom' && k !== 'po')) && (t === 1 || (k !== 'cl' && k !== 'eur')) && (t < AMATEUR || (k !== 'pod' && k !== 'degr'))).map(([k, l]) => `<span class="z-${k}">${l}</span>`).join('')}</div>`}`;
+      <tbody>${st.map((id, i) => { const e = S.tab[id], z = zone(t, i, st.length); return `<tr class="${id === sp.club ? 'mij' : ''}${z ? ' z-' + z : ''}"${z ? ` title="${zoneNaam(z)}"` : ''}><td>${i + 1}</td><td><span class="clubnaam">${clubLogo(id, 16)}${esc(CLUBS[id].n)}${wisselTeken(id)}</span></td><td>${e.g}</td><td>${e.dv - e.dt > 0 ? '+' : ''}${e.dv - e.dt}</td><td>${e.pt}</td><td class="vk">${vormBolletjes(id)}</td></tr>`; }).join('')}</tbody>
+    </table></div>${`<div class="zones">${Object.entries(ZONES).filter(([k]) => (t > 1 || (k !== 'prom' && k !== 'po')) && (t === 1 || (k !== 'cl' && k !== 'eur')) && (t < LAAGSTE || (k !== 'pod' && k !== 'degr')) && (k !== 'pod' || ligaVan(thuisLand()).po.soort === 'barrage')).map(([k]) => `<span class="z-${k}">${zoneNaam(k)}</span>`).join('')}</div>`}`;
   } else if (tab === 'uit'){
     const n = gespeeldeRondes(t);
     if (!n) inhoud = '<p class="muted klein-tekst">Er is nog geen speelronde gespeeld.</p>';
@@ -175,8 +177,8 @@ export function vCompetitieKaart(){
     ${inhoud}</div>`;
 }
 export function vOokGespeeld(){
-  const t = club().t; if (!gespeeldeRondes(t) || !(S.ss.res[t][S.ronde])) return '';
-  return `<div class="krantblok"><span class="label">Ook gespeeld · speelronde ${S.ronde + 1}</span>${vUitslagen(t, S.ronde, true)}</div>`;
+  const t = club().t, r = rondeInWeek(t, S.ronde); if (r == null || !gespeeldeRondes(t) || !(S.ss.res[t][r])) return '';
+  return `<div class="krantblok"><span class="label">Ook gespeeld · speelronde ${r + 1}</span>${vUitslagen(t, r, true)}</div>`;
 }
 export function vNieuwsKaart(){
   const l = (S.nieuws || []).slice(0, 4); if (!l.length) return '';

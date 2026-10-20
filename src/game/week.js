@@ -1,6 +1,6 @@
-import { S, club, mod, ovr } from '../core/state.js';
+import { S, mod, ovr } from '../core/state.js';
 import { clamp, rnd } from '../core/utils.js';
-import { AANTAL_RONDES, ATTR, JEUGD, TRAINBAAR } from '../data/gegevens.js';
+import { AANTAL_RONDES, ATTR, TRAINBAAR, weekFactor } from '../data/gegevens.js';
 import { maakEvent } from './gebeurtenissen.js';
 import { uitgaanKrant } from './media/uitgaan-krant.js';
 import { buitenWeek } from './prive/buiten-week.js';
@@ -10,7 +10,6 @@ import { relatieWeek } from './prive/gezin.js';
 import { haalFoutWeg, maakSchoolvraag } from './prive/school.js';
 import { isProf, maakSponsorEvent } from './prive/sponsors.js';
 import { woning, woningMoraal } from './prive/wonen-auto.js';
-import { doorstroomUitleg } from './speler/doorstroom.js';
 import { kalmData, kalmWeek, kroegEvent, kroegKans } from './speler/kalmte.js';
 import { checkStatus, statusPunten } from './speler/status.js';
 import { kleedWeek } from './team/kleedkamer.js';
@@ -28,14 +27,16 @@ import { maakRivaal, raceWeek, rivaalPrikkel } from './speler/rivaal.js';
 import { clubloosWeek } from './speler/clubloos.js';
 import { gbMoment } from './seizoen/gouden-bal.js';
 import { buitenlandWeek } from './prive/buitenland-leven.js';
+import { journeyWeek, vriendWeek } from './speler/journey.js';
 
 /* ===================== Week ===================== */
 export function nieuweWeek(eerste){
   const sp = S.sp; S.weekNr = (S.weekNr || 0) + 1;
-  if (!sp.rivaal && !S.trainer) maakRivaal(); // je vaste rivaal (ook voor oude opslag)
+  if (!sp.rivaal && !S.trainer && !(sp.journey && sp.journey.h < 4)) maakRivaal(); // je vaste rivaal (in je verhaal pas na de verleiding: misschien wordt je jeugdvriend het)
   if (!eerste){
     const deals = sp.sponsors || [];
-    sp.fit = clamp(sp.fit + 14 + (sp.items.fysio ? 8 : 0) + (sp.items.hoogtekamer ? 4 : 0) + (sp.items.jet ? 2 : 0) + (deals.some(d => d.cat === 'drank') ? 2 : 0), 0, 100);
+    sp.herstel = weekHerstel(sp.fit); // ben je moe, dan herstel je meer (anders zak je in een lang seizoen weg)
+    sp.fit = clamp(sp.fit + sp.herstel + (sp.items.fysio ? 8 : 0) + (sp.items.hoogtekamer ? 4 : 0) + (sp.items.jet ? 2 : 0) + (deals.some(d => d.cat === 'drank') ? 2 : 0), 0, 100);
     sp.moraal = clamp(sp.moraal + (60 - sp.moraal) * .08 + woningMoraal() + (sp.relatie && sp.relatie.samen ? 1 : 0) + ((sp.kinderen || []).length ? 1 : 0) + (sp.items.school ? 1 : 0) + (sp.relatie ? 1 : 0) + Math.min(2, dieren().length) + (sp.statusNiveau >= 3 ? 1 : 0), 0, 100);
     if (sp.relatie) sp.relatie.weken++;
     if (pers('familie')){ const o = ouders(); o.band = clamp(o.band + 1, 0, 100); if (sp.relatie) sp.relatie.band = clamp(sp.relatie.band + 1, 0, 100); if (sp.moraal < 50) sp.moraal = clamp(sp.moraal + 2, 0, 100); }
@@ -76,14 +77,29 @@ export function nieuweWeek(eerste){
   const sGeld = sp.sponsors.reduce((a, d) => a + d.bedrag, 0) / AANTAL_RONDES;
   sp.geld += sGeld; S.car.sponsor = (S.car.sponsor || 0) + sGeld;
   stop.forEach(t => S.week.tekst.push(t));
-  if (eerste && !sp.clubloos && club().t === JEUGD){ sp.o19klaar = false; const u = doorstroomUitleg(); if (u) S.week.tekst.push(u); }
   if (!eerste && sp.relatie && sp.relatie.band < 25 && rnd() < .35){ mod('focus', -4); S.week.tekst.push(`Je hebt vaak ruzie met ${sp.relatie.naam}. Dat kost je concentratie.`); }
   if (!eerste && sp.items.console && rnd() < .12){ mod('fit', -6); S.week.tekst.push('Je hebt tot 2 uur \'s nachts gegamed. Je bent een beetje moe.'); }
   const st = sp.clubloos ? null : checkStatus(); if (st) S.week.tekst.push(st);
   // Een gebeurtenis die deze week klaarstaat (zoals een jubileum) verschijnt nu
+  vriendWeek(eerste); // je jeugdvriend: jullie band, en misschien probeert de zaakwaarnemer het opnieuw
   if (S.wachtEv){ S.ev = S.wachtEv; S.wachtEv = null; S.fase = 'event'; }
+  journeyWeek(eerste); // tijd voor een nieuw hoofdstuk van je verhaal?
 }
-export function trainKans(){ const sp = S.sp; return clamp((sp.pot - ovr(sp)) / 20, .12, .7) + (sp.items.trainer ? .2 : 0) + pers('train') + rivaalPrikkel(); }
+// Herstel tussen twee wedstrijden: hoe vermoeider, hoe meer. Elke week trainen en spelen komt zo uit rond 70 fitheid
+export const weekHerstel = fit => Math.round(20 + (100 - fit) * .2);
+// Elke training telt: je bouwt voortgang op per eigenschap (de trainkans, met een minimum), en bij 100% krijg je +1.
+// Zo groei je per seizoen ongeveer even snel als met een kans per training, maar train je nooit voor niets
+export const TRAIN_MIN = .15;
+const pct = x => `${Math.round(x * 100)}%`;
+export const trainXP = k => (S.sp.trainXP && S.sp.trainXP[k]) || 0;
+export function trainVoortgang(attr, f = 1){
+  const sp = S.sp, xp = sp.trainXP = sp.trainXP || {}, voor = xp[attr] || 0;
+  let na = voor + Math.max(TRAIN_MIN * f, trainKans() * 1.25 * f * (.8 + rnd() * .4)), plus = 0;
+  if (na >= 1){ const v0 = sp.a[attr]; verhoog(attr, (sp.leeftijd < 18 && rnd() < .15) ? 2 : 1); plus = sp.a[attr] - v0; na -= 1; }
+  xp[attr] = na;
+  return {plus, voor, na};
+}
+export function trainKans(){ const sp = S.sp; return weekFactor() * (clamp((sp.pot - ovr(sp)) / 20, .12, .7) + (sp.items.trainer ? .2 : 0) + pers('train') + rivaalPrikkel()); } // (weekFactor: per seizoen even snel, hoe lang het seizoen ook is)
 // Plafond per eigenschap: met jouw talent kun je een eigenschap niet eindeloos opkrikken
 export const PLAFOND_MARGE = 10;
 export const plafond = () => Math.min(99, S.sp.pot + PLAFOND_MARGE);
@@ -101,12 +117,10 @@ export function doeActiviteit(soort, attr){
     if (sp.a[attr] >= plafond()){
       const d = talentDoorbraak();
       t = d ? `Je traint keihard op ${ATTR[attr].toLowerCase()}. ${d} Je plafond ligt nu op ${plafond()}.` : `Je ${ATTR[attr].toLowerCase()} zit aan je plafond (${plafond()}). Train liever iets anders, of laat in wedstrijden zien dat er meer in je zit: sterke wedstrijden laten je talent groeien.`;
-    } else if (rnd() < trainKans()){
-      const voor = sp.a[attr];
-      verhoog(attr, (sp.leeftijd < 18 && rnd() < .15) ? 2 : 1);
-      const n = sp.a[attr] - voor;
-      t = `Je traint keihard op ${ATTR[attr].toLowerCase()}. Het werpt z'n vruchten af: +${n} ${ATTR[attr].toLowerCase()}.`;
-    } else t = `Je traint op ${ATTR[attr].toLowerCase()}, maar het wil nog niet echt klikken. Volgende keer beter.`;
+    } else {
+      const g = trainVoortgang(attr), naam = ATTR[attr].toLowerCase();
+      t = g.plus ? `Je traint keihard op ${naam}. Het werpt z'n vruchten af: +${g.plus} ${naam}.` : `Je traint op ${naam}. Je wordt beter: voortgang ${pct(g.voor)} → ${pct(g.na)} naar +1.`;
+    }
   } else if (soort === 'tactiek'){
     t = tactiekTraining();
   } else if (soort === 'rust'){
@@ -125,7 +139,7 @@ export function doeActiviteit(soort, attr){
     // Voetbalgek: nog een uur doorgaan als de rest al onder de douche staat
     mod('fit', -6); mod('vert', 1);
     const k = TRAINBAAR.filter(x => sp.a[x] < plafond()).sort((a, b) => sp.a[a] - sp.a[b])[0];
-    if (k && rnd() < .35){ const voor = sp.a[k]; verhoog(k, 1); t = `Als iedereen al naar huis is, sta jij nog op het veld. Je ${ATTR[k].toLowerCase()} gaat van ${voor} naar ${sp.a[k]}.`; }
+    if (k && rnd() < .35 * weekFactor()){ const voor = sp.a[k]; verhoog(k, 1); t = `Als iedereen al naar huis is, sta jij nog op het veld. Je ${ATTR[k].toLowerCase()} gaat van ${voor} naar ${sp.a[k]}.`; }
     else t = 'Je blijft na de training nog een uur ballen. Moe maar voldaan ga je naar huis.';
   } else if (soort === 'uit'){
     mod('moraal', 10 + pers('uitMoraal')); mod('fit', -6); mod('focus', -3 + pers('uitFocus'));
@@ -136,7 +150,7 @@ export function doeActiviteit(soort, attr){
   } else if (soort === 'huiswerk'){
     mod('focus', 6); mod('fit', 6); S.week.huiswerk = true;
     const v = S.week.school; if (v && !v.klaar) haalFoutWeg(v);
-    t = sp.ouders.boos ? 'Je zit de hele avond met je boeken. Je ouders zien het: deze week mag je gewoon voetballen.' : 'Je maakt al je huiswerk. Je bent goed voorbereid op school (één fout antwoord valt af).';
+    t = sp.ouders.boos ? 'Je zit de hele avond met je boeken. Je ouders zien het, en de onderwijscoach van de club ook: iedereen is tevreden.' : 'Je maakt al je huiswerk. Je bent goed voorbereid op school (één fout antwoord valt af).';
   } else if (soort === 'revalidatie'){
     mod('fit', 20);
     t = 'Revalidatie bij de fysio. Saai, maar nodig.';

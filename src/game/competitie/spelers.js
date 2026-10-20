@@ -1,6 +1,6 @@
 import { S, club } from '../../core/state.js';
 import { clamp, pick, randInt, rnd, shuffle } from '../../core/utils.js';
-import { CLUBS, DIVS, divClubs } from '../../data/gegevens.js';
+import { CLUBS, DIVS, divClubs, rondeInWeek } from '../../data/gegevens.js';
 import { rondeParen, simGoals, speelLijst, teamUitslag } from './competitie.js';
 import { ck } from '../transfers/buitenland.js';
 import { vormBonus } from './vorm.js';
@@ -69,10 +69,11 @@ export function willekeurigDoel(club, zonderJij){
   const sel = selectie(club), s = gewogen(sel, 'g');
   return {s, a: rnd() < .7 ? gewogen(sel.filter(x => x !== s), 'a') : null};
 }
-export function speelRonde(r, mijnVoor, mijnTegen, doelen){
+// Week w: elke league speelt de ronde die in die week valt (een kortere league heeft soms een speelvrije week)
+export function speelRonde(w, mijnVoor, mijnTegen, doelen){
   const res = S.ss.res = S.ss.res || {};
-  for (let t = 0; t < DIVS.length; t++){
-    const lijst = speelLijst(t); if (lijst.length < 8) continue; // niveau 0 (de oude Europese Elite) bestaat niet meer
+  for (let t = 1; t < DIVS.length; t++){
+    const r = rondeInWeek(t, w), lijst = speelLijst(t); if (r == null || lijst.length < 2) continue;
     const ronde = (res[t] = res[t] || [])[r] = [];
     for (const [h, u] of rondeParen(t, r)){
       const H = lijst[h], U = lijst[u];

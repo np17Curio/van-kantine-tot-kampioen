@@ -56,8 +56,8 @@ export function vStart(){
   const posKnop = k => `<button class="keuze ${tmp.pos === k ? 'aan' : ''}" data-i="${act(() => { tmp.pos = k; })}"><span class="t">${POS[k].n}</span><span class="s">${k === 'SPITS' ? 'Goals maken, schieten, dribbelen' : k === 'MID' ? 'Passen, counters, vrije trappen' : 'Tackles, kopduels, opbouwen'}</span></button>`;
   return `<div class="verhaal">
       <span class="label">Nieuwe carrière</span>
-      <h1>Van de kantine naar de top</h1>
-      <p>Maak je speler en kies hoe je begint: als wonderkind, gewoon als 18-jarige of als laatbloeier die zich moet bewijzen. Speel goed en je klimt via semi-prof en prof misschien wel naar de Europese top. Speel slecht en de trainer stuurt je weg.</p>
+      <h1>Het Grote Doorbreken</h1>
+      <p>Maak je speler en kies hoe je begint: als wonderkind, gewoon als 18-jarige of als laatbloeier die zich moet bewijzen. Je begint met 3 selectiewedstrijden: speel je goed, dan tekent een club uit de hoogste league; speel je slecht, dan begin je bij de O23. Van daaruit klim je misschien wel naar de Europese top.</p>
       <p class="muted">Ook buiten het veld gebeurt van alles: school, feestjes, ongelukjes, de liefde en de media. Jouw keuzes bepalen je reputatie.</p>
     </div>
     ${opgeslagen ? `<div class="rij">${knop(`Verder met ${esc(opgeslagen.sp.naam)}`, () => { setS(herstel(opgeslagen)); })}<span class="muted">${esc(CLUBS[opgeslagen.sp.club].n)} · ${opgeslagen.sp.leeftijd} jaar</span></div>` : ''}
@@ -73,8 +73,9 @@ export function vStart(){
 }
 // Spelregels in het kort: op het startscherm en in het hulpvenster (?)
 const UITLEG = [
+  ['Selectiedagen', 'Je carrière begint met 3 selectiewedstrijden. Gemiddeld een 7,5 of hoger: een club uit de hoogste league. Een 6,5 of hoger: een club uit de league daaronder. Lager: de O23 van een club uit die league. Hoe hoger je cijfer, hoe sterker de club.'],
   ['De week', 'Elke week kies je één ding: trainen, rusten, de trainer imponeren of uitgaan. Daarna speel je een wedstrijd waarin jouw keuzes tellen.'],
-  ['Transfers', 'Bij de winterstop en in de zomer kunnen clubs van een niveau hoger je halen. Vanaf semi-prof kunnen clubs ook midden in het seizoen een bod op je doen. Jij beslist of je gaat.'],
+  ['Transfers', 'Bij de winterstop en in de zomer kunnen sterkere clubs of clubs uit de hoogste league je halen. Clubs kunnen ook midden in het seizoen een bod op je doen. Jij beslist of je gaat.'],
   ['Status bij je club', 'Je status bij de club groeit als je lang en goed bij een club speelt: van jonkie en bankspeler tot vaste waarde, aanvoerder en clublegende. Speel je slecht, dan zak je terug naar de bank.'],
   ['Interlands', 'Speel je prof en goed, dan kan een bondscoach je oproepen voor een land waar jij of je ouders vandaan komen. Je zaakwaarnemer vertelt je wat je moet laten zien voor je droomclub.'],
   ['O23 en verhuur', 'Speel je een reeks slechte wedstrijden, dan zet de trainer je terug naar de O23. Als prof kun je dan ook verhuurd worden.'],
@@ -86,7 +87,7 @@ const UITLEG = [
 export const hulpInhoud = () => `<dl class="uitleg">${UITLEG.map(([k, t]) => `<dt>${k}</dt><dd>${t}</dd>`).join('')}</dl>`;
 export function vZijStart(){
   return `<div class="kaart"><h3>De weg naar boven</h3>
-    <div class="ladder">${DIVS.slice(1).map((d, i) => `<div><span class="label">${NIVEAU[i + 1]}</span><b>${d}</b></div>`).reverse().join('')}<div><span class="label">Europa</span><b>Champions League (nummers 1 en 2)</b></div></div>
+    <div class="ladder">${DIVS.slice(1).map((d, i) => `<div><span class="label">${NIVEAU[i + 1]}</span><b>${d}</b></div>`).reverse().join('')}<div><span class="label">Europa</span><b>Champions League (nummers 1 en 2)</b></div><div><span class="label">Elke club</span><b>O23</b></div></div>
     <details id="hulpPanel" class="uitlegpanel" ${tmp.hulpOpen ? 'open' : ''}><summary class="label">Hoe werkt het?</summary>${hulpInhoud()}</details>
     <p class="muted klein-tekst">Tip: met de <b>?</b> rechtsboven vind je de sneltoetsen en spelregels.</p></div>`;
 }

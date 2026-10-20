@@ -12,7 +12,7 @@ function meter(kort, lang, v, flow){
 }
 
 export function vHud(inSpel){
-  const merk = `<div class="merk">Van Kantine tot Kampioen<small>VAN DE JEUGD NAAR DE WERELDTOP</small></div>`;
+  const merk = `<div class="merk">Het Grote Doorbreken<small>VAN TALENT NAAR DE WERELDTOP</small></div>`;
   const hulp = `<button class="hudknop" data-hulp aria-label="Hulp, sneltoetsen en instellingen" title="Hulp en instellingen">?</button>`;
   if (!inSpel) return `${merk}<div class="hudrechts">${hulp}</div>`;
   const sp = S.sp, c = club();

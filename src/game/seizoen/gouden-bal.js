@@ -1,6 +1,6 @@
 import { S, club, gemCijfer, ovr } from '../../core/state.js';
 import { pick, randInt, rnd } from '../../core/utils.js';
-import { AANTAL_RONDES, CLUBS, DIVS, JEUGD, divClubs, GAST_START, GASTEN } from '../../data/gegevens.js';
+import { AANTAL_RONDES, CLUBS, DIVS, divClubs, GAST_START, GASTEN } from '../../data/gegevens.js';
 import { ACHTERNAMEN, stand } from '../competitie/spelers.js';
 import { metVoornaam } from '../media/nieuws.js';
 
@@ -13,7 +13,7 @@ const isTopClub = id => topClubs().includes(id);
 export function nieuweSter(jong){ return {v:pick(STER_VOOR), n:pick(ACHTERNAMEN), club:pick(topClubs()), basis:jong ? randInt(58, 70) : randInt(62, 80), lft:jong ? randInt(19, 21) : randInt(20, 31)}; }
 export const wereldSterren = () => S.sterren || (S.sterren = Array.from({length:12}, () => nieuweSter(false)));
 // Hoeveel je seizoen telt: de hoogste competitie (Topdivisie) helemaal, daaronder steeds minder
-export const GB_NIVEAU = {1:1, 2:.5, 3:.25, 4:.1, [JEUGD]:.03};
+export const GB_NIVEAU = {1:1, 2:.5};
 // Jouw punten voor de Gouden Bal (dezelfde formule aan het einde van het seizoen en in de race tijdens het seizoen)
 export function goudenBalScore({gem, g, a, kamp, beker, cl, o, t, tb = 0}){
   const f = GB_NIVEAU[t] ?? 0;
@@ -73,8 +73,7 @@ export function goudenBalStand(){
   const f = GB_NIVEAU[t] ?? 0, r1 = x => String(Math.round(x * 10) / 10).replace('.', ',');
   const tips = [];
   if (wed < 8) tips.push(`Speel minstens 8 wedstrijden: nu ${wed}. Anders tel je niet mee.`);
-  if (t > 1 && t !== JEUGD) tips.push(`In de ${DIVS[t]} telt je seizoen maar voor ${Math.round(f * 100)}%. Speel in de hoogste competitie (${DIVS[1]}) om echt mee te doen.`);
-  if (t === JEUGD || t >= 3) tips.push('Bij de jeugd en de amateurs maak je geen kans: word eerst prof.');
+  if (t > 1) tips.push(`In de ${DIVS[t]} telt je seizoen maar voor ${Math.round(f * 100)}%. Speel in de hoogste competitie (${DIVS[1]}) om echt mee te doen.`);
   if (f > 0){
     tips.push(`Elke 0,1 hoger gemiddeld cijfer: +${r1(1.8 * f)} punten${gem !== null ? ` (nu ${c1(gem)})` : ''}.`);
     tips.push(`Elke goal +${r1(1.3 * f)}, elke assist +${r1(.8 * f)}.`);

@@ -1,7 +1,7 @@
 import { S, seizoenLabel, tmp } from '../../core/state.js';
 import { act, keuzeKnop, knop, tabBalk } from '../../core/ui.js';
 import { esc, geldTxt } from '../../core/utils.js';
-import { AANTAL_RONDES, CLUBS, DIVS } from '../../data/gegevens.js';
+import { AANTAL_RONDES, CLUBS, DIVS, WINTER, rondesVan, rondesVoor } from '../../data/gegevens.js';
 import { clubLogo } from '../../data/logos.js';
 import { fixture } from '../../game/competitie/competitie.js';
 import { POS_NAAM, stand } from '../../game/competitie/spelers.js';
@@ -27,10 +27,11 @@ function vEisen(kort){
     ${kort ? '' : `<p class="muted klein-tekst">De hoofdeis telt dubbel (net gemist: 1 punt). Haal je aan het einde van het seizoen minder dan 2 van de 4 punten, dan word je ontslagen. Met 3 of 4 punten krijg je extra budget. Nu: ${score()} van de 4.</p>`}</div>`;
 }
 function vWedstrijdTab(){
-  const T0 = S.trainer, c = CLUBS[T0.club], fx = fixture(S.ronde), opp = CLUBS[fx.opp], o = opst(), ok = geldig();
+  const T0 = S.trainer, c = CLUBS[T0.club], fx = fixture(S.ronde); if (!fx) return `<div class="vooruit"><span class="label">Speelvrije week</span><p>Jouw league speelt deze week niet.</p>${knop('Volgende week', trainerVerder)}</div>`;
+  const opp = CLUBS[fx.opp], o = opst(), ok = geldig();
   const kies = (obj, sleutel) => `<div class="keuzes" style="margin-top:6px">${Object.entries(obj).map(([k, x]) => `<button class="keuze ${T0[sleutel] === k ? 'aan' : ''}" data-i="${act(() => { T0[sleutel] = T0[sleutel] === k && sleutel === 'bespreking' ? null : k; })}" data-blijf aria-pressed="${T0[sleutel] === k}"><span class="t">${x.n}</span><span class="s">${x.d}</span></button>`).join('')}</div>`;
   const vl = id => { const [l, cls] = vormLabel(id); return `${vormBolletjes(id)} <span class="risico ${cls}">${l}</span>`; };
-  return `<div class="vooruit"><span class="label">Wedstrijd ${S.ronde + 1} van ${AANTAL_RONDES} · ${fx.thuis ? 'thuis' : 'uit'}</span>
+  return `<div class="vooruit"><span class="label">Wedstrijd ${rondesVoor(c.t, S.ronde) + 1} van ${rondesVan(c.t)} · ${fx.thuis ? 'thuis' : 'uit'}</span>
       <div class="vs"><div class="ploeg mij">${clubLogo(T0.club, 40)}<b>${esc(c.n)}</b></div><span class="vsteken">vs</span><div class="ploeg r"><b>${esc(opp.n)}</b>${clubLogo(fx.opp, 40)}</div></div>
       <p class="opst"><span class="label">Sterkte</span><b>${c.s}</b><span class="muted">tegen</span><b>${opp.s}</b><span class="label">Vorm</span>${vl(T0.club)}<span class="muted">tegen</span>${vl(fx.opp)}</p>
       <p class="opst"><span class="label">Opstelling</span><b>${o.formatie}</b><span class="muted">elf ${elfKracht().toFixed(1)} · beste mogelijke ${refKracht().toFixed(1)}</span>${ok ? '' : '<span class="risico r-riskant">Niet compleet</span>'}${knop('Wijzigen', () => { tmp.trTab = 'opstelling'; }, 'klein', 'data-blijf')}</p></div>
@@ -92,7 +93,7 @@ export function vTrainerUitslag(){
     <div class="verhaal"><span class="label">${uit} · tactiek: ${TACTIEK[L.tk].n.toLowerCase()}</span>${L.regels.map(r => `<p>${esc(r)}</p>`).join('')}<p class="muted">Jullie staan nu ${L.plek}e.</p>
     ${T0.ontslag ? '<p class="melding" style="color:var(--fout);border-color:var(--fout)">Het bestuur heeft genoeg gezien. Je bent ontslagen.</p>' : ''}</div>
     ${vKrant(S.krantWacht)}
-    ${knop(T0.ontslag ? 'Op zoek naar een nieuwe club' : S.ronde >= AANTAL_RONDES ? 'Seizoen afsluiten' : S.ronde === 7 ? 'Naar de winterstop (transfervenster)' : 'Volgende week', () => { S.krantWacht = []; tmp.trTab = S.ronde === 7 ? 'transfers' : tmp.trTab; tmp.trMelding = null; trainerVerder(); })}`;
+    ${knop(T0.ontslag ? 'Op zoek naar een nieuwe club' : S.ronde >= AANTAL_RONDES ? 'Seizoen afsluiten' : S.ronde === WINTER ? 'Naar de winterstop (transfervenster)' : 'Volgende week', () => { S.krantWacht = []; tmp.trTab = S.ronde === WINTER ? 'transfers' : tmp.trTab; tmp.trMelding = null; trainerVerder(); })}`;
 }
 export function vTrainerSeizoen(){
   const E = S.trainerEind, T0 = S.trainer, B = E.bestuur;

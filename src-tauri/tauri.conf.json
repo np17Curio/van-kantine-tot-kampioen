@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Van Kantine tot Kampioen",
+  "productName": "Het Grote Doorbreken",
   "version": "1.0.0",
   "identifier": "nl.kantine.kampioen",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Van Kantine tot Kampioen",
+        "title": "Het Grote Doorbreken",
         "width": 1366,
         "height": 900,
         "minWidth": 900,
@@ -36,7 +36,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "shortDescription": "Voetbalcarrièrespel: van de kantine naar de wereldtop",
+    "shortDescription": "Voetbalcarrièrespel: van talent naar de wereldtop",
     "category": "Game"
   }
 }

@@ -1,3 +1,4 @@
+import { weekFactor } from '../../data/gegevens.js';
 import { S, club, mod, seizoenLabel } from '../../core/state.js';
 import { geldTxt, rnd } from '../../core/utils.js';
 import { KRANTEN } from '../media/nieuws.js';
@@ -38,7 +39,7 @@ export function volgersNaWedstrijd(M){
   if (M.cijfer === null || M.cijfer === undefined) return;
   const so = social(), t = club().t, schaal = (1 + (5 - Math.min(t, 5)) * .8) * (1 + S.sp.rep / 20);
   const voor = so.volgers;
-  const groei = ((M.cijfer - 6) * 6 + M.goals * 15 + M.assists * 6 + (M.kampioen ? 80 : 0)) * schaal;
+  const groei = ((M.cijfer - 6) * 6 + M.goals * 15 + M.assists * 6) * schaal * weekFactor() + (M.kampioen ? 80 * schaal : 0);
   so.volgers = Math.max(0, Math.round(so.volgers + (groei > 0 ? groei * pers('volgers') : groei)));
   M.volgers = so.volgers - voor;
   M.volgerTekst = volgerMijlpaal();

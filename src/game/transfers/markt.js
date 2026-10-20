@@ -1,6 +1,6 @@
 import { S, club, mod } from '../../core/state.js';
 import { clamp, esc, geldTxt, pick, randInt, rnd } from '../../core/utils.js';
-import { AMATEUR, BASE, CLUBS, DIVS, JEUGD, divClubs } from '../../data/gegevens.js';
+import { BASE, CLUBS, DIVS, LAAGSTE, divClubs } from '../../data/gegevens.js';
 import { ACHTERNAMEN, OPBOUW, POS_NAAM, VOORL, selectie } from '../competitie/spelers.js';
 import { kortClub, metVoorletter } from '../media/nieuws.js';
 import { krantMelding } from '../media/roddel.js';
@@ -13,11 +13,10 @@ import { band, kleedkamer, zetBand } from '../team/kleedkamer.js';
 // In elke transferperiode kopen en verkopen de clubs uit jouw competitie spelers. Een koper wordt sterker, een verkoper
 // zwakker. Jouw eigen club doet meestal ook mee: nieuwe teamgenoten komen binnen, of een maat vertrekt. Alles komt in de krant.
 const MAX_DELTA = 2; // per club per periode hooguit ±2 sterkte
-// Over welke competitie gaat het: jouw niveau; vanuit de jeugd het eerste elftal van je club (de Amateurklasse)
+// Over welke competitie gaat het: jouw niveau
 const isRivaal = x => !!(S.sp && S.sp.rivaal && x.n === S.sp.rivaal.n && x.v === S.sp.rivaal.v);
 export function marktComp(){
-  const c = club(), jeugd = c.t === JEUGD;
-  return {t:jeugd ? AMATEUR : c.t, mijn:jeugd ? c.ouder : S.sp.club, jeugd};
+  return {t:club().t, mijn:S.sp.club, jeugd:false};
 }
 const naamVrij = (lijst, n) => !lijst.some(x => x.n === n);
 // Eén speler van club `van` naar club `naar`
@@ -70,7 +69,7 @@ export function clubTransfers(soort, {zonderMijn = false} = {}){
   const sleutel = `${S.jaar}-${soort}`; if (S.marktKlaar === sleutel) return [];
   S.marktKlaar = sleutel;
   const {t, mijn, jeugd} = marktComp(), comp = divClubs(t), sMax = Math.max(...comp.map(i => CLUBS[i].s));
-  const onder = t < AMATEUR ? divClubs(t + 1).sort((a, b) => CLUBS[b].s - CLUBS[a].s).slice(0, 3) : [];
+  const onder = t < LAAGSTE ? divClubs(t + 1).sort((a, b) => CLUBS[b].s - CLUBS[a].s).slice(0, 3) : [];
   const boven = t > 1 ? divClubs(t - 1).sort((a, b) => CLUBS[a].s - CLUBS[b].s).slice(0, 4) : [];
   const jeugdStart = (S.jeugdIn || []).length;
   const gestopt = soort === 'zomer' ? ontwikkelSpelers(divClubs(t).includes(mijn) ? divClubs(t) : divClubs(t).concat(mijn), mijn) : [];

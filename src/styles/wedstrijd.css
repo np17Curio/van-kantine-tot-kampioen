@@ -54,3 +54,16 @@
 .nieuw{animation:regel .35s ease-out both}
 .moment{border-left:3px solid var(--info);background:rgba(56,189,248,.08);padding:8px 12px;border-radius:0 8px 8px 0;font-size:.95rem}
 
+
+/* De intro vóór de aftrap: twee opstellingen naast elkaar */
+.intro .rij{gap:6px;flex-wrap:wrap;align-items:center}
+.opstellingen{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+@media (max-width:640px){.opstellingen{grid-template-columns:1fr}}
+.opstelling{background:var(--paneel);border:1px solid var(--lijn);border-radius:8px;padding:10px 12px;display:grid;gap:4px;align-content:start}
+.opstelling .opkop{display:flex;gap:8px;align-items:center;margin-bottom:4px}
+.opstelling .opkop div{display:grid}
+.opstelling ol{list-style:none;margin:0 0 4px;padding:0;display:grid;gap:1px;font-size:.88rem}
+.opstelling li{display:grid;grid-template-columns:2em 1fr;gap:6px;padding:1px 4px;border-radius:4px}
+.opstelling li .nr{color:var(--mist);font-family:var(--f-mono);text-align:right}
+.opstelling li.mij{background:var(--hover);color:var(--lamp)}
+.opstelling .wissels{opacity:.85}

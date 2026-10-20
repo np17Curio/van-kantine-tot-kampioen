@@ -14,6 +14,7 @@ import { verhaalEvents } from './speler/verhaal.js';
 import { persEvents } from './speler/persEvents.js';
 import { rivaal, rivaalEvents } from './speler/rivaal.js';
 import { scoutEvent } from './transfers/buitenland.js';
+import { toonEffect, vriendEvents } from './speler/journey.js';
 import { buitenlandEvents, buitenlandKans, inBuitenland, thuis, vluchtPrijs } from './prive/buitenland-leven.js';
 
 /* ===================== Gebeurtenissen ===================== */
@@ -35,6 +36,8 @@ export function maakEvent(){
   { const v = verhaalEvents(); if (v.length && rnd() < .3) return pick(v); }
   // Daarna iets dat bij je persoonlijkheid hoort (een rebel krijgt andere dingen voor zijn kiezen dan een prof)
   { const p = persEvents(); if (p.length && rnd() < .25) return pick(p); }
+  // Je jeugdvriend (zolang jullie vrienden zijn)
+  if (rnd() < .07){ const v = vriendEvents(); if (v.length) return pick(v); }
   // Leven in het buitenland: taal, heimwee, gezin
   if (rnd() < buitenlandKans()){ const b = buitenlandEvents(); if (b.length) return pick(b); }
   // Scouts uit het buitenland (de overstap kan pas in de zomer)
@@ -300,7 +303,7 @@ export function maakEvent(){
 export function kiesEvent(i){
   const o = S.ev.opts[i], sp = S.sp, oudeLiefde = sp.relatie ? sp.relatie.naam : null;
   S.volgEv = null;
-  const t = o.f.call(o);
+  const t = o.f.call(o) + (o.toon ? ' ' + toonEffect(o.toon) : '');
   if (!oudeLiefde && sp.relatie) roddel(`${sp.naam} heeft een nieuwe liefde`, `${sp.naam} is gespot met ${sp.relatie.naam}. Volgens vrienden is het "echt iets serieus".`);
   if (oudeLiefde && !sp.relatie) roddel(`Het is uit tussen ${sp.naam} en ${oudeLiefde}`, 'Vrienden zeggen dat het al een tijdje niet goed ging.');
   S.week.tekst.push(t);

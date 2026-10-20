@@ -1,7 +1,6 @@
-import { CLUBS, ELITE_NAAM, GAST_START, JEUGD, landBasis, zetClubs } from '../data/gegevens.js';
+import { CLUBS, ELITE_NAAM, GAST_START, landBasis, zetClubs } from '../data/gegevens.js';
 import { zetLand } from '../data/landen.js';
 import { maakSchoolvraag } from '../game/prive/school.js';
-import { niveauVoor } from '../game/speler/status.js';
 
 // Na herladen bestaan functies in opgeslagen gebeurtenissen niet meer: zet het spel terug naar een veilige stap
 export function herstel(st){
@@ -11,21 +10,6 @@ export function herstel(st){
   for (let i = 0; i < 8; i++) CLUBS[i].n = st && st.slots && st.slots[i] ? st.slots[i].n : ELITE_NAAM[i]; // de Europese Elite
   // Oudere opslag zonder status-gegevens bijwerken
   if (st && st.sp && st.sp.status === undefined) Object.assign(st.sp, {status:10, clubWed:0, clubSz:0, statusNiveau:0, sindsTransfer:10, legendeHier:false});
-  // Versie 4: een tiener die net bij de senioren zit, is weer een jonkie
-  if (st && st.sp && !st.mig4){
-    st.mig4 = true;
-    if (CLUBS[st.sp.club].t !== JEUGD && st.sp.leeftijd < 20 && st.sp.clubSz === 0){ st.sp.status = Math.min(st.sp.status, 12); st.sp.statusNiveau = 0; st.sp.vert = Math.min(st.sp.vert, 50); }
-  }
-  // Versie 5: Bankspeler toegevoegd, statuspunten omrekenen naar de nieuwe schaal
-  if (st && st.sp && !st.mig5){
-    st.mig5 = true;
-    const X = [0, 20, 40, 60, 85, 100], Y = [0, 35, 55, 75, 90, 100], oud = st.sp.status;
-    let nw = 0;
-    for (let i = 1; i < X.length; i++){ if (oud <= X[i]){ nw = Y[i - 1] + (oud - X[i - 1]) / (X[i] - X[i - 1]) * (Y[i] - Y[i - 1]); break; } }
-    if (CLUBS[st.sp.club].t !== JEUGD && (st.sp.clubWed || 0) < 14 && !st.sp.legendeHier) nw = Math.min(nw, 25);
-    st.sp.status = nw;
-    st.sp.statusNiveau = niveauVoor(nw, st.sp.clubSz, st.sp.clubWed, st.sp.legendeHier, CLUBS[st.sp.club].t, st.sp.leeftijd);
-  }
   // Versie 6: interlands en zaakwaarnemer. Herkomst wordt eenmalig gevraagd in de trainingsweek
   if (st && st.sp && st.sp.bonds === undefined){ st.sp.bonds = {}; st.sp.land = null; st.sp.agent = {doel:null, antwoord:null, gehaald:false, sugg:null}; st.car.int = st.car.int || {}; }
   if (st && st.fase === 'oproep' && !st.oproep) st.fase = 'week';

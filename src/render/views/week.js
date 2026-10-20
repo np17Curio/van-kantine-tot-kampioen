@@ -1,8 +1,8 @@
 import { S, club, mod, ovr, tmp } from '../../core/state.js';
 import { act, keuzeKnop, knop, tabBalk } from '../../core/ui.js';
 import { clamp, esc, geldTxt } from '../../core/utils.js';
-import { AANTAL_RONDES, ATTR, CLUBS, DIVS, TRAINBAAR, WINKEL, WINKEL_GROEPEN } from '../../data/gegevens.js';
-import { BEKERS, bekerRondeNaam, bekersVan } from '../../game/competitie/beker.js';
+import { AANTAL_RONDES, ATTR, CLUBS, DIVS, TRAINBAAR, WINKEL, WINKEL_GROEPEN, WINTER, rondesVan, rondesVoor } from '../../data/gegevens.js';
+import { BEKERS, bekerRondeNaam, bekerSchema, bekersVan } from '../../game/competitie/beker.js';
 import { fixture } from '../../game/competitie/competitie.js';
 import { kiesEvent } from '../../game/gebeurtenissen.js';
 import { metVoorletter, vKrant } from '../../game/media/nieuws.js';
@@ -17,8 +17,6 @@ import { POSTS, VOLG_ACTIES, influencerPerWeek, kledingPerWeek, post, social, vo
 import { koop } from '../../game/prive/sponsors.js';
 import { vUitgaan } from '../../game/prive/verleidingen.js';
 import { AUTOS, EXAMEN_PRIJS, RIJLES, THEORIE_PRIJS, WONINGEN, autoInfo, autoWaarde, koopAuto, praktijkExamen, rijles, startTheorie, theorieAntwoord, verhuis, verkoopWaarde, woning } from '../../game/prive/wonen-auto.js';
-import { doorstroomAdvies, doorstroomDoel, doorstroomEisen, inMoment } from '../../game/speler/doorstroom.js';
-import { BEWIJS, bewijsAdvies, bewijsEisen, heeftProef } from '../../game/speler/bewijs.js';
 import { welkomTekst } from '../../game/speler/startverhaal.js';
 import { verhaalActiviteiten, verhaalTitel } from '../../game/speler/verhaal.js';
 import { O23_EIS, fmt1, gemiddelde } from '../../game/speler/o23.js';
@@ -32,9 +30,10 @@ import { vContract } from '../../game/transfers/contract.js';
 import { isDerby, vFans } from '../../game/wedstrijd/fans-pers.js';
 import { focusBoost, focusStaat, focusWinst } from '../../game/wedstrijd/momenten.js';
 import { reunieMet, vReunie } from '../../game/wedstrijd/reunie.js';
-import { startWedstrijd } from '../../game/wedstrijd/wedstrijd.js';
-import { doeActiviteit, plafond } from '../../game/week.js';
+import { startWedstrijd, rustWeek } from '../../game/wedstrijd/wedstrijd.js';
+import { doeActiviteit, plafond, trainXP } from '../../game/week.js';
 import { eisRij, vAgent } from './agent.js';
+import { TOON, VRIEND_ACTIES, kanUitpraten, kanVriendActie, uitpraten, vriendActie } from '../../game/speler/journey.js';
 import { herkomstUitTmp, vHerkomstKeuze } from './start.js';
 import { balk, vSeizoenStrip } from './zijbalk.js';
 import { vBankVraag } from '../../game/team/bankverzoek.js';
@@ -69,13 +68,19 @@ function teamOpen(){
 
 // Het interview in de week van het duel met je rivaal (niet verplicht)
 function vRivaalInterview(fx){
-  if (S.sp.o23 || !speeltTegenRivaal(fx.opp)) return '';
+  if (!fx || S.sp.o23 || !speeltTegenRivaal(fx.opp)) return '';
   const P = voorDuelVraag(); if (!P) return '';
   const kop = `<span class="label">Interview voor het duel met ${esc(rivaalNaam())}</span>`;
   if (P.klaar) return `<div class="paneel">${kop}<p class="muted">"${esc(P.vraag)}"</p><p><b>Jij:</b> ${esc(P.opts[P.keuze].t)}</p><p class="melding">${esc(P.uit)}</p></div>`;
   return `<div class="paneel" id="rivaalInterview">${kop}<p>Een verslaggever wacht je op na de training: <b>"${esc(P.vraag)}"</b></p>
     <div class="keuzes">${P.opts.map((o, i) => keuzeKnop(o.l, `${esc(o.t)} · ${o.e}`, () => voorDuelAntwoord(i), 'data-blijf')).join('')}</div>
     <p class="muted klein-tekst">Je hoeft niet te antwoorden.</p></div>`;
+}
+// Een week zonder competitiewedstrijd voor jouw league (een kortere league dan de andere van je land)
+function vSpeelvrij(){
+  const c = club(), t = c.t, ander = t === 1 ? 2 : 1;
+  return `<div class="vooruit"><span class="label">Speelvrije week · ${rondesVoor(t, S.ronde)} van ${rondesVan(t)} wedstrijden gespeeld</span>
+    <p>De ${esc(DIVS[t])} heeft deze week geen speelronde (de ${esc(DIVS[ander])} speelt wel: die heeft meer clubs). Train goed, rust uit of doe iets leuks.</p></div>`;
 }
 function vVooruitblik(fx, opp, vo){
   const sp = S.sp, c = club(), wij = sp.o23 ? `${c.n} O23` : c.n, zij = sp.o23 ? `${opp.n} O23` : opp.n;
@@ -85,9 +90,9 @@ function vVooruitblik(fx, opp, vo){
   if (!sp.o23){ const T = teamKracht(c.s, {speelt:true, thuis:fx.thuis, tactiek:matchup(clubTactiek(sp.club), clubTactiek(fx.opp))}), O = opp.s + (fx.thuis ? 0 : 2) + vormBonus(fx.opp), d = T - O;
     tags.unshift(d <= -3 ? '<span class="tag teveel">Jullie zijn de underdog</span>' : d >= 3 ? '<span class="tag omhoog">Jullie zijn favoriet</span>' : '<span class="tag">Gelijkwaardig</span>'); }
   { const rs = actiefRivaal() ? raceStand() : null; if (rs) tags.push(`<span class="tag ${rs.verschil > 0 ? 'omhoog' : rs.verschil < 0 ? 'teveel' : ''}">Race met ${esc(rivaalNaam())}: jij ${rs.jij}, hij ${rs.hij} ${rs.woord}</span>`); }
-  for (const k of bekersVan(sp.club)){ const b = S.ss.bekers[k]; if (b && b.levend.includes(sp.club) && b.winnaar === null && BEKERS[k].schema[b.rondes.length] === S.ronde + 1) tags.push(`<span class="tag omhoog">Daarna: ${esc(BEKERS[k].naam)}, ${esc(bekerRondeNaam(k, b.rondes.length).toLowerCase())}</span>`); }
+  for (const k of bekersVan(sp.club)){ const b = S.ss.bekers[k]; if (b && b.levend.includes(sp.club) && b.winnaar === null && bekerSchema(k)[b.rondes.length] === S.ronde + 1) tags.push(`<span class="tag omhoog">Daarna: ${esc(BEKERS[k].naam)}, ${esc(bekerRondeNaam(k, b.rondes.length).toLowerCase())}</span>`); }
   return `<div class="vooruit">
-    <span class="label">Wedstrijd ${S.ronde + 1} van ${AANTAL_RONDES}${sp.o23 ? ` · het 1e elftal speelt ${fx.thuis ? 'thuis' : 'uit'} tegen ${esc(opp.n)}` : ''}</span>
+    <span class="label">Wedstrijd ${rondesVoor(c.t, S.ronde) + 1} van ${rondesVan(c.t)}${sp.o23 ? ` · het 1e elftal speelt ${fx.thuis ? 'thuis' : 'uit'} tegen ${esc(opp.n)}` : ''}</span>
     <div class="vs"><div class="ploeg ${fx.thuis ? 'mij' : ''}">${clubLogo(fx.thuis ? sp.club : fx.opp, 40)}<b>${esc(fx.thuis ? wij : zij)}</b></div><span class="vsteken">vs</span><div class="ploeg r ${fx.thuis ? '' : 'mij'}"><b>${esc(fx.thuis ? zij : wij)}</b>${clubLogo(fx.thuis ? fx.opp : sp.club, 40)}</div></div>
     <div class="kracht" title="Sterkte ${c.s} tegen ${opp.s}"><span class="niv">${esc(c.n)} ${c.s}</span><span class="krachtbalk"><i style="width:${aandeel}%"></i></span><span class="niv">${opp.s} ${esc(opp.n)}</span></div>
     ${sp.o23 ? '' : vVormDuel(fx)}
@@ -138,7 +143,7 @@ function activiteit(id, t, s, fn, extra = ''){
 function vActiviteiten(){
   const sp = S.sp, fitKost = sp.items.fitness ? 5 : 8;
   const tid = clubTactiek(sp.club), iz = inzicht(tid);
-  const train = TRAINBAAR.map(k => keuzeKnop(`Train ${ATTR[k].toLowerCase()}`, `<span class="mini"><i style="width:${clamp(sp.a[k], 0, 100)}%"></i></span> ${sp.a[k]} · ${sp.a[k] >= plafond() ? 'plafond bereikt (groeit met sterke wedstrijden)' : `fitheid −${fitKost}`}`, () => doeActiviteit('train', k))).join('')
+  const train = TRAINBAAR.map(k => keuzeKnop(`Train ${ATTR[k].toLowerCase()}`, `<span class="mini"><i style="width:${clamp(sp.a[k], 0, 100)}%"></i></span> ${sp.a[k]} · ${sp.a[k] >= plafond() ? 'plafond bereikt (groeit met sterke wedstrijden)' : `fitheid −${fitKost} · voortgang ${Math.round(trainXP(k) * 100)}% naar +1`}`, () => doeActiviteit('train', k))).join('')
     + activiteit('tactiek', `Tactiek: ${TACTIEKEN[tid].n.toLowerCase()}`, `<span class="mini"><i style="width:${iz}%"></i></span> inzicht ${iz} · fitheid −${TRAIN_FIT}`, () => doeActiviteit('tactiek'));
   const extra = heeft('voetbalgek') ? activiteit('extra', '⚽ Extra trainen na de training', 'Kans op +1 bij je zwakste eigenschap · vertrouwen +1 · fitheid −6', () => doeActiviteit('extra')) : '';
   const herstel = activiteit('rust', 'Rustig aan', `Fitheid +22 · focus +${focusWinst(8)} · vorm iets beter`, () => doeActiviteit('rust'))
@@ -146,7 +151,7 @@ function vActiviteiten(){
     + activiteit('video', 'Videoanalyse', `Focus +${focusWinst(7)} · vertrouwen +4 · fitheid −2`, () => doeActiviteit('video'));
   const sociaal = activiteit('trainer', 'Indruk maken op trainer', 'Vertrouwen +7 · fitheid −12', () => doeActiviteit('trainer'))
     + (sp.leeftijd < 18 && sp.ouders.boos ? keuzeKnop('Afspreken met vrienden', 'Mag niet van je ouders', () => {}, 'disabled') : activiteit('uit', sp.leeftijd < 18 ? 'Afspreken met vrienden' : 'Avondje uit', 'Moraal +10 · focus −3 · kans op gedoe', () => doeActiviteit('uit')))
-    + (sp.leeftijd < 18 ? keuzeKnop('Huiswerk maken', sp.ouders.boos ? 'Focus +6 · dan mag je deze week zeker spelen' : 'Focus +6 · beter voorbereid op school', () => doeActiviteit('huiswerk')) : '');
+    + (sp.leeftijd < 18 ? keuzeKnop('Huiswerk maken', sp.ouders.boos ? 'Focus +6 · je ouders en de onderwijscoach van de club zijn tevreden' : 'Focus +6 · beter voorbereid op school', () => doeActiviteit('huiswerk')) : '');
   const va = verhaalActiviteiten(), verhaal = va.length ? `<div class="actgroep verhaal"><span class="label">Jouw verhaal · ${esc(verhaalTitel(sp))}</span><div class="keuzes">${va.map(a => keuzeKnop(a.l, a.s, () => doeActiviteit(a.id))).join('')}</div></div>` : '';
   return `<section class="activiteiten"><h3 class="sectiekop">Wat doe je deze week? <span class="niv">1 keuze</span></h3>
     <div class="actgroepen">
@@ -156,24 +161,22 @@ function vActiviteiten(){
 }
 
 function vDezeWeek(){
-  const sp = S.sp, w = S.week, fx = fixture(S.ronde), opp = CLUBS[fx.opp];
+  const sp = S.sp, w = S.week, fx = fixture(S.ronde), opp = fx ? CLUBS[fx.opp] : null;
   const eersteKeer = S.ronde === 0 && S.car.wed === 0;
   const vo = sp.o23 && sp.blessure <= 0 && !(sp.geschorst > 0) ? {k:'O23 · basis', cls:'r-gem', reden:'Je speelt bij de O23 tot de trainer je terughaalt.'} : verwachteOpstelling();
-  let html = vSeizoenStrip() + `<div class="verhaal"><span class="label">Week ${S.ronde + 1} van ${AANTAL_RONDES} · ${S.ronde === 0 ? 'Nieuw seizoen' : S.ronde === 7 ? 'Na de winterstop' : 'Trainingsweek'}</span>
+  let html = vSeizoenStrip() + `<div class="verhaal"><span class="label">Week ${S.ronde + 1} van ${AANTAL_RONDES} · ${S.ronde === 0 ? 'Nieuw seizoen' : S.ronde === WINTER ? 'Na de winterstop' : 'Trainingsweek'}</span>
     ${S.ronde === 0 ? `<h2>${eersteKeer ? `Welkom bij ${esc(club().n)}` : 'Nieuw seizoen'}</h2>` : ''}`;
   if (eersteKeer) html += `<p>${esc(welkomTekst(sp))}</p>`;
   else if (S.ronde === 0) html += `<p>Een nieuw seizoen bij ${esc(club().n)} in de ${DIVS[club().t]}. Alles begint weer bij nul.</p>`;
-  html += `</div>` + vVooruitblik(fx, opp, vo) + vRivaalInterview(fx);
-  html += vReunie();
+  html += `</div>` + (fx ? vVooruitblik(fx, opp, vo) : vSpeelvrij()) + vRivaalInterview(fx);
+  html += fx ? vReunie() : '';
   if (sp.o23){ const c = sp.o23.cijfers; html += `<div class="paneel"><span class="label">Bij de O23</span><p>${O23_EIS}</p><p class="muted">${c.length ? 'Je cijfers bij de O23: ' + c.map(fmt1).join(' · ') : 'Je hebt nog geen wedstrijd gespeeld bij de O23.'}</p></div>`; }
   if (sp.huur){ const c = sp.huur.cijfers; html += `<div class="paneel"><span class="label">Op huurbasis tot de zomer</span><p>Je speelt bij ${esc(club().n)} en gaat in de zomer terug naar ${esc(CLUBS[sp.huur.ouder].n)}. Hoe beter je hier speelt, hoe beter je plek daar. Gemiddeld een 7,0 of hoger en ze rekenen op je.</p><p class="muted">${c.length ? `Gemiddeld cijfer hier: ${fmt1(gemiddelde(c))} (${c.length} ${c.length === 1 ? 'wedstrijd' : 'wedstrijden'})` : 'Je hebt hier nog niet gespeeld.'}</p></div>`; }
   if (!sp.herkomst) html += `<div class="paneel"><span class="label">Nieuw: interlands</span><p>Uit welke landen kom je? Daarmee bepaal je voor welke landen je later interlands kunt spelen.</p>${vHerkomstKeuze()}<div>${knop('Opslaan', () => { sp.herkomst = herkomstUitTmp(); }, 'hoofd middel', 'data-blijf')}</div></div>`;
   if (w.tekst.length) html += `<div class="verhaal">${w.tekst.map(t => `<p class="moment">${esc(t)}</p>`).join('')}</div>`;
   if (S.krantWacht && S.krantWacht.length) html += vKrant(S.krantWacht);
   if (sp.geboorte) html += `<div class="kampioen"><span class="label">Je bent vader!</span><h2>Het is een ${sp.geboorte.jongen ? 'jongen' : 'meisje'}</h2><p>Hoe ga je ${sp.geboorte.jongen ? 'hem' : 'haar'} noemen?</p><div class="keuzes">${sp.geboorte.opties.map(n => keuzeKnop(esc(n), '', () => geefNaam(n), 'data-blijf')).join('')}</div></div>`;
-  if (sp.leeftijd < 18 && sp.ouders.boos && !w.huiswerk) html += `<p class="melding">Je ouders zijn boos om je cijfers. Misschien houden ze je thuis bij de wedstrijd. Maak je deze week huiswerk, dan mag je zeker spelen.</p>`;
-  html += vDoorstroom();
-  html += vBewijs();
+  if (sp.leeftijd < 18 && sp.ouders.boos && !w.huiswerk) html += `<p class="melding">Je ouders zijn boos om je cijfers, en de onderwijscoach van ${esc(club().n)} kijkt mee. Maak je deze week huiswerk, dan is de club tevreden. Anders hoort de trainer het en kost het je vertrouwen.</p>`;
   html += vSchool();
   // Stap 1: activiteit kiezen · stap 2 (optioneel): iets voor je focus · stap 3: spelen
   let cta;
@@ -182,6 +185,7 @@ function vDezeWeek(){
     cta = `<span class="muted">Kies eerst wat je deze week doet.</span>`;
   } else if (sp.geboorte) cta = `<span class="muted">Kies eerst een naam voor je kindje.</span>`;
   else if (w.school && !w.school.klaar) cta = `<span class="muted">Maak eerst je schoolwerk af, daarna kun je spelen.</span>`;
+  else if (!fx) cta = knop('Speelvrije week · verder', rustWeek);
   else cta = knop(sp.o23 && sp.blessure <= 0 && sp.fit >= 20 ? `Speel met de O23 tegen ${esc(opp.n)} O23` : `Speel ronde ${S.ronde + 1}: ${fx.thuis ? esc(club().n) + ' – ' + esc(opp.n) : esc(opp.n) + ' – ' + esc(club().n)}`, startWedstrijd);
   html += vFocusExtra();
   const rest = teamOpen();
@@ -403,29 +407,21 @@ function vBuitenBasis(){
       : [['eten', sp.leeftijd < 18 ? 'Samen koken en eten' : 'Zondag bij je ouders eten', 'band +6 · moraal +3 · focus +2'], ...(sp.leeftijd < 18 ? [['helpen', 'Helpen in huis', `band +6${ou.boos ? ' · kans dat ze niet meer boos zijn' : ''}`]] : [['bellen', 'Je moeder bellen', 'band +3']]), ['wedstrijd', 'Ze uitnodigen voor je wedstrijd', 'band +7 · moraal +3']]).concat([['cadeau', `Ze verrassen met een cadeau · ${geldTxt(ouderCadeau())}`, 'band +10']])
       .map(([id, l, d]) => keuzeKnop(l, d, () => ouderActie(id), `data-blijf ${w.ouder || (id === 'cadeau' && sp.geld < ouderCadeau()) || (ver && id === 'wedstrijd' && sp.geld < ouderVliegPrijs()) ? 'disabled' : ''}`)).join('')}</div>
     ${kinds.length ? `<span class="label winkelkop">Je kinderen</span><p>${kinds.map(k => `<b>${esc(k.naam)}</b> (${kindLeeftijd(k)})`).join(', ')}</p><div class="keuzes">${keuzeKnop('Tijd met je kinderen', 'moraal +5 · focus +2', kindActie, `data-blijf ${w.kind ? 'disabled' : ''}`)}</div>` : ''}`;
-  const tabs = [['liefde', 'Liefde', liefde], ['familie', 'Familie', famHtml], ['social', 'Social media', socialHtml], ['dier', 'Huisdieren', dierHtml], ['geld', 'Geld en zaken', geldHtml], ['goed', 'Goede doelen', goedHtml], ['rij', 'Rijbewijs en auto', rij + auto], ['wonen', 'Wonen', wonen], ['uitgaan', 'Uitgaan', vUitgaan()]];
+  // Je jeugdvriend: elke week iets samen doen (zo blijven jullie vrienden), of het uitpraten als hij je rivaal werd
+  const v = sp.vriend, vb = v ? Math.round(v.band) : 0, R = sp.rivaal;
+  const vriendHtml = !v ? '' : !v.weg ? `<p>${esc(v.voornaam)} ${esc(v.n)} · ${v.club === sp.club ? `speelt bij jou, bij ${esc(club().n)}` : CLUBS[v.club] ? `speelt bij ${esc(CLUBS[v.club].n)}` : 'nog zonder club'}</p>
+    <p>Jullie band: <b>${vb}</b> <span class="risico ${vb >= 60 ? 'r-veilig' : vb >= 25 ? 'r-gem' : 'r-riskant'}">${vb >= 60 ? 'Beste vrienden' : vb >= 25 ? 'Goede vrienden' : 'Het schuurt'}</span></p>
+    <p class="muted klein-tekst">Hoe beter jullie band, hoe groter de kans dat jullie vrienden blijven als er iets gebeurt (een zaakwaarnemer die hem weg wil halen, ruzie in de media). Zonder contact groeien jullie langzaam uit elkaar${v.club === sp.club ? ', maar bij dezelfde club zien jullie elkaar elke dag' : ''}.</p>
+    <span class="label winkelkop">Met ${esc(v.voornaam)} · 1 per week${w.vriend ? ' (al gedaan)' : ''}</span>
+    <div class="keuzes">${Object.entries(VRIEND_ACTIES).map(([id, a]) => keuzeKnop(a.n, a.s + (a.zelfde && v.club !== sp.club ? ' · alleen als jullie bij dezelfde club spelen' : ''), () => vriendActie(id), `data-blijf ${kanVriendActie(id) ? '' : 'disabled'}`)).join('')}</div>`
+    : `<p>${esc(v.voornaam)} ${esc(v.n)} is nu je rivaal${R && R.exVriend ? ` (${esc(rivaalBand(R.band).toLowerCase())})` : ''}.</p>
+    <p class="muted klein-tekst">Zit het weer goed tussen jullie (band "Vriendschap"), dan worden jullie weer beste vrienden.</p>
+    <div class="keuzes">${keuzeKnop('Het uitpraten', 'jullie band +8', uitpraten, `data-blijf ${kanUitpraten() ? '' : 'disabled'}`)}</div>`;
+  const tabs = [['liefde', 'Liefde', liefde], ['familie', 'Familie', famHtml], ...(v ? [['vriend', v.weg ? 'Ex-vriend' : 'Jeugdvriend', vriendHtml]] : []), ['social', 'Social media', socialHtml], ['dier', 'Huisdieren', dierHtml], ['geld', 'Geld en zaken', geldHtml], ['goed', 'Goede doelen', goedHtml], ['rij', 'Rijbewijs en auto', rij + auto], ['wonen', 'Wonen', wonen], ['uitgaan', 'Uitgaan', vUitgaan()]];
   const tab = tabs.find(x => x[0] === tmp.buitenTab) || tabs[0];
   return `<section id="buitenPanel" class="paneel sectie"><h3 class="sectiekop">Buiten het voetbal · ${esc(samenvatting)}</h3>
     <div class="buitentabs" role="tablist" style="margin-top:8px">${tabs.map(([k, l]) => knop(l, () => { tmp.buitenTab = k; }, 'comptab' + (k === tab[0] ? ' aan' : ''), `data-blijf role="tab" aria-selected="${k === tab[0]}"`)).join('')}</div>
     <div class="winkel" style="margin-top:10px">${tab[2]}</div></section>`;
-}
-export function vDoorstroom(){
-  const d = doorstroomDoel(); if (!d) return '';
-  const e = doorstroomEisen(d.lft), klaar = e.every(x => x.ok);
-  const rijen = e.map(x => x.key === 'lft' ? {...x, label:`Leeftijd ${inMoment(d.moment)}`} : x);
-  return `<div class="paneel"><span class="label">Naar het 1e elftal van ${esc(d.ouder.n)}</span>
-    ${klaar ? `<p class="melding">Je voldoet aan alle eisen! ${inMoment(d.moment).charAt(0).toUpperCase() + inMoment(d.moment).slice(1)} mag je naar het 1e elftal.</p>` : `<p>${esc(doorstroomAdvies(e))}</p>`}
-    <div class="eisen">${rijen.map(eisRij).join('')}</div>
-    <p class="muted klein-tekst">Wedstrijden en cijfers tellen alleen voor dit seizoen. Het 1e elftal kijkt bij de winterstop (na wedstrijd 7) en in de zomer. Je volgende kans: ${inMoment(d.moment).replace('bij ', '')}.${d.moment === 'zomer' && S.ronde >= 7 ? ' In de zomer telt je hele seizoen mee.' : ''}</p></div>`;
-}
-// De laatbloeier: hoe staat zijn proefcontract ervoor?
-export function vBewijs(){
-  if (!heeftProef() || S.ronde >= 7) return '';
-  const e = bewijsEisen(), klaar = e.every(x => x.ok), nog = 7 - S.ronde;
-  return `<div class="paneel"><span class="label">Je proefcontract bij ${esc(club().n)}</span>
-    ${klaar ? `<p class="melding">${esc(bewijsAdvies(e))}</p>` : `<p>${esc(bewijsAdvies(e))}</p>`}
-    <div class="eisen">${e.map(eisRij).join('')}</div>
-    <p class="muted klein-tekst">Bij de winterstop (nog ${nog} ${nog === 1 ? 'wedstrijd' : 'wedstrijden'}) beslist de trainer. Minstens ${BEWIJS.wed} wedstrijden en gemiddeld een ${String(BEWIJS.cijfer).replace('.', ',')}: dan krijg je een vast contract. Haal je het niet, dan moet je bij de winterstop weg.</p></div>`;
 }
 export function vSchool(){
   const v = S.week && S.week.school; if (!v) return '';
@@ -442,5 +438,5 @@ export function vEvent(){
   return `<div class="verhaal"><span class="label">${label}</span><h2>${kop}</h2>
     ${S.week.tekst.map(t => `<p class="muted">${esc(t)}</p>`).join('')}
     <p class="moment">${esc(S.ev.tekst)}</p></div>
-    <div class="keuzes">${S.ev.opts.map((o, i) => `<button class="keuze" data-i="${act(() => kiesEvent(i))}"><span class="t">${esc(o.l)}</span></button>`).join('')}</div>`;
+    <div class="keuzes">${S.ev.opts.map((o, i) => `<button class="keuze" data-i="${act(() => kiesEvent(i))}"><span class="t">${o.toon ? TOON[o.toon].i + ' ' : ''}${esc(o.l)}</span>${o.toon ? `<span class="s">${TOON[o.toon].n}</span>` : ''}</button>`).join('')}</div>`;
 }

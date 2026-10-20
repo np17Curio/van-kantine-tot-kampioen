@@ -1,6 +1,6 @@
 import { S } from '../../core/state.js';
 import { clamp, geldTxt, pick, rnd } from '../../core/utils.js';
-import { CLUBS, JEUGD, divClubs } from '../../data/gegevens.js';
+import { CLUBS, LAAGSTE, divClubs } from '../../data/gegevens.js';
 import { POS_NAAM, selectie } from '../competitie/spelers.js';
 import { metVoorletter } from '../media/nieuws.js';
 import { krantMelding } from '../media/roddel.js';
@@ -23,7 +23,7 @@ function herbereken(voor){ const c = CLUBS[S.trainer.club]; c.s = clamp(Math.rou
 export function maakMarkt(){
   const T0 = S.trainer, mijn = T0.club, t = CLUBS[mijn].t, sel = mijnSel(), ref = refKracht();
   const zwak = pos => { const b = sel.filter(x => x.pos === pos && x.basis).map(x => x.k); return b.length ? Math.min(...b) : 0; };
-  const clubs = [t - 1, t, t + 1].filter(x => x >= 0 && x < JEUGD).flatMap(x => divClubs(x)).filter(i => i !== mijn);
+  const clubs = [t - 1, t, t + 1].filter(x => x >= 1 && x <= LAAGSTE).flatMap(x => divClubs(x)).filter(i => i !== mijn);
   const kand = clubs.flatMap(i => selectie(i).filter(x => x.pos !== 'K' || rnd() < .3).map(x => ({x, van:i})))
     .filter(({x}) => x.k >= ref - 8 && x.k <= ref + 9 && !sel.some(y => y.n === x.n));
   const uit = [], gewicht = ({x}) => 1 + Math.max(0, x.k - zwak(x.pos)) / 3;

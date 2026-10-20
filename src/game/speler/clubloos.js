@@ -1,13 +1,13 @@
 import { S, club, mod, ovr, salarisVoor, seizoenLabel } from '../../core/state.js';
 import { clamp, pick, rnd } from '../../core/utils.js';
-import { AMATEUR, ATTR, CLUBS, DIVS, JEUGD } from '../../data/gegevens.js';
+import { ATTR, CLUBS, DIVS, LAAGSTE } from '../../data/gegevens.js';
 import { naWedstrijd } from '../competitie/beker.js';
 import { speelRonde } from '../competitie/spelers.js';
 import { krantMelding } from '../media/roddel.js';
 import { stoppen } from '../seizoen/seizoen.js';
 import { wilJou, wissel } from '../transfers/transfers.js';
 import { bewaarVertrek } from '../wedstrijd/reunie.js';
-import { plafond, trainKans, verhoog } from '../week.js';
+import { plafond, trainKans, trainVoortgang, verhoog } from '../week.js';
 
 /* ===================== Zonder club ===================== */
 // Je contract liep af (of je werd weggestuurd) en geen club wilde je hebben. Je traint alleen, de competities gaan
@@ -27,8 +27,8 @@ export function wordClubloos(hoe){
 }
 // Clubs die je nu een contract zouden geven: van het niveau van je vorige club of lager, en die je goed genoeg vinden
 export function clubsVoorJou(marge = 5){
-  const sp = S.sp, t = club().t === JEUGD ? AMATEUR : club().t;
-  return CLUBS.map((c, i) => i).filter(i => i !== sp.club && CLUBS[i].t >= t && CLUBS[i].t <= AMATEUR && wilJou(i, marge));
+  const sp = S.sp, t = club().t;
+  return CLUBS.map((c, i) => i).filter(i => i !== sp.club && CLUBS[i].t >= t && CLUBS[i].t <= LAAGSTE && wilJou(i, marge));
 }
 // Kans dat er deze week een club belt
 export function bodKans(){
@@ -58,8 +58,7 @@ export function doeClubloos(soort, attr){
   if (soort === 'train'){
     mod('fit', -6);
     if (sp.a[attr] >= plafond()) t = `Je traint in je eentje op ${ATTR[attr].toLowerCase()}, maar je zit aan je plafond (${plafond()}).`;
-    else if (rnd() < trainKans() * .6){ const voor = sp.a[attr]; verhoog(attr, 1); t = `Je traint in je eentje op ${ATTR[attr].toLowerCase()} op een leeg veldje. Het lukt: ${voor} → ${sp.a[attr]}.`; }
-    else t = `Je traint in je eentje op ${ATTR[attr].toLowerCase()}. Zonder trainer en teamgenoten is het lastig om beter te worden.`;
+    else { const voor = sp.a[attr], g = trainVoortgang(attr, .6); t = g.plus ? `Je traint in je eentje op ${ATTR[attr].toLowerCase()} op een leeg veldje. Het lukt: ${voor} → ${sp.a[attr]}.` : `Je traint in je eentje op ${ATTR[attr].toLowerCase()}. Zonder trainer en teamgenoten gaat het langzaam: voortgang ${Math.round(g.na * 100)}% naar +1.`; }
   } else if (soort === 'conditie'){
     mod('fit', 12); mod('moraal', 1);
     t = 'Je loopt elke ochtend tien kilometer en gaat naar de sportschool. Als er een club belt, ben je er klaar voor.';
@@ -85,7 +84,7 @@ export function volgendeWeekClubloos(){ speelRonde(S.ronde, 0, 0, null); naWedst
 export function clubloosWeek(eerste){
   const sp = S.sp, L = sp.clubloos; if (!L) return;
   if (!eerste){ L.weken++; L.bel = 0; mod('moraal', -2); sp.rep = clamp(sp.rep * .99, 0, 100); }
-  sp.fit = clamp(sp.fit - 16, 0, 100); // geen wedstrijden, maar ook geen begeleiding: zonder training zak je weg (nieuweWeek gaf +14)
+  sp.fit = clamp(sp.fit - (sp.herstel ?? 14) - 2, 0, 100); // geen wedstrijden, maar ook geen begeleiding: zonder training zak je weg (het weekherstel uit nieuweWeek gaat er weer af)
   if (L.weken === 10) S.week.tekst.push('Tien weken zonder club. Je begint te twijfelen of er nog een club komt.');
 }
 export const stopZonderClub = () => stoppen(`Na ${S.sp.clubloos.weken} weken zonder club hang je je schoenen aan de wilgen.`);

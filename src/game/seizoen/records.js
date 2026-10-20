@@ -1,6 +1,6 @@
 import { S, club, mod, seizoenLabel } from '../../core/state.js';
 import { esc } from '../../core/utils.js';
-import { CLUBS, DIVS, JEUGD } from '../../data/gegevens.js';
+import { CLUBS, DIVS } from '../../data/gegevens.js';
 import { krantMelding } from '../media/roddel.js';
 import { ck } from '../transfers/buitenland.js';
 import { modFans } from '../wedstrijd/fans-pers.js';
@@ -9,10 +9,10 @@ import { modFans } from '../wedstrijd/fans-pers.js';
 // Competitierecords per divisie (meeste goals in één seizoen) en een clubrecord (meeste goals ooit voor de club)
 export const DIV_RECORD = [19, 18, 18, 18, 19, 16];
 export const clubRecord = id => Math.round(30 + ((id * 37) % 30) + (5 - Math.min(CLUBS[id].t, 5)) * 12);
-export const recs = () => S.car.rec || (S.car.rec = {seizoen:{v:0}, wed:{v:0}, reeks:{v:0}, nu:0, hattricks:0, assistSeizoen:{v:0}, debuut: S.car.wed > 1 && club().t !== JEUGD ? {lft:null} : null, clubG:{}, gebroken:[]});
+export const recs = () => S.car.rec || (S.car.rec = {seizoen:{v:0}, wed:{v:0}, reeks:{v:0}, nu:0, hattricks:0, assistSeizoen:{v:0}, debuut: S.car.wed > 1 ? {lft:null} : null, clubG:{}, gebroken:[]});
 export function recordsNaWedstrijd(M){
   const R = recs(), sp = S.sp, c = club(), naam = sp.naam, t = c.t, uit = [], zij = M.zij ?? (M.opp !== undefined ? CLUBS[M.opp].n : '');
-  if (R.debuut === null && t !== JEUGD){ R.debuut = {lft:sp.leeftijd, club:c.n, s:seizoenLabel()}; }
+  if (R.debuut === null){ R.debuut = {lft:sp.leeftijd, club:c.n, s:seizoenLabel()}; }
   // Doelpunten in één wedstrijd
   if (M.goals >= 3){ R.hattricks++; if (R.hattricks > 1) uit.push(`Hattrick nummer ${R.hattricks} in je carrière!`); }
   if (M.goals > R.wed.v){ const was = R.wed.v; R.wed = {v:M.goals, tegen:zij, s:seizoenLabel()}; if (M.goals >= 3 && was >= 2) uit.push(`Persoonlijk record: ${M.goals} goals in één wedstrijd!`); }

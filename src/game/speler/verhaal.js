@@ -1,6 +1,6 @@
 import { S, club, mod, seizoenLabel } from '../../core/state.js';
 import { clamp, geldTxt, randInt, rnd } from '../../core/utils.js';
-import { ATTR, POS } from '../../data/gegevens.js';
+import { ATTR, POS, weekFactor } from '../../data/gegevens.js';
 import { krantMelding } from '../media/roddel.js';
 import { ouders } from '../prive/familie.js';
 import { social, volgersTxt } from '../prive/social.js';
@@ -58,7 +58,7 @@ export function doeVerhaal(id){
     case 'talentcoach': {
       mod('fit', -8);
       const k = zwakste(sp); if (!k) return 'De talentcoach kijkt je aan: "Op dit moment haal je alles uit je talent wat erin zit."';
-      if (rnd() < .75){ const voor = sp.a[k]; verhoog(k, rnd() < .35 ? 2 : 1); return `De talentcoach werkt een uur alleen met jou aan je ${ATTR[k].toLowerCase()}. "Zo'n talent zie je zelden." Je ${ATTR[k].toLowerCase()} gaat van ${voor} naar ${sp.a[k]}.`; }
+      if (rnd() < .75 * weekFactor() + .1){ const voor = sp.a[k]; verhoog(k, rnd() < .35 ? 2 : 1); return `De talentcoach werkt een uur alleen met jou aan je ${ATTR[k].toLowerCase()}. "Zo'n talent zie je zelden." Je ${ATTR[k].toLowerCase()} gaat van ${voor} naar ${sp.a[k]}.`; }
       return `Een zware sessie met de talentcoach op je ${ATTR[k].toLowerCase()}. Je voelt dat het eraan komt, maar het klikt nog net niet.`;
     }
     case 'media': {
@@ -76,7 +76,7 @@ export function doeVerhaal(id){
     }
     case 'derdehelft': {
       iedereen(2); mod('moraal', 6); mod('fit', -3);
-      return 'Na de training blijf je hangen in de kantine. Bitterballen, verhalen van vroeger en een potje klaverjassen met de oudere jongens. Je hoort er echt bij.';
+      return 'Na de training blijf je hangen in de spelershome. Bitterballen, verhalen van vroeger en een potje klaverjassen met de oudere jongens. Je hoort er echt bij.';
     }
     case 'sportkunde': {
       sp.sportkunde = (sp.sportkunde || 0) + 1; mod('focus', 3); mod('moraal', 2);
@@ -86,7 +86,7 @@ export function doeVerhaal(id){
     }
     case 'fysio': {
       const b = betaal(sp, 150); mod('fit', 12);
-      const groei = sp.a.cond < plafond() && rnd() < .25; if (groei) verhoog('cond', 1);
+      const groei = sp.a.cond < plafond() && rnd() < .25 * weekFactor(); if (groei) verhoog('cond', 1);
       return `Je betaalt ${geldTxt(b)} voor extra uren bij de fysio. Je lichaam is geen 18 meer en dat merk je. Je benen voelen weer fris${groei ? ', en je conditie gaat zelfs een punt omhoog' : ''}.`;
     }
     case 'magazijn': {

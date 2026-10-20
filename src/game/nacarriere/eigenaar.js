@@ -1,6 +1,6 @@
 import { S, seizoenLabel } from '../../core/state.js';
 import { clamp, pick, randInt, rnd } from '../../core/utils.js';
-import { AMATEUR, CLUBS, DIVS, JEUGD, divClubs } from '../../data/gegevens.js';
+import { CLUBS, DIVS, LAAGSTE, divClubs, AANTAL_RONDES } from '../../data/gegevens.js';
 import { fixture, simGoals } from '../competitie/competitie.js';
 import { speelRonde, stand } from '../competitie/spelers.js';
 import { krantMelding } from '../media/roddel.js';
@@ -21,11 +21,11 @@ export const minSeizoen = t => r1k(BUDGET_REF[t] * (.5 + .11));
 // Welke clubs kun je kopen (je eerste club met 20% korting)? Alleen als je daarna nog een seizoen kunt betalen
 export function koopbaar(){
   const eerste = S.car.clubs && S.car.clubs[0] ? S.car.clubs[0].club : null;
-  return [AMATEUR, 3, 2, 1].flatMap(t => divClubs(t)).map(id => ({id, prijs:r1k(clubWaarde(id) * (id === eerste ? .8 : 1)), eerste:id === eerste}))
+  return [LAAGSTE, 1].flatMap(t => divClubs(t)).map(id => ({id, prijs:r1k(clubWaarde(id) * (id === eerste ? .8 : 1)), eerste:id === eerste}))
     .filter(x => x.prijs + minSeizoen(CLUBS[x.id].t) <= S.sp.geld).sort((a, b) => CLUBS[a.id].t - CLUBS[b.id].t || b.prijs - a.prijs).slice(0, 8);
 }
 export const kanEigenaar = () => koopbaar().length > 0;
-export const goedkoopste = () => Math.min(...divClubs(AMATEUR).map(clubWaarde)) + minSeizoen(AMATEUR);
+export const goedkoopste = () => Math.min(...divClubs(LAAGSTE).map(clubWaarde)) + minSeizoen(LAAGSTE);
 const TRAINERS = ['T. de Boer', 'R. Willems', 'M. Jansen', 'K. Vos', 'P. van Dam', 'L. Mertens', 'H. Bakker', 'S. Smit'];
 function trainerKeuze(t){ return [3, 2, 1].map(k => ({n:pick(TRAINERS), k, salaris:r1k(BUDGET_REF[t] * (.05 + k * .06))})); }
 export function koopClub(id, prijs){
@@ -56,7 +56,7 @@ export function speelSeizoen(){
   const sVoor = c.s; c.s = clamp(Math.round(c.s + (b.budget - 1) * 3 + (b.jeugd ? .5 : 0)), 30, 95);
   if (b.stadion) E.stadion = Math.min(5, E.stadion + 1); if (b.jeugd) E.jeugd = Math.min(5, E.jeugd + 1);
   const T = c.s + tr.k * .8 + E.jeugd * .3;
-  for (let r = 0; r < 14; r++){ S.ronde = r; const fx = fixture(r), O = CLUBS[fx.opp].s; const [a, bb] = simGoals(T, O, fx.thuis); speelRonde(r, a, bb); }
+  for (let r = 0; r < AANTAL_RONDES; r++){ S.ronde = r; const fx = fixture(r); if (!fx){ speelRonde(r, 0, 0); continue; } const O = CLUBS[fx.opp].s; const [a, bb] = simGoals(T, O, fx.thuis); speelRonde(r, a, bb); }
   S.ronde = 14;
   const st = stand(t), plek = st.indexOf(E.club) + 1, tab = S.tab[E.club];
   // inkomsten: tickets (fans, stadion, prijs), tv, prijzengeld

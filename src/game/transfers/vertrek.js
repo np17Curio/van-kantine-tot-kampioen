@@ -1,7 +1,7 @@
 import { S, club, mod, tmp } from '../../core/state.js';
 import { knop } from '../../core/ui.js';
 import { clamp, esc, rnd } from '../../core/utils.js';
-import { AANTAL_RONDES, AANV } from '../../data/gegevens.js';
+import { AANTAL_RONDES, AANV, WINTER } from '../../data/gegevens.js';
 import { krantMelding } from '../media/roddel.js';
 import { onrust } from '../speler/kalmte.js';
 import { statusNiveau, statusPunten } from '../speler/status.js';
@@ -18,7 +18,7 @@ export function vertrekKans(){
   return clamp([.85, .75, .55, .35, .2, .1][n] + (sp.contract <= 1 ? .15 : 0) + (sp.vert < 30 ? .15 : 0) - (sp.contract >= 3 ? .1 : 0), .05, .95);
 }
 export const kanVertrekVragen = () => { const sp = S.sp; return !sp.huur && !sp.o23 && (sp.clubWed || 0) >= VERTREK_NA && !sp.transferlijst && (S.ss.vertrekWacht ?? -99) <= S.ronde; };
-export const tijdTotVenster = () => S.ronde < 7 ? `de winterstop (nog ${7 - S.ronde} ${7 - S.ronde === 1 ? 'wedstrijd' : 'wedstrijden'})` : `de zomer (nog ${AANTAL_RONDES - S.ronde} ${AANTAL_RONDES - S.ronde === 1 ? 'wedstrijd' : 'wedstrijden'})`;
+export const tijdTotVenster = () => S.ronde < WINTER ? `de winterstop (nog ${WINTER - S.ronde} ${WINTER - S.ronde === 1 ? 'week' : 'weken'})` : `de zomer (nog ${AANTAL_RONDES - S.ronde} ${AANTAL_RONDES - S.ronde === 1 ? 'week' : 'weken'})`;
 export function vraagVertrek(){
   const sp = S.sp, w = S.week, c = club(); if (!kanVertrekVragen() || !w) return;
   if (rnd() < vertrekKans()){

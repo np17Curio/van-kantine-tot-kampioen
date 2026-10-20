@@ -11,7 +11,7 @@ import { oudeClubs } from '../wedstrijd/reunie.js';
 // Je club tegen "Vrienden van ...": oud-teamgenoten van al je vorige clubs (en misschien je rivaal).
 // De eerste helft speel je bij je club, de tweede helft bij je vrienden. Een feest, geen competitiewedstrijd:
 // er verandert niets aan uitslagen, standen of statistieken.
-const VULLING = ['je oude jeugdtrainer', 'een oud-ploeggenoot uit de amateurs', 'je eerste aanvoerder', 'de kitman van je eerste club', 'je beste vriend van vroeger', 'je oude buurjongen'];
+const VULLING = ['je oude jeugdtrainer', 'een oud-ploeggenoot uit de O23', 'je eerste aanvoerder', 'de kitman van je eerste club', 'je beste vriend van vroeger', 'je oude buurjongen'];
 export const magAfscheid = () => { const sp = S.sp; return !!(sp && sp.legendeHier && !sp.clubloos && !S.trainer && !S.eigenaar && !S.analist); };
 const kans = () => clamp(.55 + (ovr(S.sp) - 60) / 100, .4, .85);
 export function maakAfscheid(){

@@ -1,7 +1,7 @@
 import { S, club, statWaarde } from '../../core/state.js';
 import { act, knop } from '../../core/ui.js';
 import { esc } from '../../core/utils.js';
-import { AANTAL_RONDES, ATTR, CLUBS } from '../../data/gegevens.js';
+import { AANTAL_RONDES, ATTR, CLUBS, DIVS, WINTER, rondesVoor } from '../../data/gegevens.js';
 import { naWedstrijd, vBekerEnd } from '../../game/competitie/beker.js';
 import { vNacompetitieEnd } from '../../game/competitie/nacompetitie.js';
 import { vKrant, vOokGespeeld } from '../../game/media/nieuws.js';
@@ -11,9 +11,13 @@ import { vPers } from '../../game/wedstrijd/fans-pers.js';
 import { focusStaat, kans, pOpts, risico } from '../../game/wedstrijd/momenten.js';
 import { WAARSCHUW, actieKosten, isRoutinier, stamina } from '../../game/wedstrijd/stamina.js';
 import { vReunieEinde } from '../../game/wedstrijd/reunie.js';
-import { kies, mijnNaam, stand2, VAR_KEUZES, varKeuze, varTekst } from '../../game/wedstrijd/wedstrijd.js';
+import { aftrap, kies, mijnNaam, stand2, VAR_KEUZES, varKeuze, varTekst } from '../../game/wedstrijd/wedstrijd.js';
+import { rugTeam, rugnummer } from '../../game/team/rugnummers.js';
+import { metVoorletter } from '../../game/media/nieuws.js';
+
 import { vPitch } from '../pitch.js';
 import { vInterEnd } from './interland.js';
+import { vSelectieEnd } from './selectiedagen.js';
 import { vSeizoenStrip } from './zijbalk.js';
 import { clubLogo } from '../../data/logos.js';
 
@@ -30,12 +34,12 @@ export function vO23End(){
     ${M.reeksTekst ? `<p class="melding">${esc(M.reeksTekst)}</p>` : ''}
     ${M.rivaalTekst ? `<p class="melding">${esc(M.rivaalTekst)}</p>` : ''}
     <p class="muted">${esc(M.eersteTekst)}</p></div>` + vLog()
-    + knop(S.ronde + 1 === 7 ? 'Naar de winterstop' : S.ronde + 1 >= AANTAL_RONDES ? 'Seizoen afsluiten' : 'Volgende week', naWedstrijd);
+    + knop(S.ronde + 1 === WINTER ? 'Naar de winterstop' : S.ronde + 1 >= AANTAL_RONDES ? 'Seizoen afsluiten' : 'Volgende week', naWedstrijd);
 }
 
 export function scorebord(){
   const M = S.M, mij = esc(M.wij ?? mijnNaam()), hun = esc(M.zij ?? CLUBS[M.opp].n);
-  const oppId = M.opp ?? (M.eerste && M.eerste.opp), lg = id => !M.inter && id != null && CLUBS[id] ? clubLogo(id, 34) : '';
+  const oppId = M.opp ?? (M.eerste && M.eerste.opp), lg = id => !M.inter && !M.selectie && id != null && CLUBS[id] ? clubLogo(id, 34) : '';
   const [l, r] = M.thuis ? [lg(S.sp.club) + `<span>${mij}</span>`, `<span>${hun}</span>` + lg(oppId)] : [lg(oppId) + `<span>${hun}</span>`, `<span>${mij}</span>` + lg(S.sp.club)];
   return `<div class="score"><div class="team ${M.thuis ? 'mij' : ''}">${l}</div>
     <div class="stand">${stand2()}<span class="min">${M.derby ? '<b style="color:var(--fout)">DERBY</b> · ' : ''}${M.klaar ? 'EINDE' : M.min + "'"}</span></div>
@@ -63,7 +67,49 @@ export function vLog(){
   return html;
 }
 
+/* ---------- de intro: opstellingen en jouw rol, vóór de aftrap ---------- */
+const LINIE = {SPITS:'A', MID:'M', VERD:'V'}, LINIES = [['K', 'Keeper'], ['V', 'Verdediging'], ['M', 'Middenveld'], ['A', 'Aanval']];
+const ROL = {basis:['Je staat in de basis', 'r-veilig'], invaller:['Je begint op de bank', 'r-gem'], bank:['Je zit op de bank', 'r-gem'], tribune:['Je zit op de tribune', 'r-riskant'],
+  blessure:['Je bent geblesseerd', 'r-riskant'], geschorst:['Je bent geschorst', 'r-riskant'], rust:['Je krijgt rust', 'r-gem'], o23:['Je speelt bij de O23', 'r-gem']};
+// De elf van een club (aangevuld uit de bank als er iemand ontbreekt) en de wissels. Jij staat erbij als je in de basis staat
+function elftal(id, metJou, vulPos){
+  const sel = rugTeam(id).filter(x => !(x.bles > 0)), ik = LINIE[S.sp.pos];
+  const basis = sel.filter(x => x.basis), bank = sel.filter(x => !x.basis).sort((a, b) => b.k - a.k);
+  const elf = basis.slice(0, 11);
+  if (metJou) elf.push({jij:true, n:S.sp.naam, pos:ik, nr:rugnummer()});
+  // Tot 11 aanvullen: jouw plek (als jij er niet in staat) en verder de sterkste wissels
+  while (elf.length < 11 && bank.length){ const i = Math.max(0, bank.findIndex(x => x.pos === (vulPos || ik))); elf.push(bank.splice(i, 1)[0]); }
+  return {elf, bank};
+}
+const spelerRij = x => `<li class="${x.jij ? 'mij' : ''}"><span class="nr">${x.nr ? x.nr : ''}</span><span>${x.jij ? `<b>${esc(x.n)} (jij)</b>` : esc(metVoorletter(x))}${x.vriend ? ' 🤝' : ''}${x.rivaal ? ' ⚔️' : ''}</span></li>`;
+function vElftal(id, titel, metJou, toonBank, opBank){
+  const {elf, bank} = elftal(id, metJou, toonBank ? null : 'M'), tel = p => elf.filter(x => x.pos === p).length;
+  const formatie = `${tel('V')}-${tel('M')}-${tel('A')}`;
+  const mij = !metJou && toonBank && opBank ? [{jij:true, n:S.sp.naam, pos:LINIE[S.sp.pos], nr:rugnummer()}] : [];
+  return `<div class="opstelling"><div class="opkop">${clubLogo(id, 28)}<div><b>${esc(titel)}</b><span class="muted klein-tekst">${formatie} · sterkte ${CLUBS[id].s}</span></div></div>
+    ${LINIES.map(([p, l]) => { const g = elf.filter(x => x.pos === p); return g.length ? `<span class="label">${l}</span><ol>${g.map(spelerRij).join('')}</ol>` : ''; }).join('')}
+    ${toonBank ? `<span class="label">Wissels</span><ol class="wissels">${mij.concat(bank.slice(0, 6)).map(spelerRij).join('')}</ol>` : ''}</div>`;
+}
+function introSoort(M){
+  if (M.selectie) return `Selectiewedstrijd ${S.selectie ? S.selectie.cijfers.length + 1 : ''} van 3`;
+  if (M.inter) return 'Interland';
+  if (M.o23) return 'O23';
+  if (M.beker) return `${M.beker.naam} · ${M.beker.ronde}`;
+  if (M.po) return M.po.soort === 'halve' ? 'Play-offs · halve finale' : M.po.soort === 'finale' ? 'Play-offs · finale' : 'Nacompetitie';
+  return `Speelronde ${rondesVoor(club().t, S.ronde) + 1} · ${DIVS[club().t]}`;
+}
+export function vIntro(M){
+  const sp = S.sp, echteTeams = !M.inter && !M.o23 && !M.selectie && M.opp != null && CLUBS[M.opp], rol = ROL[M.rol] || [M.rol, 'r-gem'];
+  const tags = [M.thuis ? 'Thuis' : 'Uit', M.derby ? 'Derby!' : '', M.rivaal ? 'Tegen je rivaal' : '', M.reunie ? 'Weerzien met je oude club' : ''].filter(Boolean);
+  const info = (M.log || []).filter(l => !l.m || l.m === '').map(l => `<p class="muted">${esc(l.t)}</p>`).join('');
+  const opst = echteTeams ? `<div class="opstellingen">${vElftal(sp.club, club().n, M.rol === 'basis', true, M.rol === 'bank' || M.rol === 'invaller')}${vElftal(M.opp, CLUBS[M.opp].n, false, false)}</div>`
+    : `<p class="muted">${esc(M.wij)} tegen ${esc(M.zij)}.</p>`;
+  return scorebord() + `<div class="verhaal intro"><span class="label">${esc(introSoort(M))}</span>
+    <div class="rij">${tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}<span class="risico ${rol[1]}">${esc(rol[0])}</span></div>
+    ${info}${opst}</div>` + knop('Aftrap!', aftrap);
+}
 export function vMatch(){
+  if (S.M.intro) return vIntro(S.M);
   const M = S.M, wacht = `style="animation-delay:${(Math.min(nieuweRegels(), 20) * REGEL_TEMPO).toFixed(2)}s"`;
   let keuzeHtml = '';
   if (M.varKeuze){
@@ -83,6 +129,7 @@ export function vMatch(){
 export function vMatchEnd(){
   const M = S.M, sp = S.sp;
   if (M.inter) return vInterEnd();
+  if (M.selectie) return vSelectieEnd();
   if (M.o23) return vO23End();
   if (M.beker) return vBekerEnd();
   if (M.po) return vNacompetitieEnd();
@@ -102,7 +149,6 @@ export function vMatchEnd(){
     if (M.statusTekst) html += `<p class="melding">${esc(M.statusTekst)}</p>`;
     if (M.agentTekst) html += `<p class="melding">${esc(M.agentTekst)}</p>`;
     if (M.o23Tekst) html += `<p class="melding">${esc(M.o23Tekst)}</p>`;
-    if (M.o19Tekst) html += `<p class="melding">${esc(M.o19Tekst)}</p>`;
     if (M.bonus) html += `<p class="melding">${esc(M.bonus.tekst)}</p>`;
     if (M.groei) html += `<p class="muted">Door je goede spel groeit je ${ATTR[M.groei].toLowerCase()} met 1.</p>`;
     if (M.talent) html += `<p class="muted">${esc(M.talent)}</p>`;
@@ -120,8 +166,8 @@ export function vMatchEnd(){
     html += vKrant(M.nieuws);
     html += vOokGespeeld();
     if (sp.vert < 25) html += `<p style="color:var(--fout)">Pas op: het vertrouwen van de trainer is laag. Zakt het onder de 15, dan word je bij de volgende transferperiode weggestuurd.</p>`;
-  } else { html += `<p>${esc(M.log[0].t)}</p>`; html += vReunieEinde(M); if (M.derbyTekst) html += `<p class="melding">${esc(M.derbyTekst)}</p>`; if (M.o19Tekst) html += `<p class="melding">${esc(M.o19Tekst)}</p>`; if (M.kampioen) html += `<div class="kampioen"><span class="label">Kampioen!</span><h2>🏆 ${esc(club().n)}</h2><p>${esc(M.kampioenTekst)}</p></div>`; html += vKrant(M.nieuws); html += vOokGespeeld(); }
+  } else { html += `<p>${esc(M.log[0].t)}</p>`; html += vReunieEinde(M); if (M.derbyTekst) html += `<p class="melding">${esc(M.derbyTekst)}</p>`; if (M.kampioen) html += `<div class="kampioen"><span class="label">Kampioen!</span><h2>🏆 ${esc(club().n)}</h2><p>${esc(M.kampioenTekst)}</p></div>`; html += vKrant(M.nieuws); html += vOokGespeeld(); }
   html += `</div>` + vLog();
-  html += knop(S.ronde + 1 === 7 ? 'Naar de winterstop' : S.ronde + 1 >= AANTAL_RONDES ? 'Seizoen afsluiten' : 'Volgende week', naWedstrijd);
+  html += knop(S.ronde + 1 === WINTER ? 'Naar de winterstop' : S.ronde + 1 >= AANTAL_RONDES ? 'Seizoen afsluiten' : 'Volgende week', naWedstrijd);
   return html;
 }

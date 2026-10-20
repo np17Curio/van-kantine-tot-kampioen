@@ -1,7 +1,6 @@
 import { S, seizoenLabel } from '../core/state.js';
 import { clamp, pick, randInt, rnd, shuffle } from '../core/utils.js';
-import { AANTAL_RONDES, CLUBS, DIVS, JEUGD, divClubs } from '../data/gegevens.js';
-import { thuisLand } from '../data/landen.js';
+import { AANTAL_RONDES, CLUBS, DIVS, LAAGSTE, divClubs, WINTER } from '../data/gegevens.js';
 import { fixture, simGoals } from './competitie/competitie.js';
 import { speelRonde, stand, willekeurigDoel } from './competitie/spelers.js';
 import { vormBonus } from './competitie/vorm.js';
@@ -41,12 +40,10 @@ export function trainerRep(){
 }
 export function trainerAanbiedingen(){
   const C = S.car, r = trainerRep(), ex = S.trainer && S.trainer.ontslag ? 1 : 0;
-  const top = clamp((r >= 85 ? 0 : r >= 68 ? 1 : r >= 52 ? 2 : r >= 36 ? 3 : 4) + ex, 0, 4);
-  const lijst = shuffle(divClubs(Math.min(top, 4))).slice(0, 2).concat(shuffle(divClubs(Math.min(top + 1, 4))).slice(0, 1));
+  const top = clamp((r >= 68 ? 1 : 2) + ex, 1, LAAGSTE);
+  const lijst = shuffle(divClubs(top)).slice(0, 2).concat(shuffle(divClubs(Math.min(top + 1, LAAGSTE))).slice(0, 1));
   const legende = C.prijzen.find(x => /^Clublegende van /.test(x)), lid = legende ? CLUBS.findIndex(c => 'Clublegende van ' + c.n === legende) : -1;
-  if (lid >= 0 && CLUBS[lid].t <= 4 && !lijst.includes(lid) && !ex) lijst.unshift(lid);
-  const eerste = CLUBS.findIndex(c => c.t === JEUGD && C.clubs[0] && (C.clubs[0].land || 'Nederland') === thuisLand() && c === CLUBS[C.clubs[0].club]);
-  if (eerste >= 0) lijst.push(eerste);
+  if (lid >= 0 && CLUBS[lid].t >= 1 && !lijst.includes(lid) && !ex) lijst.unshift(lid);
   return [...new Set(lijst)].slice(0, 4);
 }
 export function startTrainer(){ S.fase = 'trainerAanbod'; S.trainerAanbod = trainerAanbiedingen(); }
@@ -65,7 +62,7 @@ export function seizoenStart(){
   for (const x of mijnSel()){ x.bT = 0; if (x.fit === undefined) x.fit = 100; }
   T0.opstelling = null; opst(); vulAan();
   maakEisen(halverwege);
-  if (S.ronde === 0) openVenster('zomer'); else if (S.ronde === 7) openVenster('winter'); else T0.venster = null;
+  if (S.ronde === 0) openVenster('zomer'); else if (S.ronde === WINTER) openVenster('winter'); else T0.venster = null;
 }
 // Oude opslag: wat er nog niet is, aanvullen
 export function zorgVoorTrainer(){
@@ -141,8 +138,10 @@ function ontslaan(c, reden){
 export function trainerVerder(){
   const T0 = S.trainer;
   if (T0.ontslag){ S.fase = 'trainerAanbod'; S.trainerAanbod = trainerAanbiedingen(); T0.ontslag = false; return; }
+  // Speelvrije weken van jouw league slaan we over (de andere league speelt dan wel)
+  while (S.ronde < AANTAL_RONDES && S.ronde !== WINTER && !fixture(S.ronde)){ speelRonde(S.ronde, 0, 0, null); S.ronde++; }
   if (S.ronde >= AANTAL_RONDES) return trainerSeizoenEinde();
-  if (S.ronde === 7) openVenster('winter'); // de winterstop
+  if (S.ronde === WINTER) openVenster('winter'); // de winterstop
   S.fase = 'trainer';
 }
 export function trainerSeizoenEinde(){

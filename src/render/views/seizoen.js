@@ -1,7 +1,7 @@
 import { S, resetTmp, seizoenLabel, setS, tmp, wis } from '../../core/state.js';
 import { keuzeKnop, knop } from '../../core/ui.js';
 import { clamp, esc, geldTxt } from '../../core/utils.js';
-import { CLUBS, DIVS, JEUGD } from '../../data/gegevens.js';
+import { CLUBS, DIVS } from '../../data/gegevens.js';
 import { lidw, startToernooi, toernooiAfzeggen } from '../../game/interlands/toernooi.js';
 import { vKrant } from '../../game/media/nieuws.js';
 import { vBekerUitslagen } from '../../game/competitie/beker.js';
@@ -33,6 +33,7 @@ function vPoZonderWissel(E){
   const p = E.po; if (!p || p.w === undefined) return '';
   const mijn = S.sp.club;
   if (p.hoog === mijn && p.w === mijn) return `<div class="kampioen"><span class="label">Gehandhaafd</span><p>${esc(E.clubNaam)} wint de nacompetitie en blijft in de ${DIVS[p.t]}.</p></div>`;
+  if (p.soort && p.soort !== 'barrage' && p.w !== mijn) return `<p class="melding">${esc(E.clubNaam)} haalt de promotie niet via de play-offs${p.soort === 'finale' ? ': verloren in de finale' : ''}. Volgend seizoen weer in de ${DIVS[p.t + 1]}.</p>`;
   if (p.laag === mijn && p.w !== mijn) return `<p class="melding">${esc(E.clubNaam)} verliest de nacompetitie van ${esc(CLUBS[p.hoog].n)}. Geen promotie: volgend seizoen weer in de ${DIVS[p.t + 1]}.</p>`;
   return '';
 }
@@ -49,7 +50,7 @@ export function vSeizoenEinde(){
       <ol class="gb">${E.gb.lijst.slice(0, 5).map(x => `<li class="${x.jij ? 'mij' : ''}">${esc(x.naam)} <span class="muted">· ${esc(x.club)}</span></li>`).join('')}</ol>
       ${E.gb.plek > 5 ? `<p class="muted">${E.gb.telt ? `Jij eindigt als ${E.gb.plek}e.` : 'Je speelde te weinig wedstrijden om mee te doen.'}</p>` : ''}</div>` : E.gb ? `<p class="muted">De Gouden Bal gaat dit jaar naar ${esc(E.gb.lijst[0].naam)} (${esc(E.gb.lijst[0].club)}).</p>` : ''}
     ${E.mijnWissel ? (E.mijnWissel.naar < E.mijnWissel.van ? `<div class="kampioen"><span class="label">Promotie!</span><h2>Naar de ${DIVS[E.mijnWissel.naar]}</h2><p>${esc(E.clubNaam)} promoveert${E.mijnWissel.po ? ' via de nacompetitie' : ''}. Volgend seizoen spelen jullie een niveau hoger.</p></div>` : `<p class="melding" style="color:var(--fout);border-color:var(--fout)">${esc(E.clubNaam)} ${E.mijnWissel.po ? 'verliest de nacompetitie' : 'is laatste geworden'} en degradeert naar de ${DIVS[E.mijnWissel.naar]}.</p>`) : vPoZonderWissel(E)}
-    ${E.plek === 1 ? (E.feest ? `<p class="moment">${esc(E.feest)}</p>` : `<div><span class="label">Het kampioensfeest! Hoe vier jij het?</span><div class="keuzes" style="margin-top:6px">${FEEST(E.t === JEUGD, isProf()).map((o, i) => keuzeKnop(o.l, '', () => kiesFeest(i))).join('')}</div></div>`) : ''}
+    ${E.plek === 1 ? (E.feest ? `<p class="moment">${esc(E.feest)}</p>` : `<div><span class="label">Het kampioensfeest! Hoe vier jij het?</span><div class="keuzes" style="margin-top:6px">${FEEST(isProf()).map((o, i) => keuzeKnop(o.l, '', () => kiesFeest(i))).join('')}</div></div>`) : ''}
     ${E.wissels && E.wissels.length ? `<details class="paneel"><summary class="label" style="cursor:pointer">Promotie en degradatie in alle competities</summary><div class="uitslagen" style="margin-top:8px">${E.wissels.filter(w => w.tekst).map(w => `<div class="pd europa"><span>🏆 ${esc(w.tekst)}</span></div>`).join('')}${E.wissels.filter(w => w.naar < w.van && !w.verborgen).map(w => `<div class="pd"><span class="goedtxt">▲ ${esc(CLUBS[w.id].n)}</span><span class="muted">naar de ${DIVS[w.naar]}${w.po ? ' (nacompetitie)' : ''}</span></div>`).join('')}${E.wissels.filter(w => w.naar > w.van && !w.terug && !w.europa).map(w => `<div class="pd"><span class="fouttxt">▼ ${esc(CLUBS[w.id].n)}</span><span class="muted">naar de ${DIVS[w.naar]}${w.po ? ' (nacompetitie)' : ''}</span></div>`).join('')}</div>${E.poAlle && E.poAlle.length ? `<span class="label" style="display:block;margin-top:10px">Nacompetitie</span>${vBekerUitslagen(E.poAlle.filter(x => x.w !== undefined).map(x => ({h:x.hoog, u:x.laag, gh:x.gh, gu:x.gu, pen:x.pen, w:x.w})))}` : ''}</details>` : ''}
     ${E.statusTekst ? `<p class="melding">${esc(E.statusTekst)}</p>` : ''}
     ${E.prijzen.length ? `<div><span class="label">Prijzen</span><div class="prijzen" style="margin-top:6px">${E.prijzen.map(p => `<span class="prijs">${esc(p)}</span>`).join('')}</div></div>` : ''}

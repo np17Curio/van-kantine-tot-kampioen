@@ -1,16 +1,15 @@
 import { S, club } from '../../core/state.js';
 import { randInt, rnd } from '../../core/utils.js';
-import { AANTAL_RONDES, AMATEUR, CLUBS } from '../../data/gegevens.js';
+import { AANTAL_RONDES, CLUBS } from '../../data/gegevens.js';
 import { fixture } from '../competitie/competitie.js';
-import { KRANTEN } from './nieuws.js';
 import { RODDELBLADEN, krantMelding } from './roddel.js';
 import { isProf } from '../prive/sponsors.js';
 
 /* ===================== Uitgaan in de krant ===================== */
 // Hoe bekender je bent, hoe vaker je uitstapjes in de krant komen: prof in de roddelbladen, lager in de regionale krant of het clubblad
-export function uitgaanBronnen(){ const t = isProf() ? 1 : club().t; return t <= 2 ? RODDELBLADEN : t === 3 ? KRANTEN[3] : KRANTEN[Math.min(t, 5)]; }
-export function uitgaanKans(){ const t = isProf() ? 1 : club().t; return t <= 2 ? .8 : t === 3 ? .5 : t === AMATEUR ? .3 : .12; }
-export function volgendeTegenstander(){ if (S.ronde >= AANTAL_RONDES || S.sp.o23) return null; try { return CLUBS[fixture(S.ronde).opp].n; } catch (e){ return null; } }
+export function uitgaanBronnen(){ return RODDELBLADEN; }
+export function uitgaanKans(){ const t = isProf() ? 1 : club().t; return t <= 1 ? .8 : .5; }
+export function volgendeTegenstander(){ if (S.ronde >= AANTAL_RONDES || S.sp.o23) return null; try { const f = fixture(S.ronde); return f ? CLUBS[f.opp].n : null; } catch (e){ return null; } }
 export const UITGAAN_KOPPEN = {
   uit: [
     (n, c, o) => [`${n} gespot in nachtclub`, `Hij stond tot laat aan de bar. "Hij was heel gezellig," zegt een andere bezoeker.`],

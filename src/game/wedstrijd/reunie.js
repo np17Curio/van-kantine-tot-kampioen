@@ -1,7 +1,7 @@
 import { S, club, mod } from '../../core/state.js';
 import { keuzeKnop, knop } from '../../core/ui.js';
 import { clamp, esc, pick } from '../../core/utils.js';
-import { AANTAL_RONDES, CLUBS, JEUGD } from '../../data/gegevens.js';
+import { AANTAL_RONDES, CLUBS } from '../../data/gegevens.js';
 import { thuisLand } from '../../data/landen.js';
 import { fixture } from '../competitie/competitie.js';
 import { selectie } from '../competitie/spelers.js';
@@ -19,7 +19,7 @@ import { stand2 } from './wedstrijd.js';
 export const oudeClubs = () => S.sp.oudeClubs || (S.sp.oudeClubs = {});
 export const VERTREK_TEKST = {legende:'Je vertrok als clublegende.', goed:'Je vertrok netjes, met de zegen van de club.', weg:'De trainer stuurde je weg.', slecht:'Je vertrok met ruzie.'};
 export function bewaarVertrek(oudId, hoe, naarRivaal){
-  const sp = S.sp; if (CLUBS[oudId].t === JEUGD) return;
+  const sp = S.sp;
   const type = sp.legendeHier ? 'legende' : (naarRivaal || hoe === 'geforceerd' || sp.ontbonden || sp.vertrekRuzie) ? 'slecht' : hoe === 'weg' ? 'weg' : 'goed';
   const reden = naarRivaal ? 'Je ging naar de aartsrivaal.' : sp.ontbonden ? 'Je contract werd ontbonden.' : hoe === 'geforceerd' ? 'Je dwong je transfer af.' : sp.vertrekRuzie ? 'Je wilde per se weg en kreeg ruzie met de club.' : VERTREK_TEKST[type];
   const rel = sp.kleed && sp.kleed.club === ck(oudId) ? {...sp.kleed.rel} : {};
@@ -39,7 +39,7 @@ export function oudeMaten(opp){
 export function ontvangst(opp){ const f = fans(opp), R = reunieMet(opp); return R.type === 'legende' && f >= 70 ? 'ovatie' : f >= 55 ? 'applaus' : f >= 30 ? 'gemengd' : 'fluit'; }
 // Weekscherm: aankondiging, pers en een appje van een oude teamgenoot
 export function reuniePers(fel){
-  const sp = S.sp, w = S.week, opp = fixture(S.ronde).opp, R = reunieMet(opp); if (!R || w.reuniePers) return;
+  const sp = S.sp, w = S.week, fx = fixture(S.ronde); if (!fx) return; const opp = fx.opp, R = reunieMet(opp); if (!R || w.reuniePers) return;
   w.reuniePers = fel ? 'fel' : 'rustig';
   if (fel){ modFans(-8, opp); social().volgers += Math.round(40 + social().volgers * .02);
     if (club().t <= 3) krantMelding(`${sp.naam}: "Ik ga ${CLUBS[opp].n} laten zien wat ze missen"`, `Voor het weerzien met zijn oude club is ${sp.naam} strijdlustig. Bij ${CLUBS[opp].n} reageren ze verbaasd.`);
@@ -54,7 +54,7 @@ export function reunieApp(opp){
 }
 export function vReunie(){
   const sp = S.sp, w = S.week; if (sp.o23 || S.ronde >= AANTAL_RONDES) return '';
-  const opp = fixture(S.ronde).opp, R = reunieMet(opp); if (!R) return '';
+  const fx = fixture(S.ronde); if (!fx) return ''; const opp = fx.opp, R = reunieMet(opp); if (!R) return '';
   const f = Math.round(fans(opp)), o = ontvangst(opp), app = reunieApp(opp);
   const verwacht = {ovatie:'Ze maken zich op voor een staande ovatie.', applaus:'De oude fans willen je bedanken met een applaus.', gemengd:'De oude fans weten niet goed wat ze van je moeten denken.', fluit:'De oude fans hebben er zin in: ze gaan je uitfluiten.'}[o];
   return `<div class="paneel" style="gap:8px;border-color:var(--lamp)"><span class="label">Weerzien met ${esc(CLUBS[opp].n)}</span>

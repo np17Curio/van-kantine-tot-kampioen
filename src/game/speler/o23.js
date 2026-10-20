@@ -1,6 +1,6 @@
 import { S, club, mod, ovr, seizoenLabel } from '../../core/state.js';
-import { clamp, rnd, shuffle } from '../../core/utils.js';
-import { AMATEUR, CLUBS, POS, divClubs } from '../../data/gegevens.js';
+import { clamp, randInt, rnd, shuffle } from '../../core/utils.js';
+import { CLUBS, LAAGSTE, POS, divClubs, weekFactor } from '../../data/gegevens.js';
 import { fixture, simGoals } from '../competitie/competitie.js';
 import { speelRonde } from '../competitie/spelers.js';
 import { KRANTEN, reeks } from '../media/nieuws.js';
@@ -10,7 +10,7 @@ import { statusNiveau } from './status.js';
 import { sluitVenster } from '../transfers/transfers.js';
 import { agentReset } from '../transfers/zaakwaarnemer.js';
 import { focusNaWedstrijd } from '../wedstrijd/focus.js';
-import { planWedstrijd, verderSpelen } from '../wedstrijd/wedstrijd.js';
+import { onderwijsCoach, planWedstrijd, verderSpelen } from '../wedstrijd/wedstrijd.js';
 import { verhoog } from '../week.js';
 import { staminaNaWedstrijd } from '../wedstrijd/stamina.js';
 import { talentNaWedstrijd } from './talent.js';
@@ -22,7 +22,7 @@ export const fmt1 = v => v.toFixed(1).replace('.', ',');
 // Na elke wedstrijd met het eerste elftal: houdt een slechte reeks bij. Eerst een waarschuwing, daarna de O23
 export function checkO23(){
   const sp = S.sp, M = S.M;
-  if (club().t > AMATEUR || sp.huur) return null; // niet in de jeugd en niet tijdens een huurperiode
+  if (sp.huur) return null; // niet tijdens een huurperiode
   const r = sp.recent = (sp.recent || []).concat(M.cijfer).slice(-5);
   const slecht = r.filter(c => c < 6).length, g5 = gemiddelde(r);
   if (slecht <= 1 || g5 >= 6.5) sp.gewaarschuwd = false;
@@ -60,10 +60,14 @@ export function terugUitO23(){
 export function startO23(){
   const sp = S.sp, c = club(), fx = fixture(S.ronde), opp = CLUBS[fx.opp];
   const [a, b] = simGoals(c.s, opp.s, fx.thuis);
-  const wijS = c.s - 8, oppS = opp.s - 8, thuis = rnd() < .5;
+  // O23-teams bestaan uit jonge spelers van ongeveer jouw niveau (de O23 van een sterkere club is iets beter).
+  // Ben je zelf al goed (een teruggezette prof), dan zijn ze hooguit zo sterk als het eerste elftal min 8
+  const o = ovr(sp), o23 = (s, d) => Math.round(Math.min(s - 8, o + d + (s - 66) * .25));
+  const wijS = o23(c.s, -3), oppS = o23(opp.s, -8 + randInt(-1, 1)), thuis = rnd() < .5;
   const T = teamKracht(wijS, {speelt:true, thuis, bonus:false}), O = oppS + (thuis ? 0 : 2);
   const M = {o23:true, eerste:{us:a, them:b, opp:fx.opp, thuis:fx.thuis}, oppS, wij:`${c.n} O23`, zij:`${opp.n} O23`, thuis, rol:'basis', us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false};
   S.M = M;
+  { const r = onderwijsCoach(); if (r) M.log.push(r); }
   planWedstrijd(M, T, O);
   M.log.push({m:"1'", t:'Aftrap bij de O23, op een bijveld met een handjevol toeschouwers. Hier moet je het laten zien.', k:''});
   S.fase = 'match';
@@ -82,16 +86,16 @@ export function eindeO23(){
   focusNaWedstrijd(M);
   M.bonus = topBonus(M);
   M.groei = null;
-  if (M.cijfer >= 7 && rnd() < .4){
+  if (M.cijfer >= 7 && rnd() < .4 * weekFactor()){
     const w = POS[sp.pos].w, keys = Object.keys(w); let r = rnd(), k = keys[0];
     for (const kk of keys){ r -= w[kk]; if (r <= 0){ k = kk; break; } }
     if (ovr(sp) < sp.pot + 3){ verhoog(k, 1); M.groei = k; }
   }
-  M.talent = talentNaWedstrijd(M.cijfer);
+  M.talent = rnd() < weekFactor() ? talentNaWedstrijd(M.cijfer) : null;
   // Het eerste elftal speelde ook
   speelRonde(S.ronde, E.us, E.them);
   const eUit = E.us > E.them ? 'W' : E.us < E.them ? 'V' : 'G', eStand = E.thuis ? `${E.us}-${E.them}` : `${E.them}-${E.us}`;
-  (S.ss.uitslagen = S.ss.uitslagen || [])[S.ronde] = {r:eUit, s:`${eStand} tegen ${CLUBS[E.opp].n}`, mee:false};
+  (S.ss.uitslagen = S.ss.uitslagen || [])[S.ronde] = {r:eUit, s:`${eStand} tegen ${CLUBS[E.opp].n}`, mee:false, opp:E.opp, thuis:E.thuis};
   M.eersteTekst = `Het eerste elftal van ${club().n} speelde ondertussen ${eStand} tegen ${CLUBS[E.opp].n} (${eUit === 'W' ? 'gewonnen' : eUit === 'V' ? 'verloren' : 'gelijk'}).`;
   // Terug naar de selectie?
   const c = O.cijfers;
@@ -103,12 +107,12 @@ export function eindeO23(){
 // Huur: alleen voor profs die bij de O23 zitten of het hele seizoen slecht spelen
 export function huurNodig(){
   const sp = S.sp;
-  if (club().t > 2 || sp.huur || (sp.sindsTransfer || 0) < 7) return false;
+  if (sp.huur || (sp.sindsTransfer || 0) < 7) return false;
   return !!sp.o23 || (S.ss.c.length >= 5 && gemiddelde(S.ss.c) < 6.2);
 }
 export function huurClubs(){
   const eigen = club();
-  const kand = divClubs(eigen.t + 1).concat(divClubs(eigen.t).filter(i => i !== S.sp.club && CLUBS[i].s <= eigen.s - 6));
+  const kand = (eigen.t < LAAGSTE ? divClubs(eigen.t + 1) : []).concat(divClubs(eigen.t).filter(i => i !== S.sp.club && CLUBS[i].s <= eigen.s - 6));
   return shuffle(kand).slice(0, 2);
 }
 export function gaHuren(id){

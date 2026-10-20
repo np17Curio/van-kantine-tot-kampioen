@@ -1,7 +1,7 @@
 import { S, club, mod, ovr, waarde } from '../../core/state.js';
 import { clamp, pick, poisson, randInt, rnd } from '../../core/utils.js';
-import { AANTAL_RONDES, AANV, CLUBS, JEUGD, POS, TEAMGENOTEN, TEGENSTANDERS } from '../../data/gegevens.js';
-import { eindeBeker } from '../competitie/beker.js';
+import { AANTAL_RONDES, AANV, CLUBS, POS, TEAMGENOTEN, TEGENSTANDERS, WINTER, INTER_WEKEN, weekFactor } from '../../data/gegevens.js';
+import { eindeBeker, naWedstrijd } from '../competitie/beker.js';
 import { fixture, simGoals } from '../competitie/competitie.js';
 import { doelHun, doelOns, gewogen, inVeld, ploeg, selectie, speelRonde, tegenPloeg, telt } from '../competitie/spelers.js';
 import { eindeInterland, maakOproep } from '../interlands/interlands.js';
@@ -12,9 +12,10 @@ import { isProf, topBonus } from '../prive/sponsors.js';
 import { carCijfer } from '../seizoen/carriere.js';
 import { checkKampioen } from '../seizoen/kampioen.js';
 import { recordsNaWedstrijd } from '../seizoen/records.js';
-import { o19Check } from '../speler/doorstroom.js';
 import { kalmte, onrust } from '../speler/kalmte.js';
 import { checkO23, eindeO23, startO23 } from '../speler/o23.js';
+import { eindeSelectie } from '../speler/selectie.js';
+import { vriendInTeam, zetVriendBand } from '../speler/journey.js';
 import { checkStatus, statusNiveau, statusPunten, wedstrijdPunten } from '../speler/status.js';
 import { isAanvoerder } from '../team/aanvoerder.js';
 import { band, iedereen, teamKracht } from '../team/kleedkamer.js';
@@ -26,7 +27,6 @@ import { fansNaWedstrijd, fansVoorAftrap, isDerby, maakPers, modFans } from './f
 import { focusNaWedstrijd } from './focus.js';
 import { FLOW, SLECHTE_FOCUS, bouwMoment, focusBoost, kans, kiesMomentType, pOpts } from './momenten.js';
 import { gebruik, staminaNaWedstrijd, staminaStart, wisselCheck } from './stamina.js';
-import { bewijsAfrekening } from '../speler/bewijs.js';
 import { eindeNacompetitie, nacompetitie } from '../competitie/nacompetitie.js';
 import { ontvangst, reunieAftrap, reunieMet, reunieNaWedstrijd } from './reunie.js';
 import { nieuweWeek, verhoog } from '../week.js';
@@ -99,6 +99,8 @@ export function planWedstrijd(M, T, O, vast){
     if (koel.length && rnd() < .5){ M.ev.push({type:'genegeerd', min:randInt(start + 1, 89), naam:pick(koel).n}); extra = -1; }
     if (maat.length && rnd() < .4){ M.ev.push({type:'moment', min:randInt(start + 1, 89), m:'rand', via:pick(maat).n}); extra += 0; }
   }
+  // Je jeugdvriend speelt mee: één van je momenten gaat over hem (hij staat vrij, of jullie combineren)
+  if (vriendInTeam(M) && rnd() < (M.selectie ? .8 : .6)){ M.ev.push({type:'moment', min:randInt(start + 1, 89), m:'vriendVrij'}); extra -= 1; }
   // tegen je rivaal: een gewoon moment minder, de duels met hem komen ervoor in de plaats
   for (let i = 0; i < Math.max(1, nn + extra - (M.rivaal ? 1 : 0)); i++) M.ev.push({type:'moment', min:randInt(start + 1, 89), m:kiesMomentType()});
   // Weerzien met je oude club: extra duels en je oude teamgenoten in het verslag
@@ -206,15 +208,20 @@ export function verslag(e, M){
   }
   return null;
 }
+// Slechte cijfers en geen huiswerk gemaakt? Bij een profclub houden je ouders je niet thuis, maar de onderwijscoach van de club
+// volgt je rapport en vertelt het de trainer (vertrouwen −3). Geeft de regel voor het wedstrijdverslag
+export function onderwijsCoach(){
+  const sp = S.sp; if (!(sp.leeftijd < 18 && sp.ouders && sp.ouders.boos && !(S.week && S.week.huiswerk))) return null;
+  mod('vert', -3);
+  return {m:'', t:`De onderwijscoach van ${club().n} heeft de trainer verteld over je slechte cijfers. Dat kost je wat vertrouwen.`, k:'gevaar'};
+}
 export function startWedstrijd(){
   S.krantWacht = [];
-  // Zijn je ouders boos om je cijfers, dan houden ze je soms thuis (niet als je deze week huiswerk maakte)
-  const thuis = S.sp.leeftijd < 18 && S.sp.ouders && S.sp.ouders.boos && !(S.week && S.week.huiswerk) && S.sp.blessure <= 0 && rnd() < .35;
-  if (!thuis && !(S.sp.geschorst > 0) && S.sp.o23 && S.sp.blessure <= 0 && S.sp.fit >= 20) return startO23();
+  if (!fixture(S.ronde)) return rustWeek();
+  if (!(S.sp.geschorst > 0) && S.sp.o23 && S.sp.blessure <= 0 && S.sp.fit >= 20) return startO23();
   const sp = S.sp, c = club(), fx = fixture(S.ronde), opp = CLUBS[fx.opp];
   let rol, reden = '';
-  if (thuis) rol = 'ouders';
-  else if (sp.blessure > 0) rol = 'blessure';
+  if (sp.blessure > 0) rol = 'blessure';
   else if (sp.geschorst > 0) rol = 'geschorst';
   else if (sp.fit < 20) rol = 'rust';
   else {
@@ -233,6 +240,7 @@ export function startWedstrijd(){
   const O = opp.s + (fx.thuis ? 0 : 2) + vormBonus(fx.opp);
   const M = {opp:fx.opp, oppS:opp.s, wij:c.n, zij:opp.n, thuis:fx.thuis, rol, us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false, derby:isDerby(fx.opp), fel:!!S.ss.rivaalFel};
   S.M = M;
+  { const r = onderwijsCoach(); if (r) M.log.push(r); }
   if (speeltTegenRivaal(fx.opp)) M.rivaal = true; // ook als je zelf niet speelt
   const derbyRegel = M.derby ? {m:'', t:`DERBY tegen aartsrivaal ${opp.n}! Het stadion kookt, overal vuurwerk en spandoeken.${M.fel ? ' Na de woorden in de krant is de sfeer extra vijandig.' : ''}`, k:'info'} : null;
 
@@ -261,10 +269,15 @@ export function startWedstrijd(){
   verderSpelen();
 }
 export const mijnNaam = () => club().n;
+export function aftrap(){ if (S.M && S.M.intro) verderSpelen(); }
 export function stand2(){ const M = S.M; return M.thuis ? `${M.us}-${M.them}` : `${M.them}-${M.us}`; }
 
+// Elke wedstrijd begint met een intro (de opstellingen, jouw rol): de eerste keer stopt verderSpelen daar, "Aftrap!" speelt verder.
+// (Een wedstrijd die in een oude opslag al bezig was, krijgt geen intro)
 export function verderSpelen(){
   const M = S.M;
+  if (M.intro === undefined && !(M.idx > 0)){ M.intro = true; return; }
+  if (M.intro) M.intro = false;
   if (M.varKeuze) return varKeuze(0);
   while (M.idx < M.ev.length){
     const e = M.ev[M.idx++]; M.min = e.min; wisselCheck(M);
@@ -289,6 +302,8 @@ export function kies(i){
   const M = S.M, opt = pOpts(M.pending)[i];
   const ok = rnd() < kans(opt);
   let out = (ok ? opt.ok : opt.mis)();
+  if (out.vriend) zetVriendBand(out.vriend);
+  if (out.vriendGoal) M.vriendGoals = (M.vriendGoals || 0) + 1;
   // Tegen een veel sterkere ploeg haalt hun keeper soms ook een goede kans van jou eruit
   // VAR bij jouw goal
   if (out.goal && !M.o23 && !M.inter){ const gat = (M.oppS ?? CLUBS[M.opp].s) - club().s;
@@ -394,6 +409,7 @@ export function eindeWedstrijd(){
     if (M.inter.toernooi) toernooiNaWedstrijd(M);
     return;
   }
+  if (M.selectie) return eindeSelectie();
   if (M.o23) return eindeO23();
   if (M.beker) return eindeBeker();
   if (M.po) return eindeNacompetitie();
@@ -405,31 +421,31 @@ export function eindeWedstrijd(){
     M.cijfer = Math.round(clamp(M.cijfer, 3, 10) * 10) / 10;
     sp.vert = clamp(sp.vert + (M.cijfer - (M.rol === 'invaller' ? 6.0 : 6.3)) * 6 - (M.rood ? 8 : 0), 0, 100);
     sp.vorm = clamp(sp.vorm * .5 + (M.cijfer - 6.5) + (M.us > M.them ? .2 : M.us < M.them ? -.2 : 0), -3, 3); // een winnende ploeg geeft vertrouwen
-    sp.rep = clamp(sp.rep + ((M.cijfer - 6.5) * 1.2 + M.goals + M.assists * .5) * (1 + (3 - Math.min(club().t, 4)) * .3), 0, 100);
+    sp.rep = clamp(sp.rep + ((M.cijfer - 6.5) * 1.2 + M.goals + M.assists * .5) * (1 + (3 - Math.min(club().t, 4)) * .3) * weekFactor(), 0, 100); // (weekFactor: per seizoen even snel, hoe lang het seizoen ook is)
     staminaNaWedstrijd(M);
     S.ss.wed++; S.ss.g += M.goals; S.ss.a += M.assists; S.ss.c.push(M.cijfer);
     if (M.rol === 'basis') S.ss.basis = (S.ss.basis || 0) + 1;
     if (M.rol === 'basis' && M.them === 0) S.ss.cs = (S.ss.cs || 0) + 1;
     sp.clubWed++;
     erbij(2); // spelen in het systeem leert je het systeem
-    statusPunten(wedstrijdPunten(M.cijfer, M.goals, M.assists, M.us > M.them, M.rood, M.rol === 'invaller'));
+    statusPunten(wedstrijdPunten(M.cijfer, M.goals, M.assists, M.us > M.them, M.rood, M.rol === 'invaller') * weekFactor());
     focusNaWedstrijd(M);
     M.kaartTekst = kaartenVerwerken(M);
     S.car.wed++; S.car.g += M.goals; S.car.a += M.assists; carCijfer(M.cijfer);
     M.bonus = topBonus(M);
     M.groei = null;
-    if (M.cijfer >= 7 && rnd() < .4){
+    if (M.cijfer >= 7 && rnd() < .4 * weekFactor()){
       const w = POS[sp.pos].w, keys = Object.keys(w); let r = rnd(), k = keys[0];
       for (const kk of keys){ r -= w[kk]; if (r <= 0){ k = kk; break; } }
       if (ovr(sp) < sp.pot + 3){ verhoog(k, 1); M.groei = k; }
     }
-    M.talent = talentNaWedstrijd(M.cijfer);
+    M.talent = rnd() < weekFactor() ? talentNaWedstrijd(M.cijfer) : null;
     if (sp.fit < 30 && rnd() < .12 * pers('blessure')){ sp.blessure = Math.max(1, randInt(1, 4) - pers('herstel')); M.blessureNieuw = sp.blessure; }
   } else {
     M.cijfer = null;
-    if (M.rol === 'tribune'){ mod('vert', 3); statusPunten(-1); }
+    if (M.rol === 'tribune'){ mod('vert', 3); statusPunten(-weekFactor()); }
     if (M.rol === 'ouders'){ mod('vert', -3); mod('focus', -3); }
-    if (M.rol === 'bank'){ mod('vert', 2); statusPunten(-.5); }
+    if (M.rol === 'bank'){ mod('vert', 2); statusPunten(-.5 * weekFactor()); }
     if (M.rol === 'geschorst') mod('vert', -1);
     // Een schorsing loopt door, ook als je geblesseerd bent of thuis zit
     if (sp.geschorst > 0) sp.geschorst--;
@@ -442,10 +458,9 @@ export function eindeWedstrijd(){
   speelRonde(S.ronde, M.us, M.them, M.doelen || []);
   M.reeksTekst = reeksTekst(S.sp.club);
   M.rivaalTekst = naRivaalDuel(M);
-  (S.ss.uitslagen = S.ss.uitslagen || [])[S.ronde] = {r: M.us > M.them ? 'W' : M.us < M.them ? 'V' : 'G', s:`${stand2()} tegen ${CLUBS[M.opp].n}`, mee:speelde};
+  (S.ss.uitslagen = S.ss.uitslagen || [])[S.ronde] = {r: M.us > M.them ? 'W' : M.us < M.them ? 'V' : 'G', s:`${stand2()} tegen ${CLUBS[M.opp].n}`, mee:speelde, opp:M.opp, thuis:M.thuis};
   M.statusTekst = checkStatus();
   M.agentTekst = agentCheck();
-  M.o19Tekst = club().t === JEUGD ? o19Check() : null;
   fansNaWedstrijd(M, speelde);
   reunieNaWedstrijd(M, speelde);
   if (speelde) recordsNaWedstrijd(M);
@@ -462,17 +477,19 @@ export function eindeWedstrijd(){
   S.fase = 'matchEnd';
 }
 
+// Speelvrije week: jouw league speelt niet, de andere league (en de bekers) wel. Wel even bijkomen
+export function rustWeek(){
+  speelRonde(S.ronde, 0, 0, null);
+  mod('fit', 6);
+  naWedstrijd();
+}
 export function vervolgNaRonde(){
-  if (S.ronde === 7){
-    // Winterstop: de laatbloeier hoort of zijn proefcontract een vast contract wordt
-    const proef = bewijsAfrekening();
+  if (S.ronde === WINTER){
     openVenster('winter');
-    // (bij een mislukte proeftijd vertelt het transfervenster zelf dat je weg moet)
-    if (proef === true && S.venster) S.venster.intro = 'Je proeftijd zit erop en je hebt je bewezen: je krijgt een vast contract! ' + (S.sp.bewijs.talent ? S.sp.bewijs.talent + ' ' : '') + S.venster.intro;
     return;
   }
   if (S.ronde >= AANTAL_RONDES) return nacompetitie(); // eerst de nacompetitie, daarna het seizoenseinde
-  if (S.ronde === 4 || S.ronde === 11){
+  if (INTER_WEKEN.includes(S.ronde)){
     if (S.sp.interStop && !S.sp.clubloos){ nieuweWeek(); mod('fit', 10); mod('moraal', 2); S.week.tekst.unshift('Interlandperiode. Jij bent gestopt als international en hebt een week rust.'); return; }
     const o = maakOproep();
     if (o && o.landen.length){ S.oproep = o; S.fase = 'oproep'; return; }

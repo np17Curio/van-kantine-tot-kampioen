@@ -14,6 +14,7 @@ import { focusBoost } from './momenten.js';
 import { balk } from '../../render/views/zijbalk.js';
 import { pers } from '../speler/persoonlijkheid.js';
 import { rivaal as rivaalObj, rivaalNaam, zetBand } from '../speler/rivaal.js';
+import { toonMeter } from '../speler/journey.js';
 
 /* ===================== Derby's, fans en persconferenties ===================== */
 // Elke club heeft een vaste aartsrivaal (de buurclub in de lijst). Spelen ze niet meer in dezelfde divisie, dan krijgt de club een rivaal uit de eigen divisie
@@ -109,6 +110,7 @@ export function maakPers(M, soort){
 export function persAntwoord(i){
   const sp = S.sp, M = S.M, P = M && M.pers; if (!P || P.klaar) return;
   const o = P.opts[i], so = social(), naam = sp.naam; P.klaar = true; P.keuze = i;
+  toonMeter(o.s === 'b' ? 'kalm' : o.s === 'z' ? 'bal' : 'fel'); // je karakter: rustig of heethoofd
   const citaat = o.t.replace(/^"|"$/g, '');
   if (P.doel === 'rivaalSpeler' && o.s === 'b') zetBand(5);
   if (o.s === 'b'){ mod('rep', 1); mod('vert', 2); modFans(2); P.uit = 'Een netjes antwoord. De trainer knikt goedkeurend en de fans waarderen je bescheidenheid. Reputatie +1 · vertrouwen +2 · fans +2.'; }
@@ -132,6 +134,6 @@ export function vPers(){
   const M = S.M, P = M && M.pers; if (!P) return '';
   if (P.klaar) return `<div class="paneel"><span class="label">Persconferentie · ${esc(P.bron)}</span><p class="muted">"${esc(P.vraag)}"</p><p><b>Jij:</b> ${esc(P.opts[P.keuze].t)}</p><p class="melding">${esc(P.uit)}</p></div>`;
   return `<div class="paneel" id="persPanel"><span class="label">Persconferentie · ${esc(P.bron)}</span><p>Een verslaggever houdt een microfoon onder je neus: <b>"${esc(P.vraag)}"</b></p>
-    <div class="keuzes">${P.opts.map((o, i) => keuzeKnop(o.l, `${esc(o.t)} · ${o.s === 'b' ? 'veilig, kleine plus' : o.s === 'z' ? 'volgers, maar je moet het waarmaken' : 'gaat viral, komt in de krant, heeft gevolgen'}`, () => persAntwoord(i), 'data-blijf')).join('')}</div>
+    <div class="keuzes">${P.opts.map((o, i) => keuzeKnop(`${o.s === 'b' ? '🧊' : o.s === 'z' ? '⚖️' : '🔥'} ${o.l}`, `${esc(o.t)} · ${o.s === 'b' ? 'veilig, kleine plus' : o.s === 'z' ? 'volgers, maar je moet het waarmaken' : 'gaat viral, komt in de krant, heeft gevolgen'}`, () => persAntwoord(i), 'data-blijf')).join('')}</div>
     <p class="muted klein-tekst">Je mag ook gewoon doorlopen zonder iets te zeggen.</p></div>`;
 }

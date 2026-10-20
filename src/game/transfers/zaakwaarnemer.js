@@ -1,6 +1,6 @@
 import { S, club, gemCijfer, ovr, tmp } from '../../core/state.js';
 import { clamp, shuffle } from '../../core/utils.js';
-import { CLUBS, DIVS, ELITE_LAND, JEUGD, MIN, divClubs } from '../../data/gegevens.js';
+import { CLUBS, CLUBS_LAND, DIVS, ELITE_LAND, MIN, clubsLand, divClubs } from '../../data/gegevens.js';
 import { SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
 import { vreemdeClub } from './buitenland.js';
 import { slotLand } from '../competitie/europa.js';
@@ -15,7 +15,8 @@ export function afstand(a, b){
   return prev[n];
 }
 // De seniorenclubs van je land (8-39): niet de jeugdteams, en niet de onzichtbare plaatsen (oude Elite, Europese gasten)
-export const SENIOR = CLUBS.map((c, i) => i).filter(i => i >= 8 && i < 40);
+// De clubs van de leagues in je eigen land (de lege plaatsen van een kleiner land tellen niet mee)
+export const senior = () => CLUBS.map((c, i) => i).filter(i => i >= 8 && i < CLUBS_LAND && CLUBS[i].t >= 1);
 // Een doel is {club, land}: land is null voor een club uit het land waar je nu speelt.
 // De Europese Elite (0-7) is in elk land dezelfde, dus die clubs horen altijd bij "hier".
 export const doelVan = (id, land) => ({club:id, land: id < 8 || !land || land === thuisLand() ? null : land});
@@ -28,8 +29,8 @@ export const isDoel = o => { const d = doelBod(); return !!d && sleutel(d) === s
 export const isHier = d => !d.land && d.club === S.sp.club;
 // Alle seniorenclubs om in te zoeken: eerst die van je eigen land, dan die van de andere landen (geen jeugdteams)
 export function clubIndex(){
-  const uit = SENIOR.map(i => ({club:i, land:null, n:CLUBS[i].n}));
-  for (const land of SPEEL_LANDEN){ if (land === thuisLand()) continue; for (let id = 8; id < 40; id++) uit.push({club:id, land, n:vreemdeClub(land, id).n}); }
+  const uit = senior().map(i => ({club:i, land:null, n:CLUBS[i].n}));
+  for (const land of SPEEL_LANDEN){ if (land === thuisLand()) continue; for (let id = 8; id < clubsLand(land); id++) uit.push({club:id, land, n:vreemdeClub(land, id).n}); }
   return uit;
 }
 // Uit welk land komt een club uit de Europese Elite? De vaste topclubs hebben een eigen land, een gepromoveerde club het jouwe
@@ -42,11 +43,11 @@ export function clubsVanNiveau(land, t){
   if (t === 0){
     const vast = ELITE_LAND.map((x, i) => i).filter(i => CLUBS[i].t === 0 && slotLand(i) === l).map(i => doelVan(i));
     if (l === thuisLand()) return vast.concat(divClubs(0).filter(i => i >= 8).map(i => doelVan(i)));
-    const uit = []; for (let id = 8; id < 40; id++) if (vreemdeClub(l, id).t === 0) uit.push({club:id, land:l});
+    const uit = []; for (let id = 8; id < clubsLand(l); id++) if (vreemdeClub(l, id).t === 0) uit.push({club:id, land:l});
     return vast.concat(uit);
   }
   if (l === thuisLand()) return divClubs(t).map(i => doelVan(i));
-  const uit = []; for (let id = 8; id < 40; id++) if (vreemdeClub(land, id).t === t) uit.push({club:id, land});
+  const uit = []; for (let id = 8; id < clubsLand(land); id++) if (vreemdeClub(land, id).t === t) uit.push({club:id, land});
   return uit;
 }
 export function zoekClub(q){

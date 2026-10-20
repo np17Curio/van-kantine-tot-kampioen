@@ -1,6 +1,5 @@
 import { S, club, mod, seizoenLabel } from '../../core/state.js';
 import { clamp, geldTxt, rnd } from '../../core/utils.js';
-import { JEUGD } from '../../data/gegevens.js';
 import { KRANTEN } from '../media/nieuws.js';
 import { krantMelding } from '../media/roddel.js';
 import { uitgaanBronnen } from '../media/uitgaan-krant.js';
@@ -44,7 +43,7 @@ export function laatsteWaarschuwing(){
 export function ontbinding(){
   const sp = S.sp, oud = club();
   // Bij huur of in de jeugd kan de club je niet zomaar wegsturen: dan een zware straf
-  if (sp.huur || oud.t === JEUGD || sp.o23) return {soort:'prive', tekst:'De club is woedend over je gedrag. Je wordt voor straf een paar weken uit de selectie gezet.', opts:[{l:'Balen...', f(){ sp.geschorst = (sp.geschorst || 0) + 2; mod('vert', -15); tucht().p = 50; return 'Twee wedstrijden op de tribune. Je hebt het aan jezelf te danken.'; }}]};
+  if (sp.huur || sp.o23) return {soort:'prive', tekst:'De club is woedend over je gedrag. Je wordt voor straf een paar weken uit de selectie gezet.', opts:[{l:'Balen...', f(){ sp.geschorst = (sp.geschorst || 0) + 2; mod('vert', -15); tucht().p = 50; return 'Twee wedstrijden op de tribune. Je hebt het aan jezelf te danken.'; }}]};
   return {soort:'prive', tekst:`Het is genoeg geweest. ${oud.n} ontbindt je contract, met directe ingang. "Zijn gedrag buiten het veld past niet bij onze club." Je moet je kluisje leegruimen.`, opts:[
     {l:'Je spullen pakken', f(){
       S.car.hist.push(`${seizoenLabel()}: contract ontbonden door ${oud.n} wegens gedrag buiten het veld`);

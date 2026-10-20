@@ -1,0 +1,58 @@
+import { S, ovr, salarisLabel } from '../../core/state.js';
+import { knop } from '../../core/ui.js';
+import { esc, geldTxt } from '../../core/utils.js';
+import { CLUBS, DIVS, NIVEAU, POS } from '../../data/gegevens.js';
+import { clubLogo } from '../../data/logos.js';
+import { RANG_START, SELECTIE_WED, SEL_UITLEG, mijnPlek, naSelectie, ranglijst, selGemiddelde, startSelectie, tekenSelectie } from '../../game/speler/selectie.js';
+import { fmt1 } from '../../game/speler/o23.js';
+import { startVoor } from '../../game/speler/startverhaal.js';
+import { rolBijClub } from '../../game/speler/status.js';
+import { TACTIEKEN, clubTactiek } from '../../game/team/tactiek.js';
+import { vFit, vLog, scorebord } from './match.js';
+
+// De scoutingranglijst: top 10 gemarkeerd, jij en je vriend uitgelicht
+function vRanglijst(){
+  const l = ranglijst();
+  if (!l) return `<p class="muted">Scoutingranglijst: je begint op plek <b>${RANG_START}</b>. Eindig zo hoog mogelijk: in de top 10 kijken de grote clubs mee.</p>`;
+  return `<div class="paneel"><span class="label">Scoutingranglijst</span><ol class="ranglijst">${l.map((x, i) => `<li class="${x.jij ? 'mij' : ''}${i === 9 ? ' grens' : ''}"><span>${x.jij ? '<b>' + esc(x.n) + ' (jij)</b>' : x.vriend ? esc(x.n) + ' 🤝' : esc(x.n)}</span><b>${fmt1(x.gem)}</b></li>`).join('')}</ol>
+    <p class="muted klein-tekst">Boven de streep: de top 10. 🤝 = je jeugdvriend.</p></div>`;
+}
+// Voor de eerste week: de 3 selectiewedstrijden die bepalen waar je carrière begint
+export function vSelectie(){
+  const sp = S.sp, Sel = S.selectie, n = Sel.cijfers.length, g = selGemiddelde(), V = startVoor(sp.leeftijd), r = mijnPlek();
+  return `<div class="verhaal"><span class="label">Selectiedagen · wedstrijd ${n + 1} van ${SELECTIE_WED}</span>
+      <h2>${n ? `Plek ${r.plek} op de ranglijst` : 'Laat zien wat je kunt'}</h2>
+      <p>${n ? `Je cijfers tot nu toe: <b>${Sel.cijfers.map(fmt1).join(' · ')}</b> (gemiddeld ${fmt1(g)}).` : `${esc(V.kort)} Je speelt ${SELECTIE_WED} selectiewedstrijden met andere talenten van jouw niveau. Scouts van alle clubs kijken mee.`}</p>
+      <p class="muted">${SEL_UITLEG} Daarna kies je uit de clubs die je willen hebben.</p>
+      <div class="ladder"><div><span class="label">≥ ${fmt1(7.5)}</span><b>${esc(DIVS[1])}</b></div><div><span class="label">≥ ${fmt1(6.5)}</span><b>${esc(DIVS[2])}</b></div><div><span class="label">lager</span><b>O23 van een club uit de ${esc(DIVS[2])}</b></div></div>
+      <p class="muted klein-tekst">${POS[sp.pos].n} · ${sp.leeftijd} jaar · klasse ${ovr(sp)} · fitheid ${Math.round(sp.fit)}</p>
+    </div>` + vRanglijst() + knop(`Speel selectiewedstrijd ${n + 1}`, startSelectie);
+}
+export function vSelectieEnd(){
+  const M = S.M, Sel = S.selectie, klaar = !!Sel.bods, uitslag = M.us > M.them ? 'Gewonnen' : M.us < M.them ? 'Verloren' : 'Gelijkgespeeld';
+  return scorebord() + `<div class="verhaal"><span class="label">Selectiewedstrijd ${Sel.cijfers.length} van ${SELECTIE_WED} · ${uitslag}</span>
+    <div class="rij" style="gap:20px;align-items:flex-end"><div><span class="label">Jouw cijfer</span><div class="groot">${fmt1(M.cijfer)}</div></div>
+    <div class="muted">${M.goals} ${M.goals === 1 ? 'goal' : 'goals'} · ${M.assists} ${M.assists === 1 ? 'assist' : 'assists'}${M.rood ? ' · rode kaart' : ''}</div></div>
+    ${M.focusTekst ? `<p class="${M.focusOmlaag ? 'fouttxt' : 'goedtxt'}">${esc(M.focusTekst)}</p>` : ''}${vFit(M)}
+    <p class="melding">${esc(M.selTekst)}</p>${klaar ? `<p><b>${Sel.bods.length} clubs</b> willen met je praten!</p>` : ''}</div>` + vRanglijst() + vLog()
+    + knop(klaar ? 'Bekijk de aanbiedingen' : 'Volgende selectiewedstrijd', naSelectie);
+}
+// De clubs die je na de selectiedagen willen hebben: jij kiest
+const SOORT = {past:'Past bij je niveau', ambitie:'Ambitieus', veilig:'Veel speeltijd'};
+export function vSelectieKeuze(){
+  const Sel = S.selectie, vc = Sel.vriendClub, vn = S.sp.vriend ? S.sp.vriend.voornaam : null;
+  const kaart = (o, i) => {
+    const c = CLUBS[o.club], r = o.o23 ? null : rolBijClub(o.club, {...c, land:'nieuw'}), stijl = TACTIEKEN[clubTactiek(o.club)];
+    return `<div class="bod ${o.soort === 'ambitie' ? 'door' : ''}"><span class="label">${SOORT[o.soort]} · ${o.o23 ? 'O23' : NIVEAU[c.t]} · ${esc(DIVS[c.t])}</span>
+      <div class="club">${clubLogo(o.club, 40)}<span>${esc(c.n)}${o.o23 ? ' O23' : ''}</span></div>
+      <p class="quote">${esc(o.quote)}</p>
+      <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>${salarisLabel(c.t)}</dt><dd>${geldTxt(o.salaris)}</dd><dt>Contract</dt><dd>${o.jaren} jaar</dd><dt>Speelstijl</dt><dd>${esc(stijl ? stijl.n : '–')}</dd></dl>
+      <div class="rol"><span class="label">Jouw rol daar</span>${o.o23 ? '<b>Bij de O23</b><span class="risico r-gem">Bewijs je, dan haalt de trainer je naar het eerste</span>' : `<b>${r.status}</b><span class="risico ${r.plek[1]}">${r.plek[0]}</span>`}</div>
+      ${vc && vc.club === o.club && vn ? `<p class="goedtxt klein-tekst">🤝 ${esc(vn)} tekent hier ook${vc.o23 ? ' (bij de O23)' : ''}.</p>` : ''}
+      <div class="rij">${knop('Hier tekenen', () => tekenSelectie(i), 'hoofd', 'style="font-size:1.05rem;padding:10px 16px"')}</div></div>`;
+  };
+  const vElders = vc && vn && !Sel.bods.some(o => o.club === vc.club) ? `<p class="muted">${esc(vn)} heeft al gekozen: hij tekent bij ${esc(CLUBS[vc.club].n)}${vc.o23 ? ' (O23)' : ''}.</p>` : '';
+  return `<div class="verhaal"><span class="label">Selectiedagen · de aanbiedingen</span><h2>Welke club past bij jou?</h2>
+    <p>Gemiddeld een <b>${fmt1(selGemiddelde())}</b>, plek <b>${mijnPlek().plek}</b> op de ranglijst. Deze clubs willen je hebben. Let op je rol: bij een sterke club leer je veel, maar speel je minder.</p>${vElders}</div>
+    <div class="aanbod">${Sel.bods.map(kaart).join('')}</div>`;
+}

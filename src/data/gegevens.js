@@ -1,40 +1,65 @@
 /* ===================== Gegevens ===================== */
-// Niveaus van hoog (0) naar laag (5)
-export const DIVS   = ['Europese Elite', 'Topdivisie', 'Eerste Divisie', 'Tweede Divisie', 'Amateurklasse', 'Jeugdcompetitie O19'];
-export const NIVEAU = ['Wereldtop', 'Prof', 'Prof', 'Semi-prof', 'Amateur', 'Jeugd'];
-export const JEUGD = 5, AMATEUR = 4;
-export const MIN  = [78, 67, 58, 50, 43, 0];       // klasse die nodig is om interesse te wekken
-export const REF  = [82, 70, 60, 51, 43, 33];      // referentie-klasse voor salaris
-export const BASE = [3000000, 450000, 70000, 22000, 3000, 400]; // jaarbedrag bij referentie
+// Niveaus van hoog (0) naar laag (2)
+// Per land twee leagues met het echte aantal clubs; elke club heeft daarnaast een O23 (sp.o23)
+export const DIVS   = ['Europese Elite', 'Topdivisie', 'Eerste Divisie'];
+export const NIVEAU = ['Wereldtop', 'Prof', 'Prof'];
+export const LAAGSTE = 2; // de laagste league
+export const MIN  = [78, 67, 58];       // klasse die nodig is om interesse te wekken
+export const REF  = [82, 70, 60];       // referentie-klasse voor salaris
+export const BASE = [3000000, 450000, 70000]; // jaarbedrag bij referentie
+// Hoeveel clubs per league (zoals in het echt, seizoen 2026/27) en wie er promoveert en degradeert.
+// omlaag/omhoog: zoveel clubs wisselen direct. po: de nacompetitie, vereenvoudigd:
+//   barrage: één wedstrijd tussen nr. `boven` van de hoogste league en nr. `onder` van de 2e league (wint de lagere club, dan wisselen ze)
+//   playoff: nr. `van` tot `tot` van de 2e league spelen halve finales en een finale; de winnaar promoveert
+export const LIGA = {
+  Nederland:{n:[18, 20], omlaag:2, omhoog:2, po:{soort:'barrage', boven:16, onder:3}},
+  'België': {n:[18, 16], omlaag:1, omhoog:1, po:{soort:'barrage', boven:17, onder:2}},
+  Engeland: {n:[20, 24], omlaag:3, omhoog:2, po:{soort:'playoff', van:3, tot:6}},
+  Duitsland:{n:[18, 18], omlaag:2, omhoog:2, po:{soort:'barrage', boven:16, onder:3}},
+  Frankrijk:{n:[18, 18], omlaag:2, omhoog:2, po:{soort:'barrage', boven:16, onder:3}},
+  Spanje:   {n:[20, 22], omlaag:3, omhoog:2, po:{soort:'playoff', van:3, tot:6}},
+  'Italië': {n:[20, 20], omlaag:3, omhoog:2, po:{soort:'playoff', van:3, tot:6}},
+  Portugal: {n:[18, 18], omlaag:2, omhoog:2, po:{soort:'barrage', boven:16, onder:3}},
+};
+export const ligaVan = land => LIGA[land] || LIGA.Nederland;
+export const MAX_LAND = Math.max(...Object.values(LIGA).map(l => l.n[0] + l.n[1])); // zoveel plaatsen voor de clubs van een land (Engeland: 44)
+export const clubsLand = land => 8 + ligaVan(land).n[0] + ligaVan(land).n[1]; // de clubs 8 tot hier spelen in de leagues van dat land
+// Nederlandse clubs, van sterk naar zwak (de andere landen staan in landen.js)
+export const NL_CLUBS = ['FC Lagewaard', 'Sparta Dijkstad', 'FC Polderstad', 'SC Heideveld', 'Quick Duinwijk', 'Fortuna Molenburg', 'Achilles Veenhoven', 'Victoria Zoutkamp',
+  'RKSV Dijkzicht', 'FC Turfhaven', 'VV De Brug', 'SC Wadden', 'Union Kreekrak', 'FC Grasdorp', 'Hercules Zandvoorde', 'Rapid Ruigoord', 'SV Lindenoord', 'FC Molenkade',
+  'SC Dijkwerker', 'VV Zeewind', 'Rood-Wit Hoeve', 'SV Grenswacht', 'FC Vlietland', 'ASV Klaproos', 'FC Eemvallei', 'SV Haringvliet', 'VV Peelrand', 'SC Kempenhorst',
+  'FC Waterland', 'RKVV Maasbracht', 'VV Koeienwei', 'SV De Klomp', 'VV Modderveld', 'FC Bierbuik', 'SV Zaterdagmiddag', 'SC Polderwind', 'VV Bitterbal', 'SC Regenjas'];
 export const CLUBS = [
   // (0-7: de plaatsen van de oude Europese Elite; die bestaat niet meer, de clubs spelen nu in de competitie van hun eigen land)
   {n:'Real Montclaro',t:-1,s:90},{n:'AC Vellano',t:-1,s:88},{n:'FC Nordhavn',t:-1,s:86},{n:'Olympique Lumière',t:-1,s:85},
   {n:'Sporting Alvor',t:-1,s:83},{n:'Dynamo Kravets',t:-1,s:82},{n:'Rapid Steinau',t:-1,s:80},{n:'Celtic Harbour',t:-1,s:79},
-  {n:'FC Lagewaard',t:1,s:78},{n:'Sparta Dijkstad',t:1,s:76},{n:'FC Polderstad',t:1,s:75},{n:'SC Heideveld',t:1,s:74},
-  {n:'Quick Duinwijk',t:1,s:72},{n:'Fortuna Molenburg',t:1,s:71},{n:'Achilles Veenhoven',t:1,s:69},{n:'Victoria Zoutkamp',t:1,s:68},
-  {n:'RKSV Dijkzicht',t:2,s:66},{n:'FC Turfhaven',t:2,s:64},{n:'VV De Brug',t:2,s:63},{n:'SC Wadden',t:2,s:62},
-  {n:'Union Kreekrak',t:2,s:60},{n:'FC Grasdorp',t:2,s:59},{n:'Hercules Zandvoorde',t:2,s:58},{n:'Rapid Ruigoord',t:2,s:56},
-  {n:'SV Lindenoord',t:3,s:55},{n:'FC Molenkade',t:3,s:54},{n:'SC Dijkwerker',t:3,s:53},{n:'VV Zeewind',t:3,s:52},
-  {n:'Rood-Wit Hoeve',t:3,s:51},{n:'SV Grenswacht',t:3,s:50},{n:'FC Vlietland',t:3,s:49},{n:'ASV Klaproos',t:3,s:48},
-  {n:'VV Koeienwei',t:4,s:47},{n:'SV De Klomp',t:4,s:46},{n:'VV Modderveld',t:4,s:45},{n:'FC Bierbuik',t:4,s:44},
-  {n:'SV Zaterdagmiddag',t:4,s:43},{n:'FC Kantine',t:4,s:42},{n:'VV Bitterbal',t:4,s:41},{n:'SC Regenjas',t:4,s:40}
 ];
-// Jeugdteams (O19) van de amateurclubs
-CLUBS.filter(c => c.t === AMATEUR).map(c => CLUBS.indexOf(c)).forEach((id, i) => CLUBS.push({n:CLUBS[id].n + ' O19', t:JEUGD, s:37 - i, ouder:id}));
+// De plaatsen voor de clubs van je land. Niveau en sterkte komen uit landBasis; een land met minder clubs laat de rest leeg (t = -2)
+for (let i = 0; i < MAX_LAND; i++) CLUBS.push({n:NL_CLUBS[i] || 'Lege plaats', t:-2, s:40});
+export const CLUBS_LAND = 8 + MAX_LAND; // alle plaatsen (ook de lege): gebruik clubsLand(land) voor een land
 // Gastplaatsen voor de Champions League en de Europa Cup: elk seizoen de topclubs uit de andere landen (geen competitie)
 export const GAST_START = CLUBS.length, GASTEN = 20;
 for (let i = 0; i < GASTEN; i++) CLUBS.push({n:'Europese gast', t:-1, s:75, gast:null});
 export const isGast = id => id >= GAST_START && id < GAST_START + GASTEN;
-// Startniveau en -sterkte van elke club. Door promotie en degradatie verandert dat; de stand van zaken staat in S.clubs
-export const CLUBS_BASIS = CLUBS.map(c => [c.t, c.s]);
-// De topclubs van de oude Elite spelen in de hoogste competitie van hun eigen land (op de laatste plaats daarvan, id 15)
+// De topclubs van de oude Elite spelen in de hoogste competitie van hun eigen land (op plaats ELITE_ID)
 export const ELITE_THUIS = {Spanje:{n:'Real Montclaro', s:90}, 'Italië':{n:'AC Vellano', s:88}, Frankrijk:{n:'Olympique Lumière', s:85}, Portugal:{n:'Sporting Alvor', s:83}, Duitsland:{n:'Rapid Steinau', s:80}, Engeland:{n:'Celtic Harbour', s:79}};
 export const ELITE_ID = 15;
-export function landBasis(land){ const b = CLUBS_BASIS.map(x => x.slice()), e = ELITE_THUIS[land]; if (e) b[ELITE_ID] = [1, e.s]; return b; }
+// Startniveau en -sterkte van elke club in een land: de hoogste league van ±80 aflopend naar ±66, de 2e league van ±65 naar ±52.
+// Door promotie en degradatie verandert dat; de stand van zaken staat in S.clubs
+export function landBasis(land){
+  const [n1, n2] = ligaVan(land).n, e = ELITE_THUIS[land];
+  const b = CLUBS.map((c, i) => i < 8 ? [-1, [90, 88, 86, 85, 83, 82, 80, 79][i]] : i >= GAST_START ? [-1, 75] : [-2, 40]);
+  for (let k = 0; k < n1; k++) b[8 + k] = [1, Math.round(80 - k * 14 / (n1 - 1))];
+  for (let k = 0; k < n2; k++) b[8 + n1 + k] = [2, Math.round(65 - k * 13 / (n2 - 1))];
+  if (e) b[ELITE_ID] = [1, e.s];
+  return b;
+}
+export const CLUBS_BASIS = landBasis('Nederland');
+CLUBS_BASIS.forEach(([t, s], i) => { CLUBS[i].t = t; CLUBS[i].s = s; }); // de startstand (Nederland), tot zetClubs een land zet
 // Thuisland van de vaste clubs uit de Europese Elite (0-7): één competitie met topclubs uit heel Europa
 export const ELITE_NAAM = CLUBS.slice(0, 8).map(c => c.n); // de oorspronkelijke namen (een plaats kan van club wisselen)
 export const ELITE_LAND = ['Spanje', 'Italië', 'Denemarken', 'Frankrijk', 'Portugal', 'Oekraïne', 'Duitsland', 'Engeland'];
-export function zetClubs(lijst){ (lijst || CLUBS_BASIS).forEach(([t, s], i) => { if (CLUBS[i]){ CLUBS[i].t = t; CLUBS[i].s = s; } }); }
+export function zetClubs(lijst){ (lijst || CLUBS_BASIS).forEach(([t, s], i) => { if (CLUBS[i]){ CLUBS[i].t = t; CLUBS[i].s = s; } }); zetKalender(); }
 
 export const ATTR = {afw:'Afwerking', pas:'Passen', drib:'Dribbelen', verd:'Verdedigen', cond:'Conditie', kalm:'Kalmte'};
 export const TRAINBAAR = ['afw', 'pas', 'drib', 'verd', 'cond'];
@@ -109,16 +134,60 @@ export const SPONSOR_CAT = {
   verzorging:{n:'Haarproducten',   merken:['Kuif', 'Glans & Co'],                         f:.4,  perk:'+1 reputatie'}
 };
 
-export function genRounds(){
-  const n = 8; let l = [0,1,2,3,4,5,6,7]; const eerste = [];
+// Speelschema voor een league van n clubs (n even): iedereen twee keer tegen iedereen, 2(n-1) rondes.
+// Wie er thuis speelt, wisselt per club af: wie vorige ronde uit speelde, speelt nu thuis (anders wie de minste thuiswedstrijden heeft).
+// De tweede seizoenshelft is de eerste omgekeerd, dus elk paar speelt één keer thuis en één keer uit
+const SCHEMA = {}, SCHEMA_OUD = {};
+export function genRounds(n = 8){
+  if (SCHEMA[n]) return SCHEMA[n];
+  let l = [...Array(n).keys()]; const eerste = [], thuis = Array(n).fill(0), vorig = Array(n).fill(null);
+  for (let r = 0; r < n - 1; r++){
+    const pr = [];
+    for (let i = 0; i < n / 2; i++){
+      const a = l[i], b = l[n - 1 - i];
+      const h = vorig[a] !== vorig[b] ? (vorig[a] === 'U' || vorig[b] === 'T' ? a : b) : (thuis[a] <= thuis[b] ? a : b), u = h === a ? b : a;
+      pr.push([h, u]); thuis[h]++; vorig[h] = 'T'; vorig[u] = 'U';
+    }
+    eerste.push(pr);
+    l = [l[0], l[n - 1], ...l.slice(1, n - 1)];
+  }
+  return SCHEMA[n] = eerste.concat(eerste.map(pr => pr.map(([a, b]) => [b, a])));
+}
+// Het oude schema (thuis/uit per plaats in plaats van per club), voor een seizoen dat daar al mee begonnen is
+export function genRoundsOud(n = 8){
+  if (SCHEMA_OUD[n]) return SCHEMA_OUD[n];
+  let l = [...Array(n).keys()]; const eerste = [];
   for (let r = 0; r < n - 1; r++){
     const pr = [];
     for (let i = 0; i < n / 2; i++){ const a = l[i], b = l[n - 1 - i]; pr.push((r + i) % 2 ? [b, a] : [a, b]); }
     eerste.push(pr);
     l = [l[0], l[n - 1], ...l.slice(1, n - 1)];
   }
-  return eerste.concat(eerste.map(pr => pr.map(([a, b]) => [b, a])));
+  return SCHEMA_OUD[n] = eerste.concat(eerste.map(pr => pr.map(([a, b]) => [b, a])));
 }
-export const ROUNDS = genRounds(); // 14 speelrondes
-export const AANTAL_RONDES = ROUNDS.length;
+// De kalender: een seizoen heeft zoveel weken als de langste league van je land rondes heeft (Nederland 38, Engeland 46).
+// Een kortere league speelt op evenredig verdeelde weken; in de andere weken heeft die league een speelvrije week.
+// Live exports: ze veranderen mee met het land (zetKalender, vanuit zetClubs)
+export let AANTAL_RONDES = 38;     // weken per seizoen (beginwaarde: Nederland)
+export let WINTER = 19;            // na deze week: de winterstop (het transfervenster)
+export let INTER_WEKEN = [11, 30]; // na deze weken: interlandperiodes
+export const rondesVan = t => Math.max(0, 2 * (divClubs(t).length - 1)); // wedstrijden per seizoen in league t
+export function zetKalender(){
+  AANTAL_RONDES = Math.max(rondesVan(1), rondesVan(2), 2);
+  WINTER = Math.floor(AANTAL_RONDES / 2);
+  INTER_WEKEN = [Math.round(AANTAL_RONDES * .3), Math.round(AANTAL_RONDES * .8)];
+}
+// In welke week speelt league t zijn ronde k?
+const weekVan = (t, k) => { const R = rondesVan(t); return R >= AANTAL_RONDES ? k : Math.floor((k + .5) * AANTAL_RONDES / R); };
+// Welke ronde speelt league t in week w (null: speelvrije week)
+export function rondeInWeek(t, w){
+  const R = rondesVan(t); if (!R || w < 0 || w >= AANTAL_RONDES) return null;
+  if (R >= AANTAL_RONDES) return w;
+  const k = Math.floor(w * R / AANTAL_RONDES); for (const x of [k, k + 1]) if (x < R && weekVan(t, x) === w) return x;
+  return null;
+}
+// Hoeveel wedstrijden heeft league t gespeeld vóór week w?
+export function rondesVoor(t, w){ const R = rondesVan(t); if (R >= AANTAL_RONDES) return Math.min(w, R); let n = 0; for (let k = 0; k < R; k++) if (weekVan(t, k) < w) n++; return n; }
+// Iets dat per week groeit of zakt, ging uit van 14 weken per seizoen: zo blijft het per seizoen even snel
+export const weekFactor = () => 14 / AANTAL_RONDES;
 export const divClubs = t => CLUBS.map((c, i) => i).filter(i => CLUBS[i].t === t);

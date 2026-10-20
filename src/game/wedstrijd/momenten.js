@@ -6,6 +6,7 @@ import { chemie } from '../team/kleedkamer.js';
 import { tactiekKans, tactiekMoment } from '../team/tactiek.js';
 import { stamina } from './stamina.js';
 import { pers, persKans, persMomentFactor } from '../speler/persoonlijkheid.js';
+import { vriendNaam, vriendSpeler } from '../speler/journey.js';
 
 /* ===================== Wedstrijdmomenten ===================== */
 export const goal = (t, d) => ({t, d, goal:true});
@@ -153,6 +154,17 @@ export const MOMENTS = {
     {l:'Dribbelen de zestien in', st:'drib', b:62, ok:()=> rnd() < .4 ? {t:'Je wordt neergehaald. PENALTY in de laatste minuut!', d:.3, next:'penalty'} : {t:'Je dribbelt de zestien in!', d:.3, next:'eenOpEen'}, mis:()=>({t:'Je verliest de bal. Daar gaat de laatste kans.', d:-.2})},
     {l:'Voorzet op de keeper die mee is', st:'pas', b:60, ok:()=> rnd() < .35 ? {t:'Jullie keeper is mee naar voren en kopt hem binnen! ONGELOOFLIJK!', d:1.0, assist:true, gekkeGoal:true} : {t:'Jullie keeper kopt net naast.', d:.2}, mis:()=>({t:'Je voorzet is te lang.', d:-.1})}]}
 };
+// Samen met je jeugdvriend in het veld: hij staat vrij. Passen, zelf schieten of samen combineren (naam en band uit journey.js)
+const vn = () => vriendNaam();
+const naarVriend = (t, d, band) => ({t, d, assist:true, scorer:vriendSpeler(), vriend:band, vriendGoal:true});
+MOMENTS.vriendVrij = {
+  get teksten(){ return [`${vn()} staat helemaal vrij aan de andere kant van de zestien en steekt zijn hand op.`, `Je dribbelt richting de goal. ${vn()} sprint mee in de rug van zijn man en roept je naam.`, `Een counter! Jij hebt de bal, ${vn()} loopt naast je. Twee tegen één.`]; },
+  opts:[
+    {get l(){ return `Naar ${vn()} passen`; }, st:'pas', b:44, ok:()=>naarVriend(`Je legt de bal perfect op ${vn()}. Hij schuift hem binnen en rent meteen naar jou toe!`, 1.0, 3), mis:()=>({t:`Je pass naar ${vn()} wordt nog net onderschept.`, d:-.2})},
+    {l:'Zelf schieten', st:'afw', b:64, ok:()=>({...goal(`Je kiest zelf de hoek, en raak! ${vn()} springt als eerste op je rug.`, 1.3), vriend:0}), mis:()=>({t:`Je schiet naast. ${vn()} stond helemaal vrij en kijkt je even aan.`, d:-.3, vriend:-2})},
+    {get l(){ return `Eén-twee met ${vn()}`; }, st:'pas', b:54, ok:()=>({t:`Jullie vinden elkaar blind, net als vroeger op het pleintje. Je krijgt de bal terug in de loop!`, d:.3, next:'eenOpEen', vriend:1}), mis:()=>({t:'De één-twee loopt mis. Bal kwijt.', d:-.2})},
+    {get l(){ return `Hakje op ${vn()}`; }, st:'drib', b:66, ok:()=>naarVriend(`Een brutaal hakje op ${vn()}, en hij maakt het af. Het publiek gaat uit z'n dak!`, 1.2, 2), mis:()=>({t:'Je hakje gaat recht in de voeten van de tegenstander.', d:-.4})}]};
+
 
 // Extra moeilijkheid per eigenschap tegen ploegen van Europees topniveau
 export const TOP_EXTRA = {afw:1, pas:.3, drib:.3, verd:0, cond:0, kalm:0};
@@ -160,11 +172,12 @@ export const KALM_KNIK = 64; // tot deze sterkte telt de tegenstander bij kalmte
 export const TOP_VANAF = 82; // vanaf welke sterkte een tegenstander extra lastig is (geleidelijk, geen sprong)
 // Focus: hoe hoger, hoe meer er lukt. Vanaf 80 zit je in de flow (extra bonus), onder de 35 gaat het snel mis
 export const FLOW = 80, SLECHTE_FOCUS = 35;
-export const focusEffect = f => (f - 60) / 400 + (f >= FLOW ? .04 : 0) - (f < SLECHTE_FOCUS ? .05 : 0);
+// In de flow (vanaf 80) gaat het echt beter, en hoe dieper in de flow hoe meer: focus 80 +11, focus 96 +23 procentpunten per actie
+export const focusEffect = f => (f - 60) / 400 + (f >= FLOW ? .06 + (f - FLOW) / 200 : 0) - (f < SLECHTE_FOCUS ? .05 : 0);
 // Hoe hoger je focus al is, hoe minder een boost nog oplevert (en nooit boven de 100)
 export const focusWinst = n => { const f = S.sp.focus ?? 65; return Math.min(Math.round(n * (f >= FLOW ? .25 : f >= 65 ? .6 : 1)), Math.max(0, 100 - Math.round(f))); };
 export function focusBoost(n){ const echt = focusWinst(n); mod('focus', echt); return echt; }
-export function focusStaat(f){ return f >= FLOW ? {k:'In de flow', cls:'r-veilig', t:'je acties lukken vaker'} : f < SLECHTE_FOCUS ? {k:'Slechte focus', cls:'r-riskant', t:'je maakt sneller fouten'} : null; }
+export function focusStaat(f){ return f >= FLOW ? {k:'In de flow', cls:'r-veilig', t:`je acties lukken vaker (+${Math.round((focusEffect(f) - focusEffect(65)) * 100)}% kans per actie)`} : f < SLECHTE_FOCUS ? {k:'Slechte focus', cls:'r-riskant', t:'je maakt sneller fouten'} : null; }
 // Stamina: hoe vermoeider, hoe vaker het misgaat (onder de 25 ben je echt leeg)
 export const staminaEffect = st => { const e = (st - 60) / 300 - (st < 25 ? .06 : 0); return e < 0 ? e * pers('staminaStraf') : e; };
 export function kans(opt){

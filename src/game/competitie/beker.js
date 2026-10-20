@@ -1,7 +1,7 @@
 import { S, club, mod, ovr, seizoenLabel } from '../../core/state.js';
 import { knop } from '../../core/ui.js';
 import { clamp, esc, randInt, rnd, shuffle } from '../../core/utils.js';
-import { CLUBS, JEUGD, divClubs } from '../../data/gegevens.js';
+import { AANTAL_RONDES, CLUBS, clubsLand, divClubs } from '../../data/gegevens.js';
 import { simGoals } from './competitie.js';
 import { kortClub } from '../media/nieuws.js';
 import { krantMelding } from '../media/roddel.js';
@@ -29,15 +29,21 @@ import { ck, vreemdeClub } from '../transfers/buitenland.js';
 /* ===================== Beker ===================== */
 // Elke competitie heeft een beker: knock-out, bij gelijkspel strafschoppen. Bekerwedstrijden vallen tussen de speelrondes
 export const BEKERS = {
-  nat:  {naam:'Nationale Beker', niveaus:[1, 2, 3, 4], schema:[2, 5, 8, 10, 13], rondes:['1/16 finale', '1/8 finale', 'Kwartfinale', 'Halve finale', 'Finale']},
-  cl:   {naam:'Champions League', niveaus:[],          schema:[3, 6, 9, 12],      rondes:['Achtste finale', 'Kwartfinale', 'Halve finale', 'Finale'], europa:true},
-  eur:  {naam:'Europa Cup',      niveaus:[],           schema:[3, 9, 12],         rondes:['Kwartfinale', 'Halve finale', 'Finale'], europa:true},
-  jeugd:{naam:'Jeugdbeker',      niveaus:[JEUGD],      schema:[3, 9, 13],         rondes:['Kwartfinale', 'Halve finale', 'Finale']}
+  nat:  {naam:'Nationale Beker', niveaus:[1, 2]},
+  cl:   {naam:'Champions League', niveaus:[], europa:true},
+  eur:  {naam:'Europa Cup',      niveaus:[], europa:true}
 };
+// In welke weken een beker speelt: de rondes evenredig over het seizoen (de nationale bekerfinale in de laatste week, de Europese een week eerder)
+function maakSchema(k, n){
+  const m = Math.max(1, Math.ceil(Math.log2(n))), W = AANTAL_RONDES, l = [];
+  for (let i = 0; i < m; i++){ let w = Math.round((i + 1) * (W - 1) / m) - (BEKERS[k].europa ? 1 : 0); w = Math.max(1, Math.min(W - 1, w)); while (l.includes(w)) w--; l.push(w); }
+  return l.sort((a, b) => a - b);
+}
+export const bekerSchema = k => { const B = S.ss.bekers && S.ss.bekers[k]; return (B && B.schema) || []; };
 export function nieuweBekers(){
   const b = {};
   const eu = europeseClubs();
-  for (const k in BEKERS){ const clubs = BEKERS[k].europa ? eu[k] : CLUBS.map((c, i) => i).filter(i => BEKERS[k].niveaus.includes(CLUBS[i].t)); b[k] = {levend:shuffle(clubs), rondes:[], winnaar:null}; }
+  for (const k in BEKERS){ const clubs = BEKERS[k].europa ? eu[k] : CLUBS.map((c, i) => i).filter(i => BEKERS[k].niveaus.includes(CLUBS[i].t)); b[k] = {levend:shuffle(clubs), rondes:[], winnaar:null, start:clubs.length, schema:maakSchema(k, clubs.length)}; }
   return b;
 }
 // Europees voetbal: de nummers 1 en 2 van de hoogste competitie van elk land spelen de Champions League (16 clubs),
@@ -49,7 +55,7 @@ export function vulGasten(){
   let g = GAST_START;
   const zet = (land, id, rang, lijst) => { const c = vreemdeClub(land, id); Object.assign(CLUBS[g], {n:c.n, s:c.s, t:-1, gast:{land, id, rang}}); if (S.sel) delete S.sel[ck(g)]; lijst.push(g); g++; };
   andere.forEach((land, k) => {
-    const top = []; for (let id = 8; id < 40; id++){ const c = vreemdeClub(land, id); if (c.t === 1) top.push([id, c.s + rnd() * 10]); } // een gesimuleerde eindstand: de sterkste wint meestal, niet altijd
+    const top = []; for (let id = 8; id < clubsLand(land); id++){ const c = vreemdeClub(land, id); if (c.t === 1) top.push([id, c.s + rnd() * 10]); } // een gesimuleerde eindstand: de sterkste wint meestal, niet altijd
     top.sort((a, b) => b[1] - a[1]);
     if (top[0]) zet(land, top[0][0], 1, cl); if (top[1]) zet(land, top[1][0], 2, cl);
     if (k < 6 && top[2]) zet(land, top[2][0], 3, eur);
@@ -77,6 +83,7 @@ export function simBeker(h, u){
 export function speelBekerRonde(k, mijnWedstrijdApart){
   const B = S.ss.bekers[k], paren = [], l = B.levend.slice();
   for (let i = 0; i + 1 < l.length; i += 2) paren.push([l[i], l[i + 1]]);
+  B.vrij = l.length % 2 ? [l[l.length - 1]] : []; // oneven: de laatste club krijgt een vrije doorgang
   const ronde = []; let mijn = null;
   for (const [h, u] of paren){
     if (mijnWedstrijdApart && (h === S.sp.club || u === S.sp.club)){ mijn = {h, u}; ronde.push({h, u, wacht:true}); continue; }
@@ -88,11 +95,16 @@ export function speelBekerRonde(k, mijnWedstrijdApart){
 }
 export function bekerRondeKlaar(k){
   const B = S.ss.bekers[k], r = B.rondes[B.rondes.length - 1];
-  B.levend = shuffle(r.map(m => m.w));
+  B.levend = shuffle(r.map(m => m.w).concat(B.vrij || [])); B.vrij = [];
   if (B.levend.length === 1){ B.winnaar = B.levend[0]; }
 }
-export const bekerRondeNaam = (k, i) => BEKERS[k].rondes[i] || `Ronde ${i + 1}`;
-export function bekerNu(){ const B = S.ss.bekers; if (!B) return false; return Object.keys(B).some(k => BEKERS[k].schema.includes(S.ronde) && B[k].winnaar === null && B[k].levend.length > 1); }
+// De naam van ronde i: hangt af van hoeveel clubs er dan nog over zijn (bij een oneven aantal krijgt één club een vrije doorgang)
+export function bekerRondeNaam(k, i){
+  const B = S.ss.bekers && S.ss.bekers[k]; let c = B && B.start ? B.start : 16;
+  for (let j = 0; j < i; j++) c = Math.ceil(c / 2);
+  return c <= 2 ? 'Finale' : c <= 4 ? 'Halve finale' : c <= 8 ? 'Kwartfinale' : c <= 16 ? 'Achtste finale' : c <= 32 ? '1/16 finale' : `${i + 1}e ronde`;
+}
+export function bekerNu(){ const B = S.ss.bekers; if (!B) return false; return Object.keys(B).some(k => bekerSchema(k).includes(S.ronde) && B[k].winnaar === null && B[k].levend.length > 1); }
 export function naWedstrijd(){
   S.ronde++;
   if (bekerNu()) return bekerWeek();
@@ -102,7 +114,7 @@ export function naWedstrijd(){
 export function bekerWeek(){
   const B = S.ss.bekers, sp = S.sp; let mijn = null, mijnK = null;
   for (const k in B){
-    if (!BEKERS[k].schema.includes(S.ronde) || B[k].winnaar !== null || B[k].levend.length < 2) continue;
+    if (!bekerSchema(k).includes(S.ronde) || B[k].winnaar !== null || B[k].levend.length < 2) continue;
     const doetMee = !sp.clubloos && B[k].levend.includes(sp.club);
     const m = speelBekerRonde(k, doetMee);
     if (m){ mijn = m; mijnK = k; }
@@ -211,12 +223,12 @@ export function vBekerUitslagen(lijst){
 export function vBekerKaart(){ return bekersVan(S.sp.club).map(vBekerKaartK).join(''); }
 export function vBekerKaartK(k){
   const B = S.ss.bekers; if (!B) return '';
-  const b = B[k], naam = BEKERS[k].naam, nog = b.levend.includes(S.sp.club), volgende = BEKERS[k].schema[b.rondes.length];
+  const b = B[k], naam = BEKERS[k].naam, nog = b.levend.includes(S.sp.club), volgende = bekerSchema(k)[b.rondes.length];
   let status;
   if (b.winnaar === S.sp.club) status = '<p class="goedtxt"><b>Bekerwinnaar!</b></p>';
   else if (b.winnaar !== null) status = `<p>Winnaar: <b>${esc(CLUBS[b.winnaar].n)}</b>.</p>`;
-  else if (nog) status = `<p>Jullie zitten nog in de beker. Volgende: <b>${esc(bekerRondeNaam(k, b.rondes.length))}</b>${volgende ? ` (na speelronde ${volgende})` : ''}.</p>`;
+  else if (nog) status = `<p>Jullie zitten nog in de beker. Volgende: <b>${esc(bekerRondeNaam(k, b.rondes.length))}</b>${volgende ? ` (na week ${volgende})` : ''}.</p>`;
   else { const uit = b.rondes.flat().find(m => (m.h === S.sp.club || m.u === S.sp.club) && m.w !== S.sp.club); status = `<p class="muted">Uitgeschakeld${uit ? ` door ${esc(CLUBS[uit.w].n)}` : ''}. Nog ${b.levend.length} clubs over.</p>`; }
   const laatste = b.rondes.length ? b.rondes[b.rondes.length - 1] : null;
-  return `<div class="kaart"><h3>${naam}</h3>${status}${laatste ? `<span class="label">${esc(bekerRondeNaam(k, b.rondes.length - 1))}</span>${vBekerUitslagen(laatste.filter((m, i) => i < 8 || m.h === S.sp.club || m.u === S.sp.club))}` : '<p class="muted klein-tekst">De eerste ronde wordt na speelronde ' + BEKERS[k].schema[0] + ' gespeeld.</p>'}</div>`;
+  return `<div class="kaart"><h3>${naam}</h3>${status}${laatste ? `<span class="label">${esc(bekerRondeNaam(k, b.rondes.length - 1))}</span>${vBekerUitslagen(laatste.filter((m, i) => i < 8 || m.h === S.sp.club || m.u === S.sp.club))}` : (bekerSchema(k)[0] ? `<p class="muted klein-tekst">De eerste ronde wordt na week ${bekerSchema(k)[0]} gespeeld.</p>` : '')}</div>`;
 }

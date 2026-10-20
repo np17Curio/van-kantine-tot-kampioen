@@ -3,6 +3,7 @@ import { clamp, geldTxt, pick, rnd } from '../../core/utils.js';
 import { thuisLand } from '../../data/landen.js';
 import { TAAL, inBuitenland, thuis, vluchtPrijs } from './buitenland-leven.js';
 import { kindLeeftijd } from './gezin.js';
+import { weekFactor } from '../../data/gegevens.js';
 import { focusBoost } from '../wedstrijd/momenten.js';
 
 /* ===================== Familie: je ouders ===================== */
@@ -25,7 +26,7 @@ export function kindActie(){ const sp = S.sp, w = S.week, k = (sp.kinderen || []
   w.tekst.push(lft < 2 ? `Je speelt de hele middag met ${x.naam} op de vloer. ${x.jongen ? 'Hij' : 'Zij'} lacht om alles.` : lft < 6 ? `Je leert ${x.naam} een balletje trappen in de tuin. Talent!` : `Je gaat met ${x.naam} naar de dierentuin. ${x.jongen ? 'Hij' : 'Zij'} wil alles weten over de leeuwen.`); }
 // Elke week: een goede band met je ouders geeft rust, een slechte kost moraal. Jong? Dan krijg je soms wat extra zakgeld
 export function familieWeek(eerste){ if (eerste) return; const sp = S.sp, o = ouders();
-  o.band = clamp(o.band - .5, 0, 100);
+  o.band = clamp(o.band - .5 * weekFactor(), 0, 100);
   if (o.band >= 75) mod('moraal', 1); else if (o.band < 30) mod('moraal', -1);
   if (sp.leeftijd < 18 && o.band >= 70 && rnd() < .2){ sp.geld += 20; S.week.tekst.push('Je vader stopt je stiekem €20 toe. "Niet tegen je moeder zeggen."'); }
 }

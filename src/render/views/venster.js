@@ -1,7 +1,7 @@
 import { S, club, salarisLabel, tmp } from '../../core/state.js';
 import { knop } from '../../core/ui.js';
 import { esc, geldTxt } from '../../core/utils.js';
-import { CLUBS, DIVS, JEUGD, NIVEAU } from '../../data/gegevens.js';
+import { CLUBS, DIVS, NIVEAU } from '../../data/gegevens.js';
 import { stoppen } from '../../game/seizoen/seizoen.js';
 import { gaHuren } from '../../game/speler/o23.js';
 import { rolBijClub } from '../../game/speler/status.js';
@@ -25,13 +25,13 @@ function partnerWaarschuwing(o){ const r = S.sp.relatie, k = kinderen(); return 
 export function bodKaart(o, label){
   const c = clubInfo(o), V = S.venster, bl = isBuitenland(o);
   const kanVragen = V.modus === 'normaal' && !o.gevraagd && (o.verlenging || c.t <= 3);
-  return `<div class="bod ${o.club === S.sp.club && !bl ? 'huidig' : ''} ${o.doorstroom || o.viaAgent ? 'door' : ''}"><span class="label">${o.huurKoop ? 'Je huurclub wil je definitief overnemen' : o.viaAgent ? 'Droomclub · geregeld door je zaakwaarnemer' : o.doorstroom ? '1e elftal van je eigen club' : o.verlenging ? 'Je huidige club · nieuw contract' : bl ? `🌍 ${esc(o.land)} · ${NIVEAU[c.t]} · ${esc(c.div)}` : `${NIVEAU[c.t]} · ${DIVS[c.t]}`}</span><div class="club">${bl ? '' : clubLogo(o.club, 40)}<span>${esc(c.n)}</span></div>
+  return `<div class="bod ${o.club === S.sp.club && !bl ? 'huidig' : ''} ${o.viaAgent ? 'door' : ''}"><span class="label">${o.huurKoop ? 'Je huurclub wil je definitief overnemen' : o.viaAgent ? 'Droomclub · geregeld door je zaakwaarnemer' : o.doorstroom ? '1e elftal van je eigen club' : o.verlenging ? 'Je huidige club · nieuw contract' : bl ? `🌍 ${esc(o.land)} · ${NIVEAU[c.t]} · ${esc(c.div)}` : `${NIVEAU[c.t]} · ${DIVS[c.t]}`}</span><div class="club">${bl ? '' : clubLogo(o.club, 40)}<span>${esc(c.n)}</span></div>
     <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>${salarisLabel(c.t)}</dt><dd>${geldTxt(o.salaris)}</dd><dt>Contract</dt><dd>${o.jaren} jaar</dd>${o.som ? `<dt>Bod op jou</dt><dd>${geldTxt(o.som)}</dd>` : ''}</dl>
     ${rolRij(o.club, bl ? c : null)}
     ${bl ? `<p class="muted klein-tekst">Je verhuist naar ${esc(o.land)}: nieuwe competitie, nieuwe clubs, nieuwe kranten, een nieuwe taal.</p>` : ''}
     ${bl && S.sp.relatie && o.partnerMee !== undefined ? (o.partnerMee ? `<p class="goedtxt klein-tekst">💕 ${esc(S.sp.relatie.naam)} gaat met je mee naar ${esc(o.land)}.</p>` : `<p class="fouttxt klein-tekst">⚠ ${esc(S.sp.relatie.naam)} wil niet verhuizen naar ${esc(o.land)}.</p><div class="rij">${o.partnerGepraat ? '' : knop(`Met ${esc(S.sp.relatie.naam)} praten`, () => praatMetPartner(o), 'klein', 'data-blijf')}${knop(`Blijven voor ${esc(S.sp.relatie.naam)}`, () => blijfVoorPartner(o), 'klein', 'data-blijf')}</div>`) : ''}
     ${o.akkoord ? `<p class="goedtxt klein-tekst">Uitonderhandeld${o.tekengeld ? ` · tekengeld ${geldTxt(o.tekengeld)}` : ''}${o.clausule ? ` · afkoopclausule ${geldTxt(o.clausule)}` : ''}</p>` : ''}
-    <div class="rij">${knop(o.doorstroom ? 'Doorstromen' : label, () => teken(o), 'hoofd', `style="font-size:1.05rem;padding:10px 16px"${bl && S.sp.relatie && o.partnerMee === false ? ` data-bevestig="${esc(partnerWaarschuwing(o))}" data-ja="Ja, ik ga toch"` : ''}`)}${kanVragen && !(tmp.oh && tmp.oh.key === okey(o)) ? knop('Onderhandelen', () => ohStart(o), 'klein', 'data-blijf') : ''}</div>
+    <div class="rij">${knop(label, () => teken(o), 'hoofd', `style="font-size:1.05rem;padding:10px 16px"${bl && S.sp.relatie && o.partnerMee === false ? ` data-bevestig="${esc(partnerWaarschuwing(o))}" data-ja="Ja, ik ga toch"` : ''}`)}${kanVragen && !(tmp.oh && tmp.oh.key === okey(o)) ? knop('Onderhandelen', () => ohStart(o), 'klein', 'data-blijf') : ''}</div>
     ${kanVragen && tmp.oh && tmp.oh.key === okey(o) ? vOnderhandel(o) : ''}</div>`;
 }
 export function huidigKaart(){
@@ -55,7 +55,7 @@ export function vVenster(){
   if (V.huurOpties && V.huurOpties.length) html += `<div class="aanbod">${V.huurOpties.map(huurKaart).join('')}</div>`;
   const kaarten = [];
   if (V.blijven) kaarten.push(huidigKaart());
-  if (V.verlenging) kaarten.push(bodKaart(V.verlenging, club().t === JEUGD ? 'Blijven' : 'Verlengen'));
+  if (V.verlenging) kaarten.push(bodKaart(V.verlenging, 'Verlengen'));
   V.bods.forEach(o => kaarten.push(bodKaart(o, clubInfo(o).t <= 3 ? 'Ja, ik wil hierheen' : 'Tekenen')));
   if (kaarten.length) html += `<div class="aanbod">${kaarten.join('')}</div>`;
   if (V.modus === 'weg' || V.modus === 'vrij') html += V.bods.length

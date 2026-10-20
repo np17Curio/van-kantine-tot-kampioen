@@ -1,6 +1,6 @@
 import { S, club, gemCijfer, mod, ovr } from '../../core/state.js';
 import { clamp, pick, randInt, rnd } from '../../core/utils.js';
-import { AANTAL_RONDES, ATTR, CLUBS, JEUGD, TRAINBAAR, divClubs } from '../../data/gegevens.js';
+import { AANTAL_RONDES, ATTR, CLUBS, LAAGSTE, TRAINBAAR, divClubs, WINTER } from '../../data/gegevens.js';
 import { selectie } from '../competitie/spelers.js';
 import { metVoorletter } from '../media/nieuws.js';
 import { krantMelding } from '../media/roddel.js';
@@ -31,7 +31,7 @@ export function rivaalSpeler(){
   return null;
 }
 // Hem bij een club in de selectie zetten (als basisspeler op zijn linie)
-function plaats(id){
+export function plaats(id){
   const R = rivaal(), sel = selectie(id), linie = POS_LINIE[S.sp.pos];
   const oud = rivaalSpeler(); if (oud && oud.id !== id){ const s2 = selectie(oud.id); s2.splice(s2.indexOf(oud.x), 1); selectie(oud.id); }
   if (sel.some(y => y.n === R.n && y.v === R.v)) return;
@@ -42,8 +42,7 @@ function plaats(id){
 }
 // Een club voor hem: niet de jouwe, op jouw niveau (of eentje hoger/lager)
 function kiesClub(t){
-  // (in de jeugd: een ander jeugdteam)
-  const mijn = S.sp.club, niv = t === JEUGD ? [JEUGD] : [t, t - 1, t + 1].filter(x => x >= 0 && x < JEUGD);
+  const mijn = S.sp.club, niv = [t, t - 1, t + 1].filter(x => x >= 1 && x <= LAAGSTE);
   for (const n of niv){ const l = divClubs(n).filter(i => i !== mijn); if (l.length) return pick(l); }
   return null;
 }
@@ -128,8 +127,8 @@ export function rivaalVenster(soort){
   const R = rivaal(); if (!R || R.gestopt) return null; let r = rivaalSpeler();
   if (!r){ const id = kiesClub(club().t); if (id != null) plaats(id); return null; }
   const t = club().t, hijT = CLUBS[r.id].t, naam = rivaalNaam();
-  if (t !== JEUGD && (hijT > t || hijT === JEUGD) && rnd() < .6){ const id = kiesClub(t); if (id != null && CLUBS[id].t === t){ plaats(id); krantMelding(`Rivaal ${naam} volgt ${S.sp.naam} naar de top`, `${naam} tekent bij ${CLUBS[id].n}. "Ik wil laten zien dat ik net zo goed ben."`); return `Je rivaal ${naam} maakt ook de stap omhoog: hij tekent bij ${CLUBS[id].n}.`; } }
-  if (t !== JEUGD && r.id !== S.sp.club && rnd() < (R.band >= 60 ? .2 : R.band <= -60 ? 0 : .05)){ plaats(S.sp.club); krantMelding(`Opvallend: rivaal ${naam} tekent bij de club van ${S.sp.naam}`, `De twee rivalen zijn nu teamgenoten. "We hoeven geen vrienden te worden," zegt ${naam}.`); return `Wat?! Je rivaal ${naam} tekent bij jouw club. Jullie strijden nu om dezelfde plek.`; }
+  if (hijT > t && rnd() < .6){ const id = kiesClub(t); if (id != null && CLUBS[id].t === t){ plaats(id); krantMelding(`Rivaal ${naam} volgt ${S.sp.naam} naar de top`, `${naam} tekent bij ${CLUBS[id].n}. "Ik wil laten zien dat ik net zo goed ben."`); return `Je rivaal ${naam} maakt ook de stap omhoog: hij tekent bij ${CLUBS[id].n}.`; } }
+  if (r.id !== S.sp.club && rnd() < (R.band >= 60 ? .2 : R.band <= -60 ? 0 : .05)){ plaats(S.sp.club); krantMelding(`Opvallend: rivaal ${naam} tekent bij de club van ${S.sp.naam}`, `De twee rivalen zijn nu teamgenoten. "We hoeven geen vrienden te worden," zegt ${naam}.`); return `Wat?! Je rivaal ${naam} tekent bij jouw club. Jullie strijden nu om dezelfde plek.`; }
   return null;
 }
 
@@ -147,7 +146,7 @@ export function raceStand(){
 // Het volgende duel in de competitie (week en thuis/uit), of null
 export function volgendDuel(){
   const r = rivaalSpeler(); if (!r || S.sp.clubloos || r.id === S.sp.club || CLUBS[r.id].t !== club().t) return null;
-  for (let ronde = S.ronde; ronde < AANTAL_RONDES; ronde++){ try { const f = fixture(ronde); if (f.opp === r.id) return {ronde, thuis:f.thuis}; } catch(e){ return null; } }
+  for (let ronde = S.ronde; ronde < AANTAL_RONDES; ronde++){ try { const f = fixture(ronde); if (f && f.opp === r.id) return {ronde, thuis:f.thuis}; } catch(e){ return null; } }
   return null;
 }
 // Hij jaagt je op: wie achter staat in de race (of hem niet kan uitstaan) traint feller
@@ -225,7 +224,7 @@ function herstel(){
 // Elke week: de race volgen (mijlpalen één keer per seizoen) en zijn blessure aftellen
 export function raceWeek(eerste){
   const R = rivaal(); if (!R || R.gestopt || S.trainer) return;
-  if (S.ronde >= 7 && R.groeiJaar !== S.jaar && !S.sp.clubloos) rivaalWinter();
+  if (S.ronde >= WINTER && R.groeiJaar !== S.jaar && !S.sp.clubloos) rivaalWinter();
   if (!eerste && R.blessure > 0){ R.blessure--; if (R.blessure <= 0){ herstel(); S.week.tekst.push(`Je rivaal ${rivaalNaam()} is weer fit.`); } }
   if (eerste || S.sp.clubloos || !rivaalSpeler()) return;
   const rs = raceStand(), naam = rivaalNaam(), M = R.race = R.race || {};

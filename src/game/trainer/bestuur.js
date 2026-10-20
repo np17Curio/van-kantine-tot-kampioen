@@ -1,6 +1,6 @@
 import { S } from '../../core/state.js';
 import { geldTxt, pick, shuffle } from '../../core/utils.js';
-import { AMATEUR, CLUBS, DIVS, divClubs } from '../../data/gegevens.js';
+import { CLUBS, DIVS, LAAGSTE, divClubs, AANTAL_RONDES, WINTER, rondesVan } from '../../data/gegevens.js';
 import { stand } from '../competitie/spelers.js';
 import { rivaal } from '../wedstrijd/fans-pers.js';
 import { jeugdSpeler, mijnSel, refKracht } from './ploeg.js';
@@ -10,7 +10,7 @@ import { jeugdSpeler, mijnSel, refKracht } from './ploeg.js';
 // Score = hoofdeis × 2 + nevendoelen (max 4). Minder dan 2: ontslagen. Precies 2: laatste waarschuwing.
 export const rangOpSterkte = id => divClubs(CLUBS[id].t).sort((a, b) => CLUBS[b].s - CLUBS[a].s).indexOf(id) + 1;
 export function maakEisen(halverwege = false){
-  const T0 = S.trainer, id = T0.club, c = CLUBS[id], t = c.t, rang = rangOpSterkte(id), onderste = t >= AMATEUR;
+  const T0 = S.trainer, id = T0.club, c = CLUBS[id], t = c.t, rang = rangOpSterkte(id), onderste = t >= LAAGSTE;
   // De hoofdeis: wat je op papier minstens moet kunnen (met wat ruimte voor pech)
   // (de zwakste club van de competitie: geen klassering, wel een fatsoenlijk aantal punten)
   const max = rang === 1 ? 3 : rang === 2 ? 4 : rang === 3 ? 5 : rang <= 6 ? Math.min(7, rang + 2) : onderste || rang === 8 ? 8 : 7;
@@ -34,14 +34,14 @@ export function maakEisen(halverwege = false){
 // Hoe staat een eis ervoor? {ok (gehaald), bijna (net gemist), staat: 'gehaald' | 'koers' | 'bijna' | 'gevaar', tekst}
 export function status(e){
   const T0 = S.trainer, id = T0.club, z = T0.sz, plek = stand(CLUBS[id].t).indexOf(id) + 1, tab = S.tab[id] || {pt:0, g:0};
-  const klaar = S.ronde >= 14;
+  const klaar = S.ronde >= AANTAL_RONDES;
   switch (e.soort){
     case 'plek': { const ok = plek <= e.max, bijna = !ok && plek === e.max + 1; if (!tab.g) return {ok:false, staat:'koers', tekst:'Nog niet begonnen'}; return {ok, bijna, staat: ok ? (klaar ? 'gehaald' : 'koers') : bijna ? 'bijna' : 'gevaar', tekst: bijna ? `Nu ${plek}e: net niet, 1 plek te laag` : `Nu ${plek}e`}; }
-    case 'punten': { const ok = tab.pt >= e.n, nodig = e.n * tab.g / 14, bijna = !ok && e.hoofd && klaar && tab.pt >= e.n - 2; return {ok, bijna, staat: ok ? 'gehaald' : bijna ? 'bijna' : tab.pt >= nodig - 1 ? 'koers' : 'gevaar', tekst:`${tab.pt} van ${e.n} punten${bijna ? ': net niet' : ''}`}; }
-    case 'thuis': { const ok = z.thuisW >= e.n; return {ok, staat: ok ? 'gehaald' : z.thuisW + (7 - z.thuisGes) >= e.n ? 'koers' : 'gevaar', tekst:`${z.thuisW} van ${e.n} thuiszeges`}; }
-    case 'jeugd': { const b = Math.max(0, ...mijnSel().filter(jeugdSpeler).map(x => x.bT || 0)), ok = b >= e.n; return {ok, staat: ok ? 'gehaald' : b + (14 - S.ronde) >= e.n ? 'koers' : 'gevaar', tekst:`${b} van ${e.n} basisplaatsen`}; }
-    case 'verkoop': { const ok = z.saldo >= e.n, nogOpen = S.ronde < 7 || !!T0.venster; return {ok, staat: ok ? (nogOpen ? 'koers' : 'gehaald') : nogOpen ? 'koers' : 'gevaar', tekst:`Saldo ${geldTxt(z.saldo)}`}; }
-    case 'aankoop': { const ok = z.gekocht.some(k => k >= e.n); return {ok, staat: ok ? 'gehaald' : S.ronde < 7 || T0.venster ? 'koers' : 'gevaar', tekst: ok ? 'Gehaald' : 'Nog niet'}; }
+    case 'punten': { const ok = tab.pt >= e.n, nodig = e.n * tab.g / Math.max(1, rondesVan(CLUBS[id].t)), bijna = !ok && e.hoofd && klaar && tab.pt >= e.n - 2; return {ok, bijna, staat: ok ? 'gehaald' : bijna ? 'bijna' : tab.pt >= nodig - 1 ? 'koers' : 'gevaar', tekst:`${tab.pt} van ${e.n} punten${bijna ? ': net niet' : ''}`}; }
+    case 'thuis': { const ok = z.thuisW >= e.n; return {ok, staat: ok ? 'gehaald' : z.thuisW + (Math.ceil(rondesVan(CLUBS[id].t) / 2) - z.thuisGes) >= e.n ? 'koers' : 'gevaar', tekst:`${z.thuisW} van ${e.n} thuiszeges`}; }
+    case 'jeugd': { const b = Math.max(0, ...mijnSel().filter(jeugdSpeler).map(x => x.bT || 0)), ok = b >= e.n; return {ok, staat: ok ? 'gehaald' : b + (AANTAL_RONDES - S.ronde) >= e.n ? 'koers' : 'gevaar', tekst:`${b} van ${e.n} basisplaatsen`}; }
+    case 'verkoop': { const ok = z.saldo >= e.n, nogOpen = S.ronde < WINTER || !!T0.venster; return {ok, staat: ok ? (nogOpen ? 'koers' : 'gehaald') : nogOpen ? 'koers' : 'gevaar', tekst:`Saldo ${geldTxt(z.saldo)}`}; }
+    case 'aankoop': { const ok = z.gekocht.some(k => k >= e.n); return {ok, staat: ok ? 'gehaald' : S.ronde < WINTER || T0.venster ? 'koers' : 'gevaar', tekst: ok ? 'Gehaald' : 'Nog niet'}; }
     case 'rivaal': { const ok = (z.rivaalPt || 0) > 0; return {ok, staat: ok ? 'gehaald' : z.rivaalGes < 2 ? 'koers' : 'gevaar', tekst: ok ? `${z.rivaalPt} ${z.rivaalPt === 1 ? 'punt' : 'punten'}` : `${z.rivaalGes} van 2 gespeeld`}; }
   }
   return {ok:false, staat:'gevaar', tekst:''};
@@ -59,7 +59,7 @@ export function oordeel(){
 }
 // Na elke wedstrijd: het vertrouwen reageert ook op of je op koers ligt voor de hoofdeis
 export function bijwerkenVertrouwen(){
-  const T0 = S.trainer; if (!T0.eisen || S.ronde < 5) return;
+  const T0 = S.trainer; if (!T0.eisen || S.ronde < Math.round(AANTAL_RONDES / 3)) return;
   const st = status(T0.eisen.lijst[0]).staat;
   T0.bestuur = Math.max(0, Math.min(100, T0.bestuur + (st === 'gevaar' ? -2 : 1)));
 }

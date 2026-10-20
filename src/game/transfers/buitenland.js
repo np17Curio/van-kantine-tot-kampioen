@@ -1,6 +1,6 @@
 import { S, club, gemCijfer, mod, ovr, salarisVoor, waarde } from '../../core/state.js';
 import { pick, randInt, rnd } from '../../core/utils.js';
-import { CLUBS, CLUBS_BASIS, ELITE_ID, ELITE_THUIS, JEUGD, MIN, divClubs, landBasis, zetClubs } from '../../data/gegevens.js';
+import { CLUBS, CLUBS_LAND, ELITE_ID, ELITE_THUIS, MIN, NL_CLUBS, clubsLand, divClubs, landBasis, zetClubs } from '../../data/gegevens.js';
 import { LAND_DATA, NL, SPEEL_LANDEN, thuisLand, zetLand } from '../../data/landen.js';
 import { nl } from '../prive/school.js';
 import { nieuweTabellen } from '../speler/status.js';
@@ -15,18 +15,18 @@ export const ck = id => (id < 8 || thuisLand() === 'Nederland') ? id : thuisLand
 // Een club uit een ander land (voor biedingen uit het buitenland): naam, niveau en sterkte uit de opgeslagen stand van dat land
 export function vreemdeClub(land, id){
   const st = (S.landen && S.landen[land] && S.landen[land].clubs ? hervormStand(S.landen[land].clubs, land) : landBasis(land))[id] || [-1, 50], L = LAND_DATA[land];
-  const n = id === ELITE_ID && ELITE_THUIS[land] ? ELITE_THUIS[land].n : land === 'Nederland' ? NL.clubs[id] : L.clubs[id - 8];
+  const n = id === ELITE_ID && ELITE_THUIS[land] ? ELITE_THUIS[land].n : (land === 'Nederland' ? NL_CLUBS[id - 8] : L.clubs[id - 8]) || 'Lege plaats';
   return {n, t:st[0], s:st[1], land, div: st[0] < 1 ? '' : land === 'Nederland' ? NL.divs[st[0]] : L.divs[st[0] - 1]};
 }
 export const isBuitenland = o => !!(o && o.land && o.land !== thuisLand());
 export const clubInfo = o => isBuitenland(o) ? vreemdeClub(o.land, o.club) : CLUBS[o.club];
 export const okey = o => (isBuitenland(o) ? o.land + '|' : '') + o.club;
-// In de zomer melden zich soms clubs uit een ander land (vanaf semi-prof, vanaf je 18e)
+// In de zomer melden zich soms clubs uit een ander land (vanaf je 18e)
 export function buitenlandseBods(modus){
   const sp = S.sp, eigen = club(), o = ovr(sp), score = transferScore();
-  if (!(modus === 'normaal' || modus === 'vrij') || eigen.t === JEUGD || eigen.t < 1 || eigen.t > 3 || sp.leeftijd < 18 || sp.o23 || sp.huur) return [];
+  if (!(modus === 'normaal' || modus === 'vrij') || eigen.t < 1 || sp.leeftijd < 18 || sp.o23 || sp.huur) return [];
   const gem = gemCijfer() ?? S.vorigGem ?? 6.5, uit = [];
-  const past = (land, id) => { const c = vreemdeClub(land, id); return c.t >= Math.max(1, eigen.t - 1) && c.t <= Math.min(3, eigen.t) && score >= MIN[c.t] - 2 && c.s <= o + 8; };
+  const past = (land, id) => { const c = vreemdeClub(land, id); return c.t >= Math.max(1, eigen.t - 1) && c.t <= eigen.t && score >= MIN[c.t] - 2 && c.s <= o + 8; };
   // Scouts van een buitenlandse club volgden je dit seizoen: dat bod komt er zeker (als je nog goed genoeg bent)
   const sc = sp.scout; if (sc && sc.land !== thuisLand() && past(sc.land, sc.club)) uit.push(bodVan(sc.land, sc.club, true));
   const kans = .35 + Math.min(.2, sp.rep / 200) + (gem >= 7 ? .15 : gem >= 6.5 ? .07 : 0) + (sp.transferlijst ? .2 : 0) - (sp.imago > 0 ? .12 : 0);
@@ -36,7 +36,7 @@ export function buitenlandseBods(modus){
     const vrij = landen.filter(l => !uit.some(b => b.land === l)); if (!vrij.length) break;
     const land = pick(vrij);
     const kand = [];
-    for (let id = 8; id < 40; id++) if (past(land, id)) kand.push(id);
+    for (let id = 8; id < clubsLand(land); id++) if (past(land, id)) kand.push(id);
     if (!kand.length) continue;
     uit.push(bodVan(land, pick(kand)));
   }
@@ -52,7 +52,7 @@ function bodVan(land, id, gescout){
 // De oude Elite-club van het land (Real Montclaro in Spanje, …) komt op plaats ELITE_ID in de hoogste competitie.
 export function hervormStand(lijst, land){
   if (!lijst || !lijst.slice(0, 8).some(x => x[0] === 0)) return lijst;
-  const uit = lijst.map(x => x.slice()), ids = []; for (let i = 8; i < 40; i++) ids.push(i);
+  const uit = lijst.map(x => x.slice()), ids = []; for (let i = 8; i < CLUBS_LAND; i++) ids.push(i);
   const e = ELITE_THUIS[land]; if (e) uit[ELITE_ID] = [0, Math.max(uit[ELITE_ID][1], e.s)];
   ids.sort((a, b) => (uit[a][0] - uit[b][0]) || (uit[b][1] - uit[a][1]));
   ids.forEach((id, k) => { uit[id][0] = 1 + Math.floor(k / 8); });
@@ -101,9 +101,9 @@ export function wisselLand(nl){
 export function scoutEvent(){
   if (!S.ss || !S.ss.c) return null;
   const sp = S.sp, eigen = club(), gem = gemCijfer();
-  if (sp.scout || sp.clubloos || sp.o23 || sp.huur || eigen.t < 1 || eigen.t > 3 || sp.leeftijd < 18 || !((gem !== null && gem >= 6.8) || sp.rep >= 40)) return null;
+  if (sp.scout || sp.clubloos || sp.o23 || sp.huur || eigen.t < 1 || sp.leeftijd < 18 || !((gem !== null && gem >= 6.8) || sp.rep >= 40)) return null;
   const o = ovr(sp), score = transferScore(), land = pick(SPEEL_LANDEN.filter(l => l !== thuisLand())), kand = [];
-  for (let id = 8; id < 40; id++){ const c = vreemdeClub(land, id); if (c.t >= Math.max(1, eigen.t - 1) && c.t <= Math.min(3, eigen.t) && score >= MIN[c.t] - 4 && c.s <= o + 8) kand.push(id); }
+  for (let id = 8; id < clubsLand(land); id++){ const c = vreemdeClub(land, id); if (c.t >= Math.max(1, eigen.t - 1) && c.t <= eigen.t && score >= MIN[c.t] - 4 && c.s <= o + 8) kand.push(id); }
   if (!kand.length) return null;
   const id = pick(kand), c = vreemdeClub(land, id);
   return {soort:'transfer', tekst:`Scouts van ${c.n} (${land}, ${c.div}) zaten bij je laatste wedstrijd op de tribune. Ze zijn onder de indruk. Je zaakwaarnemer belt: "Als je wilt, komen ze deze zomer met een bod."`, opts:[

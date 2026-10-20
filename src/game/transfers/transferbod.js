@@ -1,7 +1,7 @@
 import { S, club, mod, ovr, salarisVoor, seizoenLabel, waarde } from '../../core/state.js';
 import { krantMelding } from '../media/roddel.js';
 import { clamp, geldTxt, pick, randInt, rnd } from '../../core/utils.js';
-import { AANTAL_RONDES, AANV, CLUBS, DIVS } from '../../data/gegevens.js';
+import { AANTAL_RONDES, AANV, CLUBS, DIVS, WINTER } from '../../data/gegevens.js';
 import { rolBijClub, statusNiveau, statusPunten } from '../speler/status.js';
 import { kandidaatClubs, wissel } from './transfers.js';
 
@@ -9,7 +9,7 @@ import { kandidaatClubs, wissel } from './transfers.js';
 export function maakBodEvent(){
   const sp = S.sp, eigen = club();
   if (sp.o23 || sp.huur || sp.clubloos) return null;
-  if (eigen.t > 3 || (S.ss.bods || 0) >= 2 || (sp.sindsTransfer || 0) < 3 || S.ronde === 6 || S.ronde >= AANTAL_RONDES - 1) return null;
+  if (eigen.t > 3 || (S.ss.bods || 0) >= 2 || (sp.sindsTransfer || 0) < 3 || S.ronde === WINTER - 1 || S.ronde >= AANTAL_RONDES - 1) return null;
   const kand = kandidaatClubs(); if (!kand.length) return null;
   const cl = sp.clausule && sp.clausule.club === sp.club ? sp.clausule : null;
   if (rnd() > (cl ? .25 : .18)) return null;

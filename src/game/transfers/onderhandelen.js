@@ -1,7 +1,7 @@
-import { S, club, mod, ovr, tmp, waarde } from '../../core/state.js';
+import { S, mod, ovr, tmp, waarde } from '../../core/state.js';
 import { knop } from '../../core/ui.js';
 import { clamp, esc, geldTxt, rnd } from '../../core/utils.js';
-import { AGENT, JEUGD } from '../../data/gegevens.js';
+import { AGENT } from '../../data/gegevens.js';
 import { statusNiveau } from '../speler/status.js';
 import { clubInfo, okey } from './buitenland.js';
 
@@ -15,7 +15,7 @@ export function ohKans(o, x){
   let k = .92 - OH_SAL[x.sal][2] - OH_TEKEN[x.teken][2] - (x.clausule ? (c.t === 1 && c.s >= 80 ? .2 : .12) : 0);
   const dj = x.jaren - o.jaren; if (dj > 0) k -= dj * (sp.leeftijd >= 30 ? .15 : .04); else if (dj < 0) k -= -dj * .05;
   k += clamp((ovr(sp) - c.s) * .01, -.1, .15); // ben je beter dan de club, dan willen ze je graag
-  if (club().t !== JEUGD) k += .08; // je zaakwaarnemer onderhandelt mee
+  k += .08; // je zaakwaarnemer onderhandelt mee
   if (o.verlenging) k += statusNiveau() * .03;
   else if (S.venster && S.venster.bods.length >= 2) k += .05; // er zijn meer clubs: dat geeft je een sterke positie
   return clamp(k, .05, .95);
@@ -46,6 +46,6 @@ export function vOnderhandel(o){
     ${rij(`Afkoopclausule${x.clausule ? ` · ${geldTxt(clausuleBedrag())}` : ''}`, ['Nee', 'Ja'], x.clausule ? 1 : 0, i => { x.clausule = i === 1; })}
     <p class="muted klein-tekst">Met een afkoopclausule mag je altijd weg als een andere club dat bedrag betaalt. Je club kan dan geen nee zeggen.${S.sp.leeftijd >= 30 ? ' Let op: op jouw leeftijd geven clubs niet graag lange contracten.' : ''}</p>
     <p>Kans dat ze akkoord gaan: <span class="risico ${cls}" style="white-space:nowrap">${lab} · ${Math.round(k * 100)}%</span></p>
-    ${club().t !== JEUGD ? `<p class="muted klein-tekst">Je zaakwaarnemer ${AGENT} onderhandelt mee. Dat helpt.</p>` : ''}
+    <p class="muted klein-tekst">Je zaakwaarnemer ${AGENT} onderhandelt mee. Dat helpt.</p>
     <div class="rij">${knop('Voorstel doen', () => ohVoorstel(o), 'hoofd middel', 'data-blijf')}${knop('Annuleren', () => { tmp.oh = null; }, 'klein', 'data-blijf')}</div></div>`;
 }

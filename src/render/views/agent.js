@@ -1,7 +1,7 @@
 import { S, club, tmp } from '../../core/state.js';
 import { act, knop } from '../../core/ui.js';
 import { clamp, esc } from '../../core/utils.js';
-import { AGENT, AMATEUR, DIVS, JEUGD, NIVEAU } from '../../data/gegevens.js';
+import { AGENT, DIVS, LAAGSTE, NIVEAU } from '../../data/gegevens.js';
 import { SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
 import { agentReset, clubIndex, clubsVanNiveau, doelBod, doelVan, eisenVoor, eliteClubs, eliteLand, infoVan, isHier, kaal, kiesDoel, norm, vraagAgent, wanneerBod, zoekClub } from '../../game/transfers/zaakwaarnemer.js';
 import { rolRij } from './venster.js';
@@ -39,7 +39,7 @@ export function vClubOverzicht(){
   let h = `<details class="clubs" id="clubLijstPanel" ${tmp.clubLijstOpen ? 'open' : ''}><summary class="label">Alle clubs per niveau</summary>
     <div class="landkeuze">${keuzes.map(l => knop(naam(l), () => { tmp.agentLand = l; tmp.clubLijstOpen = true; }, `klein${l === land ? ' actief' : ''}`, 'data-blijf data-naar="clubLijstPanel"')).join('')}</div>`;
   if (!thuis && S.sp.leeftijd < 18) h += `<p class="muted klein-tekst">Naar het buitenland kan pas vanaf je 18e.</p>`;
-  for (let t = 1; t <= AMATEUR; t++){
+  for (let t = 1; t <= LAAGSTE; t++){
     const ds = clubsVanNiveau(land, t).sort((a, b) => infoVan(b).s - infoVan(a).s);
     if (!ds.length) continue;
     const div = thuis ? DIVS[t] : infoVan(ds[0]).div;
@@ -54,7 +54,6 @@ export function eisRij(x){
 }
 export function vAgent(){
   const sp = S.sp, ag = sp.agent, d = doelBod();
-  if (club().t === JEUGD) return `<div class="paneel"><span class="label">Zaakwaarnemer</span><p class="muted">Je hebt nog geen zaakwaarnemer. Zodra je in een 1e elftal speelt, meldt ${AGENT} zich bij je.</p></div>`;
   let h = `<section id="agentPanel" class="paneel sectie"><h3 class="sectiekop">Zaakwaarnemer · ${AGENT}${d ? ` · droomclub ${esc(infoVan(d).n)}${d.land ? ` (🌍 ${esc(d.land)})` : ''}` : ''}</h3><div class="agentin">`;
   if (ag.antwoord) h += `<p class="quote">${esc(ag.antwoord)}</p>`;
   if (ag.sugg && ag.sugg.length) h += `<div class="sugglijst">${ag.sugg.map(x => suggKnop(typeof x === 'number' ? doelVan(x) : x)).join('')}</div>`;
