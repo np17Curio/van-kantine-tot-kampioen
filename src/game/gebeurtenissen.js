@@ -14,7 +14,7 @@ import { verhaalEvents } from './speler/verhaal.js';
 import { persEvents } from './speler/persEvents.js';
 import { rivaal, rivaalEvents } from './speler/rivaal.js';
 import { scoutEvent } from './transfers/buitenland.js';
-import { buitenlandEvents, buitenlandKans } from './prive/buitenland-leven.js';
+import { buitenlandEvents, buitenlandKans, inBuitenland, thuis, vluchtPrijs } from './prive/buitenland-leven.js';
 
 /* ===================== Gebeurtenissen ===================== */
 export function eindRelatie(tekst){
@@ -43,10 +43,23 @@ export function maakEvent(){
   { const R = rivaal(); if (R && (R.reactie || rnd() < .12)){ const r = rivaalEvents(); if (r.length) return pick(r); } }
   const sp = S.sp, n = pick(selectie(S.sp.club)).n, t = club().t, jong = sp.leeftijd < 18, bekend = t <= 2, meid = pick(MEIDEN);
   const lief = sp.relatie ? sp.relatie.naam : '';
+  // Woon je in het buitenland, dan wonen je ouders en vrienden niet om de hoek: bellen, laten bezorgen of naar huis vliegen
+  const ver = inBuitenland(), vlieg = () => { const p = vluchtPrijs(); sp.geld = Math.max(0, sp.geld - p); return p; };
 
   // Je ouders
   if (rnd() < .07){ const o = ouders();
-    const og = [
+    const og = ver ? [
+      {soort:'prive', tekst:`Je vader is jarig. De hele familie is bij hem in ${thuis()}.`, opts:[
+        {l:'Naar huis vliegen', f(){ const p = vlieg(); o.band = clamp(o.band + 10, 0, 100); mod('vert', -3); mod('fit', -3); return `Je vliegt naar huis (${geldTxt(p)}) en staat ineens in de kamer. Je vader is sprakeloos. Je mist wel een training.`; }},
+        {l:'Videobellen terwijl hij de taart aansnijdt', f(){ o.band = clamp(o.band + 4, 0, 100); return 'De hele familie zwaait naar het scherm. Je vader houdt een stuk taart voor de camera.'; }},
+        {l:'Een berichtje sturen', f(){ o.band = clamp(o.band - 3, 0, 100); return 'Hij stuurt een duimpje terug. Je moeder belt later: "Hij had je graag even gezien, al was het maar op het scherm."'; }}]},
+      {soort:'prive', tekst:`Je moeder belt vanuit ${thuis()}: ze heeft griep en ligt in bed.`, opts:[
+        {l:'Bloemen en soep laten bezorgen', f(){ sp.geld = Math.max(0, sp.geld - 50); o.band = clamp(o.band + 7, 0, 100); return 'Er staat ineens een bezorger met bloemen en soep voor de deur. Je moeder belt je huilend van blijdschap.'; }},
+        {l:'Elke dag even bellen', f(){ o.band = clamp(o.band + 4, 0, 100); return 'Elke avond bel je even. Na een week is ze weer de oude. "Eet jij daar wel genoeg?"'; }},
+        {l:'Beterschap wensen via de app', f(){ o.band = clamp(o.band - 2, 0, 100); return 'Ze stuurt een hartje terug.'; }}]},
+      {soort:'prive', tekst:'Je ouders hebben ruzie gehad en bellen je allebei apart op.', opts:[
+        {l:'Rustig met allebei bellen', f(){ o.band = clamp(o.band + 6, 0, 100); mod('focus', -4); return 'Het kost je een avond aan de telefoon, maar het is weer goed tussen ze.'; }},
+        {l:'Je erbuiten houden', f(){ o.band = clamp(o.band - 5, 0, 100); return 'Ze lossen het zelf op, maar ze vinden het jammer dat je niet even belde.'; }}]}] : [
       {soort:'prive', tekst:'Je vader is jarig. Wat doe je?', opts:[
         {l:'Langsgaan met taart', f(){ o.band = clamp(o.band + 8, 0, 100); mod('fit', -2); return 'Je vader blaast de kaarsjes uit en vertelt voor de honderdste keer hoe hij je eerste goal zag.'; }},
         {l:'Een berichtje sturen', f(){ o.band = clamp(o.band - 3, 0, 100); return 'Hij stuurt een duimpje terug. Je moeder belt later: "Hij had je graag gezien."'; }}]},
@@ -173,7 +186,7 @@ export function maakEvent(){
       {l:'Gamen tot het licht wordt', f(){ mod('moraal', 8); mod('fit', -12); mod('focus', -6); return 'Om half vijf win je eindelijk het toernooi. Op de training ben je een zombie.'; }},
       {l:'Om 12 uur gaan slapen', f(){ mod('moraal', 4); return 'Gezellig, en je bent nog redelijk fris.'; }},
       {l:'Niet gaan', f(){ mod('focus', 3); mod('moraal', -2); return 'Je mist de grappen, maar je slaapt goed.'; }}]},
-    {soort:'prive', als: jong, tekst:'Het is kermis in het dorp. Je vrienden willen in de botsauto\'s en de zweefmolen.', opts:[
+    {soort:'prive', als: jong && !ver, tekst:'Het is kermis in het dorp. Je vrienden willen in de botsauto\'s en de zweefmolen.', opts:[
       {l:'Mee, de hele avond', f(){ mod('moraal', 7); mod('fit', -4); sp.geld = Math.max(0, sp.geld - 20); return 'Je wint een enorme knuffel bij het schieten. Je vrienden lachen je uit, jij bent trots.'; }},
       {l:'Eventjes, dan naar huis', f(){ mod('moraal', 3); return 'Een suikerspin en dan naar bed.'; }}]},
     {soort:'prive', als: jong, tekst:'Je vrienden willen het laatste uur spijbelen om naar het strand te gaan. Dat uur is er een toets.', opts:[
@@ -190,12 +203,17 @@ export function maakEvent(){
       {l:'Vragen of hij rustiger doet', f(){ mod('focus', 4); return 'Hij moppert, maar staat de volgende wedstrijd een stuk rustiger.'; }},
       {l:'Laat maar', f(){ mod('rep', -1); mod('focus', -2); return 'De scheidsrechter kent jullie achternaam inmiddels uit zijn hoofd.'; }}]},
     {soort:'prive', tekst:'Je beste vriend zit in de put: hij is uit zijn eigen team gezet.', opts:[
-      {l:'Een avond voor hem vrijmaken', f(){ mod('moraal', 4); mod('fit', -3); return 'Jullie praten tot laat. Hij is je dankbaar.'; }},
+      ver ? {l:'Een avond met hem videobellen', f(){ mod('moraal', 4); mod('fit', -3); return 'Jullie bellen tot diep in de nacht. Hij is je dankbaar.'; }}
+        : {l:'Een avond voor hem vrijmaken', f(){ mod('moraal', 4); mod('fit', -3); return 'Jullie praten tot laat. Hij is je dankbaar.'; }},
       {l:'Een berichtje sturen', f(){ mod('moraal', 1); return 'Hij stuurt een duimpje terug.'; }},
       {l:'Geen tijd', f(){ mod('moraal', -4); return 'Hij voelt zich in de steek gelaten.'; }}]},
-    {soort:'prive', tekst:'Je vrienden zeggen dat ze je bijna nooit meer zien sinds je zo veel voetbalt.', opts:[
+    {soort:'prive', als: !ver, tekst:'Je vrienden zeggen dat ze je bijna nooit meer zien sinds je zo veel voetbalt.', opts:[
       {l:'Een avond met ze afspreken', f(){ mod('moraal', 7); mod('fit', -4); mod('focus', -2); return 'Net als vroeger. Je had het gemist.'; }},
       {l:'Uitleggen dat voetbal nu voorgaat', f(){ mod('focus', 4); mod('moraal', -4); return 'Ze snappen het. Een beetje.'; }}]},
+    ver ? {soort:'prive', tekst:`Je oma wordt 80 en geeft een groot feest in ${thuis()}. Het is de avond voor de wedstrijd.`, opts:[
+      {l:'Naar huis vliegen voor het feest', f(){ const p = vlieg(); mod('moraal', 9); mod('fit', -8); mod('focus', -3); return `Je vliegt op en neer (${geldTxt(p)}) en danst met je oma op een oud liedje. Moe, maar onvergetelijk.`; }},
+      {l:'Videobellen tijdens het feest', f(){ mod('moraal', 4); return 'Je oma houdt de telefoon de hele avond vast en laat je aan iedereen zien.'; }},
+      {l:'Een kaart sturen', f(){ mod('moraal', -3); mod('focus', 3); return 'Oma zet je kaart op de vensterbank. Je moeder had liever gehad dat je even belde.'; }}]} :
     {soort:'prive', tekst:'Je oma wordt 80 en geeft een groot feest. Het is de avond voor de wedstrijd.', opts:[
       {l:'Gaan, maar op tijd weg', f(){ mod('moraal', 6); return 'Oma vertelt aan iedereen dat jij de beste voetballer van de wereld bent.'; }},
       {l:'Blijven tot het einde', f(){ mod('moraal', 9); mod('fit', -8); mod('focus', -3); return 'Je danst met je oma op een oud liedje. Laat, maar onvergetelijk.'; }},

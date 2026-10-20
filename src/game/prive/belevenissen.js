@@ -4,6 +4,7 @@ import { roddel } from '../media/roddel.js';
 import { onrust } from '../speler/kalmte.js';
 import { iedereen, zetBand } from '../team/kleedkamer.js';
 import { ouders } from './familie.js';
+import { inBuitenland, thuis, vluchtPrijs } from './buitenland-leven.js';
 import { social, volgersTxt } from './social.js';
 
 /* ===================== Belevenissen buiten het voetbal ===================== */
@@ -16,7 +17,7 @@ export function belevenissen({sp, n, jong, bekend, meid}){
   // betalen kan nooit meer dan je hebt
   const betaal = x => { const b = Math.max(0, Math.min(sp.geld, Math.round(x))); sp.geld -= b; return b; };
   const o = ouders(), band = d => { o.band = clamp(o.band + d, 0, 100); };
-  const eigenHuis = sp.woning && sp.woning !== 'ouders', vervoer = sp.rijbewijs && sp.auto ? 'auto' : 'fiets';
+  const ver = inBuitenland(), eigenHuis = sp.woning && sp.woning !== 'ouders', vervoer = sp.rijbewijs && sp.auto ? 'auto' : 'fiets';
   const vervolg = ev => { if (!S.wachtEv) S.wachtEv = ev; };
 
   return [
@@ -99,7 +100,8 @@ export function belevenissen({sp, n, jong, bekend, meid}){
       {l:'Doorlopen', f(){ mod('moraal', -2); return 'Je loopt door, maar je denkt er de hele avond nog aan.'; }}]},
     // 16 · eenmalig
     {soort:'prive', als: !gehad('huwelijk-ouders'), tekst:'Je ouders zijn binnenkort 25 jaar getrouwd. Je broers en zussen kijken naar jou.', opts:[
-      {l:'Een verrassingsfeest organiseren', f(){ beleef('huwelijk-ouders'); const b = betaal(Math.max(200, sp.geld * .04)); band(15); mod('moraal', 8); mod('fit', -4); return `${b ? `Je zet ${geldTxt(b)} in voor ` : 'Je regelt '}een feest met de hele familie. Je moeder huilt van geluk en je vader houdt een speech over jou.`; }},
+      ver ? {l:'Naar huis vliegen voor een verrassingsfeest', f(){ beleef('huwelijk-ouders'); const b = betaal(Math.max(200, sp.geld * .04) + vluchtPrijs()); band(15); mod('moraal', 8); mod('fit', -6); mod('vert', -2); return `${b ? `Vlucht en feest kosten je ${geldTxt(b)}, maar je ` : 'Je '}vliegt naar ${thuis()} en regelt een feest met de hele familie. Je moeder huilt van geluk en je vader houdt een speech over jou.`; }}
+        : {l:'Een verrassingsfeest organiseren', f(){ beleef('huwelijk-ouders'); const b = betaal(Math.max(200, sp.geld * .04)); band(15); mod('moraal', 8); mod('fit', -4); return `${b ? `Je zet ${geldTxt(b)} in voor ` : 'Je regelt '}een feest met de hele familie. Je moeder huilt van geluk en je vader houdt een speech over jou.`; }},
       {l:'Een mooi cadeau', f(){ beleef('huwelijk-ouders'); betaal(150); band(7); return 'Een weekendje weg naar de plek waar ze elkaar ontmoetten. Ze zijn er heel blij mee.'; }},
       {l:'Vergeten...', f(){ beleef('huwelijk-ouders'); band(-15); mod('moraal', -5); return 'Je bent het vergeten. Je moeder zegt dat het niet erg is. Het is wel erg.'; }}]},
     // 17

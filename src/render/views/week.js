@@ -7,7 +7,7 @@ import { fixture } from '../../game/competitie/competitie.js';
 import { kiesEvent } from '../../game/gebeurtenissen.js';
 import { metVoorletter, vKrant } from '../../game/media/nieuws.js';
 import { DIEREN, DIER_ACTIES, MAX_DIEREN, dierActie, dieren, herplaats, neemDier } from '../../game/prive/dieren.js';
-import { kindActie, ouderActie, ouderCadeau, ouders } from '../../game/prive/familie.js';
+import { kindActie, ouderActie, ouderCadeau, ouderVliegPrijs, ouders } from '../../game/prive/familie.js';
 import { ZAKEN, geldZaken, haalSpaar, koopAandelen, spaar, startZaak, verkoopAandelen, verkoopZaak } from '../../game/prive/geld.js';
 import { RING, aanzoek, geefNaam, kindLeeftijd, overKinderen, relatieEisen, samenwonen, scheidingKosten, trouwen } from '../../game/prive/gezin.js';
 import { STICHTING_PRIJS, goedDoel } from '../../game/prive/goede-doelen.js';
@@ -395,12 +395,13 @@ function vBuitenBasis(){
     <div class="keuzes">${[['ziekenhuis', 'Kinderziekenhuis bezoeken', 'moraal +4 · reputatie +1 · focus +2'], ['clinic', 'Voetbalclinic geven', 'moraal +3 · reputatie +1 · fitheid −3'], ['doneren', `${geldTxt(Math.max(100, Math.round(sp.geld * .1)))} doneren`, '10% van je geld · moraal +3 · reputatie']].concat(sp.stichting ? [] : [['stichting', 'Eigen stichting oprichten', `${geldTxt(STICHTING_PRIJS)} · reputatie +6 · elke week moraal +1`]])
       .map(([id, l, ds]) => keuzeKnop(l, ds, () => goedDoel(id), `data-blijf ${w.goed || (id === 'doneren' && sp.geld < 100) || (id === 'stichting' && sp.geld < STICHTING_PRIJS) ? 'disabled' : ''}`)).join('')}</div>`;
   // Familie
-  const ou = ouders(), ob = Math.round(ou.band), kinds = sp.kinderen || [];
+  const ou = ouders(), ob = Math.round(ou.band), kinds = sp.kinderen || [], ver = inBuitenland();
   const famHtml = `<p>Je band met je ouders: <b>${ob}</b> <span class="risico ${ob >= 70 ? 'r-veilig' : ob >= 40 ? 'r-gem' : 'r-riskant'}">${ob >= 70 ? 'Heel goed' : ob >= 40 ? 'Goed' : 'Afstandelijk'}</span>${ou.boos ? ' <span class="risico r-riskant">Boos om je cijfers</span>' : ''}${sp.items.ouders ? ' <span class="muted">· ze wonen in het huis dat jij voor ze kocht</span>' : ''}</p>
     <p class="muted klein-tekst">Een goede band geeft je elke week wat extra moraal. ${sp.leeftijd < 18 ? 'En soms krijg je wat extra zakgeld.' : ''}</p>
     <span class="label winkelkop">Met je ouders · 1 per week${w.ouder ? ' (al gedaan)' : ''}</span>
-    <div class="keuzes">${[['eten', sp.leeftijd < 18 ? 'Samen koken en eten' : 'Zondag bij je ouders eten', 'band +6 · moraal +3 · focus +2'], ...(sp.leeftijd < 18 ? [['helpen', 'Helpen in huis', `band +6${ou.boos ? ' · kans dat ze niet meer boos zijn' : ''}`]] : [['bellen', 'Je moeder bellen', 'band +3']]), ['wedstrijd', 'Ze uitnodigen voor je wedstrijd', 'band +7 · moraal +3'], ['cadeau', `Ze verrassen met een cadeau · ${geldTxt(ouderCadeau())}`, 'band +10']]
-      .map(([id, l, d]) => keuzeKnop(l, d, () => ouderActie(id), `data-blijf ${w.ouder || (id === 'cadeau' && sp.geld < ouderCadeau()) ? 'disabled' : ''}`)).join('')}</div>
+    <div class="keuzes">${(ver ? [['eten', 'Videobellen met je ouders', 'band +4 · moraal +2'], ['bellen', 'Je moeder bellen', 'band +3'], ['wedstrijd', `Ze overvliegen voor je wedstrijd · ${geldTxt(ouderVliegPrijs())}`, 'band +9 · moraal +4']]
+      : [['eten', sp.leeftijd < 18 ? 'Samen koken en eten' : 'Zondag bij je ouders eten', 'band +6 · moraal +3 · focus +2'], ...(sp.leeftijd < 18 ? [['helpen', 'Helpen in huis', `band +6${ou.boos ? ' · kans dat ze niet meer boos zijn' : ''}`]] : [['bellen', 'Je moeder bellen', 'band +3']]), ['wedstrijd', 'Ze uitnodigen voor je wedstrijd', 'band +7 · moraal +3']]).concat([['cadeau', `Ze verrassen met een cadeau · ${geldTxt(ouderCadeau())}`, 'band +10']])
+      .map(([id, l, d]) => keuzeKnop(l, d, () => ouderActie(id), `data-blijf ${w.ouder || (id === 'cadeau' && sp.geld < ouderCadeau()) || (ver && id === 'wedstrijd' && sp.geld < ouderVliegPrijs()) ? 'disabled' : ''}`)).join('')}</div>
     ${kinds.length ? `<span class="label winkelkop">Je kinderen</span><p>${kinds.map(k => `<b>${esc(k.naam)}</b> (${kindLeeftijd(k)})`).join(', ')}</p><div class="keuzes">${keuzeKnop('Tijd met je kinderen', 'moraal +5 · focus +2', kindActie, `data-blijf ${w.kind ? 'disabled' : ''}`)}</div>` : ''}`;
   const tabs = [['liefde', 'Liefde', liefde], ['familie', 'Familie', famHtml], ['social', 'Social media', socialHtml], ['dier', 'Huisdieren', dierHtml], ['geld', 'Geld en zaken', geldHtml], ['goed', 'Goede doelen', goedHtml], ['rij', 'Rijbewijs en auto', rij + auto], ['wonen', 'Wonen', wonen], ['uitgaan', 'Uitgaan', vUitgaan()]];
   const tab = tabs.find(x => x[0] === tmp.buitenTab) || tabs[0];

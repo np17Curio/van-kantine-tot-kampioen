@@ -1,5 +1,6 @@
 import { S, mod } from '../../core/state.js';
-import { clamp, pick, rnd } from '../../core/utils.js';
+import { clamp, geldTxt, pick, rnd } from '../../core/utils.js';
+import { inBuitenland, vluchtPrijs } from '../prive/buitenland-leven.js';
 import { selectie } from '../competitie/spelers.js';
 import { krantMelding, roddel } from '../media/roddel.js';
 import { social } from '../prive/social.js';
@@ -87,16 +88,20 @@ const EV = {
       {l:'Luisteren naar de fysio', f(){ mod('fit', 8); return 'Een week rust. Je komt er sterker uit.'; }}]},
   ],
   familiemens:[
-    {id:'fm-zusje', tekst:'Je zusje heeft haar diploma-uitreiking, precies tijdens een training.', opts:[
+    // thuis: alleen als je ouders om de hoek wonen · ver: alleen als je in het buitenland woont
+    {id:'fm-zusje-ver', ver:true, tekst:'Je zusje heeft haar diploma-uitreiking thuis, precies tijdens een training.', opts:[
+      {l:'Naar huis vliegen en erbij zijn', f(){ const p = vluchtPrijs(); S.sp.geld = Math.max(0, S.sp.geld - p); const o = ouders(); o.band = clamp(o.band + 12, 0, 100); mod('moraal', 6); mod('vert', -4); return `Je vliegt naar huis (${geldTxt(p)}). Je zusje gilt als ze je in de zaal ziet zitten. De trainer vindt het minder leuk.`; }},
+      {l:'Trainen en haar videobellen', f(){ const o = ouders(); o.band = clamp(o.band - 2, 0, 100); mod('vert', 2); return 'Je belt haar na de uitreiking. Ze laat trots haar diploma in de camera zien.'; }}]},
+    {id:'fm-zusje', thuis:true, tekst:'Je zusje heeft haar diploma-uitreiking, precies tijdens een training.', opts:[
       {l:'Vrij vragen en erbij zijn', f(){ const o = ouders(); o.band = clamp(o.band + 10, 0, 100); mod('moraal', 6); mod('vert', -3); return 'Je zusje straalt als ze je in de zaal ziet zitten. De trainer vindt het minder leuk.'; }},
       {l:'Trainen en haar een filmpje sturen', f(){ const o = ouders(); o.band = clamp(o.band - 4, 0, 100); mod('vert', 2); return 'Ze stuurt een hartje terug, maar je weet dat ze je had willen zien.'; }}]},
-    {id:'fm-zondag', tekst:'Je moeder vraagt of je zondag na de wedstrijd komt eten. Je teamgenoten gaan samen uit.', opts:[
+    {id:'fm-zondag', thuis:true, tekst:'Je moeder vraagt of je zondag na de wedstrijd komt eten. Je teamgenoten gaan samen uit.', opts:[
       {l:'Naar je moeder', f(){ const o = ouders(); o.band = clamp(o.band + 6, 0, 100); mod('moraal', 4); mod('fit', 2); return 'Stamppot, verhalen van vroeger en je vader die de wedstrijd nog eens bespreekt. Heerlijk.'; }},
       {l:'Met het team mee', f(){ iedereen(2); mod('moraal', 2); return 'Gezellig met de selectie. Je moeder bewaart een bord voor je.'; }}]},
   ],
 };
 export function persEvents(){
-  const sp = S.sp, gezien = sp.persGezien || [];
-  return mijnPers().flatMap(id => (EV[id] || []).filter(e => !gezien.includes(e.id)).map(e => ({soort:'prive', ...e, opts:e.opts.map(o => ({...o, f(){ (sp.persGezien = (sp.persGezien || []).concat(e.id).slice(-8)); return o.f(); }}))})));
+  const sp = S.sp, gezien = sp.persGezien || [], ver = inBuitenland();
+  return mijnPers().flatMap(id => (EV[id] || []).filter(e => !gezien.includes(e.id) && !(e.thuis && ver) && !(e.ver && !ver)).map(e => ({soort:'prive', ...e, opts:e.opts.map(o => ({...o, f(){ (sp.persGezien = (sp.persGezien || []).concat(e.id).slice(-8)); return o.f(); }}))})));
 }
 export const PERS_EVENTS = EV;
