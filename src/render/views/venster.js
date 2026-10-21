@@ -13,6 +13,7 @@ import { ohStart, vOnderhandel } from '../../game/transfers/onderhandelen.js';
 import { blijf, blijfWachten, teken, zonderClub } from '../../game/transfers/transfers.js';
 import { vMarkt } from '../../game/transfers/markt.js';
 import { clubLogo } from '../../data/logos.js';
+import { vriendNaam } from '../../game/speler/journey.js';
 
 export function rolRij(id, cObj){
   const hier = id === S.sp.club && !(cObj && cObj.land);
@@ -25,7 +26,7 @@ function partnerWaarschuwing(o){ const r = S.sp.relatie, k = kinderen(); return 
 export function bodKaart(o, label){
   const c = clubInfo(o), V = S.venster, bl = isBuitenland(o);
   const kanVragen = V.modus === 'normaal' && !o.gevraagd && (o.verlenging || c.t <= 3);
-  return `<div class="bod ${o.club === S.sp.club && !bl ? 'huidig' : ''} ${o.viaAgent ? 'door' : ''}"><span class="label">${o.huurKoop ? 'Je huurclub wil je definitief overnemen' : o.viaAgent ? 'Droomclub · geregeld door je zaakwaarnemer' : o.doorstroom ? '1e elftal van je eigen club' : o.verlenging ? 'Je huidige club · nieuw contract' : bl ? `🌍 ${esc(o.land)} · ${NIVEAU[c.t]} · ${esc(c.div)}` : `${NIVEAU[c.t]} · ${DIVS[c.t]}`}</span><div class="club">${bl ? '' : clubLogo(o.club, 40)}<span>${esc(c.n)}</span></div>
+  return `<div class="bod ${o.club === S.sp.club && !bl ? 'huidig' : ''} ${o.viaAgent || o.viaVriend ? 'door' : ''}"><span class="label">${o.huurKoop ? 'Je huurclub wil je definitief overnemen' : o.viaVriend ? `Via je jeugdvriend ${esc(vriendNaam())}${bl ? ` · 🌍 ${esc(o.land)}` : ''}` : o.viaAgent ? 'Droomclub · geregeld door je zaakwaarnemer' : o.doorstroom ? '1e elftal van je eigen club' : o.verlenging ? 'Je huidige club · nieuw contract' : bl ? `🌍 ${esc(o.land)} · ${NIVEAU[c.t]} · ${esc(c.div)}` : `${NIVEAU[c.t]} · ${DIVS[c.t]}`}</span><div class="club">${bl ? '' : clubLogo(o.club, 40)}<span>${esc(c.n)}</span></div>
     <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>${salarisLabel(c.t)}</dt><dd>${geldTxt(o.salaris)}</dd><dt>Contract</dt><dd>${o.jaren} jaar</dd>${o.som ? `<dt>Bod op jou</dt><dd>${geldTxt(o.som)}</dd>` : ''}</dl>
     ${rolRij(o.club, bl ? c : null)}
     ${bl ? `<p class="muted klein-tekst">Je verhuist naar ${esc(o.land)}: nieuwe competitie, nieuwe clubs, nieuwe kranten, een nieuwe taal.</p>` : ''}

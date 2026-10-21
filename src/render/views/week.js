@@ -33,7 +33,7 @@ import { reunieMet, vReunie } from '../../game/wedstrijd/reunie.js';
 import { startWedstrijd, rustWeek } from '../../game/wedstrijd/wedstrijd.js';
 import { doeActiviteit, plafond, trainXP } from '../../game/week.js';
 import { eisRij, vAgent } from './agent.js';
-import { TOON, VRIEND_ACTIES, kanUitpraten, kanVriendActie, uitpraten, vriendActie } from '../../game/speler/journey.js';
+import { TOON, VRIEND_ACTIES, bijJou, kanVragen, vriendRolTxt, vriendClubNaam, vriendHier, vriendLand, kanUitpraten, kanVriendActie, speeltTegenVriend, vriendKlasse, vriendStats, uitpraten, vriendActie, vriendDuelAntwoord, vriendDuelVraag } from '../../game/speler/journey.js';
 import { herkomstUitTmp, vHerkomstKeuze } from './start.js';
 import { balk, vSeizoenStrip } from './zijbalk.js';
 import { vBankVraag } from '../../game/team/bankverzoek.js';
@@ -67,6 +67,32 @@ function teamOpen(){
 }
 
 // Het interview in de week van het duel met je rivaal (niet verplicht)
+// Zondag tegen je beste vriend (bij een andere club): hij appt je, jij antwoordt met een toon
+// Jij tegen je jeugdvriend: klasse, club, dit seizoen en de hele carrière (groen = de beste)
+function vVriendVergelijk(){
+  const sp = S.sp, v = sp.vriend, vn = v.voornaam, st = vriendStats(), C = v.carriere || {g:0, a:0}, jk = ovr(sp), hk = vriendKlasse() || 0;
+  const rv = v.weg && sp.rivaal && sp.rivaal.exVriend, clNaam = rv ? (CLUBS[sp.rivaal.club] || {}).n : vriendClubNaam();
+  const jij = {k:jk, g:S.ss.g || 0, a:S.ss.a || 0, cg:S.car.g || 0, ca:S.car.a || 0}, al = v.carriereJaar === S.jaar, hij = {k:hk, g:st.g, a:st.a, cg:C.g + (al ? 0 : st.g), ca:C.a + (al ? 0 : st.a)}; // (na het seizoensein zitten zijn cijfers al in zijn carrière)
+  const cel = (x, y) => `<td class="${x > y ? 'goedtxt' : ''}"><b>${x}</b></td>`, rij = (l, k) => `<tr><td class="muted">${l}</td>${cel(jij[k], hij[k])}${cel(hij[k], jij[k])}</tr>`;
+  const hoofd = sp.pos === 'SPITS' ? 'g' : 'a', w = hoofd === 'g' ? 'goals' : 'assists';
+  const zin = jij[hoofd] > hij[hoofd] ? `Dit seizoen heb jij meer ${w} dan ${vn}.` : jij[hoofd] < hij[hoofd] ? `${vn} heeft dit seizoen meer ${w} dan jij.` : `Jullie staan gelijk in ${w}.`;
+  return `<span class="label winkelkop">Jij tegen ${esc(vn)}</span>
+    <table class="tabel vergelijk"><thead><tr><th></th><th>Jij</th><th>${esc(vn)}</th></tr></thead><tbody>
+      ${rij('Klasse', 'k')}
+      <tr><td class="muted">Club</td><td>${esc(club().n)}${sp.o23 ? ' O23' : ''}</td><td>${clNaam ? esc(clNaam) + (v.o23 && !rv ? ' O23' : '') + (!rv && !vriendHier() ? ` (${esc(vriendLand())})` : '') : '–'}</td></tr>
+      ${rij('Goals dit seizoen', 'g')}${rij('Assists dit seizoen', 'a')}${rij('Goals carrière', 'cg')}${rij('Assists carrière', 'ca')}
+    </tbody></table><p class="muted klein-tekst">${esc(zin)} ${jk > hk ? 'Jij bent de betere speler (klasse).' : jk < hk ? `${esc(vn)} is nu nog beter (klasse).` : 'Jullie zijn even goed.'}</p>
+    ${(v.hist || []).length ? `<details class="paneel"><summary class="label">Vorige seizoenen</summary>${v.hist.slice().reverse().map(h => `<p class="muted klein-tekst">${esc(h)}</p>`).join('')}</details>` : ''}`;
+}
+function vVriendInterview(fx){
+  if (!fx || !speeltTegenVriend(fx.opp)) return '';
+  const P = vriendDuelVraag(); if (!P) return '';
+  const kop = `<span class="label">Zondag tegen je beste vriend ${esc(S.sp.vriend.voornaam)} 🤝</span>`;
+  if (P.klaar) return `<div class="paneel">${kop}<p class="muted">${esc(S.sp.vriend.voornaam)}: ${esc(P.vraag)}</p><p><b>Jij:</b> ${esc(P.opts[P.keuze].l)}</p><p class="melding">${esc(P.uit)}</p></div>`;
+  return `<div class="paneel">${kop}<p>${esc(S.sp.vriend.voornaam)} appt je: <b>${esc(P.vraag)}</b></p>
+    <div class="keuzes">${P.opts.map((o, i) => keuzeKnop(`${TOON[o.toon].i} ${esc(o.l)}`, `${TOON[o.toon].n} · ${o.e}`, () => vriendDuelAntwoord(i), 'data-blijf')).join('')}</div>
+    <p class="muted klein-tekst">Je hoeft niet te antwoorden.</p></div>`;
+}
 function vRivaalInterview(fx){
   if (!fx || S.sp.o23 || !speeltTegenRivaal(fx.opp)) return '';
   const P = voorDuelVraag(); if (!P) return '';
@@ -168,7 +194,7 @@ function vDezeWeek(){
     ${S.ronde === 0 ? `<h2>${eersteKeer ? `Welkom bij ${esc(club().n)}` : 'Nieuw seizoen'}</h2>` : ''}`;
   if (eersteKeer) html += `<p>${esc(welkomTekst(sp))}</p>`;
   else if (S.ronde === 0) html += `<p>Een nieuw seizoen bij ${esc(club().n)} in de ${DIVS[club().t]}. Alles begint weer bij nul.</p>`;
-  html += `</div>` + (fx ? vVooruitblik(fx, opp, vo) : vSpeelvrij()) + vRivaalInterview(fx);
+  html += `</div>` + (fx ? vVooruitblik(fx, opp, vo) : vSpeelvrij()) + vRivaalInterview(fx) + vVriendInterview(fx);
   html += fx ? vReunie() : '';
   if (sp.o23){ const c = sp.o23.cijfers; html += `<div class="paneel"><span class="label">Bij de O23</span><p>${O23_EIS}</p><p class="muted">${c.length ? 'Je cijfers bij de O23: ' + c.map(fmt1).join(' · ') : 'Je hebt nog geen wedstrijd gespeeld bij de O23.'}</p></div>`; }
   if (sp.huur){ const c = sp.huur.cijfers; html += `<div class="paneel"><span class="label">Op huurbasis tot de zomer</span><p>Je speelt bij ${esc(club().n)} en gaat in de zomer terug naar ${esc(CLUBS[sp.huur.ouder].n)}. Hoe beter je hier speelt, hoe beter je plek daar. Gemiddeld een 7,0 of hoger en ze rekenen op je.</p><p class="muted">${c.length ? `Gemiddeld cijfer hier: ${fmt1(gemiddelde(c))} (${c.length} ${c.length === 1 ? 'wedstrijd' : 'wedstrijden'})` : 'Je hebt hier nog niet gespeeld.'}</p></div>`; }
@@ -409,14 +435,15 @@ function vBuitenBasis(){
     ${kinds.length ? `<span class="label winkelkop">Je kinderen</span><p>${kinds.map(k => `<b>${esc(k.naam)}</b> (${kindLeeftijd(k)})`).join(', ')}</p><div class="keuzes">${keuzeKnop('Tijd met je kinderen', 'moraal +5 · focus +2', kindActie, `data-blijf ${w.kind ? 'disabled' : ''}`)}</div>` : ''}`;
   // Je jeugdvriend: elke week iets samen doen (zo blijven jullie vrienden), of het uitpraten als hij je rivaal werd
   const v = sp.vriend, vb = v ? Math.round(v.band) : 0, R = sp.rivaal;
-  const vriendHtml = !v ? '' : !v.weg ? `<p>${esc(v.voornaam)} ${esc(v.n)} · ${v.club === sp.club ? `speelt bij jou, bij ${esc(club().n)}` : CLUBS[v.club] ? `speelt bij ${esc(CLUBS[v.club].n)}` : 'nog zonder club'}</p>
+  const vriendHtml = !v ? '' : vVriendVergelijk() + (!v.weg ? `<p>${esc(v.voornaam)} ${esc(v.n)} · ${bijJou() ? `speelt bij jou, bij ${esc(club().n)}` : vriendClubNaam() ? `speelt bij ${esc(vriendClubNaam())}${vriendHier() ? '' : ` (${esc(vriendLand())})`}` : 'nog zonder club'}</p>
+    ${sp.vriendBod ? `<p class="goedtxt klein-tekst">${esc(v.voornaam)} wil dat je naar ${esc(vriendClubNaam() || 'zijn club')} komt: in de ${!vriendHier() || S.ronde >= WINTER ? 'zomer' : 'winterstop'} doet zijn club een bod.</p>` : ''}
     <p>Jullie band: <b>${vb}</b> <span class="risico ${vb >= 60 ? 'r-veilig' : vb >= 25 ? 'r-gem' : 'r-riskant'}">${vb >= 60 ? 'Beste vrienden' : vb >= 25 ? 'Goede vrienden' : 'Het schuurt'}</span></p>
-    <p class="muted klein-tekst">Hoe beter jullie band, hoe groter de kans dat jullie vrienden blijven als er iets gebeurt (een zaakwaarnemer die hem weg wil halen, ruzie in de media). Zonder contact groeien jullie langzaam uit elkaar${v.club === sp.club ? ', maar bij dezelfde club zien jullie elkaar elke dag' : ''}.</p>
+    <p class="muted klein-tekst">Hoe beter jullie band, hoe groter de kans dat jullie vrienden blijven als er iets gebeurt (een zaakwaarnemer die hem weg wil halen, ruzie in de media). Zonder contact groeien jullie langzaam uit elkaar${bijJou() ? ', maar bij dezelfde club zien jullie elkaar elke dag' : ''}.</p>
     <span class="label winkelkop">Met ${esc(v.voornaam)} · 1 per week${w.vriend ? ' (al gedaan)' : ''}</span>
-    <div class="keuzes">${Object.entries(VRIEND_ACTIES).map(([id, a]) => keuzeKnop(a.n, a.s + (a.zelfde && v.club !== sp.club ? ' · alleen als jullie bij dezelfde club spelen' : ''), () => vriendActie(id), `data-blijf ${kanVriendActie(id) ? '' : 'disabled'}`)).join('')}</div>`
+    <div class="keuzes">${Object.entries(VRIEND_ACTIES).map(([id, a]) => keuzeKnop(a.n, a.komen ? (v.komt ? `hij komt in de ${v.komt.na === 'winter' ? 'winterstop' : 'zomer'}` : bijJou() ? 'jullie spelen al samen' : sp.clubloos || sp.o23 ? 'kan nu niet' : `${vriendRolTxt()}${kanVragen() ? '' : ' · vraag het in de volgende transferperiode opnieuw'}`) : a.s + (a.zelfde && !bijJou() ? ' · alleen als jullie bij dezelfde club spelen' : ''), () => vriendActie(id), `data-blijf ${kanVriendActie(id) ? '' : 'disabled'}`)).join('')}</div>`
     : `<p>${esc(v.voornaam)} ${esc(v.n)} is nu je rivaal${R && R.exVriend ? ` (${esc(rivaalBand(R.band).toLowerCase())})` : ''}.</p>
     <p class="muted klein-tekst">Zit het weer goed tussen jullie (band "Vriendschap"), dan worden jullie weer beste vrienden.</p>
-    <div class="keuzes">${keuzeKnop('Het uitpraten', 'jullie band +8', uitpraten, `data-blijf ${kanUitpraten() ? '' : 'disabled'}`)}</div>`;
+    <div class="keuzes">${keuzeKnop('Het uitpraten', 'jullie band +8', uitpraten, `data-blijf ${kanUitpraten() ? '' : 'disabled'}`)}</div>`);
   const tabs = [['liefde', 'Liefde', liefde], ['familie', 'Familie', famHtml], ...(v ? [['vriend', v.weg ? 'Ex-vriend' : 'Jeugdvriend', vriendHtml]] : []), ['social', 'Social media', socialHtml], ['dier', 'Huisdieren', dierHtml], ['geld', 'Geld en zaken', geldHtml], ['goed', 'Goede doelen', goedHtml], ['rij', 'Rijbewijs en auto', rij + auto], ['wonen', 'Wonen', wonen], ['uitgaan', 'Uitgaan', vUitgaan()]];
   const tab = tabs.find(x => x[0] === tmp.buitenTab) || tabs[0];
   return `<section id="buitenPanel" class="paneel sectie"><h3 class="sectiekop">Buiten het voetbal · ${esc(samenvatting)}</h3>

@@ -34,7 +34,9 @@ export function pitchScene(type){
     juichen:  [e('J',97,38,'wij'), e('A',92,34,'wij'), e('B',93,45,'wij'), e('C',89,40,'wij'), e('X',95,30,'zij'), e('R',85,47,'R')],
     opbouw:   [e('J',20,34,'wij'), e('A',31,19,'wij'), e('B',32,49,'wij'), e('X',30,33,'zij'), e('Y',38,40,'zij'), e('k',1.5,34,'k')],
     provocatie:[e('J',60,34,'wij'), e('A',56,39,'wij'), e('X',61.6,34.8,'zij'), e('Y',65,29,'zij'), e('R',57,27,'R')],
-    opstootje:[e('J',58,34,'wij'), e('A',61,37,'wij'), e('X',62,35,'zij'), e('Y',60,31,'zij'), e('R',55,27,'R')]
+    opstootje:[e('J',58,34,'wij'), e('A',61,37,'wij'), e('X',62,35,'zij'), e('Y',60,31,'zij'), e('R',55,27,'R')],
+    // je valt in: jij bij de dug-out, de vierde official met het bord, de speler die eruit gaat in het veld
+    wissel:   [e('J',52.5,71,'wij'), e('A',61,52,'wij'), e('B',44,40,'wij'), e('X',58,38,'zij'), e('Y',47,30,'zij'), e('R',50.6,70.4,'R')]
   };
   L.teamGoal = L.teamKans = [e('A',93,37,'wij'), e('B',88,58,'wij'), e('C',84,30,'wij'), e('J',78,45,'wij'), e('X',95,34.5,'zij'), e('Y',91,41,'zij'), e('K',104,34,'K')];
   L.tegenGoal = L.tegenKans = [e('X',12,31,'zij'), e('Y',17,58,'zij'), e('Z',21,38,'zij'), e('A',10,33.5,'wij'), e('B',14,41,'wij'), e('J',27,29,'wij'), e('k',1,34,'k')];
@@ -47,11 +49,11 @@ export function pitchScene(type){
   // Waar ligt de bal aan het begin
   const bal = type === 'corner' ? {x:104.3, y:67, z:0} : type === 'verdCorner' ? {x:0.8, y:67, z:0} : type === 'kopduel' || type === 'volley' ? {x:ents.A.x, y:ents.A.y, z:0}
     : type === 'penalty' ? {x:94, y:34, z:0} : type === 'keeperFout' ? {x:97.5, y:35, z:0} : ['verdedigen', 'tackle'].includes(type) ? {x:ents.X.x, y:ents.X.y, z:0}
-    : type === 'provocatie' || type === 'opstootje' ? {x:64, y:40, z:0} : type === 'toespraak' ? {x:56, y:30, z:0} : type === 'juichen' ? {x:105.4, y:34, z:.2} : type === 'shootout' ? {x:94, y:34, z:0} : /^tegen/.test(type) ? {x:ents.X.x + .8, y:ents.X.y, z:0} : /^team/.test(type) ? {x:ents.C.x + .8, y:ents.C.y, z:0} : {x:ents.J.x + .8, y:ents.J.y, z:0};
-  const cam = /^tegen/.test(type) ? 18 : ['verdedigen', 'verdCorner'].includes(type) ? 18 : type === 'opbouw' ? 24 : type === 'tackle' ? 44 : ['counter', 'diepteBal'].includes(type) ? 68 : ['provocatie', 'opstootje'].includes(type) ? 60 : type === 'toespraak' ? 52.5 : 87;
+    : type === 'wissel' ? {x:52.5, y:34, z:0} : type === 'provocatie' || type === 'opstootje' ? {x:64, y:40, z:0} : type === 'toespraak' ? {x:56, y:30, z:0} : type === 'juichen' ? {x:105.4, y:34, z:.2} : type === 'shootout' ? {x:94, y:34, z:0} : /^tegen/.test(type) ? {x:ents.X.x + .8, y:ents.X.y, z:0} : /^team/.test(type) ? {x:ents.C.x + .8, y:ents.C.y, z:0} : {x:ents.J.x + .8, y:ents.J.y, z:0};
+  const cam = /^tegen/.test(type) ? 18 : ['verdedigen', 'verdCorner'].includes(type) ? 18 : type === 'opbouw' ? 24 : type === 'tackle' ? 44 : ['counter', 'diepteBal'].includes(type) ? 68 : ['provocatie', 'opstootje'].includes(type) ? 60 : type === 'toespraak' || type === 'wissel' ? 52.5 : 87;
   // Duels, tackles, juichen en de toespraak gebeuren op een paar meter: daar zoomt de camera verder in, op de plek van de actie
-  const dichtbij = ['provocatie', 'opstootje', 'tackle', 'verdedigen', 'juichen', 'toespraak'].includes(type);
-  return {ents, bal, cam, zoom:dichtbij ? .6 : type === 'penalty' || type === 'shootout' ? .8 : 1, camY:dichtbij && ents.J ? ents.J.y : 34};
+  const dichtbij = ['provocatie', 'opstootje', 'tackle', 'verdedigen', 'juichen', 'toespraak', 'wissel'].includes(type);
+  return {ents, bal, cam, zoom:dichtbij ? .6 : type === 'penalty' || type === 'shootout' ? .8 : 1, camY:type === 'wissel' ? 62 : dichtbij && ents.J ? ents.J.y : 34};
 }
 
 // Wachtrij: jouw acties en wat anderen doen, in volgorde afgespeeld
@@ -75,15 +77,18 @@ export function reeksStrafschoppen(kansJij, M){
 }
 // Goals en grote kansen van teamgenoten en tegenstanders (alleen als jij meespeelt of op de bank wacht om in te vallen)
 export function animAnderen(M, e, v){
-  // Als invaller zie je op het veld pas wat er gebeurt nadat je erin bent gekomen
-  if (!(M.rol === 'basis' || (M.rol === 'invaller' && M.ev.slice(0, M.idx).some(x => x.type === 'inval')))) return;
-  const t = v.t, kort = t.length > 70 ? t.slice(0, 67) + '...' : t;
+  // Sta je (nog) niet in het veld, dan zie je het vanaf de bank of de tribune: jij staat dan bij de dug-out of buiten beeld
+  // (gewisseld: weer op de bank; rood: naar de kleedkamer)
+  const ingevallen = M.rol === 'invaller' && M.ev.slice(0, M.idx).some(x => x.type === 'inval');
+  const inVeld = (M.rol === 'basis' || ingevallen) && M.gewisseld === undefined && !M.rood;
+  const bank = !inVeld && (['bank', 'invaller', 'rust'].includes(M.rol) || M.gewisseld !== undefined), tribune = !inVeld && !bank;
+  const t = v.t, kort0 = t.length > 70 ? t.slice(0, 67) + '...' : t, kort = bank ? `Vanaf de bank: ${kort0}` : tribune ? `Vanaf de tribune: ${kort0}` : kort0;
   let soort = null, variant = 'combi', einde = null;
   if (e.type === 'us'){ soort = 'teamGoal'; variant = /kopt/.test(t) ? 'kop' : /strafschop/.test(t) ? 'pen' : /afstand/.test(t) ? 'afstand' : 'combi'; }
   else if (e.type === 'them'){ soort = 'tegenGoal'; variant = /kopt/.test(t) ? 'kop' : /fstandsschot|vrije trap/.test(t) ? 'afstand' : 'combi'; }
   else if (e.type === 'kansUs' && /paal|lijn|redt fantastisch|over de lat/.test(t)){ soort = 'teamKans'; variant = /Kopbal/.test(t) ? 'kop' : /afstand|krult/.test(t) ? 'afstand' : 'combi'; einde = /paal/.test(t) ? 'paal' : /lijn/.test(t) ? 'lijn' : /lat/.test(t) ? 'over' : 'redding'; }
   else if (e.type === 'kansThem' && /paal|lijn|vingertoppen|redt knap/.test(t)){ soort = 'tegenKans'; variant = /Kopbal/.test(t) ? 'kop' : 'combi'; einde = /paal/.test(t) ? 'paal' : /lijn/.test(t) ? 'lijn' : 'redding'; }
-  if (soort) animPush(M, {soort, type:soort, variant, einde, onder:`${e.min}' · ${kort}`, anderen:true});
+  if (soort) animPush(M, {soort, type:soort, variant, einde, onder:`${e.min}' · ${kort}`, anderen:true, ...(bank ? {bank:true} : tribune ? {tribune:true} : {})});
 }
 
 // Elke keuze in een wedstrijd heeft een eigen animatie: [soort, variant]. 'type|label' gaat voor als hetzelfde label bij een ander moment iets anders betekent
@@ -135,6 +140,8 @@ export const POSES = ['duw', 'struikel', 'val', 'sliding', 'steek', 'schouder', 
 // moves: {id:{x, y, z, pose, rol}}  ·  bal: {to, boog, krul, trap, van} of {volg}  ·  fx: tekst-effect aan het eind van de stap
 export function animScript(a){
   const sc = pitchScene(a.type), E = sc.ents, st = [], r = () => Math.random();
+  // Vanaf de bank: jij staat langs de lijn bij de dug-out; vanaf de tribune: buiten beeld
+  if ((a.bank || a.tribune) && E.J){ Object.assign(E.J, a.bank ? {x:52.5, y:71.5} : {x:-30, y:90}); }
   const J = E.J, maat = E.A || E.B, tegen = E.X, K = E.K || E.k, v = a.variant || 'normaal';
   // waar staat iedereen na de vorige stap (zodat een volgende stap daarop kan voortbouwen)
   const cur = {}; for (const k in E) cur[k] = {x:E[k].x, y:E[k].y};
@@ -148,7 +155,7 @@ export function animScript(a){
   // De scheids komt erbij en geeft de kaart aan wie de overtreding maakte
   const kaartStap = (wie = 'J') => { const k = kaart(); if (!k) return false; const p = cur[wie] || cur.J; stap(800, {R: E.R ? {x:p.x - 1.3, y:p.y - 1.7, pose:'kaart'} : undefined, [wie]:{pose:'sorry'}}, null, k); return true; };
   const c = a.soort;
-  const juich = (wie, links) => { if (!E[wie]) return; const hoek = links ? {x:3, y:62} : {x:102, y:62}; const mv = {[wie]:{...hoek, pose:'juich'}}; ['A', 'B', 'C', 'J', 'Y', 'Z'].forEach(k => { if (k !== wie && E[k] && E[k].rol === E[wie].rol) mv[k] = {x:hoek.x + (links ? 3 : -3) + r() * 2, y:hoek.y - 2 - r() * 4, pose:'juich'}; }); stap(900, mv, null); };
+  const juich = (wie, links) => { if (!E[wie]) return; const hoek = links ? {x:3, y:62} : {x:102, y:62}; const mv = {[wie]:{...hoek, pose:'juich'}}; ['A', 'B', 'C', 'J', 'Y', 'Z'].forEach(k => { if (k !== wie && E[k] && E[k].rol === E[wie].rol) mv[k] = k === 'J' && (a.bank || a.tribune) ? (a.bank ? {pose:'juich'} : undefined) : {x:hoek.x + (links ? 3 : -3) + r() * 2, y:hoek.y - 2 - r() * 4, pose:'juich'}; }); stap(900, mv, null); };
   if (c === 'shootout'){
     let w = 0, z = 0;
     a.kicks.forEach(k => {
@@ -193,6 +200,13 @@ export function animScript(a){
       stap(1000, {J:{pose:'ssst'}}, null, 'ssst');
       if (a.geel) stap(800, {R:{x:cur.J.x - 1.4, y:cur.J.y - 1.6, pose:'kaart'}, J:{pose:'sorry'}}, null, 'geel');
     }
+    return {sc, st};
+  }
+  // ===== Invallen: het bord omhoog, een high five bij de lijn en jij sprint het veld in =====
+  if (c === 'wissel'){
+    stap(800, {R:{pose:'wijs'}, A:{x:54, y:66, pose:null}}, null, {t:a.bord || 'Wissel!', kl:'#ffd84a'});
+    stap(450, {A:{x:53.2, y:68.4, pose:'klap'}, J:{x:52.4, y:68.9, pose:'klap'}}, null);
+    stap(1000, {A:{x:48.5, y:72, pose:null}, J:{x:58, y:58, pose:null}, R:{pose:null}}, null, {t:'Je bent erin!', kl:'#b9ff9c'});
     return {sc, st};
   }
   // ===== Toespraak in de rust: het team in een kring =====

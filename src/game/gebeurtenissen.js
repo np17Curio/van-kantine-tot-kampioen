@@ -14,7 +14,7 @@ import { verhaalEvents } from './speler/verhaal.js';
 import { persEvents } from './speler/persEvents.js';
 import { rivaal, rivaalEvents } from './speler/rivaal.js';
 import { scoutEvent } from './transfers/buitenland.js';
-import { toonEffect, vriendEvents } from './speler/journey.js';
+import { toonEffect, toonEvents, vriendEvents } from './speler/journey.js';
 import { buitenlandEvents, buitenlandKans, inBuitenland, thuis, vluchtPrijs } from './prive/buitenland-leven.js';
 
 /* ===================== Gebeurtenissen ===================== */
@@ -36,6 +36,8 @@ export function maakEvent(){
   { const v = verhaalEvents(); if (v.length && rnd() < .3) return pick(v); }
   // Daarna iets dat bij je persoonlijkheid hoort (een rebel krijgt andere dingen voor zijn kiezen dan een prof)
   { const p = persEvents(); if (p.length && rnd() < .25) return pick(p); }
+  // Hoe reageer jij? Kalm, gebalanceerd of fel (journey.js)
+  if (rnd() < .18){ const t = toonEvents(); if (t.length) return pick(t); }
   // Je jeugdvriend (zolang jullie vrienden zijn)
   if (rnd() < .07){ const v = vriendEvents(); if (v.length) return pick(v); }
   // Leven in het buitenland: taal, heimwee, gezin

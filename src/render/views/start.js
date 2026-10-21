@@ -8,6 +8,7 @@ import { nieuwSpel } from '../../game/speler/status.js';
 import { LEEFTIJDEN, START } from '../../game/speler/startverhaal.js';
 import { HAAR, HAAR_NAAM, HUID, KAPSEL_KEUZE, willekeurigUiterlijk } from '../../data/uiterlijk.js';
 import { MAX_PERS, PERS, kanErBij, willekeurigePers, wisselPers } from '../../game/speler/persoonlijkheid.js';
+import { BOUW, LENGTES, STANDAARD_LENGTE, gewichtVan, lengteTxt, lichaamSamenvatting } from '../../game/speler/lichaam.js';
 
 export const HERKOMST_IDS = ['geboren', 'vader', 'moeder'];
 // Opslag downloaden en laden (de afhandeling zit in main.js)
@@ -25,16 +26,20 @@ export const opgroeiKeuze = () => tmp.opgroei || (SPEEL_LANDEN.includes(tmp.gebo
 // Je speler aanmaken: huidskleur, haarkleur en kapsel, met een portret in 3D (gemaakt in de fotostudio)
 function vUiterlijk(){
   const u = tmp.uiterlijk || (tmp.uiterlijk = willekeurigUiterlijk());
+  if (!u.lengte) u.lengte = STANDAARD_LENGTE[tmp.pos] || 180; if (!u.bmi) u.bmi = 22.5; // lengte en bouw (lichaam.js)
   if (!tmp.uitSleutel) tmp.uitSleutel = Math.random().toString(36).slice(2, 10);
   const vlak = (lijst, k, label, namen) => `<div class="kleurvlakken" role="group" aria-label="${label}">${lijst.map((kl, i) => `<button class="kleurvlak ${u[k] === i ? 'aan' : ''}" style="--kl:${kl}" aria-pressed="${u[k] === i}" aria-label="${label} ${namen ? namen[i] : `${i + 1} van ${lijst.length}`}" title="${namen ? namen[i] : ''}" data-i="${act(() => { u[k] = i; })}" data-blijf></button>`).join('')}</div>`;
   return `<div class="aanmaken">
-    <figure class="portretfoto"><img data-foto="portret" data-uit="${u.huid},${u.haar},${u.kapsel}" data-sleutel="${tmp.uitSleutel}" alt="Jouw speler"><span class="ontwikkel">Foto laden…</span></figure>
+    <figure class="portretfoto"><img data-foto="portret" data-uit="${u.huid},${u.haar},${u.kapsel},${u.lengte},${u.bmi}" data-sleutel="${tmp.uitSleutel}" alt="Jouw speler"><span class="ontwikkel">Foto laden…</span></figure>
     <div class="aanmaakkeuzes">
       <div class="invoer"><label class="label" for="naam">Naam van je speler</label><input id="naam" maxlength="24" placeholder="bijv. Daan de Kanon" value="${esc(tmp.naam)}"></div>
       <div><span class="label">Huidskleur</span>${vlak(HUID, 'huid', 'Huidskleur')}</div>
       <div><span class="label">Haarkleur</span>${vlak(HAAR, 'haar', 'Haarkleur', HAAR_NAAM)}</div>
       <div><span class="label">Kapsel</span><div class="kapsels" role="group" aria-label="Kapsel">${KAPSEL_KEUZE.map(([k, l]) => knop(l, () => { u.kapsel = k; }, 'klein' + (u.kapsel === k ? ' aan' : ''), `data-blijf aria-pressed="${u.kapsel === k}"`)).join('')}</div></div>
-      <div>${knop('🎲 Verras me', () => { tmp.uiterlijk = willekeurigUiterlijk(); tmp.uitSleutel = Math.random().toString(36).slice(2, 10); }, 'klein', 'data-blijf')}</div>
+      <div><span class="label">Lengte · ${lengteTxt(u.lengte)}</span><div class="kapsels" role="group" aria-label="Lengte">${LENGTES.map(l => knop(lengteTxt(l), () => { u.lengte = l; }, 'klein' + (u.lengte === l ? ' aan' : ''), `data-blijf aria-pressed="${u.lengte === l}"`)).join('')}</div></div>
+      <div><span class="label">Bouw · ${gewichtVan(u.lengte, u.bmi)} kg</span><div class="kapsels" role="group" aria-label="Bouw">${BOUW.map(b => knop(b.n, () => { u.bmi = b.bmi; }, 'klein' + (u.bmi === b.bmi ? ' aan' : ''), `data-blijf aria-pressed="${u.bmi === b.bmi}"`)).join('')}</div>
+        <p class="muted klein-tekst">${lichaamSamenvatting(u)}. Lang = sterk in de lucht, klein en tenger = snel, zwaar = sterk in duels maar sneller moe.</p></div>
+      <div>${knop('🎲 Verras me', () => { tmp.uiterlijk = {...willekeurigUiterlijk(), lengte:LENGTES[Math.floor(Math.random() * LENGTES.length)], bmi:BOUW[Math.floor(Math.random() * BOUW.length)].bmi}; tmp.uitSleutel = Math.random().toString(36).slice(2, 10); }, 'klein', 'data-blijf')}</div>
     </div></div>`;
 }
 // Wie ben je? Maximaal 3 persoonlijkheden, die bepalen hoe je bent in en buiten het veld

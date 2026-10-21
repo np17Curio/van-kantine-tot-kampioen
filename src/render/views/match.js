@@ -1,5 +1,7 @@
 import { S, club, statWaarde } from '../../core/state.js';
-import { act, knop } from '../../core/ui.js';
+import { act, keuzeKnop, knop } from '../../core/ui.js';
+import { TOON, vriendNa, vriendNaOpties } from '../../game/speler/journey.js';
+import { lichaamKans } from '../../game/speler/lichaam.js';
 import { esc } from '../../core/utils.js';
 import { AANTAL_RONDES, ATTR, CLUBS, DIVS, WINTER, rondesVoor } from '../../data/gegevens.js';
 import { naWedstrijd, vBekerEnd } from '../../game/competitie/beker.js';
@@ -11,8 +13,9 @@ import { vPers } from '../../game/wedstrijd/fans-pers.js';
 import { focusStaat, kans, pOpts, risico } from '../../game/wedstrijd/momenten.js';
 import { WAARSCHUW, actieKosten, isRoutinier, stamina } from '../../game/wedstrijd/stamina.js';
 import { vReunieEinde } from '../../game/wedstrijd/reunie.js';
-import { aftrap, kies, mijnNaam, stand2, VAR_KEUZES, varKeuze, varTekst } from '../../game/wedstrijd/wedstrijd.js';
+import { aftrap, metVriendNa, kies, mijnNaam, stand2, VAR_KEUZES, varKeuze, varTekst } from '../../game/wedstrijd/wedstrijd.js';
 import { rugTeam, rugnummer } from '../../game/team/rugnummers.js';
+import { startElf } from '../../game/competitie/spelers.js';
 import { metVoorletter } from '../../game/media/nieuws.js';
 
 import { vPitch } from '../pitch.js';
@@ -72,23 +75,16 @@ const LINIE = {SPITS:'A', MID:'M', VERD:'V'}, LINIES = [['K', 'Keeper'], ['V', '
 const ROL = {basis:['Je staat in de basis', 'r-veilig'], invaller:['Je begint op de bank', 'r-gem'], bank:['Je zit op de bank', 'r-gem'], tribune:['Je zit op de tribune', 'r-riskant'],
   blessure:['Je bent geblesseerd', 'r-riskant'], geschorst:['Je bent geschorst', 'r-riskant'], rust:['Je krijgt rust', 'r-gem'], o23:['Je speelt bij de O23', 'r-gem']};
 // De elf van een club (aangevuld uit de bank als er iemand ontbreekt) en de wissels. Jij staat erbij als je in de basis staat
-function elftal(id, metJou, vulPos){
-  const sel = rugTeam(id).filter(x => !(x.bles > 0)), ik = LINIE[S.sp.pos];
-  const basis = sel.filter(x => x.basis), bank = sel.filter(x => !x.basis).sort((a, b) => b.k - a.k);
-  const elf = basis.slice(0, 11);
-  if (metJou) elf.push({jij:true, n:S.sp.naam, pos:ik, nr:rugnummer()});
-  // Tot 11 aanvullen: jouw plek (als jij er niet in staat) en verder de sterkste wissels
-  while (elf.length < 11 && bank.length){ const i = Math.max(0, bank.findIndex(x => x.pos === (vulPos || ik))); elf.push(bank.splice(i, 1)[0]); }
-  return {elf, bank};
-}
+// De elf en de wissels (startElf), met rugnummers
+function elftal(id, metJou, vulPos){ rugTeam(id); const r = startElf(id, metJou, vulPos); if (metJou) r.elf.push({jij:true, n:S.sp.naam, pos:LINIE[S.sp.pos], nr:rugnummer()}); return r; }
 const spelerRij = x => `<li class="${x.jij ? 'mij' : ''}"><span class="nr">${x.nr ? x.nr : ''}</span><span>${x.jij ? `<b>${esc(x.n)} (jij)</b>` : esc(metVoorletter(x))}${x.vriend ? ' 🤝' : ''}${x.rivaal ? ' ⚔️' : ''}</span></li>`;
 function vElftal(id, titel, metJou, toonBank, opBank){
-  const {elf, bank} = elftal(id, metJou, toonBank ? null : 'M'), tel = p => elf.filter(x => x.pos === p).length;
+  const {elf, bank} = elftal(id, metJou, id === S.sp.club ? null : 'M'), tel = p => elf.filter(x => x.pos === p).length;
   const formatie = `${tel('V')}-${tel('M')}-${tel('A')}`;
   const mij = !metJou && toonBank && opBank ? [{jij:true, n:S.sp.naam, pos:LINIE[S.sp.pos], nr:rugnummer()}] : [];
   return `<div class="opstelling"><div class="opkop">${clubLogo(id, 28)}<div><b>${esc(titel)}</b><span class="muted klein-tekst">${formatie} · sterkte ${CLUBS[id].s}</span></div></div>
     ${LINIES.map(([p, l]) => { const g = elf.filter(x => x.pos === p); return g.length ? `<span class="label">${l}</span><ol>${g.map(spelerRij).join('')}</ol>` : ''; }).join('')}
-    ${toonBank ? `<span class="label">Wissels</span><ol class="wissels">${mij.concat(bank.slice(0, 6)).map(spelerRij).join('')}</ol>` : ''}</div>`;
+    ${toonBank ? `<span class="label">Wissels</span><ol class="wissels">${mij.concat(bank.slice().sort((x, y) => (y.vriend || y.rivaal ? 1 : 0) - (x.vriend || x.rivaal ? 1 : 0)).slice(0, 6)).map(spelerRij).join('')}</ol>` : ''}</div>`;
 }
 function introSoort(M){
   if (M.selectie) return `Selectiewedstrijd ${S.selectie ? S.selectie.cijfers.length + 1 : ''} van 3`;
@@ -102,7 +98,7 @@ export function vIntro(M){
   const sp = S.sp, echteTeams = !M.inter && !M.o23 && !M.selectie && M.opp != null && CLUBS[M.opp], rol = ROL[M.rol] || [M.rol, 'r-gem'];
   const tags = [M.thuis ? 'Thuis' : 'Uit', M.derby ? 'Derby!' : '', M.rivaal ? 'Tegen je rivaal' : '', M.reunie ? 'Weerzien met je oude club' : ''].filter(Boolean);
   const info = (M.log || []).filter(l => !l.m || l.m === '').map(l => `<p class="muted">${esc(l.t)}</p>`).join('');
-  const opst = echteTeams ? `<div class="opstellingen">${vElftal(sp.club, club().n, M.rol === 'basis', true, M.rol === 'bank' || M.rol === 'invaller')}${vElftal(M.opp, CLUBS[M.opp].n, false, false)}</div>`
+  const opst = echteTeams ? `<div class="opstellingen">${vElftal(sp.club, club().n, M.rol === 'basis', true, M.rol === 'bank' || M.rol === 'invaller')}${vElftal(M.opp, CLUBS[M.opp].n, false, true)}</div>`
     : `<p class="muted">${esc(M.wij)} tegen ${esc(M.zij)}.</p>`;
   return scorebord() + `<div class="verhaal intro"><span class="label">${esc(introSoort(M))}</span>
     <div class="rij">${tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}<span class="risico ${rol[1]}">${esc(rol[0])}</span></div>
@@ -118,7 +114,7 @@ export function vMatch(){
     const f = Math.round(S.sp.focus ?? 65), fs = focusStaat(f);
     keuzeHtml = `<p class="moment nieuw" ${wacht}><b>${M.min}'</b> · ${esc(M.pending.tekst)}</p><p class="opst nieuw" ${wacht}><span class="label">Focus ${f}</span>${fs ? `<span class="risico ${fs.cls}">${fs.k}</span><span class="muted klein-tekst">${fs.t}</span>` : '<span class="muted klein-tekst">Lukt een actie, dan groeit je focus. Mislukt ze, dan zakt hij.</span>'}</p>${(M.oppS ?? 0) >= 85 && !M.o23 ? `<p class="muted klein-tekst nieuw" ${wacht}>Tegen een topclub is scoren extra lastig: hun keeper is van wereldklasse.</p>` : ''}<div class="keuzes nieuw" ${wacht}>${pOpts(M.pending).map((o, i) => {
       const [r, cls] = risico(kans(o)), kost = actieKosten(o);
-      return `<button class="keuze" data-i="${act(() => kies(i))}"><span class="t">${esc(o.l)}</span><span class="s">${ATTR[o.st]} ${statWaarde(o.st)} <span class="risico ${cls}">${r}</span><span class="stamkost${kost >= 6 ? ' zwaar' : ''}" title="Kost ${kost} stamina">−${kost} ⚡</span>${o.kaart ? `<span class="kaartrisico ${o.kaart}">${o.kaart === 'rood' ? 'kans op rood' : 'kans op geel'}</span>` : ''}</span></button>`;
+      return `<button class="keuze" data-i="${act(() => kies(i))}"><span class="t">${o.toon ? TOON[o.toon].i + ' ' : ''}${esc(o.l)}</span><span class="s">${ATTR[o.st]} ${statWaarde(o.st)}${(() => { const d = lichaamKans(o, M.pending.type); return Math.abs(d) >= .015 ? ` <span class="${d > 0 ? 'goedtxt' : 'fouttxt'}" title="Door je lengte en bouw">${d > 0 ? '+' : '−'}${Math.abs(Math.round(d * 100))}% lichaam</span>` : ''; })()} <span class="risico ${cls}">${r}</span><span class="stamkost${kost >= 6 ? ' zwaar' : ''}" title="Kost ${kost} stamina">−${kost} ⚡</span>${o.kaart ? `<span class="kaartrisico ${o.kaart}">${o.kaart === 'rood' ? 'kans op rood' : 'kans op geel'}</span>` : ''}</span></button>`;
     }).join('')}</div>`;
   }
   // Jouw actie staat op het veld zelf; zonder veld staat hij boven het verslag
@@ -126,6 +122,14 @@ export function vMatch(){
   return scorebord() + (veld || keuzeHtml) + vLog();
 }
 
+// Na afloop tegen je vriend: shirts ruilen, een knuffel, of plagen (met een toon)
+function vVriendNa(M){
+  const V = metVriendNa(M); if (!V) return '';
+  const vn = S.sp.vriend.voornaam, opts = vriendNaOpties(M), kop = `<span class="label">Na het laatste fluitsignaal · ${esc(vn)} 🤝</span>`;
+  if (V.keuze != null) return `<div class="paneel">${kop}<p><b>Jij:</b> ${esc(opts[V.keuze].l)}</p><p class="melding">${esc(V.uit)}</p></div>`;
+  return `<div class="paneel">${kop}<p>${V.bank ? `${esc(vn)} zat vandaag op de bank, maar na afloop komt hij naar je toe.` : `${esc(vn)} komt naar je toe in de middencirkel.`}</p>
+    <div class="keuzes">${opts.map((o, i) => keuzeKnop(`${TOON[o.toon].i} ${esc(o.l)}`, `${TOON[o.toon].n} · ${o.e}`, () => vriendNa(i), 'data-blijf')).join('')}</div></div>`;
+}
 export function vMatchEnd(){
   const M = S.M, sp = S.sp;
   if (M.inter) return vInterEnd();
@@ -162,11 +166,12 @@ export function vMatchEnd(){
     if (M.grootTekst) html += `<p class="melding">${esc(M.grootTekst)}</p>`;
     if (M.fansTekst) html += `<p class="muted">${esc(M.fansTekst)}</p>`;
     html += vPers();
+    html += vVriendNa(M);
     html += vReunieEinde(M);
     html += vKrant(M.nieuws);
     html += vOokGespeeld();
     if (sp.vert < 25) html += `<p style="color:var(--fout)">Pas op: het vertrouwen van de trainer is laag. Zakt het onder de 15, dan word je bij de volgende transferperiode weggestuurd.</p>`;
-  } else { html += `<p>${esc(M.log[0].t)}</p>`; html += vReunieEinde(M); if (M.derbyTekst) html += `<p class="melding">${esc(M.derbyTekst)}</p>`; if (M.kampioen) html += `<div class="kampioen"><span class="label">Kampioen!</span><h2>🏆 ${esc(club().n)}</h2><p>${esc(M.kampioenTekst)}</p></div>`; html += vKrant(M.nieuws); html += vOokGespeeld(); }
+  } else { html += `<p>${esc(M.log[0].t)}</p>`; html += vReunieEinde(M); html += vVriendNa(M); if (M.derbyTekst) html += `<p class="melding">${esc(M.derbyTekst)}</p>`; if (M.kampioen) html += `<div class="kampioen"><span class="label">Kampioen!</span><h2>🏆 ${esc(club().n)}</h2><p>${esc(M.kampioenTekst)}</p></div>`; html += vKrant(M.nieuws); html += vOokGespeeld(); }
   html += `</div>` + vLog();
   html += knop(S.ronde + 1 === WINTER ? 'Naar de winterstop' : S.ronde + 1 >= AANTAL_RONDES ? 'Seizoen afsluiten' : 'Volgende week', naWedstrijd);
   return html;

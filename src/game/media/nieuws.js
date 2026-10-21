@@ -8,6 +8,7 @@ import { fmt1, gemiddelde } from '../speler/o23.js';
 import { stand2 } from '../wedstrijd/wedstrijd.js';
 import { clubLogo } from '../../data/logos.js';
 import { vormBolletjes } from '../competitie/vorm.js';
+import { historieKnop } from '../seizoen/historie.js';
 
 /* ===================== Het nieuws ===================== */
 // Na elke clubwedstrijd verschijnen krantenkoppen over je ploeg en over jou, op basis van wat er echt gebeurde
@@ -162,7 +163,7 @@ export function vCompetitieKaart(){
     const st = stand(t);
     inhoud = `<div class="tabelwrap"><table class="tabel">
       <thead><tr><th>#</th><th>Club</th><th>G</th><th>DS</th><th>Pt</th><th class="vk">Vorm</th></tr></thead>
-      <tbody>${st.map((id, i) => { const e = S.tab[id], z = zone(t, i, st.length); return `<tr class="${id === sp.club ? 'mij' : ''}${z ? ' z-' + z : ''}"${z ? ` title="${zoneNaam(z)}"` : ''}><td>${i + 1}</td><td><span class="clubnaam">${clubLogo(id, 16)}${esc(CLUBS[id].n)}${wisselTeken(id)}</span></td><td>${e.g}</td><td>${e.dv - e.dt > 0 ? '+' : ''}${e.dv - e.dt}</td><td>${e.pt}</td><td class="vk">${vormBolletjes(id)}</td></tr>`; }).join('')}</tbody>
+      <tbody>${st.map((id, i) => { const e = S.tab[id], z = zone(t, i, st.length); return `<tr class="${id === sp.club ? 'mij' : ''}${z ? ' z-' + z : ''}"${z ? ` title="${zoneNaam(z)}"` : ''}><td>${i + 1}</td><td><span class="clubnaam">${historieKnop(id, clubLogo(id, 16) + esc(CLUBS[id].n))}${wisselTeken(id)}</span></td><td>${e.g}</td><td>${e.dv - e.dt > 0 ? '+' : ''}${e.dv - e.dt}</td><td>${e.pt}</td><td class="vk">${vormBolletjes(id)}</td></tr>`; }).join('')}</tbody>
     </table></div>${`<div class="zones">${Object.entries(ZONES).filter(([k]) => (t > 1 || (k !== 'prom' && k !== 'po')) && (t === 1 || (k !== 'cl' && k !== 'eur')) && (t < LAAGSTE || (k !== 'pod' && k !== 'degr')) && (k !== 'pod' || ligaVan(thuisLand()).po.soort === 'barrage')).map(([k]) => `<span class="z-${k}">${zoneNaam(k)}</span>`).join('')}</div>`}`;
   } else if (tab === 'uit'){
     const n = gespeeldeRondes(t);

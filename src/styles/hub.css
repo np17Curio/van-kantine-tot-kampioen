@@ -145,6 +145,17 @@ kbd{font-family:var(--f-mono);font-size:.8em;border:1px solid var(--lijn);border
 /* Clublogo's */
 .logo{flex:none;display:inline-block;vertical-align:middle}
 .clubnaam{display:inline-flex;align-items:center;gap:6px}
+/* Clubnaam als knop (opent de historie) */
+.linkknop{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.linkknop:hover,.linkknop:focus-visible{text-decoration:underline}
+/* Clubhistorie */
+.historie{display:grid;gap:8px}
+.histkop{display:flex;align-items:center;gap:10px}
+.histkop h3{margin:0}
+.histrecord{border-top:1px solid var(--lijn);padding-top:6px}
+.histrecord p{margin:2px 0}
+.histleg{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.histleg li.mij b{color:var(--lamp)}
 .vs .ploeg{display:flex;align-items:center;gap:8px;min-width:0}
 .vs .ploeg.r{justify-content:flex-end}
 .bod .club{display:flex;align-items:center;gap:8px}

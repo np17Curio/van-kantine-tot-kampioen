@@ -19,6 +19,8 @@ import { doelInfo } from '../transfers/zaakwaarnemer.js';
 import { europaKrant } from '../competitie/europa.js';
 import { rivaalOuder, rivaalSeizoen } from '../speler/rivaal.js';
 import { magAfscheid, maakAfscheid } from './afscheidswedstrijd.js';
+import { verhaalEpiloog, vriendOuder, vriendSeizoen } from '../speler/journey.js';
+import { historieSeizoen } from './historie.js';
 
 /* ===================== Seizoen ===================== */
 export function ontwikkel(){
@@ -70,6 +72,8 @@ export function seizoenEinde(){
   const bron = KRANTEN[t], krant = [], wanneer = `einde seizoen ${seizoenLabel()}`;
   if (S.eind.svs.jij) krant.push({bron:bron[0], kop:`${sp.naam} is de Speler van het Seizoen`, tekst:`De ${DIVS[t]} kiest ${sp.naam} van ${club().n} als beste speler: ${S.ss.g} goals, ${S.ss.a} assists${gem !== null ? ` en gemiddeld een ${gem.toFixed(1).replace('.', ',')}` : ''}.`, wanneer, foto:fotoVan('svs', `${sp.naam} met de bokaal voor Speler van het Seizoen.`)});
   if (ik && ik.g > 0 && ik.g >= rs[0].g) krant.push({bron:bron[1 % bron.length], kop:`Gouden Schoen voor ${sp.naam}`, tekst:`Met ${ik.g} goals is ${sp.naam} de topscorer van de ${DIVS[t]}. Niemand scoorde vaker.`, wanneer, foto:fotoVan('topscorer', `Topscorer ${sp.naam} met de Gouden Schoen.`)});
+  historieSeizoen(); // kampioenen en bekerwinnaars in de clubhistorie
+  vriendSeizoen(); // de cijfers van je jeugdvriend bij zijn carrière
   const rv = rivaalSeizoen(); if (rv){ krant.push({bron:bron[0], kop:rv.kop, tekst:rv.tekst, wanneer}); S.eind.rivaal = rv; if (rv.prijs){ S.car.prijzen.push(rv.prijs); S.eind.prijzen.push(rv.prijs); } }
   for (const k of europaKrant(wissels).slice(0, 3)) krant.push({bron:KRANTEN[0][0], kop:k.kop, tekst:k.tekst, wanneer});
   S.eind.krant = krant; S.nieuws = krant.concat(S.nieuws || []).slice(0, 6);
@@ -84,6 +88,7 @@ export function naSeizoen(){
   const tal = talentSeizoen(S.eind.gem, S.eind.prijzen.length + (S.eind.svs.jij ? 1 : 0));
   S.eind.ontw = ontwikkel();
   rivaalOuder(ovr(sp) - sp.ovrVorig); // je rivaal groeit (of zakt) net als jij
+  const vg = vriendOuder(); if (vg) S.eind.ontw.push(vg); // en je jeugdvriend ook
   if (tal) S.eind.ontw.unshift(tal);
   sp.potSz = 0;
   S.eind.ontw.push(...seizoenGeld());
@@ -118,4 +123,5 @@ export function stoppen(reden){
   S.fase = 'einde';
   // Een clublegende krijgt een afscheidswedstrijd: zijn club tegen oud-ploeggenoten van al zijn clubs
   if (magAfscheid()){ S.afscheidWed = maakAfscheid(); S.fase = 'afscheid'; }
+  verhaalEpiloog(); // het laatste hoofdstuk van je verhaal
 }

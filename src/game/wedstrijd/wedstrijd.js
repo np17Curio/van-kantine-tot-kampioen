@@ -6,7 +6,7 @@ import { fixture, simGoals } from '../competitie/competitie.js';
 import { doelHun, doelOns, gewogen, inVeld, ploeg, selectie, speelRonde, tegenPloeg, telt } from '../competitie/spelers.js';
 import { eindeInterland, maakOproep } from '../interlands/interlands.js';
 import { toernooiNaWedstrijd, twStrafschoppen } from '../interlands/toernooi.js';
-import { maakNieuws } from '../media/nieuws.js';
+import { maakNieuws, metVoorletter } from '../media/nieuws.js';
 import { volgersNaWedstrijd } from '../prive/social.js';
 import { isProf, topBonus } from '../prive/sponsors.js';
 import { carCijfer } from '../seizoen/carriere.js';
@@ -15,7 +15,8 @@ import { recordsNaWedstrijd } from '../seizoen/records.js';
 import { kalmte, onrust } from '../speler/kalmte.js';
 import { checkO23, eindeO23, startO23 } from '../speler/o23.js';
 import { eindeSelectie } from '../speler/selectie.js';
-import { vriendInTeam, zetVriendBand } from '../speler/journey.js';
+import { rugnummer } from '../team/rugnummers.js';
+import { speeltTegenVriend, toonMeter, vriendBijTegenstander, vriendInTeam, zetVriendBand } from '../speler/journey.js';
 import { checkStatus, statusNiveau, statusPunten, wedstrijdPunten } from '../speler/status.js';
 import { isAanvoerder } from '../team/aanvoerder.js';
 import { band, iedereen, teamKracht } from '../team/kleedkamer.js';
@@ -100,6 +101,7 @@ export function planWedstrijd(M, T, O, vast){
     if (maat.length && rnd() < .4){ M.ev.push({type:'moment', min:randInt(start + 1, 89), m:'rand', via:pick(maat).n}); extra += 0; }
   }
   // Je jeugdvriend speelt mee: één van je momenten gaat over hem (hij staat vrij, of jullie combineren)
+  if (speeltTegenVriend(M.opp) && rnd() < .9){ M.ev.push({type:'moment', min:randInt(start + 1, 89), m:'vriendTegen'}); extra -= 1; }
   if (vriendInTeam(M) && rnd() < (M.selectie ? .8 : .6)){ M.ev.push({type:'moment', min:randInt(start + 1, 89), m:'vriendVrij'}); extra -= 1; }
   // tegen je rivaal: een gewoon moment minder, de duels met hem komen ervoor in de plaats
   for (let i = 0; i < Math.max(1, nn + extra - (M.rivaal ? 1 : 0)); i++) M.ev.push({type:'moment', min:randInt(start + 1, 89), m:kiesMomentType()});
@@ -269,7 +271,16 @@ export function startWedstrijd(){
   verderSpelen();
 }
 export const mijnNaam = () => club().n;
+// Wie gaat eruit als jij invalt? Wie in de intro jouw plek innam: de sterkste wissel op jouw linie (bij de O23, selectiedagen en interlands: een teamgenoot)
+function wisselUit(M){
+  if (!telt(M)) return {naam:null};
+  const linie = {SPITS:'A', MID:'M', VERD:'V'}[S.sp.pos], x = selectie(S.sp.club).filter(y => !y.basis && !(y.bles > 0) && y.pos === linie).sort((a, b) => b.k - a.k)[0];
+  let ik = null; try { ik = rugnummer(); } catch (e){}
+  return x ? {naam:metVoorletter(x), nr:x.nr, ik} : {naam:null};
+}
 export function aftrap(){ if (S.M && S.M.intro) verderSpelen(); }
+// Na afloop een moment met je vriend, als je tegen hem speelde (ook vanaf de bank)
+export const metVriendNa = M => { if (M && !M.vriendNa && vriendBijTegenstander(M.opp)) M.vriendNa = {keuze:null, bank:!speeltTegenVriend(M.opp)}; return M && M.vriendNa; };
 export function stand2(){ const M = S.M; return M.thuis ? `${M.us}-${M.them}` : `${M.them}-${M.us}`; }
 
 // Elke wedstrijd begint met een intro (de opstellingen, jouw rol): de eerste keer stopt verderSpelen daar, "Aftrap!" speelt verder.
@@ -283,7 +294,9 @@ export function verderSpelen(){
     const e = M.ev[M.idx++]; M.min = e.min; wisselCheck(M);
     if (e.type !== 'inval' && e.type !== 'moment'){ const v = verslag(e, M); if (v){ M.log.push({m:e.min + "'", t:v.t, k:v.k}); animAnderen(M, e, v); }
       if (e.type === 'rust' && M.rol === 'basis' && !M.rood && M.gewisseld === undefined && M.us < M.them && !M.inter && isAanvoerder()){ M.pending = bouwMoment('toespraak'); return; } }
-    else if (e.type === 'inval'){ staminaStart(M, e.min); M.log.push({m:e.min + "'", t: M.inter ? 'De bondscoach roept je. Je mag erin!' : 'De trainer roept je. Je mag erin!', k:'ok'}); }
+    else if (e.type === 'inval'){ staminaStart(M, e.min); const w = wisselUit(M);
+      M.log.push({m:e.min + "'", t:`${M.inter ? 'De bondscoach' : 'De trainer'} roept je. Je mag erin${w.naam ? `, voor ${w.naam}` : ''}!`, k:'ok'});
+      animPush(M, {soort:'wissel', type:'wissel', bord:w.nr && w.ik ? `#${w.nr} eruit · #${w.ik} erin` : 'Wissel!', onder:`${e.min}' · Wissel: jij komt erin${w.naam ? ` voor ${w.naam}` : ''}`}); }
     else if (e.type === 'moment'){
       if (M.rood || M.gewisseld !== undefined) continue;
       const type = (!e.varPen && !e.rivaal && e.min >= 84 && M.us <= M.them && rnd() < .6) ? 'laatsteMinuut' : e.m;
@@ -303,6 +316,7 @@ export function kies(i){
   const ok = rnd() < kans(opt);
   let out = (ok ? opt.ok : opt.mis)();
   if (out.vriend) zetVriendBand(out.vriend);
+  if (opt.toon) toonMeter(opt.toon); // je karakter: rustig of heethoofd
   if (out.vriendGoal) M.vriendGoals = (M.vriendGoals || 0) + 1;
   // Tegen een veel sterkere ploeg haalt hun keeper soms ook een goede kans van jou eruit
   // VAR bij jouw goal
@@ -469,7 +483,7 @@ export function eindeWedstrijd(){
   const statusKoppen = (S.krantWacht || []).filter(x => x.status);
   if (statusKoppen.length){ S.krantWacht = S.krantWacht.filter(x => !x.status); M.nieuws = statusKoppen.concat(M.nieuws).slice(0, 3); }
   checkKampioen(M);
-  if (speelde && (M.rivaal || (isProf() && (M.derby || rnd() < .25)))) M.pers = maakPers(M);
+  if (speelde && (M.rivaal || M.derby || rnd() < .6)) M.pers = maakPers(M); // (bescheiden/zelfverzekerd/uitdagend = kalm/gebalanceerd/fel)
   if (speelde) volgersNaWedstrijd(M);
   if (speelde){ if (sp.huur) sp.huur.cijfers.push(M.cijfer); M.o23Tekst = checkO23(); }
   const o = ovr(sp); if (o > S.car.maxOvr) S.car.maxOvr = o;

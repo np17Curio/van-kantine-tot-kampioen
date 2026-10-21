@@ -7,6 +7,7 @@ import { tactiekKans, tactiekMoment } from '../team/tactiek.js';
 import { stamina } from './stamina.js';
 import { pers, persKans, persMomentFactor } from '../speler/persoonlijkheid.js';
 import { vriendNaam, vriendSpeler } from '../speler/journey.js';
+import { lichaamKans, lichaamMomentFactor } from '../speler/lichaam.js';
 
 /* ===================== Wedstrijdmomenten ===================== */
 export const goal = (t, d) => ({t, d, goal:true});
@@ -157,6 +158,20 @@ export const MOMENTS = {
 // Samen met je jeugdvriend in het veld: hij staat vrij. Passen, zelf schieten of samen combineren (naam en band uit journey.js)
 const vn = () => vriendNaam();
 const naarVriend = (t, d, band) => ({t, d, assist:true, scorer:vriendSpeler(), vriend:band, vriendGoal:true});
+// Momenten die over je houding gaan: elke keuze heeft een toon (kalm, gebalanceerd of fel), die je karaktermeter beweegt
+const TOON_KEUZE = {'Rustig blijven':'kalm', 'Lachen en weglopen':'bal', 'Melden bij de scheids':'bal', 'Terugduwen':'fel',
+  'Rustig weglopen':'kalm', 'Teamgenoot wegtrekken':'bal', 'Neus tegen neus gaan staan':'fel', 'Protesteren bij de scheids':'fel',
+  'Rustig blijven, het plan volgen':'kalm', 'Iedereen motiveren':'bal', 'Fel zijn en iedereen wakker schudden':'fel',
+  'Niet juichen, uit respect':'kalm', 'Uitbundig juichen voor het oude vak':'bal', '"Ssst"-gebaar naar het oude vak':'fel'};
+for (const t of ['provocatie', 'opstootje', 'toespraak', 'juichen']) (MOMENTS[t] ? MOMENTS[t].opts : []).forEach(o => { if (!o.toon && TOON_KEUZE[o.l]) o.toon = TOON_KEUZE[o.l]; });
+// Tegen je vriend: hij staat ineens tegenover je
+MOMENTS.vriendTegen = {
+  get teksten(){ return S.week && S.week.vriendFel ? [`${vn()} staat ineens tegenover je. Hij is je door-de-benen-appje niet vergeten: "Kom maar op, maatje."`] : [`${vn()} staat ineens tegenover je. Hij grijnst: "Kom maar op, maatje."`, `Je krijgt de bal en wie staat er voor je? ${vn()}. Jullie moeten allebei lachen.`]; },
+  opts:[
+    {l:'Knipoog en gewoon voetballen', st:'kalm', b:-40, toon:'kalm', ok:()=>({t:`Je knipoogt en speelt de bal rustig verder. ${vn()} schudt lachend zijn hoofd.`, d:.1, vriend:2}), mis:()=>({t:'Je speelt de bal rustig verder.', d:0})},
+    {get l(){ return `${vn()} uitdagen en voorbij dribbelen`; }, st:'drib', b:58, toon:'bal', ok:()=>({t:`Je zet ${vn()} met een schijnbeweging op het verkeerde been. "Die is voor de foto!"`, d:.3, next:'eenOpEen'}), mis:()=>({t:`${vn()} pakt de bal af en lacht je uit. "Te langzaam, maatje!"`, d:-.2, vriend:1})},
+    {get l(){ return `Panna door de benen van ${vn()}`; }, st:'drib', b:66, toon:'fel', ok:()=>({t:`PANNA! Door de benen van ${vn()}. Het hele stadion joelt. Hij kijkt je ongelovig aan.`, d:.5, vriend:-1}), mis:()=>({t:`${vn()} zet zijn benen dicht. "Nice try."`, d:-.3})},
+    {l:'Keihard erin op hem', st:'verd', b:52, toon:'fel', kaart:'geel', ok:()=>({t:`Een stevige maar eerlijke tackle op ${vn()}. Bal veroverd. Hij staat op en schudt je hand.`, d:.3, vriend:-4}), mis:()=>({t:`Te laat! Je haalt ${vn()} onderuit. Gele kaart. Hij kijkt je boos aan.`, d:-.4, geel:true, vriend:-6})}]};
 MOMENTS.vriendVrij = {
   get teksten(){ return [`${vn()} staat helemaal vrij aan de andere kant van de zestien en steekt zijn hand op.`, `Je dribbelt richting de goal. ${vn()} sprint mee in de rug van zijn man en roept je naam.`, `Een counter! Jij hebt de bal, ${vn()} loopt naast je. Twee tegen één.`]; },
   opts:[
@@ -189,7 +204,7 @@ export function kans(opt){
   // Kalmte (rustig blijven, niet reageren) wordt tegen een betere ploeg maar half zo veel lastiger: kalmte groeit niet mee met je klasse
   const tegen = opt.st === 'kalm' && oppS > KALM_KNIK ? (KALM_KNIK - 48) + (oppS - KALM_KNIK) * .5 : oppS - 48;
   const moeilijk = opt.b + tegen + top * (TOP_EXTRA[opt.st] || 0);
-  return clamp(.5 + (M.pending && M.pending.rivaal ? M.rivaalBonus || 0 : 0) + (statWaarde(opt.st) - moeilijk) / 45 + sp.vorm * .03 + staminaEffect(stamina(M)) + (sp.moraal - 50) / 500 + focusEffect(sp.focus ?? 65) + (opt.st === 'pas' && telt(M) ? (chemie() - 50) / 600 : 0) + (sp.items.analist ? .02 : 0) + tactiekKans(opt.st) + persKans(opt.st, M.pending && M.pending.type), .05, .95);
+  return clamp(.5 + (M.pending && M.pending.rivaal ? M.rivaalBonus || 0 : 0) + (statWaarde(opt.st) - moeilijk) / 45 + sp.vorm * .03 + staminaEffect(stamina(M)) + (sp.moraal - 50) / 500 + focusEffect(sp.focus ?? 65) + (opt.st === 'pas' && telt(M) ? (chemie() - 50) / 600 : 0) + (sp.items.analist ? .02 : 0) + tactiekKans(opt.st) + persKans(opt.st, M.pending && M.pending.type) + lichaamKans(opt, M.pending && M.pending.type), .05, .95);
 }
 export function risico(p){ return p > .7 ? ['Veilig','r-veilig'] : p >= .45 ? ['Gemiddeld','r-gem'] : ['Riskant','r-riskant']; }
 export const KAART_MOMENTEN = ['tackle', 'opstootje', 'provocatie', 'verdedigen'];
@@ -202,7 +217,7 @@ export const pOpts = p => p.idx.map(i => MOMENTS[p.type].opts[i]);
 export function kiesMomentType(){
   // De speelstijl van je club bepaalt mee wat voor momenten je krijgt
   const basis = MOMENT_POOL[S.sp.pos], pool = {}; let tot = 0;
-  for (const k in basis){ pool[k] = basis[k] * tactiekMoment(k) * persMomentFactor(k); tot += pool[k]; }
+  for (const k in basis){ pool[k] = basis[k] * tactiekMoment(k) * persMomentFactor(k) * lichaamMomentFactor(k); tot += pool[k]; }
   let r = rnd() * tot; for (const k in pool){ r -= pool[k]; if (r <= 0) return k; }
   return Object.keys(pool)[0];
 }

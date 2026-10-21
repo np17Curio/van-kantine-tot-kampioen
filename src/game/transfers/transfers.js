@@ -20,6 +20,7 @@ import { pers } from '../speler/persoonlijkheid.js';
 import { rivaalVenster } from '../speler/rivaal.js';
 import { wordClubloos } from '../speler/clubloos.js';
 import { partnerKans, startBuitenland, thuis as thuisStart } from '../prive/buitenland-leven.js';
+import { vriendBodVenster } from '../speler/journey.js';
 
 /* ===================== Transfers ===================== */
 export function transferScore(){
@@ -129,6 +130,9 @@ export function openVenster(soort){
     bods.unshift({club:dd.club, ...(dd.land ? {land:dd.land} : {}), salaris:Math.round(salarisVoor(dc.t, ovr(sp), dc.s) * 1.05 / 100) * 100, jaren: sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4), som: waarde(sp), viaAgent:true});
     agentBod = key;
   }
+  // Je jeugdvriend heeft zijn trainer overgehaald (journey.js)
+  const vb = modus !== 'weg' ? vriendBodVenster(soort) : null;
+  if (vb && vb.bod){ bods = bods.filter(b => !(b.club === vb.bod.club && (b.land || null) === (vb.bod.land || null))); bods.unshift(vb.bod); }
   if (terug && terug.koop != null && !bods.some(b => b.club === terug.koop)){
     const hc = CLUBS[terug.koop];
     bods.unshift({club:terug.koop, salaris:Math.round(salarisVoor(hc.t, ovr(sp), hc.s) / 100) * 100, jaren:randInt(2, 3), som:waarde(sp), huurKoop:true});
@@ -147,6 +151,7 @@ export function openVenster(soort){
   if (terug) intro = terug.tekst + (terug.koop != null ? ` ${CLUBS[terug.koop].n} wil je definitief overnemen!` : '') + ' ' + intro;
   if (soort === 'zomer' && modus !== 'clubloos'){ const bl = buitenlandseBods(modus); if (bl.length){ bods = bods.concat(bl); const gs = bl.find(b => b.gescout); intro += `${gs ? ` ${clubInfo(gs).n} uit ${gs.land} heeft je het hele seizoen gevolgd en doet een bod!` : ''} Er is ook interesse uit het buitenland: ${[...new Set(bl.map(b => b.land))].join(' en ')}!`; } sp.scout = null; }
   if (rvTekst) intro += ' ' + rvTekst;
+  if (vb) intro += ' ' + vb.tekst;
   if (sp.relatie) bods.forEach(b => { if (isBuitenland(b) && b.partnerMee === undefined) b.partnerMee = b.land === thuisStart() || rnd() < partnerKans(); });
   S.venster = {soort, modus, intro, bods, verlenging, blijven, agentBod, huurOpties};
   sp.transferWens = false;

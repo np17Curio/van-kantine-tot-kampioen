@@ -109,7 +109,9 @@ export function uiterlijkVoor(sleutel, eigen){
   const huid = d(HUID.length);
   const u = {huid, haar: huid >= 4 && d(3) ? 0 : d(HAAR.length), kapsel:KAPSELS[d(KAPSELS.length)], lengte:.93 + d(15) / 100, bouw:.9 + d(21) / 100, schoen:d(SCHOENEN.length),
     stijl:{arm:.8 + d(41) / 100, pas:.9 + d(26) / 100, houding:d(11) / 100, veer:.85 + d(31) / 100}};
-  if (eigen){ if (HUID[eigen.huid]) u.huid = eigen.huid; if (HAAR[eigen.haar]) u.haar = eigen.haar; if (KAPSELS.includes(eigen.kapsel)) u.kapsel = eigen.kapsel; }
+  if (eigen){ if (HUID[eigen.huid]) u.huid = eigen.huid; if (HAAR[eigen.haar]) u.haar = eigen.haar; if (KAPSELS.includes(eigen.kapsel)) u.kapsel = eigen.kapsel;
+    // gekozen lengte (165-200 cm) en bouw (bmi 20-27,5)
+    if (eigen.lengte) u.lengte = .93 + Math.max(0, Math.min(35, eigen.lengte - 165)) / 35 * .14; if (eigen.bmi) u.bouw = .9 + Math.max(0, Math.min(7.5, eigen.bmi - 20)) / 7.5 * .2; }
   return u;
 }
 // Tenue voor een rol in de wedstrijd: uit de tenues van deze wedstrijd (data/tenues.js), anders een vaste kleur per rol

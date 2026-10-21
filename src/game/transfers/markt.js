@@ -57,7 +57,7 @@ export function noteerDeal(van, naar, speler, soort, extra = {}){
 }
 // Kies een speler van de verkoper die de koper nog niet heeft (meestal een veldspeler uit de basis)
 function kiesSpeler(van, naar){
-  const selN = selectie(naar), kand = selectie(van).filter(x => x.basis && naamVrij(selN, x.n) && (x.pos !== 'K' || rnd() < .15));
+  const selN = selectie(naar), kand = selectie(van).filter(x => x.basis && !x.vriend && !isRivaal(x) && naamVrij(selN, x.n) && (x.pos !== 'K' || rnd() < .15));
   // liefst iemand die de basis van de koper echt versterkt (beter dan zijn zwakste basisspeler op die plek)
   const zwakste = pos => Math.min(...selN.filter(x => x.pos === pos && x.basis).map(x => x.k ?? 0));
   const goed = kand.filter(x => (x.k ?? 0) >= zwakste(x.pos) - 2);
@@ -123,7 +123,7 @@ export function inhaalAankopen(comp, onder, soort){
       const zwak = sel.filter(x => x.basis && (x.pos !== 'K' || rnd() < .15)).sort((a, b) => a.k - b.k)[0];
       if (!zwak) break;
       const laag = zwak.k + 2; if (laag > hoogst) continue;
-      const past = x => x.pos === zwak.pos && x.k >= laag && x.k <= hoogst && naamVrij(sel, x.n);
+      const past = x => !x.vriend && !isRivaal(x) && x.pos === zwak.pos && x.k >= laag && x.k <= hoogst && naamVrij(sel, x.n);
       // (a) een reservespeler van een sterkere club uit de competitie, (b) een basisspeler uit de top van de divisie eronder
       const reserves = comp.filter(j => j !== id && CLUBS[j].s > CLUBS[id].s).flatMap(j => selectie(j).filter(x => !x.basis && past(x)).map(x => ({x, van:j, reserve:true})));
       const lager = onder.flatMap(j => selectie(j).filter(x => x.basis && past(x)).map(x => ({x, van:j, reserve:false})));
@@ -159,12 +159,12 @@ export function ontwikkelSpelers(clubs, mijn){
   for (const id of clubs){
     const sel = selectie(id);
     for (const x of sel){
-      if (isRivaal(x)) continue; // je rivaal groeit mee met jou (rivaal.js)
+      if (isRivaal(x) || x.vriend) continue; // je rivaal en je jeugdvriend groeien zelf (rivaal.js, journey.js)
       x.lft = (x.lft || 25) + 1; x.kVorig = x.k;
       const [lo, hi] = GROEI(x.lft); x.k = clamp(x.k + randInt(lo, hi) + (x.basis && x.lft <= 25 && rnd() < .5 ? 1 : 0), 25, 95);
     }
     // stoppen: 34 jaar en ouder (de keeper mag tot 36)
-    for (const x of sel.filter(x => !isRivaal(x) && x.lft >= (x.pos === 'K' ? 36 : 34))){ sel.splice(sel.indexOf(x), 1); if (id === mijn){ gestopt.push(x); delete kleedkamer().rel[x.n]; } }
+    for (const x of sel.filter(x => !isRivaal(x) && !x.vriend && x.lft >= (x.pos === 'K' ? 36 : 34))){ sel.splice(sel.indexOf(x), 1); if (id === mijn){ gestopt.push(x); delete kleedkamer().rel[x.n]; } }
     selectie(id); // aanvullen met jeugd
     herschik(sel);
     // clubsterkte richting het niveau van de basiself

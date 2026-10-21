@@ -18,8 +18,10 @@ import { rugnummer } from '../../game/team/rugnummers.js';
 import { fixture } from '../../game/competitie/competitie.js';
 import { clubLogo } from '../../data/logos.js';
 import { PERS, mijnPers } from '../../game/speler/persoonlijkheid.js';
-import { HOOFDSTUKKEN, KLAAR, hoofdstukTitel, toonLabel } from '../../game/speler/journey.js';
+import { HOOFDSTUKKEN, KLAAR, bijJou, deelVan, vriendClubNaam, hoofdstukTitel, toonLabel, vriendKlasse, vriendStats } from '../../game/speler/journey.js';
 import { bandLabel } from '../../game/speler/rivaal.js';
+import { gewichtVan, lengteTxt, lichaam } from '../../game/speler/lichaam.js';
+import { vHistorie } from '../../game/seizoen/historie.js';
 
 export function balk(l, v, cls = ''){ return `<div class="balk ${cls}"><span>${l}</span><span class="b"><i style="width:${clamp(v, 0, 100)}%"></i></span><span class="v">${Math.round(v)}</span></div>`; }
 export function vStatus(){
@@ -118,9 +120,10 @@ export function vSponsorKaart(){
 function vVerhaal(){
   const sp = S.sp, J = sp.journey; if (!J) return '';
   const v = sp.vriend, R = sp.rivaal, t = sp.toon || 0, b = v && v.weg && R && R.exVriend ? R.band : v ? v.band : null;
-  return `<div class="verhaalkaart"><span class="label">${J.h < KLAAR ? `Jouw verhaal · hoofdstuk ${J.h}: ${esc(hoofdstukTitel(J.h))}` : 'Jouw verhaal'}</span>
+  return `<div class="verhaalkaart"><span class="label">${J.h < KLAAR ? `Jouw verhaal · deel ${deelVan(J.h).nr} · hoofdstuk ${J.h}: ${esc(hoofdstukTitel(J.h))}` : 'Jouw verhaal · voltooid'}</span>${J.h < KLAAR - 1 && J.h >= 7 ? `<p class="muted klein-tekst">Volgende hoofdstuk: <b>${esc(hoofdstukTitel(J.h + 1))}</b></p>` : ''}
     <div class="toonmeter" title="Kalme keuzes: de trainer vertrouwt je meer. Felle keuzes: de fans houden van je vuur."><span>🧊 Rustig</span><span class="b"><i style="left:${(t + 100) / 2}%"></i></span><span>Heethoofd 🔥</span></div>
-    <p class="muted klein-tekst">Karakter: <b>${toonLabel()}</b>${b !== null ? ` · ${v.weg ? 'ex-vriend' : 'jeugdvriend'} ${esc(v.voornaam)}: ${v.weg ? bandLabel(b).toLowerCase() : b >= 60 ? 'beste vrienden' : b >= 20 ? 'goede vrienden' : 'het schuurt'}${!v.weg && CLUBS[v.club] ? (v.club === sp.club ? ' (jouw club)' : ` (${esc(CLUBS[v.club].n)})`) : ''}` : ''}</p></div>`;
+    ${v ? (() => { const st = vriendStats(); return `<p class="muted klein-tekst">Jij ${S.ss.g || 0} G · ${S.ss.a || 0} A · klasse ${ovr(sp)} — ${esc(v.voornaam)} ${st.g} G · ${st.a} A · klasse ${vriendKlasse()}</p>`; })() : ''}
+    <p class="muted klein-tekst">Karakter: <b>${toonLabel()}</b>${b !== null ? ` · ${v.weg ? 'ex-vriend' : 'jeugdvriend'} ${esc(v.voornaam)}: ${v.weg ? bandLabel(b).toLowerCase() : b >= 60 ? 'beste vrienden' : b >= 20 ? 'goede vrienden' : 'het schuurt'}${!v.weg && vriendClubNaam() ? (bijJou() ? ' (jouw club)' : ` (${esc(vriendClubNaam())})`) : ''}` : ''}</p></div>`;
 }
 export function vZij(){
   const sp = S.sp, c = club(), gem = gemCijfer(), st = stand(c.t);
@@ -130,7 +133,7 @@ export function vZij(){
   const spelerKaart = () => `<div class="kaart">
       <div>${knop(tmp.stats ? 'Terug naar het spel' : '📊 Mijn carrière', () => { tmp.stats = !tmp.stats; }, 'klein')}</div>
       <div class="speler"><div class="ovr">${ovr(sp)}<small>KLASSE</small></div>
-        <div><div class="naam">${sp.o23 || sp.clubloos ? '' : `<span class="muted">#${rugnummer()}</span> `}${esc(sp.naam)}</div><div class="muted">${POS[sp.pos].n} · ${sp.leeftijd} jaar · ${sp.clubloos ? 'zonder club' : esc(c.n)}${sp.o23 ? ' O23' : ''}${sp.huur ? ` (gehuurd van ${esc(CLUBS[sp.huur.ouder].n)})` : ''}</div><div class="label" title="Verwachting van scouts">Talent ${sterren(sp.pot)}</div></div></div>
+        <div><div class="naam">${sp.o23 || sp.clubloos ? '' : `<span class="muted">#${rugnummer()}</span> `}${esc(sp.naam)}</div><div class="muted">${POS[sp.pos].n} · ${sp.leeftijd} jaar · ${lengteTxt(lichaam().lengte)} · ${gewichtVan(lichaam().lengte, lichaam().bmi)} kg · ${sp.clubloos ? 'zonder club' : esc(c.n)}${sp.o23 ? ' O23' : ''}${sp.huur ? ` (gehuurd van ${esc(CLUBS[sp.huur.ouder].n)})` : ''}</div><div class="label" title="Verwachting van scouts">Talent ${sterren(sp.pot)}</div></div></div>
       ${mijnPers().length ? `<div class="perschips">${mijnPers().map(id => `<span class="tag pers" title="In het veld: ${esc(PERS[id].veld)} Buiten het veld: ${esc(PERS[id].buiten)}">${PERS[id].i} ${PERS[id].n}</span>`).join('')}</div>` : ''}
       ${vStatus()}
       ${vVerhaal()}
@@ -151,6 +154,7 @@ export function vZij(){
   const tabs = {
     speler: ['Speler', spelerKaart],
     stand: ['Stand', () => vCompetitieKaart() + vBekerKaart()],
+    historie: ['Historie', vHistorie],
     nieuws: ['Nieuws', () => vNieuwsKaart() || leeg('Nog geen nieuws over jou. Speel een paar wedstrijden.')],
     meer: ['Meer', () => vSchoolKaart() + vSponsorKaart() + vInterlandKaart() || leeg('Hier komen je rapport, sponsors en interlands.')],
   };

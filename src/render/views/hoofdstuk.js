@@ -1,7 +1,7 @@
 import { S } from '../../core/state.js';
 import { keuzeKnop, knop } from '../../core/ui.js';
 import { esc } from '../../core/utils.js';
-import { HOOFDSTUKKEN, TOON, hoofdstukTitel, hoofdstukInhoud, kiesHoofdstuk, opaNaam, toonLabel, verderHoofdstuk } from '../../game/speler/journey.js';
+import { HOOFDSTUKKEN, TOON, deelVan, hoofdstukTitel, hoofdstukInhoud, kiesHoofdstuk, opaNaam, toonLabel, verderHoofdstuk } from '../../game/speler/journey.js';
 
 // Een hoofdstukkaart van jouw verhaal: titel, tekst, een citaat van opa en (soms) een gesprek waarin je een toon kiest
 export function vHoofdstuk(){
@@ -11,7 +11,7 @@ export function vHoofdstuk(){
     : '';
   const uit = H.uit ? `<p class="melding">${esc(H.uit)}</p>` : '';
   const verder = !I.opts.length || H.keuze !== null ? knop(H.h === 0 ? 'Naar de selectiedagen' : H.h === 2 ? 'Bekijk de aanbiedingen' : 'Verder', verderHoofdstuk) : '';
-  return `<div class="verhaal hoofdstuk"><span class="label">Jouw verhaal · hoofdstuk ${H.h} van ${HOOFDSTUKKEN.length - 1}</span>
+  return `<div class="verhaal hoofdstuk"><span class="label">Deel ${deelVan(H.h).nr}: ${esc(deelVan(H.h).n)} · hoofdstuk ${H.h} van ${HOOFDSTUKKEN.length - 1}</span>
       <h2>${esc(hoofdstukTitel(H.h))}</h2>
       ${I.tekst.map(t => `<p>${esc(t)}</p>`).join('')}
       ${I.opa ? `<p class="quote">${esc(I.opa)} <span class="muted">· ${esc(opa)}</span></p>` : ''}

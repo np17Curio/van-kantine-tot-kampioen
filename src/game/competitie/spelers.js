@@ -54,6 +54,19 @@ function vulAan(lijst, jeugdVan){
     }
   }
 }
+// De basiself van een club voor een wedstrijd: altijd precies 11 (met jou erbij als metJou), en de wissels.
+// Je vriend en je rivaal gaan voor; speel jij mee, dan maakt de zwakste op jouw linie plaats; te weinig: de sterkste wissel vult aan
+const MIJN_LINIE = {SPITS:'A', MID:'M', VERD:'V'};
+export function startElf(id, metJou, vulPos){
+  const sel = selectie(id).filter(x => !(x.bles > 0)), ik = MIJN_LINIE[S.sp.pos], plek = metJou ? 10 : 11, speciaal = x => x.vriend || x.rivaal;
+  const basis = sel.filter(x => x.basis).sort((a, b) => (speciaal(b) ? 1 : 0) - (speciaal(a) ? 1 : 0) || b.k - a.k), bank = sel.filter(x => !x.basis).sort((a, b) => b.k - a.k);
+  const valAf = filter => { const kand = basis.filter(x => !speciaal(x) && filter(x)).sort((a, b) => a.k - b.k)[0] || basis.filter(filter).sort((a, b) => a.k - b.k)[0]; if (kand){ basis.splice(basis.indexOf(kand), 1); bank.unshift(kand); return true; } return false; };
+  if (metJou && basis.filter(x => x.pos === ik).length >= (OPBOUW[ik] ? OPBOUW[ik].basis : 2) && basis.length >= plek) valAf(x => x.pos === ik);
+  while (basis.length > plek && valAf(x => x.pos !== 'K')) {}
+  const elf = basis.slice();
+  while (elf.length < plek && bank.length){ const i = Math.max(0, bank.findIndex(x => x.pos === (vulPos || ik))); elf.push(bank.splice(i, 1)[0]); }
+  return {elf, bank};
+}
 export function gewogen(lijst, k){ let tot = 0; for (const x of lijst) tot += x[k]; let r = rnd() * tot; for (const x of lijst){ r -= x[k]; if (r <= 0) return x; } return lijst[lijst.length - 1]; }
 export const vindSpeler = (id, n) => selectie(id).find(x => x.n === n) || null;
 // Statistieken van dit seizoen: per club en speler (jij staat erin als 'JIJ')

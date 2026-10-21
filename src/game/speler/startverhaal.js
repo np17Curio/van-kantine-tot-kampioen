@@ -5,15 +5,16 @@ import { karakterZin } from './persoonlijkheid.js';
 
 /* ===================== Hoe begint je carrière? ===================== */
 // Je kiest je leeftijd, en elke leeftijd heeft een eigen verhaal: het wonderkind, de gewone start en de laatbloeier.
+// extra: zoveel komt er bij elke eigenschap bij. Zo begin je rond het niveau van de onderste clubs (15 jaar ±49, 18 ±54, 23 ±57; de 2e league is ±52-65)
 // Iedereen begint met 3 selectiewedstrijden (selectie.js): die bepalen bij welke club en in welke league je tekent.
 export const LEEFTIJDEN = [15, 18, 23];
 export const START = {
   15:{id:'wonder', titel:'Wonderkind', kort:'Je bent 15 en scouts fluisteren je naam al. Veel talent, maar ook veel druk: iedereen verwacht dat jij het gaat maken.',
-    waar:'3 selectiewedstrijden · school · talentcoach, media, scouts', extra:0, pot:[86, 96], rep:8, vert:55, geld:50, woning:'ouders', rijbewijs:false, auto:null},
+    waar:'3 selectiewedstrijden · school · talentcoach, media, scouts', extra:10, pot:[86, 96], rep:8, vert:55, geld:50, woning:'ouders', rijbewijs:false, auto:null},
   18:{id:'normaal', titel:'Gewoon beginnen', kort:'Je bent 18 en net klaar met school. Geen hype, gewoon hard werken: laat op de selectiedagen zien wat je kunt.',
-    waar:'3 selectiewedstrijden · avondschool, eerste salaris', extra:7, pot:[72, 90], rep:3, vert:55, geld:600, woning:'ouders', rijbewijs:false, auto:null},
+    waar:'3 selectiewedstrijden · avondschool, eerste salaris', extra:15, pot:[72, 90], rep:3, vert:55, geld:600, woning:'ouders', rijbewijs:false, auto:null},
   23:{id:'bewijs', titel:'Laatbloeier', kort:'Je bent 23. Als tiener werd je weggestuurd bij een profjeugd. De selectiedagen zijn je laatste kans om het alsnog te maken.',
-    waar:'3 selectiewedstrijden · fysio, mentor van de jongens', extra:12, pot:[66, 82], rep:4, vert:45, geld:4000, woning:'studio', rijbewijs:true, auto:'oud'},
+    waar:'3 selectiewedstrijden · fysio, mentor van de jongens', extra:18, pot:[66, 82], rep:4, vert:45, geld:4000, woning:'studio', rijbewijs:true, auto:'oud'},
 };
 export const startVoor = lft => START[lft] || START[15];
 // Welkomsttekst boven de eerste trainingsweek, per verhaal (oude saves zonder verhaal krijgen de tekst van het wonderkind)

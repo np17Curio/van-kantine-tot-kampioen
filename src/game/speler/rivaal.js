@@ -276,7 +276,7 @@ export function voorDuelAntwoord(i){
 }
 
 /* ----- Hij groeit: een eigen talent (pot) en een groeicurve per leeftijd ----- */
-export function groeiSeizoen(R){
+export function groeiSeizoen(R){ // (ook voor je jeugdvriend, journey.js)
   const a = R.lft, [lo, hi] = a <= 18 ? [4, 6] : a <= 21 ? [3, 5] : a <= 24 ? [2, 3] : a <= 27 ? [1, 2] : a <= 30 ? [0, 1] : a <= 33 ? [-2, -1] : [-3, -2];
   return randInt(lo, hi);
 }

@@ -4,11 +4,13 @@ import { CLUBS, DIVS } from '../../data/gegevens.js';
 import { krantMelding } from '../media/roddel.js';
 import { ck } from '../transfers/buitenland.js';
 import { modFans } from '../wedstrijd/fans-pers.js';
+import { clubRecordVan, historie, recordWedVan } from './historie.js';
 
 /* ===================== Records ===================== */
 // Competitierecords per divisie (meeste goals in één seizoen) en een clubrecord (meeste goals ooit voor de club)
 export const DIV_RECORD = [19, 18, 18, 18, 19, 16];
-export const clubRecord = id => Math.round(30 + ((id * 37) % 30) + (5 - Math.min(CLUBS[id].t, 5)) * 12);
+// Het clubrecord komt uit de clubhistorie (historie.js): daar staat ook wie het nu heeft
+export const clubRecord = id => clubRecordVan(id);
 export const recs = () => S.car.rec || (S.car.rec = {seizoen:{v:0}, wed:{v:0}, reeks:{v:0}, nu:0, hattricks:0, assistSeizoen:{v:0}, debuut: S.car.wed > 1 ? {lft:null} : null, clubG:{}, gebroken:[]});
 export function recordsNaWedstrijd(M){
   const R = recs(), sp = S.sp, c = club(), naam = sp.naam, t = c.t, uit = [], zij = M.zij ?? (M.opp !== undefined ? CLUBS[M.opp].n : '');
@@ -26,8 +28,13 @@ export function recordsNaWedstrijd(M){
   // Clubrecord: meeste goals ooit voor deze club
   const ky = ck(sp.club); (R.clubN = R.clubN || {})[ky] = c.n; (R.clubRec = R.clubRec || {})[ky] = R.clubRec[ky] ?? clubRecord(sp.club);
   const cg = R.clubG[ky] = (R.clubG[ky] || 0) + M.goals, cr = R.clubRec[ky];
+  const oudHouder = historie(sp.club).top.n;
   if (M.goals && cg > cr && cg - M.goals <= cr){ const p = `Clubtopscorer aller tijden van ${c.n} (${cg} goals)`; R.gebroken.push(p); S.car.prijzen.push(p); S.car.hist.push(`${seizoenLabel()}: clubtopscorer aller tijden van ${c.n}`); mod('rep', 4); modFans(10);
-    uit.push(`CLUBRECORD! Met ${cg} goals ben jij de topscorer aller tijden van ${c.n}. Het oude record stond op ${cr}.`); krantMelding(`${naam} is de topscorer aller tijden van ${c.n}`, `Met ${cg} doelpunten breekt hij het clubrecord van ${cr} goals. Het stadion gaat staan.`); }
+    uit.push(`CLUBRECORD! Met ${cg} goals ben jij de topscorer aller tijden van ${c.n}. Je passeert clublegende ${oudHouder} (${cr}).`); krantMelding(`${naam} is de topscorer aller tijden van ${c.n}`, `Met ${cg} doelpunten breekt hij het clubrecord van ${oudHouder}, dat op ${cr} goals stond. Het stadion gaat staan.`); }
+  // Recordspeler: meeste wedstrijden ooit voor deze club (oude opslag: begint bij je wedstrijden nu)
+  const cw = (R.clubW = R.clubW || {})[ky] = (R.clubW[ky] ?? Math.max(0, (sp.clubWed || 1) - 1)) + 1, rw = recordWedVan(sp.club);
+  if (cw === rw + 1){ const h = historie(sp.club).recW.n, p = `Recordspeler van ${c.n} (${cw} wedstrijden)`; R.gebroken.push(p); S.car.prijzen.push(p); S.car.hist.push(`${seizoenLabel()}: recordspeler van ${c.n}`); mod('rep', 3); modFans(8);
+    uit.push(`CLUBRECORD! Wedstrijd nummer ${cw}: niemand speelde ooit vaker voor ${c.n}. Je passeert ${h} (${rw}).`); krantMelding(`${naam} is de recordspeler van ${c.n}`, `Met ${cw} wedstrijden passeert hij ${h}. Voor de aftrap krijgt hij bloemen en een ingelijst shirt.`); }
   // Competitierecord: meeste goals in één seizoen in deze divisie (alleen competitie)
   if (!M.beker && S.ss.g > DIV_RECORD[t] && S.ss.g - M.goals <= DIV_RECORD[t] && !S.ss.recDiv){ S.ss.recDiv = true; const p = `Competitierecord ${DIVS[t]} ${seizoenLabel()} (${S.ss.g} goals)`; R.gebroken.push(p); S.car.prijzen.push(p); mod('rep', 5);
     uit.push(`COMPETITIERECORD! ${S.ss.g} goals in één seizoen: nooit eerder scoorde iemand zo vaak in de ${DIVS[t]}.`); krantMelding(`Historisch: ${naam} breekt het record van de ${DIVS[t]}`, `Doelpunt nummer ${S.ss.g} dit seizoen. Het oude record (${DIV_RECORD[t]}) stond al jaren.`); }
@@ -46,6 +53,6 @@ export function vRecords(){
     ${r('Debuut in een 1e elftal', R.debuut && R.debuut.lft ? `${R.debuut.lft} jaar <span class="muted">(${esc(R.debuut.club)})</span>` : '–')}
     ${S.car.derby ? r("Goals in derby's", S.car.derby.goals) : ''}
     ${S.car.tegenOud ? r('Goals tegen je oude clubs', Object.values(S.car.tegenOud).reduce((a, x) => a + x.goals, 0)) : ''}
-    ${cl.map(([id, g]) => { const cr = (R.clubRec || {})[id] ?? clubRecord(+id), nm = (R.clubN || {})[id] || (CLUBS[id] || {}).n || ''; return r(`Goals voor ${esc(nm)}`, g > cr ? `${g} <span class="goedtxt">· het clubrecord is van jou</span>` : `${g} <span class="muted">/ clubrecord ${cr}</span>`); }).join('')}
+    ${cl.map(([id, g]) => { const nm = (R.clubN || {})[id] || (CLUBS[id] || {}).n || '', H = S.historie && S.historie[nm], cr = (R.clubRec || {})[id] ?? (H ? H.top.g : clubRecord(+id)); return r(`Goals voor ${esc(nm)}`, g > cr ? `${g} <span class="goedtxt">· het clubrecord is van jou</span>` : `${g} <span class="muted">/ clubrecord ${cr}${H ? ` (${esc(H.top.n)})` : ''}</span>`); }).join('')}
     ${R.gebroken.length ? `<div class="prijzen" style="margin-top:6px">${R.gebroken.map(p => `<span class="prijs">${esc(p)}</span>`).join('')}</div>` : ''}</div>`;
 }

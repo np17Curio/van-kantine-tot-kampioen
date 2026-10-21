@@ -18,11 +18,11 @@ const KLAAR = new Map(); let STUDIO = null;
 const MUREN = [['#0f1a33', '#c6f432'], ['#1a1030', '#f3c44f'], ['#0d2a22', '#ffffff'], ['#2a0f14', '#f3c44f']];
 // Wie staat er op de foto? img.dataset.uit = 'huid,haar,kapsel' (op het startscherm, nog zonder carrière), anders jouw speler
 function fotoCtx(img){
-  if (img && img.dataset.uit){ const [huid, haar, kapsel] = img.dataset.uit.split(','); return {sleutel:img.dataset.sleutel || 'nieuw', uiterlijk:{huid:+huid, haar:+haar, kapsel}, club:'', muur:'#0f1a33', accent:'#c6f432', tenue:STANDAARD, ...(img.dataset.draai !== undefined ? {draai:+img.dataset.draai} : {})}; }
+  if (img && img.dataset.uit){ const [huid, haar, kapsel, lengte, bmi] = img.dataset.uit.split(','); return {sleutel:img.dataset.sleutel || 'nieuw', uiterlijk:{huid:+huid, haar:+haar, kapsel, ...(lengte ? {lengte:+lengte, bmi:+bmi} : {})}, club:'', muur:'#0f1a33', accent:'#c6f432', tenue:STANDAARD, ...(img.dataset.draai !== undefined ? {draai:+img.dataset.draai} : {})}; }
   const c = club(), [muur, accent] = MUREN[(S.sp.club || 0) % MUREN.length];
   return {sleutel:ploegen().jij, uiterlijk:S.sp.uiterlijk || null, club:c ? c.n : '', muur, accent, tenue:clubTenue(S.sp.club), clubId:S.sp.club};
 }
-const sleutelVan = (soort, ctx) => [soort, ctx.sleutel, ctx.club, ctx.draai ?? '', ctx.uiterlijk ? ctx.uiterlijk.huid + ctx.uiterlijk.haar + ctx.uiterlijk.kapsel : ''].join('|');
+const sleutelVan = (soort, ctx) => [soort, ctx.sleutel, ctx.club, ctx.draai ?? '', ctx.uiterlijk ? ctx.uiterlijk.huid + ctx.uiterlijk.haar + ctx.uiterlijk.kapsel + (ctx.uiterlijk.lengte || '') + (ctx.uiterlijk.bmi || '') : ''].join('|');
 export function foto(soort, img){
   const ctx = fotoCtx(img), key = sleutelVan(soort, ctx);
   if (!KLAAR.has(key)){
