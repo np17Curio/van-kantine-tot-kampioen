@@ -13,7 +13,7 @@ import { vPers } from '../../game/wedstrijd/fans-pers.js';
 import { focusStaat, kans, pOpts, risico } from '../../game/wedstrijd/momenten.js';
 import { WAARSCHUW, actieKosten, isRoutinier, stamina } from '../../game/wedstrijd/stamina.js';
 import { vReunieEinde } from '../../game/wedstrijd/reunie.js';
-import { aftrap, metVriendNa, kies, mijnNaam, stand2, VAR_KEUZES, varKeuze, varTekst } from '../../game/wedstrijd/wedstrijd.js';
+import { aftrap, metVriendNa, kies, mijnNaam, simuleer, stand2, VAR_KEUZES, varKeuze, varTekst } from '../../game/wedstrijd/wedstrijd.js';
 import { rugTeam, rugnummer } from '../../game/team/rugnummers.js';
 import { startElf } from '../../game/competitie/spelers.js';
 import { metVoorletter } from '../../game/media/nieuws.js';
@@ -23,6 +23,7 @@ import { vInterEnd } from './interland.js';
 import { vSelectieEnd } from './selectiedagen.js';
 import { vSeizoenStrip } from './zijbalk.js';
 import { clubLogo } from '../../data/logos.js';
+import { isAanvoerder } from '../../game/team/aanvoerder.js';
 
 export function vO23End(){
   const M = S.M, uitslag = M.us > M.them ? 'Gewonnen' : M.us < M.them ? 'Verloren' : 'Gelijkgespeeld';
@@ -77,7 +78,7 @@ const ROL = {basis:['Je staat in de basis', 'r-veilig'], invaller:['Je begint op
 // De elf van een club (aangevuld uit de bank als er iemand ontbreekt) en de wissels. Jij staat erbij als je in de basis staat
 // De elf en de wissels (startElf), met rugnummers
 function elftal(id, metJou, vulPos){ rugTeam(id); const r = startElf(id, metJou, vulPos); if (metJou) r.elf.push({jij:true, n:S.sp.naam, pos:LINIE[S.sp.pos], nr:rugnummer()}); return r; }
-const spelerRij = x => `<li class="${x.jij ? 'mij' : ''}"><span class="nr">${x.nr ? x.nr : ''}</span><span>${x.jij ? `<b>${esc(x.n)} (jij)</b>` : esc(metVoorletter(x))}${x.vriend ? ' 🤝' : ''}${x.rivaal ? ' ⚔️' : ''}</span></li>`;
+const spelerRij = x => `<li class="${x.jij ? 'mij' : ''}"><span class="nr">${x.nr ? x.nr : ''}</span><span>${x.jij ? `<b>${esc(x.n)} (jij)</b>${isAanvoerder() ? ' <span class="tag" title="Aanvoerder">C</span>' : ''}` : esc(metVoorletter(x))}${x.vriend ? ' 🤝' : ''}${x.rivaal ? ' ⚔️' : ''}</span></li>`;
 function vElftal(id, titel, metJou, toonBank, opBank){
   const {elf, bank} = elftal(id, metJou, id === S.sp.club ? null : 'M'), tel = p => elf.filter(x => x.pos === p).length;
   const formatie = `${tel('V')}-${tel('M')}-${tel('A')}`;
@@ -102,7 +103,7 @@ export function vIntro(M){
     : `<p class="muted">${esc(M.wij)} tegen ${esc(M.zij)}.</p>`;
   return scorebord() + `<div class="verhaal intro"><span class="label">${esc(introSoort(M))}</span>
     <div class="rij">${tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}<span class="risico ${rol[1]}">${esc(rol[0])}</span></div>
-    ${info}${opst}</div>` + knop('Aftrap!', aftrap);
+    ${info}${opst}</div>` + `<div class="rij">${knop('Aftrap!', aftrap)}${knop('⏩ Simuleer wedstrijd', simuleer, 'hoofd tweede')}</div>`;
 }
 export function vMatch(){
   if (S.M.intro) return vIntro(S.M);
@@ -119,7 +120,7 @@ export function vMatch(){
   }
   // Jouw actie staat op het veld zelf; zonder veld staat hij boven het verslag
   const veld = vPitch(keuzeHtml);
-  return scorebord() + (veld || keuzeHtml) + vLog();
+  return scorebord() + (veld || keuzeHtml) + vLog() + `<div class="rij" style="margin-top:8px">${knop('⏩ Simuleer de rest', simuleer, 'klein')}</div>`;
 }
 
 // Na afloop tegen je vriend: shirts ruilen, een knuffel, of plagen (met een toon)
@@ -127,7 +128,7 @@ function vVriendNa(M){
   const V = metVriendNa(M); if (!V) return '';
   const vn = S.sp.vriend.voornaam, opts = vriendNaOpties(M), kop = `<span class="label">Na het laatste fluitsignaal · ${esc(vn)} 🤝</span>`;
   if (V.keuze != null) return `<div class="paneel">${kop}<p><b>Jij:</b> ${esc(opts[V.keuze].l)}</p><p class="melding">${esc(V.uit)}</p></div>`;
-  return `<div class="paneel">${kop}<p>${V.bank ? `${esc(vn)} zat vandaag op de bank, maar na afloop komt hij naar je toe.` : `${esc(vn)} komt naar je toe in de middencirkel.`}</p>
+  return `<div class="paneel">${kop}<p>${V.bank ? `${esc(vn)} zat vandaag op de bank, maar na afloop komt hij naar je toe.` : `${esc(vn)} komt naar je toe in de middencirkel.`}${M.vriendGoalsTegen ? ` Hij scoorde vandaag tegen je${M.us < M.them ? ', en won' : ''}.` : ''}</p>
     <div class="keuzes">${opts.map((o, i) => keuzeKnop(`${TOON[o.toon].i} ${esc(o.l)}`, `${TOON[o.toon].n} · ${o.e}`, () => vriendNa(i), 'data-blijf')).join('')}</div></div>`;
 }
 export function vMatchEnd(){
@@ -142,7 +143,7 @@ export function vMatchEnd(){
   if (M.cijfer !== null){
     oordeel = M.cijfer >= 8.5 ? 'Man of the Match! De fans scanderen je naam.' : M.cijfer >= 7.3 ? 'Sterke wedstrijd. De trainer geeft je een schouderklopje.' : M.cijfer >= 6 ? 'Degelijk. Niks mis mee.' : M.cijfer >= 5 ? 'Matige wedstrijd. De trainer kijkt je niet aan.' : 'Dramatisch. In de kantine wordt over je gepraat.';
   }
-  let html = scorebord() + vSeizoenStrip() + `<div class="verhaal"><span class="label">${uitslag}</span>`;
+  let html = scorebord() + vSeizoenStrip() + `<div class="verhaal"><span class="label">${uitslag}${M.gesimuleerd ? ' · gesimuleerd' : ''}</span>${M.gesimuleerd ? '<p class="muted klein-tekst">Gesimuleerd: je speler koos zelf de veiligste acties.</p>' : ''}`;
   if (M.cijfer !== null){
     html += `<div class="rij" style="gap:20px;align-items:flex-end"><div><span class="label">Jouw cijfer</span><div class="groot">${M.cijfer.toFixed(1).replace('.', ',')}</div></div>
       <div class="muted">${M.goals} ${M.goals === 1 ? 'goal' : 'goals'} · ${M.assists} ${M.assists === 1 ? 'assist' : 'assists'}${M.rood ? ' · rode kaart' : M.geel ? ' · gele kaart' : ''}</div></div>

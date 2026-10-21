@@ -100,11 +100,35 @@ export function maakPers(M, soort){
     ? {vraag:`Gewonnen van aartsrivaal ${zij}. Wat betekent dat?`, b:'"Heel veel, vooral voor de supporters. Maar het zijn ook maar drie punten."', z:'"Wij zijn de beste club van de regio. Dat weet nu iedereen."', u:`"${zij}? Die spelen al jaren in onze schaduw."`, doel:'rivaal'}
     : verl ? {vraag:`Verloren van ${zij}. Hoe hard komt dat aan?`, b:'"Heel hard. Sorry aan onze fans, die verdienen beter."', z:'"Dit was een ongelukje. De volgende derby is van ons."', u:`"Ze hadden puur geluk. Volgende keer pakken we ze, en goed ook."`, doel:'rivaal'}
     : {vraag:`Gelijk in de derby tegen ${zij}. Tevreden?`, b:'"We hebben er alles aan gedaan. Een punt is een punt."', z:'"We waren de betere ploeg, dat zag iedereen."', u:`"${zij} kwam alleen om te verdedigen. Zielig."`, doel:'rivaal'};
-  else if (c >= 8) v = {vraag:'Je was de beste man op het veld. Bellen er al grote clubs?', b:`"Ik denk alleen aan ${wij}. Hier ben ik gelukkig."`, z:'"Ik ben klaar voor de volgende stap, dat voel ik."', u:`"Eerlijk? Deze club is eigenlijk te klein voor mij."`, doel:'club'};
-  else if (c <= 5.5) v = {vraag:'Dit was niet je beste wedstrijd. Wat ging er mis?', b:'"Ik moet beter, en dat ga ik ook doen. Mijn fout."', z:'"Iedereen heeft een mindere dag. Volgende week sta ik er weer."', u:'"De trainer zette me op de verkeerde plek. Vraag het hem maar."', doel:'trainer'};
-  else if (won) v = {vraag:`Mooie overwinning op ${zij}. Wat was het verschil?`, b:'"Het hele team heeft hard gewerkt. Dit doen we samen."', z:'"Wij zijn gewoon beter. Zo simpel is het."', u:`"${zij} was echt slecht vandaag. Het was te makkelijk."`, doel:'tegenstander'};
-  else if (verl) v = {vraag:`Verloren van ${zij}. Hoe kan dat?`, b:'"Ze waren beter. We moeten kritisch naar onszelf kijken."', z:'"Een slechte dag. Dit gebeurt ons niet nog een keer."', u:'"Sommige jongens werkten gewoon niet hard genoeg. Ik noem geen namen."', doel:'team'};
-  else v = {vraag:`Een gelijkspel tegen ${zij}. Tevreden?`, b:'"Een punt is beter dan niks. We gaan door."', z:'"Wij hadden moeten winnen, maar we pakken ze de volgende keer."', u:'"De scheidsrechter floot ons uit de wedstrijd."', doel:'scheids'};
+  else {
+    // Per situatie een paar vragen; een vraag die je onlangs kreeg komt niet terug ("grote clubs" hooguit eens per seizoen)
+    const L = c >= 8 ? [
+      {id:'grootClubs', vraag:'Je was de beste man op het veld. Bellen er al grote clubs?', b:`"Ik denk alleen aan ${wij}. Hier ben ik gelukkig."`, z:'"Ik ben klaar voor de volgende stap, dat voel ik."', u:`"Eerlijk? Deze club is eigenlijk te klein voor mij."`, doel:'club'},
+      {id:'geheim', vraag:'Wat was vandaag je geheim?', b:'"Mijn ploeggenoten zetten me in de juiste positie. Zonder hen lukt dit niet."', z:'"Hard trainen. Dit is het resultaat, en er komt meer."', u:'"Geen geheim. Ik ben gewoon beter dan de rest van het veld."', doel:'team'},
+      {id:'topvorm', vraag:'Je zit in topvorm. Hoe houd je dit vast?', b:'"Rustig blijven, en luisteren naar de trainer."', z:'"Elke week zo. Dat is mijn standaard."', u:'"Als de trainer me elke week opstelt, gaat het vanzelf. Dat was niet altijd zo."', doel:'trainer'},
+      {id:'tegenstanderTop', vraag:`Je maakte het ${zij} vandaag erg lastig. Wat zeg je tegen hun verdediging?`, b:'"Het zijn goede spelers. Vandaag zat het mee."', z:'"Ze wisten niet wat ze met me aan moesten."', u:'"Welke verdediging? Ik heb er niks van gemerkt."', doel:'tegenstander'}]
+    : c <= 5.5 ? [
+      {id:'misgegaan', vraag:'Dit was niet je beste wedstrijd. Wat ging er mis?', b:'"Ik moet beter, en dat ga ik ook doen. Mijn fout."', z:'"Iedereen heeft een mindere dag. Volgende week sta ik er weer."', u:'"De trainer zette me op de verkeerde plek. Vraag het hem maar."', doel:'trainer'},
+      {id:'fluitconcert', vraag:'Er werd gefloten toen je werd gewisseld. Hoe voelde dat?', b:'"Terecht. De fans verdienen meer van mij."', z:'"Ik laat ze volgende week weer juichen."', u:'"Die fans moeten eens weten hoe het is om op dit niveau te spelen."', doel:'club'},
+      {id:'ritme', vraag:'Je kwam niet in je spel. Mis je het vertrouwen?', b:'"Ik moet het vertrouwen terugverdienen. Daar werk ik aan."', z:'"Nee hoor. Eén slechte dag zegt niets."', u:'"Als ik nooit de bal krijg, kan ik ook niks laten zien."', doel:'team'}]
+    : won ? [
+      {id:'verschil', vraag:`Mooie overwinning op ${zij}. Wat was het verschil?`, b:'"Het hele team heeft hard gewerkt. Dit doen we samen."', z:'"Wij zijn gewoon beter. Zo simpel is het."', u:`"${zij} was echt slecht vandaag. Het was te makkelijk."`, doel:'tegenstander'},
+      {id:'stand', vraag:'Wat betekent deze zege voor de stand?', b:'"We kijken van week tot week. Dit is mooi, meer niet."', z:'"We gaan hoog eindigen, dat weet ik zeker."', u:'"Iedereen boven ons mag zich zorgen maken."', doel:'tegenstander'},
+      {id:'sfeer', vraag:'Hoe is de sfeer in de kleedkamer na zo\'n overwinning?', b:'"Goed, maar we blijven met beide benen op de grond."', z:'"Geweldig. Dit is een hechte groep."', u:'"Prima, nu sommige jongens eindelijk ook hun best doen."', doel:'team'}]
+    : verl ? [
+      {id:'hoeKan', vraag:`Verloren van ${zij}. Hoe kan dat?`, b:'"Ze waren beter. We moeten kritisch naar onszelf kijken."', z:'"Een slechte dag. Dit gebeurt ons niet nog een keer."', u:'"Sommige jongens werkten gewoon niet hard genoeg. Ik noem geen namen."', doel:'team'},
+      {id:'scheidsVerlies', vraag:'Waren er momenten waarop het anders had kunnen lopen?', b:'"Dat kan altijd. We moeten onze kansen beter benutten."', z:'"We hadden minstens een punt verdiend."', u:'"Die penalty was nooit. De scheids heeft het verpest."', doel:'scheids'},
+      {id:'tactiek', vraag:'Klopte het plan van de trainer vandaag?', b:'"Het plan was goed, wij voerden het slecht uit."', z:'"We moeten dit samen oplossen. Volgende week beter."', u:'"Daar mag je de trainer naar vragen, niet mij."', doel:'trainer'}]
+    : [
+      {id:'gelijk', vraag:`Een gelijkspel tegen ${zij}. Tevreden?`, b:'"Een punt is beter dan niks. We gaan door."', z:'"Wij hadden moeten winnen, maar we pakken ze de volgende keer."', u:'"De scheidsrechter floot ons uit de wedstrijd."', doel:'scheids'},
+      {id:'gelijkKansen', vraag:'Jullie kregen genoeg kansen. Waarom geen winst?', b:'"We moeten scherper zijn voor de goal, ik ook."', z:'"Volgende week gaan ze er wel in."', u:'"Sommigen schieten alsof ze nog nooit een bal gezien hebben."', doel:'team'},
+      {id:'gelijkTegen', vraag:`Was ${zij} sterker dan gedacht?`, b:'"Ze speelden goed. Respect voor ze."', z:'"Nee, wij speelden gewoon niet ons beste spel."', u:`"${zij}? Die kwamen alleen om te parkeren voor hun goal."`, doel:'tegenstander'}];
+    const recent = S.persRecent = S.persRecent || [], groot = (S.ss.persGroot || 0);
+    const kand = L.filter(x => !recent.includes(x.id) && !(x.id === 'grootClubs' && groot)), keuze = pick(kand.length ? kand : L.filter(x => x.id !== 'grootClubs').length ? L.filter(x => x.id !== 'grootClubs') : L);
+    if (keuze.id === 'grootClubs') S.ss.persGroot = 1;
+    recent.push(keuze.id); if (recent.length > 6) recent.shift();
+    v = keuze;
+  }
   return {bron, vraag:v.vraag, opts:[{s:'b', l:'Bescheiden', t:v.b}, {s:'z', l:'Zelfverzekerd', t:v.z}, {s:'u', l:'Uitdagend', t:v.u}], doel:v.doel, zij, klaar:false};
 }
 export function persAntwoord(i){

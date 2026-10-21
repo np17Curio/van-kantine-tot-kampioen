@@ -1,6 +1,6 @@
 import { S, club, mod, ovr, salarisVoor, seizoenLabel, waarde } from '../../core/state.js';
 import { clamp, pick, randInt, rnd } from '../../core/utils.js';
-import { AANTAL_RONDES, CLUBS, divClubs, WINTER, rondeInWeek, weekFactor } from '../../data/gegevens.js';
+import { AANTAL_RONDES, CLUBS, DIVS, LAAGSTE, MEIDEN, clubsLand, divClubs, WINTER, rondeInWeek, weekFactor } from '../../data/gegevens.js';
 import { thuisLand } from '../../data/landen.js';
 import { vreemdeClub } from '../transfers/buitenland.js';
 import { landenVoor } from '../interlands/interlands.js';
@@ -9,7 +9,7 @@ import { herschik } from '../transfers/markt.js';
 import { krantMelding } from '../media/roddel.js';
 import { social } from '../prive/social.js';
 import { modFans, rivaal as derbyVan } from '../wedstrijd/fans-pers.js';
-import { PERS } from './persoonlijkheid.js';
+import { PERS, karakter } from './persoonlijkheid.js';
 import { groeiSeizoen, plaats as plaatsRivaal } from './rivaal.js';
 import { iedereen, zetBand as kleedBand } from '../team/kleedkamer.js';
 import { DELEN, VERVOLG, deelVan } from './journey-delen.js';
@@ -58,7 +58,9 @@ export const opaNaam = () => `opa ${S.sp.opa ? S.sp.opa.naam : 'Jan'}`;
 export const TOON = {kalm:{n:'Kalm', i:'🧊'}, bal:{n:'Gebalanceerd', i:'⚖️'}, fel:{n:'Fel', i:'🔥'}};
 export const toonChip = t => TOON[t] ? `<span class="tag toon toon-${t}">${TOON[t].i} ${TOON[t].n}</span>` : '';
 // Alleen de meter (de persconferentie heeft zelf al effecten)
-export function toonMeter(t){ const sp = S.sp; if (!sp || !TOON[t]) return; sp.toon = clamp((sp.toon || 0) + (t === 'kalm' ? -8 : t === 'fel' ? 8 : -Math.sign(sp.toon || 0) * Math.min(4, Math.abs(sp.toon || 0))), -100, 100); }
+export function toonMeter(t){ const sp = S.sp; if (!sp || !TOON[t]) return; const voor = karakter(); sp.toon = clamp((sp.toon || 0) + (t === 'kalm' ? -8 : t === 'fel' ? 8 : -Math.sign(sp.toon || 0) * Math.min(4, Math.abs(sp.toon || 0))), -100, 100);
+  // Je karakter verandert: dat merk je (persoonlijkheid.js)
+  const na = karakter(); if (na.id !== voor.id){ const tk = `Je karakter is nu: ${na.i} ${na.n}. In het veld: ${na.veld} Buiten het veld: ${na.buiten}`; if (S.week && S.week.tekst) S.week.tekst.push(tk); } }
 // Meter plus een klein effect: kalm bevalt de trainer, fel de fans en je volgers
 export function toonEffect(t){
   if (!TOON[t]) return '';
@@ -72,7 +74,7 @@ export const toonLabel = (v = S.sp.toon || 0) => v <= -40 ? 'Rustig' : v <= -12 
 // ---------- begin ----------
 export function maakJourney(sp){
   const vn = pick(VOORNAMEN);
-  sp.vriend = {voornaam:vn, v:vn[0], n:pick(ACHTERNAMEN), lft:sp.leeftijd, k:clamp(ovr(sp) + randInt(-2, 3), 30, 95), band:60, club:null, o23:false};
+  sp.vriend = {voornaam:vn, v:vn[0], n:pick(ACHTERNAMEN), lft:sp.leeftijd, k:clamp(ovr(sp) + randInt(-2, 3), 30, 95), band:60, club:null, o23:false, talentV2:true};
   sp.vriend.pot = clamp(sp.pot + randInt(-5, 3), sp.vriend.k + 4, 95);
   sp.opa = {naam:pick(OPA)};
   sp.toon = 0;
@@ -336,6 +338,7 @@ export function vriendWinter(){
   v.groeiJaar = S.jaar;
   const G = groeiSeizoen(v), half = G > 0 ? Math.ceil(G / 2) : Math.trunc(G / 2), voor = v.k;
   vriendGroei(half); v.groeiRest = G - half;
+  if (ovr(S.sp) - v.k >= 8 && v.lft < 30) vriendGroei(1); // ver achter: hij zet een tandje bij
   if (v.k !== voor && S.week) S.week.tekst.push(`${v.voornaam} ${v.k > voor ? 'wordt ook beter' : 'gaat wat achteruit'}: klasse ${voor} → ${v.k}.`);
 }
 // In de zomer (naSeizoen): de rest van zijn groei, en een jaar ouder. Geeft een regel voor je seizoensoverzicht.
@@ -344,11 +347,42 @@ export function vriendOuder(){
   vriendInhalen();
   if (v.weg){ if (sp.rivaal && sp.rivaal.exVriend){ v.k = sp.rivaal.k; v.lft = sp.rivaal.lft; } v.groeiTot = S.jaar; return null; } // als rivaal groeit hij in rivaal.js
   const voor = v.k, rest = v.groeiJaar === S.jaar ? (v.groeiRest || 0) : groeiSeizoen(v);
+  // zijn talent groeit met dat van jou mee: hij is net zo'n groot talent
+  v.pot = Math.max(v.pot || 0, (sp.pot || 70) - 3);
   vriendGroei(rest);
-  if (ovr(sp) - v.k >= 6 && v.lft < 31){ zetVriendK(v.k + 1); if (v.k > v.pot) v.pot = v.k; }
+  const gat = ovr(sp) - v.k; if (gat >= 6 && v.lft < 30){ zetVriendK(v.k + (gat >= 10 ? 3 : 2)); if (v.k > v.pot) v.pot = v.k; }
   v.groeiRest = 0; v.lft++; v.groeiTot = S.jaar; zetVriendK(v.k);
   const begin = v.kVorig ?? voor; v.kVorig = v.k; // (klasse aan het begin van dit seizoen)
-  return v.k > begin ? `${v.voornaam} is ook beter geworden: klasse ${begin} → ${v.k}.` : v.k < begin ? `${v.voornaam} gaat wat achteruit: klasse ${begin} → ${v.k}.` : null;
+  const groei = v.k > begin ? `${v.voornaam} is ook beter geworden: klasse ${begin} → ${v.k}.` : v.k < begin ? `${v.voornaam} gaat wat achteruit: klasse ${begin} → ${v.k}.` : null;
+  const tr = vriendTransfer();
+  return [groei, tr].filter(Boolean).join(' ') || null;
+}
+// ---------- zijn carrière: hij wisselt van club als hij te goed (of te zwak) is voor zijn club ----------
+export function vriendTransfer(){
+  const sp = S.sp, v = sp.vriend; if (!v || !vriendActief() || bijJou() || v.club == null || v.komt) return null;
+  const land = vriendLand(), hier = vriendHier(), info = id => hier ? CLUBS[id] : vreemdeClub(land, id), cur = info(v.club);
+  if (!cur) return null;
+  const omhoog = v.k >= cur.s + 5, omlaag = v.k <= cur.s - 8; if (!omhoog && !omlaag) return null;
+  const ids = hier ? [1, LAAGSTE].flatMap(t => divClubs(t)) : Array.from({length:clubsLand(land) - 8}, (_, i) => 8 + i);
+  const kand = ids.filter(i => { const c = info(i); return i !== v.club && !(hier && i === sp.club) && c && c.t >= 1 && (omhoog ? c.s >= cur.s + 2 && c.s >= v.k - 6 && c.s <= v.k - 1 : c.s < cur.s && c.s >= v.k - 6); });
+  if (!kand.length) return null;
+  const naar = pick(kand), nieuw = info(naar), oud = cur.n;
+  if (hier){ const sel = selectie(v.club), x = sel.find(y => y.vriend); if (x){ sel.splice(sel.indexOf(x), 1); selectie(v.club); herschik(sel); }
+    plaatsVriend(naar, false); const y = vriendSpeler(); if (y){ y.k = v.k; y.lft = v.lft; } herschik(selectie(naar)); }
+  else { v.club = naar; v.land = land; }
+  const div = hier ? DIVS[nieuw.t] : nieuw.div || '';
+  krantMelding(`${v.voornaam} ${v.n} ${omhoog ? 'maakt de stap' : 'vertrekt'} naar ${nieuw.n}`, `De jeugdvriend van ${sp.naam} (klasse ${v.k}) ${omhoog ? `was te goed voor ${oud}` : `kwam bij ${oud} nauwelijks aan spelen toe`}. Hij tekent bij ${nieuw.n}${div ? ` (${div})` : ''}.`);
+  return `${v.voornaam} maakt de overstap van ${oud} naar ${nieuw.n}${div ? ` (${div})` : ''}!`;
+}
+// Oude opslag: zijn talent lag vast en hij bleef ver achter. Eén keer: een even groot talent, en zo nodig een doorbraak
+function vriendTalent(){
+  const sp = S.sp, v = sp.vriend; if (!v || v.talentV2) return; v.talentV2 = true;
+  if (v.weg) return;
+  v.pot = Math.max(v.pot || 0, (sp.pot || 70) - 3 + randInt(-1, 2));
+  const o = ovr(sp), voor = v.k;
+  if (o - v.k >= 10 && v.lft < 31){ zetVriendK(Math.min(Math.max(v.pot, v.k), o - randInt(4, 7)));
+    if (v.k > voor){ krantMelding(`Doorbraak voor ${v.voornaam} ${v.n}`, `De jeugdvriend van ${sp.naam} groeit in korte tijd van klasse ${voor} naar ${v.k}. "Ik heb hem altijd achterna gezeten."`); if (S.week) S.week.tekst.push(`${v.voornaam} maakt een enorme sprong: klasse ${voor} → ${v.k}.`); } }
+  const t = vriendTransfer(); if (t && S.week) S.week.tekst.push(t);
 }
 // Einde seizoen: zijn cijfers bij zijn carrière, en een regel in jullie geschiedenis
 export function vriendSeizoen(){
@@ -520,34 +554,78 @@ export function uitpraten(){
   S.week.tekst.push(R.band >= 60 ? `Je zoekt ${sp.vriend.voornaam} op. Het voelt bijna weer als vroeger.` : `Je stuurt ${sp.vriend.voornaam} een bericht. Het antwoord is kort, maar vriendelijk.`);
 }
 // Af en toe een moment met je vriend, met een toon per antwoord
+// Elke gebeurtenis heeft een wachttijd (in seizoenen; Infinity = eenmalig) en klopt met de situatie.
+// Zijn liefdesleven is een verhaal met fases (v.vriendin): ontmoeten → samenwonen → verloving → bruiloft, of het gaat uit.
 export function vriendEvents(){
   if (!vriendActief()) return [];
-  const sp = S.sp, v = sp.vriend, vn = v.voornaam, zelfde = bijJou();
-  const ev = (tekst, opts) => ({soort:'prive', tekst, opts:opts.map(([l, toon, d, uit]) => ({l, toon, f(){ zetBand(d); return uit; }}))});
-  return [
-    ev(`${vn} heeft een vriendin en wil dat je haar ontmoet. Vanavond, bij hem thuis.`, [
-      ['Natuurlijk, ik neem een cadeautje mee', 'kalm', 6, `Ze is aardig. ${vn} is zichtbaar trots.`],
+  const sp = S.sp, v = sp.vriend, vn = v.voornaam, zelfde = bijJou(), gezien = v.evGezien = v.evGezien || {}, j = S.jaar;
+  const mag = (id, wacht) => gezien[id] == null || j - gezien[id] >= wacht;
+  const ev = (id, tekst, opts, na) => ({soort:'prive', tekst, opts:opts.map(([l, toon, d, uit]) => ({l, toon, f(){ gezien[id] = j; zetBand(d); if (na) na(toon); return uit; }}))});
+  const L = [], Vr = v.vriendin, hn = Vr && Vr.naam;
+  // ---- zijn liefdesleven ----
+  if (!Vr || (Vr.fase === 'single' && j > Vr.sinds)){
+    const naam = pick(MEIDEN.filter(n => n !== (sp.relatie && sp.relatie.naam) && n !== (Vr && Vr.oud)));
+    L.push(ev('liefde', `${vn} heeft een vriendin, ${naam}, en wil dat je haar ontmoet. Vanavond, bij hem thuis.`, [
+      ['Natuurlijk, ik neem een cadeautje mee', 'kalm', 6, `${naam} is aardig. ${vn} is zichtbaar trots.`],
       ['Even langs, daarna rust', 'bal', 3, 'Een gezellig uurtje. Hij waardeert dat je kwam.'],
-      ['Geen tijd, ik moet aan mezelf denken', 'fel', -6, `${vn} is teleurgesteld. "Volgende keer dan."`]]),
-    ev(zelfde ? `${vn} zit al drie wedstrijden op de bank en is gefrustreerd. Hij vraagt of jij iets bij de trainer kunt zeggen.` : `${vn} zit bij zijn club op de bank en is gefrustreerd. Hij belt je om te klagen.`, [
-      ['Rustig met hem praten en opbeuren', 'kalm', 7, 'Na een uur praten heeft hij weer zin om te knokken.'],
-      ['"Gewoon blijven werken, dan komt het goed."', 'bal', 3, 'Hij knikt. "Je hebt gelijk."'],
-      ['"Misschien ben je gewoon niet goed genoeg."', 'fel', -12, 'Het blijft stil aan de andere kant. Dat had je niet moeten zeggen.']]),
-    ev(`${vn} scoorde het winnende doelpunt en tagt jou in zijn post: "Voor mijn broer."`, [
-      ['Een lief bericht terugsturen', 'kalm', 5, 'Jullie volgers vinden het prachtig.'],
-      ['Liken en een emoji sturen', 'bal', 2, 'Hij stuurt een emoji terug.'],
-      ['"Mooi, maar mijn goal van vorige week was mooier 😏"', 'fel', 1, 'Hij lacht. Jullie gaan het hele weekend door met plagen.']]),
-    ev(`${vn} vraagt je mee naar zijn ouders. Zijn moeder heeft je lievelingseten gemaakt, net als vroeger.`, [
-      ['Gaan, en de afwas doen', 'kalm', 7, 'Zijn moeder knuffelt je bij de deur. "Je bent hier altijd welkom."'],
-      ['Gaan, maar op tijd naar huis', 'bal', 4, 'Een fijne avond.'],
-      ['Afzeggen', 'fel', -5, `${vn} zegt dat het niet erg is. Zijn moeder vond het wel jammer.`]]),
-  ];
+      ['Geen tijd, ik moet aan mezelf denken', 'fel', -6, `${vn} is teleurgesteld. "Volgende keer dan."`]], () => { v.vriendin = {naam, fase:'samen', sinds:j, blijft:rnd() >= .25}; }));
+  } else if (Vr.fase === 'samen' && j > Vr.sinds){
+    if (Vr.blijft) L.push(ev('liefde', `${vn} en ${hn} gaan samenwonen! Help je zaterdag met verhuizen?`, [
+      ['Natuurlijk, ik neem de zware dozen', 'kalm', 6, `Na een lange dag staat alles. ${hn} trakteert op pizza.`],
+      ['Een paar uurtjes, dan moet ik weg', 'bal', 3, 'Elke hand helpt. Hij is blij dat je kwam.'],
+      ['Huur maar een verhuisbedrijf', 'fel', -5, `"Ook goed," zegt ${vn}. Het klinkt niet zo.`]], () => { Vr.fase = 'wonen'; Vr.sinds = j; }));
+    else L.push(ev('liefde', `Het is uit tussen ${vn} en ${hn}. Hij belt je: "Kun je vanavond langskomen?"`, [
+      ['Meteen langsgaan, met ijs', 'kalm', 8, 'Jullie praten tot diep in de nacht. Hij is blij dat je er bent.'],
+      ['Hem een berichtje sturen', 'bal', 2, '"Thanks man," stuurt hij terug.'],
+      ['"Er zijn genoeg andere meiden"', 'fel', -4, 'Daar heeft hij nu even niks aan.']], () => { v.vriendin = {fase:'single', sinds:j, oud:hn}; }));
+  } else if (Vr.fase === 'wonen' && j > Vr.sinds){
+    L.push(ev('liefde', `${vn} wil ${hn} ten huwelijk vragen! Hij wil jouw advies over de ring. "Jij bent de enige die ik dit durf te vragen."`, [
+      ['Mee naar de juwelier', 'kalm', 6, `Na drie winkels hebben jullie hem. ${hn} zegt ja!`],
+      ['"Kies gewoon wat je mooi vindt"', 'bal', 2, `Hij kiest zelf. ${hn} zegt ja!`],
+      ['"Trouwen? Je bent gek!"', 'fel', -4, `Hij lacht ongemakkelijk. ${hn} zegt toch ja.`]], () => { Vr.fase = 'verloofd'; Vr.sinds = j; }));
+  } else if (Vr.fase === 'verloofd' && j > Vr.sinds){
+    L.push(ev('liefde', `De bruiloft van ${vn} en ${hn}! Jij bent zijn getuige, en straks moet je een speech geven.`, [
+      ['Een ontroerende speech', 'kalm', 8, `Halverwege huilt zelfs de vader van ${hn}. ${vn} omhelst je.`],
+      ['Een grappige speech', 'bal', 6, 'De hele zaal ligt dubbel. Een topavond.'],
+      ['Een gênant verhaal van vroeger', 'fel', 2, `De zaal lacht, ${vn} wordt knalrood. ${hn} wil het hele verhaal horen.`]], () => { Vr.fase = 'getrouwd'; Vr.sinds = j; S.car.hist.push(`${seizoenLabel()}: getuige op de bruiloft van ${vn}`); }));
+  }
+  // ---- voetbal en vriendschap ----
+  const x = vriendSpeler(), bank = x ? !x.basis : false;
+  if (bank && mag('bank', 1)) L.push(ev('bank', zelfde ? `${vn} zit al drie wedstrijden op de bank en is gefrustreerd. Hij vraagt of jij iets bij de trainer kunt zeggen.` : `${vn} zit bij zijn club op de bank en is gefrustreerd. Hij belt je om te klagen.`, [
+    ['Rustig met hem praten en opbeuren', 'kalm', 7, 'Na een uur praten heeft hij weer zin om te knokken.'],
+    ['"Gewoon blijven werken, dan komt het goed."', 'bal', 3, 'Hij knikt. "Je hebt gelijk."'],
+    ['"Misschien ben je gewoon niet goed genoeg."', 'fel', -12, 'Het blijft stil aan de andere kant. Dat had je niet moeten zeggen.']]));
+  if (vriendStats().g > 0 && mag('goal', 1)) L.push(ev('goal', `${vn} scoorde het winnende doelpunt en tagt jou in zijn post: "Voor mijn broer."`, [
+    ['Een lief bericht terugsturen', 'kalm', 5, 'Jullie volgers vinden het prachtig.'],
+    ['Liken en een emoji sturen', 'bal', 2, 'Hij stuurt een emoji terug.'],
+    ['"Mooi, maar mijn goal van vorige week was mooier 😏"', 'fel', 1, 'Hij lacht. Jullie gaan het hele weekend door met plagen.']]));
+  if (mag('ouders', 2)) L.push(ev('ouders', `${vn} vraagt je mee naar zijn ouders. Zijn moeder heeft je lievelingseten gemaakt, net als vroeger.`, [
+    ['Gaan, en de afwas doen', 'kalm', 7, 'Zijn moeder knuffelt je bij de deur. "Je bent hier altijd welkom."'],
+    ['Gaan, maar op tijd naar huis', 'bal', 4, 'Een fijne avond.'],
+    ['Afzeggen', 'fel', -5, `${vn} zegt dat het niet erg is. Zijn moeder vond het wel jammer.`]]));
+  if (mag('verjaardag', 1)) L.push(ev('verjaardag', `${vn} is jarig en geeft een feestje. Hij rekent op je.`, [
+    ['Gaan, met een mooi cadeau', 'kalm', 6, `Je geeft hem een ingelijste foto van jullie twee op het jeugdtoernooi. Hij is er stil van.`],
+    ['Even langs voor een taartje', 'bal', 3, 'Hij is blij dat je er even was.'],
+    ['Een appje: "Gefeliciteerd!"', 'fel', -4, 'Hij reageert met een duimpje. Meer niet.']]));
+  if (v.k >= 72 && mag('oproep', Infinity)) L.push(ev('oproep', `Groot nieuws: ${vn} is voor het eerst opgeroepen voor het nationale team! Hij belt jou als eerste.`, [
+    ['"Je verdient het, man. Ik ben zo trots."', 'kalm', 6, 'Je hoort dat hij een brok in zijn keel heeft.'],
+    ['"Gefeliciteerd! Laat zien wat je kan."', 'bal', 3, '"Dat ga ik doen," zegt hij.'],
+    ['"Eindelijk. Ik was je al voor."', 'fel', -3, 'Hij lacht, maar het klinkt een beetje geforceerd.']]));
+  if ((S.ronde <= 2 || S.ronde >= AANTAL_RONDES - 3) && mag('vakantie', 2)) L.push(ev('vakantie', `${vn} stelt voor: na het seizoen samen een week op vakantie, net als vroeger met jullie ouders.`, [
+    ['Ja! Een week zon en zee', 'kalm', 8, 'Een week vol lachen, slechte zonnebrand en goede herinneringen.'],
+    ['Een lang weekend', 'bal', 4, 'Kort, maar heerlijk.'],
+    ['"Ik heb al andere plannen"', 'fel', -5, `${vn} gaat dan maar met zijn neef.`]]));
+  if (mag('blessure', 2) && rnd() < .5) L.push(ev('blessure', `${vn} is geblesseerd en ligt een paar weken thuis op de bank. Hij verveelt zich kapot.`, [
+    ['Langsgaan met een spelcomputer', 'kalm', 7, 'Jullie gamen de hele middag. Hij vergeet zijn knie even.'],
+    ['Een beterschapskaart sturen', 'bal', 2, 'Hij zet hem op zijn kast.'],
+    ['"Ik heb het druk, sterkte"', 'fel', -5, 'Hij snapt het, zegt hij.']]));
+  return L;
 }
 
 // ---------- elke week: jullie band, en een nieuwe kans voor de zaakwaarnemer ----------
 export function vriendWeek(eerste){
   const sp = S.sp, v = sp.vriend, J = sp.journey; if (!v || S.trainer) return;
-  vriendInhalen();
+  vriendInhalen(); vriendTalent();
   if (v.komt && (eerste || (v.komt.na === 'winter' && S.ronde >= WINTER))) vriendKomt(); // hij komt naar jouw club
   if (!eerste && S.ronde >= WINTER && !sp.clubloos) vriendWinter();
   if (eerste) return;

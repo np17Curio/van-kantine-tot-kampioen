@@ -109,7 +109,7 @@ export function uiterlijkVoor(sleutel, eigen){
   const huid = d(HUID.length);
   const u = {huid, haar: huid >= 4 && d(3) ? 0 : d(HAAR.length), kapsel:KAPSELS[d(KAPSELS.length)], lengte:.93 + d(15) / 100, bouw:.9 + d(21) / 100, schoen:d(SCHOENEN.length),
     stijl:{arm:.8 + d(41) / 100, pas:.9 + d(26) / 100, houding:d(11) / 100, veer:.85 + d(31) / 100}};
-  if (eigen){ if (HUID[eigen.huid]) u.huid = eigen.huid; if (HAAR[eigen.haar]) u.haar = eigen.haar; if (KAPSELS.includes(eigen.kapsel)) u.kapsel = eigen.kapsel;
+  if (eigen){ if (HUID[eigen.huid]) u.huid = eigen.huid; if (HAAR[eigen.haar]) u.haar = eigen.haar; if (KAPSELS.includes(eigen.kapsel)) u.kapsel = eigen.kapsel; if (SCHOENEN[eigen.schoen]) u.schoen = eigen.schoen;
     // gekozen lengte (165-200 cm) en bouw (bmi 20-27,5)
     if (eigen.lengte) u.lengte = .93 + Math.max(0, Math.min(35, eigen.lengte - 165)) / 35 * .14; if (eigen.bmi) u.bouw = .9 + Math.max(0, Math.min(7.5, eigen.bmi - 20)) / 7.5 * .2; }
   return u;
@@ -247,6 +247,22 @@ export function maakModelSpeler(uit, tenue){
   let mixer = null, idle = null;
   if (BASIS.clip){ mixer = new THREE.AnimationMixer(obj); idle = mixer.clipAction(THREE.AnimationUtils.subclip(BASIS.clip, 'rust', 0, 130, 30)); idle.play(); mixer.setTime((hashGetal(JSON.stringify(uit)) % 400) / 100); }
   return {obj, botten, meshes, mixer, idle, metSpoor:BASIS.metSpoor, tenueKey:tenueKey(tenue), stijl:uit.stijl};
+}
+// De aanvoerdersband: een gele ring om de linkerbovenarm, vast aan het bot (zo beweegt hij mee met elke animatie).
+// Maat en stand uit het bot zelf: de lengte tot de elleboog, de ring iets dikker dan de mouw, langs de richting van de arm.
+export function zetBand(m){
+  const bot = m && m.botten.upperarm_l; if (!bot || m.band) return;
+  const elleboog = m.botten.lowerarm_l, lengte = elleboog && elleboog.parent === bot ? elleboog.position.length() : bot.children.reduce((a, c) => Math.max(a, c.position.length()), 0) || 25;
+  const r = lengte * .23, hoog = lengte * .16, groep = new THREE.Group();
+  const geel = materiaal('band|geel', () => new THREE.MeshLambertMaterial({color:new THREE.Color('#f3c44f'), side:THREE.DoubleSide}));
+  const rand = materiaal('band|rand', () => new THREE.MeshLambertMaterial({color:new THREE.Color('#2a2a2a'), side:THREE.DoubleSide}));
+  const ring = new THREE.Mesh(new THREE.CylinderGeometry(r, r, hoog, 18, 1, true), geel); groep.add(ring);
+  for (const y of [-hoog / 2, hoog / 2]){ const rd = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.01, r * 1.01, hoog * .14, 18, 1, true), rand); rd.position.y = y; groep.add(rd); }
+  const richting = (bot.userData.richting || new THREE.Vector3(0, 1, 0)).clone().normalize();
+  groep.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), richting);
+  groep.position.copy(richting).multiplyScalar(lengte * .45);
+  groep.traverse(o => { if (o.isMesh){ o.frustumCulled = false; o.userData.band = true; m.meshes.push(o); } });
+  bot.add(groep); m.band = groep;
 }
 // Ander tenue (bijvoorbeeld bij strafschoppen wisselt de rol), zonder de kloon opnieuw te maken
 export function zetTenue(m, tenue){

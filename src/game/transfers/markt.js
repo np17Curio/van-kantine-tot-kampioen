@@ -1,6 +1,7 @@
 import { S, club, mod } from '../../core/state.js';
 import { clamp, esc, geldTxt, pick, randInt, rnd } from '../../core/utils.js';
-import { BASE, CLUBS, DIVS, LAAGSTE, divClubs } from '../../data/gegevens.js';
+import { BASE, CLUBS, DIVS, LAAGSTE, NL_CLUBS, divClubs, ligaVan } from '../../data/gegevens.js';
+import { LAND_DATA, SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
 import { ACHTERNAMEN, OPBOUW, POS_NAAM, VOORL, selectie } from '../competitie/spelers.js';
 import { kortClub, metVoorletter } from '../media/nieuws.js';
 import { krantMelding } from '../media/roddel.js';
@@ -95,6 +96,7 @@ export function clubTransfers(soort, {zonderMijn = false} = {}){
     const speler = kiesSpeler(verkoper, koper); if (!speler) continue;
     const d = doeDeal(verkoper, koper, speler, hoger, delta, soort); if (d) deals.push(d);
   }
+  deals.push(...buitenlandAankopen(comp, soort, mijn, zonderMijn, delta));
   const inhaal = inhaalAankopen(zonderMijn ? comp.filter(i => i !== mijn) : comp, onder, soort);
   deals.push(...inhaal.deals);
   if (soort === 'zomer') jeugdDoorstroom(comp.includes(mijn) ? comp : comp.concat(mijn));
@@ -103,6 +105,59 @@ export function clubTransfers(soort, {zonderMijn = false} = {}){
   markNieuws(deals, t, mijn, jeugd, opgekomen, gestopt, inhaal.clubs);
   return deals;
 }
+// ---------- Aankopen in het buitenland ----------
+// Clubs halen ook spelers bij clubs uit andere landen. In de hoogste league kan dat een echte versterking zijn,
+// en een topclub haalt soms een ster. De speler komt in de basis (neemOp) en de club wordt iets sterker (binnen MAX_DELTA).
+const VER_LANDEN = ['Brazilië', 'Argentinië', 'Kroatië', 'Servië', 'Nigeria', 'Marokko', 'Japan', 'Mexico'];
+const LAND_NAMEN = {
+  Nederland:['De Jong', 'Van den Berg', 'Bakker', 'Visser', 'Smit', 'Meijer', 'De Boer', 'Mulder'],
+  'België':['Peeters', 'Janssens', 'Maes', 'Claes', 'Goossens', 'Wouters', 'De Smet', 'Lambert'],
+  Engeland:['Smith', 'Walker', 'Taylor', 'Wright', 'Hughes', 'Clarke', 'Bennett', 'Hall'],
+  Duitsland:['Müller', 'Schmidt', 'Wagner', 'Becker', 'Hoffmann', 'Krüger', 'Neumann', 'Werner'],
+  Frankrijk:['Martin', 'Bernard', 'Dubois', 'Laurent', 'Moreau', 'Girard', 'Fontaine', 'Mbemba'],
+  Spanje:['García', 'Fernández', 'López', 'Martínez', 'Navarro', 'Ruiz', 'Morales', 'Ortega'],
+  'Italië':['Rossi', 'Bianchi', 'Romano', 'Ferrari', 'Esposito', 'Colombo', 'Ricci', 'Greco'],
+  Portugal:['Silva', 'Santos', 'Ferreira', 'Pereira', 'Costa', 'Oliveira', 'Rodrigues', 'Almeida'],
+  'Brazilië':['Souza', 'Lima', 'Carvalho', 'Ribeiro', 'Alves', 'Barbosa', 'Gomes', 'Nascimento'],
+  'Argentinië':['González', 'Romero', 'Acosta', 'Benítez', 'Sosa', 'Medina', 'Herrera', 'Paredes'],
+  'Kroatië':['Kovačić', 'Horvat', 'Babić', 'Marić', 'Jurić', 'Perić'], 'Servië':['Jovanović', 'Petrović', 'Nikolić', 'Marković', 'Đorđević'],
+  Nigeria:['Okafor', 'Adeyemi', 'Okonkwo', 'Eze', 'Balogun', 'Nwosu'], Marokko:['El Idrissi', 'Benali', 'Ziyech', 'Amrabat', 'Haddadi', 'Tahiri'],
+  Japan:['Tanaka', 'Suzuki', 'Kamada', 'Ito', 'Nakamura', 'Yamada'], Mexico:['Hernández', 'Ramírez', 'Guzmán', 'Lozano', 'Corona', 'Vega'],
+};
+// Een club uit dat land (de speelbare landen hebben echte clubnamen; een ster komt van een van de grotere clubs)
+function vanClub(land, ster){
+  if (VER_LANDEN.includes(land)) return null;
+  const lijst = land === 'Nederland' ? NL_CLUBS : (LAND_DATA[land] || {}).clubs || [], n1 = ligaVan(land).n[0];
+  const l = lijst.slice(0, ster ? Math.min(6, n1) : n1); return l.length ? pick(l) : null;
+}
+function transferSom(k, ster){
+  const [lo, hi] = ster ? [1e7, 3e7] : k >= 85 ? [5e6, 15e6] : k >= 75 ? [2e6, 6e6] : k >= 65 ? [6e5, 2e6] : [1e5, 6e5];
+  return Math.round((lo + rnd() * (hi - lo)) / (lo >= 1e6 ? 1e5 : 1e4)) * (lo >= 1e6 ? 1e5 : 1e4);
+}
+export function buitenlandAankopen(comp, soort, mijn, zonderMijn, delta = {}){
+  const deals = [], hier = thuisLand(), landen = SPEEL_LANDEN.filter(l => l !== hier).concat(VER_LANDEN);
+  for (const id of comp){
+    if (zonderMijn && id === mijn) continue;
+    const c = CLUBS[id], top = c.t === 1, kans = top ? clamp(.18 + (c.s - 65) * .012, .1, .4) : .08;
+    const n = (rnd() < (soort === 'zomer' ? kans : kans / 3) ? 1 : 0) + (soort === 'zomer' && top && c.s >= 78 && rnd() < .2 ? 1 : 0);
+    for (let i = 0; i < n; i++){
+      const sel = selectie(id), zwak = sel.filter(x => x.basis && x.k !== undefined && (x.pos !== 'K' || rnd() < .15)).sort((a, b) => a.k - b.k)[0]; if (!zwak) break;
+      const ster = top && c.s >= 76 && rnd() < .15;
+      const k = clamp(ster ? c.s + randInt(3, 6) : top ? c.s + randInt(-1, 3) : c.s + randInt(-2, 1), 30, 92);
+      if (k < zwak.k + 2) continue; // alleen kopen als hij echt beter is dan wie er nu staat
+      const land = pick(landen), namen = (LAND_NAMEN[land] || ACHTERNAMEN).filter(a => naamVrij(sel, a)), nm = namen.length ? pick(namen) : pick(ACHTERNAMEN.filter(a => naamVrij(sel, a))) || 'Novak';
+      const nieuw = {v:pick(VOORL), n:nm, pos:zwak.pos, basis:true, k, lft:ster ? randInt(23, 28) : randInt(21, 29), g:zwak.g, a:zwak.a};
+      neemOp(id, nieuw);
+      const plus = ster ? 1 : 0, kan = Math.max(0, MAX_DELTA - (delta[id] || 0)), d0 = Math.min(plus, kan);
+      if (d0 > 0){ c.s = clamp(c.s + d0, 30, 95); delta[id] = (delta[id] || 0) + d0; }
+      deals.push(noteerDeal(null, id, nieuw, soort, {buitenland:true, land, vanNaam:vanClub(land, ster), som:transferSom(k, ster), ster, k}));
+    }
+  }
+  return deals;
+}
+// Waar komt een buitenlandse aankoop vandaan: "Real Montaña (Spanje)" of "Brazilië"
+export const buitenlandBron = d => d.vanNaam ? `${d.vanNaam} (${d.land})` : d.land;
+
 // Inhaalaankopen: een club die duidelijk onder de rest van zijn competitie zit (zoals een promovendus) haalt gericht
 // spelers die beter zijn dan wat er staat. Geen sterren: de spelers hooguit net onder het gemiddelde van de competitie,
 // en de club zelf komt niet verder dan net boven de zwakste andere club.
@@ -192,17 +247,20 @@ export function jeugdDoorstroom(clubs){
 // Wat het voor jou betekent, en de krant
 function markNieuws(deals, t, mijn, jeugd, opgekomen = [], gestopt = [], inhaal = []){
   const sp = S.sp, cn = id => id == null ? 'het buitenland' : CLUBS[id].n, naam = d => metVoorletter(d), prijs = d => d.som ? ` voor ${geldTxt(d.som)}` : '';
-  const herkomst = d => d.vrij ? 'transfervrij uit het buitenland' : d.reserve ? `reservespeler bij ${cn(d.van)}` : `van ${cn(d.van)}`;
+  const herkomst = d => d.buitenland ? `van ${buitenlandBron(d)}` : d.vrij ? 'transfervrij uit het buitenland' : d.reserve ? `reservespeler bij ${cn(d.van)}` : `van ${cn(d.van)}`;
   const erin = deals.filter(d => d.naar === mijn), eruit = deals.filter(d => d.van === mijn), rest = deals.filter(d => d.naar !== mijn && d.van !== mijn && !d.inhaal);
   const tekst = [];
   // clubs die achterlopen en zich gericht versterken
   for (const c of inhaal){ const l = deals.filter(d => d.inhaal && d.naar === c.id);
     krantMelding(`${cn(c.id)} slaat toe op de transfermarkt: ${l.length} ${l.length === 1 ? 'versterking' : 'versterkingen'}`, `${cn(c.id)} wil niet achterblijven in de ${DIVS[t]} en haalt ${l.map(d => `${naam(d)} (${POS_NAAM[d.pos].toLowerCase()}, ${herkomst(d)})`).join(', ')}. Geen grote namen, wel spelers die het team beter maken.`); }
-  for (const d of erin.filter(d => !d.inhaal).slice(0, 2)) krantMelding(`${cn(mijn)} haalt ${naam(d)} bij ${cn(d.van)}`, `De ${POS_NAAM[d.pos].toLowerCase()} komt over${prijs(d)}. Een versterking voor de selectie.`);
+  for (const d of erin.filter(d => !d.inhaal && !d.buitenland).slice(0, 2)) krantMelding(`${cn(mijn)} haalt ${naam(d)} bij ${cn(d.van)}`, `De ${POS_NAAM[d.pos].toLowerCase()} komt over${prijs(d)}. Een versterking voor de selectie.`);
+  // aankopen in het buitenland: jouw club altijd, een ster bij een andere club ook
+  for (const d of erin.filter(d => d.buitenland)) krantMelding(d.ster ? `Grote naam voor ${cn(mijn)}: ${naam(d)}!` : `${cn(mijn)} haalt ${naam(d)} uit ${d.land}`, `De ${POS_NAAM[d.pos].toLowerCase()} komt${prijs(d)} over van ${buitenlandBron(d)}.${d.ster ? ' Een echte topspeler: de concurrentie op zijn plek wordt moordend.' : ' Een versterking voor de selectie.'}`);
+  for (const d of deals.filter(d => d.buitenland && d.ster && d.naar !== mijn).slice(0, 2)) krantMelding(`${cn(d.naar)} haalt ster ${naam(d)} uit ${d.land}`, `${cn(d.naar)} betaalt${prijs(d)} voor de ${POS_NAAM[d.pos].toLowerCase()} van ${buitenlandBron(d)}. Een signaal aan de rest van de ${DIVS[t]}.`);
   for (const d of eruit.slice(0, 2)) krantMelding(`${cn(mijn)} verkoopt ${naam(d)} aan ${cn(d.naar)}`, `De ${POS_NAAM[d.pos].toLowerCase()} vertrekt${prijs(d)}. Een gat in de selectie.`);
-  if (rest.length) krantMelding(`Transfers in de ${DIVS[t]}`, rest.slice(0, 5).map(d => `${kortClub(d.naar)} haalt ${naam(d)} (${kortClub(d.van)})`).join(' · ') + '.');
+  if (rest.length) krantMelding(`Transfers in de ${DIVS[t]}`, rest.slice(0, 5).map(d => `${kortClub(d.naar)} haalt ${naam(d)} (${d.buitenland ? d.land : kortClub(d.van)})`).join(' · ') + '.');
   if (!jeugd){
-    if (erin.length) tekst.push(`Nieuw bij ${cn(mijn)}: ${erin.map(d => `${naam(d)} (${POS_NAAM[d.pos].toLowerCase()}, ${herkomst(d)})`).join(', ')}.`);
+    if (erin.length) tekst.push(`Nieuw bij ${cn(mijn)}: ${erin.map(d => `${naam(d)} (${POS_NAAM[d.pos].toLowerCase()}, ${herkomst(d)}${d.ster ? ', een ster' : ''})`).join(', ')}.`);
     const ik = inhaal.find(c => c.id === mijn); if (ik) tekst.push(`De club wil niet achterblijven in de ${DIVS[t]}: met de nieuwe spelers gaat de clubsterkte omhoog naar ${CLUBS[mijn].s}.`);
     for (const d of eruit){
       const b = band(d.n); delete kleedkamer().rel[d.n];
@@ -247,5 +305,5 @@ export function vMarkt(){
   const {t} = marktComp(), l = (S.transfers || []).filter(d => `${d.jaar}-${d.soort}` === S.marktKlaar);
   if (!l.length) return '';
   return `<details class="paneel" open><summary class="label" style="cursor:pointer">Transfers in de ${DIVS[t]} (${l.length})</summary><div class="uitslagen" style="margin-top:8px">${l.map(d =>
-    `<div class="pd"><span><span class="goedtxt">▲ ${esc(kortClub(d.naar))}</span> haalt <b>${esc(metVoorletter(d))}</b> <span class="muted klein-tekst">(${POS_NAAM[d.pos].toLowerCase()})</span></span><span class="muted">${d.van == null ? 'transfervrij' : `<span class="fouttxt">▼ ${esc(kortClub(d.van))}</span>${d.reserve ? ' (reserve)' : ''}`}${d.som ? ` · ${geldTxt(d.som)}` : ''}</span></div>`).join('')}</div></details>`;
+    `<div class="pd"><span><span class="goedtxt">▲ ${esc(kortClub(d.naar))}</span> haalt <b>${esc(metVoorletter(d))}</b> <span class="muted klein-tekst">(${POS_NAAM[d.pos].toLowerCase()})</span></span><span class="muted">${d.buitenland ? `🌍 ${esc(buitenlandBron(d))}${d.ster ? ' ⭐' : ''}` : d.van == null ? 'transfervrij' : `<span class="fouttxt">▼ ${esc(kortClub(d.van))}</span>${d.reserve ? ' (reserve)' : ''}`}${d.som ? ` · ${geldTxt(d.som)}` : ''}</span></div>`).join('')}</div></details>`;
 }

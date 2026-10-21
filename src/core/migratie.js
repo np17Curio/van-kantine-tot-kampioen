@@ -1,9 +1,12 @@
-import { CLUBS, ELITE_NAAM, GAST_START, landBasis, zetClubs } from '../data/gegevens.js';
+import { CLUBS, ELITE_NAAM, GAST_START, herschaalLand, landBasis, zetClubs } from '../data/gegevens.js';
 import { zetLand } from '../data/landen.js';
 import { maakSchoolvraag } from '../game/prive/school.js';
 
 // Na herladen bestaan functies in opgeslagen gebeurtenissen niet meer: zet het spel terug naar een veilige stap
 export function herstel(st){
+  // Elk land een eigen niveau (UEFA-ranking): oude opslag eenmalig omrekenen
+  if (st && !st.niveauV2){ st.niveauV2 = true; if (st.clubs) st.clubs = herschaalLand(st.clubs, st.land || 'Nederland');
+    if (st.landen) for (const l in st.landen) if (st.landen[l] && st.landen[l].clubs) st.landen[l].clubs = herschaalLand(st.landen[l].clubs, l); }
   if (st) zetClubs(st.clubs || landBasis(st.land || 'Nederland'));
   zetLand(st && st.land || 'Nederland');
   if (st && st.gasten) st.gasten.forEach((x, i) => { if (CLUBS[GAST_START + i]) Object.assign(CLUBS[GAST_START + i], x); }); // de Europese gasten van dit seizoen

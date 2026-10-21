@@ -1,6 +1,6 @@
 import { S, VERSIE, club, ovr, seizoenLabel, setS } from '../../core/state.js';
 import { clamp, pick, randInt } from '../../core/utils.js';
-import { AANV, CLUBS, LAAGSTE, LEGENDE, OPST_BASIS, POS, STATUS, divClubs, zetClubs, ELITE_NAAM, landBasis } from '../../data/gegevens.js';
+import { AANV, CLUBS, LAAGSTE, LEGENDE, OPST_BASIS, POS, STATUS, divClubs, zetClubs, ELITE_NAAM, landBasis, niveauVan } from '../../data/gegevens.js';
 import { SPEEL_LANDEN, zetLand } from '../../data/landen.js';
 import { nieuweBekers } from '../competitie/beker.js';
 import { opstMax } from '../team/opstelling.js';
@@ -108,7 +108,9 @@ export function nieuwSpel(naam, pos, herkomst, land, opties = {}){
   for (let i = 0; i < 8; i++) CLUBS[i].n = ELITE_NAAM[i]; // nieuwe carrière: de oorspronkelijke Europese Elite
   const lft = LEEFTIJDEN.includes(opties.leeftijd) ? opties.leeftijd : 15, V = startVoor(lft);
   const st = POS[pos].start, a = {};
-  for (const k in st) a[k] = st[k] + V.extra + randInt(-3, 3);
+  // in een sterker land begin je iets hoger (de onderste clubs zijn daar ook sterker; LAND_NIVEAU)
+  const landExtra = Math.round((niveauVan(land).t2[1] - 51) * .5);
+  for (const k in st) a[k] = st[k] + V.extra + landExtra + randInt(-3, 3);
   // Nog geen club: eerst de selectiewedstrijden (selectie.js). Tot dan staat er een voorlopige club in sp.club (voor de weergave)
   const id = pick(divClubs(LAAGSTE)), klasse = ovr({pos, a});
   const status = 8, niveau = 0;
@@ -118,7 +120,7 @@ export function nieuwSpel(naam, pos, herkomst, land, opties = {}){
     focus:65, school:{cijfers:[], gehad:[]}, ouders:{boos:false, trots:false},
     herkomst: herkomst || {geboren:'Nederland', vader:'Nederland', moeder:'Nederland'}, land:null, bonds:{}, agent:{doel:null, antwoord:null, gehaald:false, sugg:null},
     pers:Array.isArray(opties.pers) ? opties.pers.filter(p => PERS[p]).slice(0, MAX_PERS) : [], startVerhaal:V.id, ...(opties.uiterlijk ? {uiterlijk:{...opties.uiterlijk}} : {}), ...(opties.sleutel ? {uitSleutel:opties.sleutel} : {})};
-  setS({v:VERSIE, mig4:true, mig5:true, mig6:true, land, startLand:land, sp, jaar:2026, ronde:0, tab:nieuweTabellen(), ss:{wed:0,g:0,a:0,c:[],bods:0}, vorigGem:6.5,
+  setS({v:VERSIE, mig4:true, mig5:true, mig6:true, niveauV2:true, land, startLand:land, sp, jaar:2026, ronde:0, tab:nieuweTabellen(), ss:{wed:0,g:0,a:0,c:[],bods:0}, vorigGem:6.5,
     car:{wed:0,g:0,a:0,clubs:[{club:sp.club, van:2026, land}], prijzen:[], hist:[], maxOvr:ovr(sp), maxWaarde:0, int:{}},
     fase:'week', week:null, ev:null, M:null, venster:null, eind:null});
   S.ss.bekers = nieuweBekers();

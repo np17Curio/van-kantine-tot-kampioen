@@ -15,6 +15,9 @@ import { DATE_PRIJS, STAPPEN_PRIJS, cadeauPrijs, datingApp, gaStappen, relatieAc
 import { beantwoord, spijbelen } from '../../game/prive/school.js';
 import { POSTS, VOLG_ACTIES, influencerPerWeek, kledingPerWeek, post, social, volgActie, volgersTxt } from '../../game/prive/social.js';
 import { koop } from '../../game/prive/sponsors.js';
+import { OORDEEL, besteLeagues, mijnLeague, oordeel } from '../../game/speler/niveau.js';
+import { KAPPER, MERKEN, kanAanvragen, kanKapper, kansTxt, mijnUiterlijk, naarKapper, schoenDeal, schoenKans, vraagAan } from '../../game/prive/schoenen.js';
+import { HAAR_NAAM, KAPSEL_KEUZE } from '../../data/uiterlijk.js';
 import { vUitgaan } from '../../game/prive/verleidingen.js';
 import { AUTOS, EXAMEN_PRIJS, RIJLES, THEORIE_PRIJS, WONINGEN, autoInfo, autoWaarde, koopAuto, praktijkExamen, rijles, startTheorie, theorieAntwoord, verhuis, verkoopWaarde, woning } from '../../game/prive/wonen-auto.js';
 import { welkomTekst } from '../../game/speler/startverhaal.js';
@@ -30,7 +33,7 @@ import { vContract } from '../../game/transfers/contract.js';
 import { isDerby, vFans } from '../../game/wedstrijd/fans-pers.js';
 import { focusBoost, focusStaat, focusWinst } from '../../game/wedstrijd/momenten.js';
 import { reunieMet, vReunie } from '../../game/wedstrijd/reunie.js';
-import { startWedstrijd, rustWeek } from '../../game/wedstrijd/wedstrijd.js';
+import { simuleer, startWedstrijd, rustWeek } from '../../game/wedstrijd/wedstrijd.js';
 import { doeActiviteit, plafond, trainXP } from '../../game/week.js';
 import { eisRij, vAgent } from './agent.js';
 import { TOON, VRIEND_ACTIES, bijJou, kanVragen, vriendRolTxt, vriendClubNaam, vriendHier, vriendLand, kanUitpraten, kanVriendActie, speeltTegenVriend, vriendKlasse, vriendStats, uitpraten, vriendActie, vriendDuelAntwoord, vriendDuelVraag } from '../../game/speler/journey.js';
@@ -212,7 +215,7 @@ function vDezeWeek(){
   } else if (sp.geboorte) cta = `<span class="muted">Kies eerst een naam voor je kindje.</span>`;
   else if (w.school && !w.school.klaar) cta = `<span class="muted">Maak eerst je schoolwerk af, daarna kun je spelen.</span>`;
   else if (!fx) cta = knop('Speelvrije week · verder', rustWeek);
-  else cta = knop(sp.o23 && sp.blessure <= 0 && sp.fit >= 20 ? `Speel met de O23 tegen ${esc(opp.n)} O23` : `Speel ronde ${S.ronde + 1}: ${fx.thuis ? esc(club().n) + ' – ' + esc(opp.n) : esc(opp.n) + ' – ' + esc(club().n)}`, startWedstrijd);
+  else cta = knop(sp.o23 && sp.blessure <= 0 && sp.fit >= 20 ? `Speel met de O23 tegen ${esc(opp.n)} O23` : `Speel ronde ${S.ronde + 1}: ${fx.thuis ? esc(club().n) + ' – ' + esc(opp.n) : esc(opp.n) + ' – ' + esc(club().n)}`, startWedstrijd) + knop('⏩ Simuleren', () => { startWedstrijd(); simuleer(); }, 'hoofd tweede');
   html += vFocusExtra();
   const rest = teamOpen();
   html += `<div class="ctabalk">${cta}${w.gedaan && rest ? `<span class="niv">Nog ${rest} ${rest === 1 ? 'teamactie' : 'teamacties'} open bij <b>Team</b></span>` : ''}</div>`;
@@ -224,7 +227,20 @@ function vTeamTab(){
   return h || `<p class="muted">Bij de O23 heb je geen eigen kleedkamer. Bewijs jezelf eerst.</p>`;
 }
 function vCarriereTab(){
-  return vGoudenBal() + vRivaal() + vAgent() + vContract() + vVertrek();
+  return vNiveau() + vGoudenBal() + vRivaal() + vAgent() + vContract() + vVertrek();
+}
+// Jouw niveau: te goed of te slecht voor je competitie, en welke leagues het beste bij je passen (niveau.js)
+function vNiveau(){
+  const sp = S.sp, o = ovr(sp), M = mijnLeague(), best = besteLeagues(o), bereik = L => `${L.bodem}–${L.top}, gemiddeld ${L.gem}`;
+  const rij = L => { const od = OORDEEL[oordeel(o, L)], nu = M && L.land === M.land && L.t === M.t;
+    return `<tr class="${nu ? 'mij' : ''}"><td>${esc(L.naam)} <span class="muted klein-tekst">(${esc(L.land)})</span></td><td class="muted klein-tekst">${bereik(L)}</td><td><span class="risico ${od.cls}">${od.n}</span></td></tr>`; };
+  const alle = best.slice().sort((a, b) => b.gem - a.gem);
+  return `<div class="paneel"><span class="label">Jouw niveau</span>
+    ${M ? `<p>Je bent klasse <b>${o}</b>. In de ${esc(M.naam)} (${bereik(M)}) ben je <span class="risico ${OORDEEL[M.oordeel].cls}">${OORDEEL[M.oordeel].n.toLowerCase()}</span>: ${OORDEEL[M.oordeel].d}.</p>` : `<p>Je bent klasse <b>${o}</b>.</p>`}
+    <span class="label">Past het best bij jou</span>
+    ${best.slice(0, 3).map(L => `<p>${M && L.land === M.land && L.t === M.t ? '✓ ' : ''}<b>${esc(L.naam)}</b> <span class="muted">(${esc(L.land)}, ${bereik(L)})</span></p>`).join('')}
+    ${M && M.oordeel === 'tegoed' ? '<p class="muted klein-tekst">Te goed voor je league? In de zomer melden zich vaak clubs, ook uit het buitenland. Je zaakwaarnemer kan ook een droomclub voor je zoeken.</p>' : M && M.oordeel === 'tehoog' ? '<p class="muted klein-tekst">Te hoog gegrepen? Een verhuur of een stap terug geeft je speeltijd om te groeien.</p>' : ''}
+    <details><summary class="label" style="cursor:pointer">Alle competities (${alle.length})</summary><table class="tabel">${alle.map(rij).join('')}</table></details></div>`;
 }
 // De opbouw van je Gouden Bal-punten (ook in het eindscherm)
 export function vGbOpbouw(O, titel){
@@ -444,7 +460,18 @@ function vBuitenBasis(){
     : `<p>${esc(v.voornaam)} ${esc(v.n)} is nu je rivaal${R && R.exVriend ? ` (${esc(rivaalBand(R.band).toLowerCase())})` : ''}.</p>
     <p class="muted klein-tekst">Zit het weer goed tussen jullie (band "Vriendschap"), dan worden jullie weer beste vrienden.</p>
     <div class="keuzes">${keuzeKnop('Het uitpraten', 'jullie band +8', uitpraten, `data-blijf ${kanUitpraten() ? '' : 'disabled'}`)}</div>`);
-  const tabs = [['liefde', 'Liefde', liefde], ['familie', 'Familie', famHtml], ...(v ? [['vriend', v.weg ? 'Ex-vriend' : 'Jeugdvriend', vriendHtml]] : []), ['social', 'Social media', socialHtml], ['dier', 'Huisdieren', dierHtml], ['geld', 'Geld en zaken', geldHtml], ['goed', 'Goede doelen', goedHtml], ['rij', 'Rijbewijs en auto', rij + auto], ['wonen', 'Wonen', wonen], ['uitgaan', 'Uitgaan', vUitgaan()]];
+  // Kapper en voetbalschoenen (schoenen.js)
+  const u = mijnUiterlijk(), dl = schoenDeal(), kapper = kanKapper();
+  const stijlHtml = `<div class="rij" style="align-items:flex-start;gap:14px;flex-wrap:wrap"><figure class="portretfoto" style="max-width:220px"><img data-foto="portret" alt="Jouw speler"><span class="ontwikkel">Foto laden…</span></figure>
+    <div style="flex:1;min-width:220px"><span class="label">Kapper · knippen ${geldTxt(KAPPER.knippen)}, verven ${geldTxt(KAPPER.verven)}${kapper ? '' : ' · deze week al geweest'}</span>
+      <div class="kapsels" role="group" aria-label="Kapsel">${KAPSEL_KEUZE.map(([k, n]) => knop(n, () => naarKapper(k, null), 'klein' + (u.kapsel === k ? ' aan' : ''), `data-blijf aria-pressed="${u.kapsel === k}" ${kapper && u.kapsel !== k && sp.geld >= KAPPER.knippen ? '' : 'disabled'}`)).join('')}</div>
+      <span class="label" style="margin-top:8px">Haarkleur</span>
+      <div class="kapsels" role="group" aria-label="Haarkleur">${HAAR_NAAM.map((n, i) => knop(n, () => naarKapper(null, i), 'klein' + (u.haar === i ? ' aan' : ''), `data-blijf aria-pressed="${u.haar === i}" ${kapper && u.haar !== i && sp.geld >= KAPPER.verven ? '' : 'disabled'}`)).join('')}</div></div></div>
+    <span class="label winkelkop">Voetbalschoenen${dl ? ` · jij speelt op ${esc(dl.merk)} (${geldTxt(dl.bedrag)} per jaar, nog ${dl.jaren} ${dl.jaren === 1 ? 'seizoen' : 'seizoenen'})` : ''}</span>
+    <p class="muted klein-tekst">Hoe beter je bent, hoe groter het merk dat je wil hebben. De grote merken nemen alleen de beste spelers. Per merk kun je het één keer per halfjaar vragen.</p>
+    <div class="keuzes">${MERKEN.map(m => { const reden = kanAanvragen(m), k = schoenKans(m);
+      return keuzeKnop(`<span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${m.kleur};margin-right:6px;vertical-align:middle"></span>${esc(m.n)}${m.min ? ` · klasse ${m.min}` : ''}`, `${esc(m.tekst)} · ±${geldTxt(m.basis)} per jaar · ${esc(m.perkTxt)} · ${reden ? esc(reden) : kansTxt(k)}`, () => vraagAan(m.id), `data-blijf ${reden || k === null ? (reden ? 'disabled' : '') : ''}`); }).join('')}</div>`;
+  const tabs = [['liefde', 'Liefde', liefde], ['familie', 'Familie', famHtml], ...(v ? [['vriend', v.weg ? 'Ex-vriend' : 'Jeugdvriend', vriendHtml]] : []), ['social', 'Social media', socialHtml], ['dier', 'Huisdieren', dierHtml], ['geld', 'Geld en zaken', geldHtml], ['stijl', 'Kapper en schoenen', stijlHtml], ['goed', 'Goede doelen', goedHtml], ['rij', 'Rijbewijs en auto', rij + auto], ['wonen', 'Wonen', wonen], ['uitgaan', 'Uitgaan', vUitgaan()]];
   const tab = tabs.find(x => x[0] === tmp.buitenTab) || tabs[0];
   return `<section id="buitenPanel" class="paneel sectie"><h3 class="sectiekop">Buiten het voetbal · ${esc(samenvatting)}</h3>
     <div class="buitentabs" role="tablist" style="margin-top:8px">${tabs.map(([k, l]) => knop(l, () => { tmp.buitenTab = k; }, 'comptab' + (k === tab[0] ? ' aan' : ''), `data-blijf role="tab" aria-selected="${k === tab[0]}"`)).join('')}</div>

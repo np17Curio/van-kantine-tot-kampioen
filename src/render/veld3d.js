@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { laadModel, maakModelSpeler, modelKlaar, tenueVoor, uiterlijkVoor, zetTenue } from './spelermodel.js';
+import { laadModel, maakModelSpeler, modelKlaar, tenueVoor, uiterlijkVoor, zetBand, zetTenue } from './spelermodel.js';
 import { veer, volgModel } from './beweging.js';
 
 /* ===================== 3D-veld ===================== */
@@ -141,8 +141,10 @@ function maakSpeler(kleur){
     return {sch, elleboog};
   };
   const L = been(-.11), Rb = been(.11), LA = arm(-.27), RA = arm(.27);
+  // de aanvoerdersband (alleen bij jou als aanvoerder zichtbaar)
+  const bandM = new THREE.Mesh(new THREE.CylinderGeometry(.068, .066, .07, 12, 1, true), new THREE.MeshLambertMaterial({color:'#f3c44f', side:THREE.DoubleSide})); bandM.position.y = -.12; bandM.visible = false; bandM.userData.band = true; LA.sch.add(bandM);
   root.scale.setScalar(SCHAAL);
-  return {root, lijf, L, R:Rb, LA, RA, shirt, sok, broekM:broek, kleur, fase:Math.random() * 6, kijk:0, x:null, y:null, duik:1};
+  return {root, lijf, L, R:Rb, LA, RA, shirt, sok, broekM:broek, bandM, kleur, fase:Math.random() * 6, kijk:0, x:null, y:null, duik:1};
 }
 function schaduw(){ const m = new THREE.Mesh(new THREE.CircleGeometry(.62 * SCHAAL, 18), R.schaduwM); m.rotation.x = -Math.PI / 2; m.position.y = .015; R.scene.add(m); return m; }
 function nummerSprite(nr){
@@ -203,7 +205,7 @@ export const POSE_NAMEN = Object.keys(POSE);
 // Wie is dit (voor een vast uiterlijk): jij, of een speler van een club. Het hulpskelet (de eenvoudige pop) blijft de bewegingen bepalen, onzichtbaar
 function sleutelVan(e, T){
   const p = T.ploegen || {};
-  if (e.id === 'J' && (e.rol === 'wij' || !e.rol)) return 'jij|' + (p.jij || 'x') + (p.jijUit ? '|' + p.jijUit.huid + p.jijUit.haar + p.jijUit.kapsel + (p.jijUit.lengte || '') + (p.jijUit.bmi || '') : '');
+  if (e.id === 'J' && (e.rol === 'wij' || !e.rol)) return 'jij|' + (p.jij || 'x') + (p.jijUit ? '|' + p.jijUit.huid + p.jijUit.haar + p.jijUit.kapsel + (p.jijUit.lengte || '') + (p.jijUit.bmi || '') + '|' + (p.jijUit.schoen ?? '') : '') + (p.band ? '|C' : '');
   if (e.rol === 'R') return 'scheids|' + (p.zij ?? '');
   const club = e.rol === 'wij' || e.rol === 'k' ? p.wij : p.zij;
   return 'c' + club + '|' + e.id;
@@ -213,10 +215,11 @@ function kleedAan(s, e, T){
   if (s.model && s.modelSleutel === sleutel){ zetTenue(s.model, tenue); return; }
   if (s.modelHouder) s.lijf.remove(s.modelHouder);
   const jij = sleutel.startsWith('jij|'), m = maakModelSpeler(uiterlijkVoor(jij ? 'jij|' + ((T.ploegen || {}).jij || 'x') : sleutel, jij ? (T.ploegen || {}).jijUit : null), tenue); if (!m) return;
+  if (jij && (T.ploegen || {}).band) zetBand(m); // aanvoerder: de band om je arm
   const houder = new THREE.Group(); houder.scale.setScalar(1.86); houder.add(m.obj); s.lijf.add(houder);
   s.model = m; s.modelHouder = houder; s.modelSleutel = sleutel;
   if (m.botten.head && m.botten.neck_01) m.hoofdRust = m.botten.neck_01.userData.rust.clone().multiply(m.botten.head.userData.rust);
-  s.procMeshes = []; s.lijf.traverse(o => { if (o.isMesh && !m.meshes.includes(o)){ o.visible = false; s.procMeshes.push(o); } }); s.ver = false;
+  s.procMeshes = []; s.lijf.traverse(o => { if (o.isMesh && !m.meshes.includes(o) && !o.userData.band){ o.visible = false; s.procMeshes.push(o); } }); s.ver = false;
 }
 // Verder dan zoveel meter van de camera: de eenvoudige pop (scheelt veel rekenwerk; van die afstand zie je het verschil niet)
 // (gemeten vanaf het punt waar de camera op richt: alles wat in beeld is, is het echte model)
@@ -288,6 +291,8 @@ export function teken3D(T, nu, kleuren){
     if (s.kleur !== kl){ s.shirt.color.set(kl); s.sok.color.set(kl); s.kleur = kl; }
     { const tn = (T.ploegen || {}).tenues, br = tn && tn[e.rol] ? tn[e.rol].broek : null; if (br && s.broekKl !== br){ s.broekM.color.set(br); s.broekKl = br; } }
     if (modelKlaar() && !simpel) kleedAan(s, e, T);
+    // de band op de eenvoudige pop: alleen bij jou als aanvoerder, en alleen als het echte model niet zichtbaar is
+    s.bandM.visible = e.id === 'J' && (e.rol === 'wij' || !e.rol) && !!(T.ploegen || {}).band && (simpel || !s.model || !s.modelHouder.visible);
     s.root.visible = s.schaduw.visible = true; gezien.add(e.id);
     const keeper = e.rol === 'K' || e.rol === 'k', z = e.z || 0;
     const nieuw = s.x === null, vx = nieuw || !dt ? 0 : (e.x - s.x) / dt, vy = nieuw || !dt ? 0 : (e.y - s.y) / dt;

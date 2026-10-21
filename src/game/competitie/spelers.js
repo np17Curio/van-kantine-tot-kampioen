@@ -67,7 +67,18 @@ export function startElf(id, metJou, vulPos){
   while (elf.length < plek && bank.length){ const i = Math.max(0, bank.findIndex(x => x.pos === (vulPos || ik))); elf.push(bank.splice(i, 1)[0]); }
   return {elf, bank};
 }
-export function gewogen(lijst, k){ let tot = 0; for (const x of lijst) tot += x[k]; let r = rnd() * tot; for (const x of lijst){ r -= x[k]; if (r <= 0) return x; } return lijst[lijst.length - 1]; }
+// Een speler kiezen naar zijn gewicht (g = scoort vaak, a = geeft vaak assists).
+// Je jeugdvriend scoort naar zijn niveau: minstens als de beste op zijn linie, en vaker naarmate hij beter is dan zijn ploeggenoten
+export function scoorGewicht(x, k, gem){
+  if (!x.vriend || (k !== 'g' && k !== 'a')) return x[k] || 0;
+  const top = (OPBOUW[x.pos] || {g:[1], a:[1]})[k][0], f = Math.max(1, Math.min(2, 1 + ((x.k || 0) - gem) / 10));
+  return Math.max(x[k] || 0, top) * f * (x.basis ? 1 : 1 / 3);
+}
+export function gewogen(lijst, k){
+  const metV = lijst.some(x => x.vriend), b = metV ? lijst.filter(x => x.basis && x.k !== undefined && !x.vriend) : [], gem = b.length ? b.reduce((a, x) => a + x.k, 0) / b.length : 60;
+  const w = x => metV ? scoorGewicht(x, k, gem) : x[k];
+  let tot = 0; for (const x of lijst) tot += w(x); let r = rnd() * tot; for (const x of lijst){ r -= w(x); if (r <= 0) return x; } return lijst[lijst.length - 1];
+}
 export const vindSpeler = (id, n) => selectie(id).find(x => x.n === n) || null;
 // Statistieken van dit seizoen: per club en speler (jij staat erin als 'JIJ')
 export function noteer(club, scorer, gever){

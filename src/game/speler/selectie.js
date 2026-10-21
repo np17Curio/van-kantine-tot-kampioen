@@ -105,6 +105,8 @@ export function maakSelectieBods(g){
   }
   while (bods.length < 3 && vrij(twee).length) voeg(pick(vrij(twee)), b === 2, 'past');
   const o = ovr(S.sp), jong = S.sp.leeftijd < 18 ? .3 : 1;
+  // een club die veel sterker is dan jij (zoals in Engeland): dan begin je bij de O23
+  bods.forEach(x => { if (!x.o23 && o < CLUBS[x.club].s - 14) x.o23 = true; });
   bods.forEach(x => { const c = CLUBS[x.club]; x.salaris = Math.round(salarisVoor(c.t, o, c.s) * (x.o23 ? .5 : 1) * jong * (.9 + rnd() * .25) / 100) * 100; x.jaren = x.o23 ? 2 : randInt(2, 3); x.quote = scoutQuote(x); });
   // Je vriend: op jouw niveau (of hoger) tekent hij vaak bij een van jouw clubs, anders bij een club van zijn eigen niveau
   const vg = vriendGem();

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { balTex, fotoRender, renderer3D } from './veld3d.js';
-import { draaiBot, laadModel, maakModelSpeler, tenueVoor, uiterlijkVoor } from './spelermodel.js';
+import { draaiBot, laadModel, maakModelSpeler, tenueVoor, uiterlijkVoor, zetBand } from './spelermodel.js';
 import { logoURL } from '../data/logos.js';
 
 /* ===================== Fotostudio: jouw speler met een award, voor de krant ===================== */
@@ -73,7 +73,7 @@ function muurTex(ctx){
     const x = k * 256 + (r % 2 ? 128 : 0) + 128, y = r * 88 + 44;
     if (ctx.logoImg && (r + k + 2) % 4 === 1){ g.drawImage(ctx.logoImg, x - 38, y - 38, 76, 76); continue; } // het clublogo op de persmuur
     if ((r + k) % 2){ g.fillStyle = ctx.accent; g.font = '800 26px "Arial Narrow", Impact, sans-serif'; g.fillText(ctx.club.toUpperCase().slice(0, 18), x, y, 230); }
-    else { g.fillStyle = 'rgba(255,255,255,.7)'; g.font = '700 18px "Arial Narrow", Impact, sans-serif'; g.fillText('VAN KANTINE', x, y - 10, 230); g.fillText('TOT KAMPIOEN', x, y + 10, 230); }
+    else { g.fillStyle = 'rgba(255,255,255,.7)'; g.font = '700 18px "Arial Narrow", Impact, sans-serif'; g.fillText('HET GROTE', x, y - 10, 230); g.fillText('DOORBREKEN', x, y + 10, 230); }
   }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
@@ -102,6 +102,7 @@ export async function maakFoto(soort, ctx){
   if (STUDIO.muurKey !== mk){ if (muur.material.map) muur.material.map.dispose(); muur.material.map = muurTex(ctx); muur.material.needsUpdate = true; STUDIO.muurKey = mk; }
   const uit = uiterlijkVoor('jij|' + ctx.sleutel, ctx.uiterlijk), m = maakModelSpeler(uit, tenueVoor('wij', ctx.tenue ? {wij:ctx.tenue} : null));
   if (!m) return null;
+  if (ctx.band) zetBand(m); // aanvoerder: de band om je arm
   // rusthouding uit het begin van de modelanimatie, daarna de pose erop
   if (m.mixer) m.mixer.setTime(.2); // (niet stoppen: dan springt het skelet terug naar de T-houding)
   for (const [bot, ax, ay, az, hoek] of POSES[POSE_VAN[soort]] || []) draaiBot(m.botten[bot], m.obj, ax, ay, az, hoek);

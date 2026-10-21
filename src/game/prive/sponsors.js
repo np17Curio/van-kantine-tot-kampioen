@@ -5,6 +5,7 @@ import { ouders } from './familie.js';
 import { social } from './social.js';
 import { fmt1 } from '../speler/o23.js';
 import { teken } from '../transfers/transfers.js';
+import { schoenEvent } from './schoenen.js';
 import { plafond, verhoog } from '../week.js';
 
 /* ===================== Sponsors ===================== */
@@ -25,7 +26,9 @@ export function sponsorPerk(cat){
 export function maakSponsorEvent(){
   const sp = S.sp; if (!isProf() || sp.o23) return null;
   const deals = sp.sponsors = sp.sponsors || [];
-  const vrij = Object.keys(SPONSOR_CAT).filter(c => !deals.some(d => d.cat === c) && (!SPONSOR_CAT[c].rijbewijs || sp.rijbewijs));
+  // voetbalschoenen: het merk dat bij je niveau past (schoenen.js)
+  if (rnd() < .025 + sp.rep / 1500){ const se = schoenEvent(); if (se) return se; }
+  const vrij = Object.keys(SPONSOR_CAT).filter(c => c !== 'schoenen' && !deals.some(d => d.cat === c) && (!SPONSOR_CAT[c].rijbewijs || sp.rijbewijs));
   if (!vrij.length || rnd() > .05 + sp.rep / 500 + Math.min(.05, Math.max(0, Math.log10(social().volgers + 1) - 3) * .02)) return null;
   const cat = pick(vrij), C = SPONSOR_CAT[cat], merk = pick(C.merken), jaren = randInt(1, 3);
   const deal = {cat, merk, bedrag:sponsorBedrag(cat), jaren, minRep:Math.max(3, Math.round(sp.rep - 15))};

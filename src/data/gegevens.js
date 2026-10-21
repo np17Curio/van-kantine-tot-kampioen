@@ -42,19 +42,33 @@ export const GAST_START = CLUBS.length, GASTEN = 20;
 for (let i = 0; i < GASTEN; i++) CLUBS.push({n:'Europese gast', t:-1, s:75, gast:null});
 export const isGast = id => id >= GAST_START && id < GAST_START + GASTEN;
 // De topclubs van de oude Elite spelen in de hoogste competitie van hun eigen land (op plaats ELITE_ID)
-export const ELITE_THUIS = {Spanje:{n:'Real Montclaro', s:90}, 'Italië':{n:'AC Vellano', s:88}, Frankrijk:{n:'Olympique Lumière', s:85}, Portugal:{n:'Sporting Alvor', s:83}, Duitsland:{n:'Rapid Steinau', s:80}, Engeland:{n:'Celtic Harbour', s:79}};
+export const ELITE_THUIS = {Spanje:{n:'Real Montclaro', s:91}, 'Italië':{n:'AC Vellano', s:89}, Frankrijk:{n:'Olympique Lumière', s:88}, Portugal:{n:'Sporting Alvor', s:83}, Duitsland:{n:'Rapid Steinau', s:89}, Engeland:{n:'Celtic Harbour', s:91}};
 export const ELITE_ID = 15;
-// Startniveau en -sterkte van elke club in een land: de hoogste league van ±80 aflopend naar ±66, de 2e league van ±65 naar ±52.
-// Door promotie en degradatie verandert dat; de stand van zaken staat in S.clubs
+// Het niveau van elk land, naar de UEFA-landenranking (vijf jaar clubcoëfficiënt, 2025/26: Engeland ±117, Italië ±100,
+// Spanje ±96, Duitsland ±92, Frankrijk ±83, Portugal ±73, Nederland ±68, België ±62): sterkte van de beste en de slechtste club per league
+export const LAND_NIVEAU = {
+  Engeland:{t1:[88, 74], t2:[73, 60]}, 'Italië':{t1:[86, 70], t2:[67, 54]}, Spanje:{t1:[86, 68], t2:[66, 53]}, Duitsland:{t1:[85, 69], t2:[67, 55]},
+  Frankrijk:{t1:[83, 66], t2:[64, 52]}, Portugal:{t1:[79, 62], t2:[60, 49]}, Nederland:{t1:[80, 64], t2:[63, 51]}, 'België':{t1:[77, 62], t2:[60, 49]},
+};
+export const niveauVan = land => LAND_NIVEAU[land] || LAND_NIVEAU.Nederland;
+// Startniveau en -sterkte van elke club in een land (LAND_NIVEAU). Door promotie en degradatie verandert dat; de stand van zaken staat in S.clubs
 export function landBasis(land){
-  const [n1, n2] = ligaVan(land).n, e = ELITE_THUIS[land];
+  const [n1, n2] = ligaVan(land).n, e = ELITE_THUIS[land], N = niveauVan(land);
   const b = CLUBS.map((c, i) => i < 8 ? [-1, [90, 88, 86, 85, 83, 82, 80, 79][i]] : i >= GAST_START ? [-1, 75] : [-2, 40]);
-  for (let k = 0; k < n1; k++) b[8 + k] = [1, Math.round(80 - k * 14 / (n1 - 1))];
-  for (let k = 0; k < n2; k++) b[8 + n1 + k] = [2, Math.round(65 - k * 13 / (n2 - 1))];
+  for (let k = 0; k < n1; k++) b[8 + k] = [1, Math.round(N.t1[0] - k * (N.t1[0] - N.t1[1]) / (n1 - 1))];
+  for (let k = 0; k < n2; k++) b[8 + n1 + k] = [2, Math.round(N.t2[0] - k * (N.t2[0] - N.t2[1]) / (n2 - 1))];
   if (e) b[ELITE_ID] = [1, e.s];
   return b;
 }
 export const CLUBS_BASIS = landBasis('Nederland');
+// Oude opslag (iedereen 80-66 en 65-52): de sterktes omrekenen naar het niveau van het land; elke club houdt zijn plek in de league
+export function herschaalLand(lijst, land){
+  if (!lijst) return lijst; const N = niveauVan(land), e = ELITE_THUIS[land];
+  const om = (s, [oh, ol], [nh, nl]) => Math.round(nl + (s - ol) * (nh - nl) / (oh - ol));
+  return lijst.map((x, i) => { if (!x || i < 8 || i >= GAST_START || !(x[0] >= 1)) return x;
+    const s = x[0] === 1 ? om(x[1], [80, 66], N.t1) : om(x[1], [65, 52], N.t2);
+    return [x[0], Math.max(30, Math.min(95, i === ELITE_ID && e ? Math.max(s, e.s) : s))]; });
+}
 CLUBS_BASIS.forEach(([t, s], i) => { CLUBS[i].t = t; CLUBS[i].s = s; }); // de startstand (Nederland), tot zetClubs een land zet
 // Thuisland van de vaste clubs uit de Europese Elite (0-7): één competitie met topclubs uit heel Europa
 export const ELITE_NAAM = CLUBS.slice(0, 8).map(c => c.n); // de oorspronkelijke namen (een plaats kan van club wisselen)

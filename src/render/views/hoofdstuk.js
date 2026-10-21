@@ -1,6 +1,7 @@
 import { S } from '../../core/state.js';
 import { keuzeKnop, knop } from '../../core/ui.js';
 import { esc } from '../../core/utils.js';
+import { karakter } from '../../game/speler/persoonlijkheid.js';
 import { HOOFDSTUKKEN, TOON, deelVan, hoofdstukTitel, hoofdstukInhoud, kiesHoofdstuk, opaNaam, toonLabel, verderHoofdstuk } from '../../game/speler/journey.js';
 
 // Een hoofdstukkaart van jouw verhaal: titel, tekst, een citaat van opa en (soms) een gesprek waarin je een toon kiest
@@ -16,6 +17,6 @@ export function vHoofdstuk(){
       ${I.tekst.map(t => `<p>${esc(t)}</p>`).join('')}
       ${I.opa ? `<p class="quote">${esc(I.opa)} <span class="muted">· ${esc(opa)}</span></p>` : ''}
       ${uit}
-      ${S.sp.toon ? `<p class="muted klein-tekst">Jouw karakter tot nu toe: <b>${toonLabel()}</b>.</p>` : ''}
+      ${S.sp.toon ? `<p class="muted klein-tekst" title="${esc(karakter().veld + ' ' + karakter().buiten)}">Jouw karakter tot nu toe: <b>${karakter().i} ${toonLabel()}</b>. ${esc(karakter().buiten)}</p>` : ''}
     </div>${keuzes}${verder}`;
 }

@@ -20,9 +20,9 @@ const MUREN = [['#0f1a33', '#c6f432'], ['#1a1030', '#f3c44f'], ['#0d2a22', '#fff
 function fotoCtx(img){
   if (img && img.dataset.uit){ const [huid, haar, kapsel, lengte, bmi] = img.dataset.uit.split(','); return {sleutel:img.dataset.sleutel || 'nieuw', uiterlijk:{huid:+huid, haar:+haar, kapsel, ...(lengte ? {lengte:+lengte, bmi:+bmi} : {})}, club:'', muur:'#0f1a33', accent:'#c6f432', tenue:STANDAARD, ...(img.dataset.draai !== undefined ? {draai:+img.dataset.draai} : {})}; }
   const c = club(), [muur, accent] = MUREN[(S.sp.club || 0) % MUREN.length];
-  return {sleutel:ploegen().jij, uiterlijk:S.sp.uiterlijk || null, club:c ? c.n : '', muur, accent, tenue:clubTenue(S.sp.club), clubId:S.sp.club};
+  const pl = ploegen(); return {sleutel:pl.jij, uiterlijk:S.sp.uiterlijk || null, club:c ? c.n : '', muur, accent, tenue:clubTenue(S.sp.club), clubId:S.sp.club, band:!!pl.band};
 }
-const sleutelVan = (soort, ctx) => [soort, ctx.sleutel, ctx.club, ctx.draai ?? '', ctx.uiterlijk ? ctx.uiterlijk.huid + ctx.uiterlijk.haar + ctx.uiterlijk.kapsel + (ctx.uiterlijk.lengte || '') + (ctx.uiterlijk.bmi || '') : ''].join('|');
+const sleutelVan = (soort, ctx) => [soort, ctx.sleutel, ctx.club, ctx.draai ?? '', ctx.band ? 'C' : '', ctx.uiterlijk ? ctx.uiterlijk.huid + ctx.uiterlijk.haar + ctx.uiterlijk.kapsel + (ctx.uiterlijk.lengte || '') + (ctx.uiterlijk.bmi || '') + '|' + (ctx.uiterlijk.schoen ?? '') : ''].join('|');
 export function foto(soort, img){
   const ctx = fotoCtx(img), key = sleutelVan(soort, ctx);
   if (!KLAAR.has(key)){

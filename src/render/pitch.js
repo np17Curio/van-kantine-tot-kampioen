@@ -3,6 +3,7 @@ import { knop } from '../core/ui.js';
 import { rnd } from '../core/utils.js';
 import { rugnummer } from '../game/team/rugnummers.js';
 import { clubTenue, landTenue, wedstrijdTenues } from '../data/tenues.js';
+import { isAanvoerder } from '../game/team/aanvoerder.js';
 
 /* ===================== 2,5D-veld: je acties in beeld ===================== */
 // Een schuin veld (alsof je vanaf de tribune kijkt). De uitkomst wordt berekend zoals altijd; het veld laat zien wat er gebeurde.
@@ -577,6 +578,7 @@ export function tekenVeld(cv, toestand){
     ctx.fillStyle = d.rol === 'R' ? '#111' : '#222'; ctx.fillRect(q.x - w / 2, broek - h * .1, w, h * .12);
     ctx.fillStyle = kl; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(q.x - w / 2, shirt, w, broek - shirt, w * .25) : ctx.rect(q.x - w / 2, shirt, w, broek - shirt); ctx.fill();
     ctx.fillStyle = '#e8c39e'; ctx.beginPath(); ctx.arc(q.x, hoofd, Math.max(2.4, w * .32), 0, Math.PI * 2); ctx.fill();
+    if (d.id === 'J' && (toestand.ploegen || ploegen()).band){ ctx.fillStyle = '#f3c44f'; ctx.fillRect(q.x - w / 2, shirt + (broek - shirt) * .12, w * .2, (broek - shirt) * .2); } // aanvoerdersband
     if (d.id === 'J'){ ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(gnd.x, gnd.y, 1.5 * k * 1.6, .55 * k * 1.6, 0, 0, Math.PI * 2); ctx.stroke();
       ctx.fillStyle = '#111'; ctx.font = `bold ${Math.max(8, w * .55)}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.fillText(String(toestand.nr || ''), q.x, shirt + (broek - shirt) * .72); }
     if (toestand.kaart && d.id === (toestand.kaartOp || 'J')){ ctx.fillStyle = toestand.kaart === 'rood' ? '#e23b3b' : '#ffd400'; ctx.fillRect(q.x + w * .6, hoofd - h * .35, w * .5, w * .7); }
@@ -623,7 +625,7 @@ export function pitchStatisch(el, type){
   requestAnimationFrame(frame);
 }
 // Welke clubs staan er op het veld, en wie ben jij (voor een vast uiterlijk in 3D; jouw uiterlijk wordt één keer gekozen en bewaard)
-export function ploegen(){ const sp = S && S.sp; if (!sp) return {}; if (!sp.uitSleutel) sp.uitSleutel = Math.random().toString(36).slice(2, 10); return {wij:sp.club, zij:S.M ? S.M.opp : null, jij:sp.uitSleutel, jijUit:sp.uiterlijk || null, tenues:tenuesVanWedstrijd()}; }
+export function ploegen(){ const sp = S && S.sp; if (!sp) return {}; if (!sp.uitSleutel) sp.uitSleutel = Math.random().toString(36).slice(2, 10); return {wij:sp.club, zij:S.M ? S.M.opp : null, jij:sp.uitSleutel, jijUit:sp.uiterlijk || null, tenues:tenuesVanWedstrijd(), band:!sp.clubloos && isAanvoerder() && !(S.M && (S.M.inter || S.M.selectie))}; }
 // De tenues van deze wedstrijd: landen bij een interland, anders de clubs (bij een kleurconflict speelt de uitploeg in het uittenue)
 export function tenuesVanWedstrijd(){
   const M = S && S.M, sp = S && S.sp; if (!M || !sp) return null;

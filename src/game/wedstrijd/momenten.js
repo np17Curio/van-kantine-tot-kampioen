@@ -5,8 +5,9 @@ import { gewogen, ploeg, telt } from '../competitie/spelers.js';
 import { chemie } from '../team/kleedkamer.js';
 import { tactiekKans, tactiekMoment } from '../team/tactiek.js';
 import { stamina } from './stamina.js';
-import { pers, persKans, persMomentFactor } from '../speler/persoonlijkheid.js';
-import { vriendNaam, vriendSpeler } from '../speler/journey.js';
+import { pers, persKans, persMomentFactor, karakterKans } from '../speler/persoonlijkheid.js';
+import { vriendNaam, vriendSpeler, zetRivaalBand, zetVriendBand } from '../speler/journey.js';
+import { rivaalNaam } from '../speler/rivaal.js';
 import { lichaamKans, lichaamMomentFactor } from '../speler/lichaam.js';
 
 /* ===================== Wedstrijdmomenten ===================== */
@@ -18,6 +19,8 @@ export function assistKans(p, intro){
 }
 export function tegenKans(p, tGoal, tRed, d1, d2){ return rnd() < p ? {t:tGoal, d:d1, tegen:true} : {t:tRed, d:d2}; }
 
+// Revanche na een goal van je rivaal of je vriend: een bonus op je acties (hooguit +8%)
+const revanche = d => { if (S.M) S.M.revanche = Math.min(.08, (S.M.revanche || 0) + d); };
 export const MOMENTS = {
   juichen:{teksten:['GOAL tegen je oude club! Je ziet het oude vak voor je. Hoe juich je?'], opts:[
     {l:'Niet juichen, uit respect', st:'kalm', b:-60, ok:()=>({t:'Je steekt je handen verontschuldigend omhoog. Het oude publiek applaudisseert voor je.', d:.1, juich:'respect', oudFans:8, nieuwFans:-2}), mis:()=>({t:'Je steekt je handen omhoog. Het oude publiek applaudisseert.', d:.1, juich:'respect', oudFans:8, nieuwFans:-2})},
@@ -112,6 +115,15 @@ export const MOMENTS = {
     {l:'Uitkappen en dribbelen', st:'drib', b:60, ok:()=>({t:'Je kapt de spits uit. Het publiek klapt!', d:.4, next:'counter'}), mis:()=>tegenKans(.5, 'Je verliest de bal op de rand van je eigen zestien. Tegengoal.', 'Je verliest de bal, maar je herstelt nog net.', -1.0, -.4)},
     {l:'Terug naar de keeper', st:'kalm', b:35, ok:()=>({t:'Veilig terug naar de keeper.', d:0}), mis:()=>tegenKans(.4, 'Je terugspeelbal is te zacht. Hun spits is er eerder en scoort.', 'Je terugspeelbal is te zacht, maar de keeper redt het.', -1.0, -.3)},
     {l:'Zelf oprukken', st:'cond', b:55, ok:()=>({t:'Je stoomt op over het middenveld!', d:.3, next:'counter'}), mis:()=>({t:'Je wordt van de bal gezet op de middenlijn.', d:-.3})}]},
+  // Je rivaal of je beste vriend scoort tegen je: hoe reageer je? (revanche: een bonus op je acties in de rest van de wedstrijd)
+  rivaalScoort:{get teksten(){ const n = rivaalNaam(); return [`${n} juicht recht voor je neus en zegt iets wat je niet verstaat. Maar je snapt het wel.`, `${n} rent na zijn goal naar jou toe en houdt zijn hand achter zijn oor.`]; }, opts:[
+    {l:'Niet reageren, focussen', st:'kalm', b:72, toon:'kalm', ok:()=>{ revanche(.03); zetRivaalBand(2); return {t:'Je laat het van je afglijden. Nu ben jij aan de beurt.', d:.1}; }, mis:()=>{ revanche(.01); return {t:'Je probeert het te negeren, maar het knaagt.', d:0}; }},
+    {l:'Het team oppeppen: "We pakken hem terug!"', st:'kalm', b:66, toon:'bal', ok:()=>{ revanche(.02); return {t:'Je klapt in je handen en schreeuwt je ploeg wakker. Ze reageren.', d:.15}; }, mis:()=>({t:'Niemand lijkt te luisteren.', d:0})},
+    {l:'Hem terug uitdagen', st:'kalm', b:52, toon:'fel', kaart:'geel', ok:()=>{ revanche(.06); zetRivaalBand(-5); return {t:'Je zegt hem recht in zijn gezicht dat dit zijn laatste was. Je brandt van wraak.', d:.1, next: rnd() < .3 ? 'opstootje' : undefined}; }, mis:()=>{ revanche(.03); zetRivaalBand(-5); return {t:'Je duwt hem. De scheids fluit en pakt geel.', d:-.4, geel:true}; }}]},
+  vriendScoort:{get teksten(){ const n = vriendNaam(); return [`${n} scoort. Hij juicht niet, en steekt verontschuldigend zijn hand naar je op.`, `${n} kijkt na zijn goal meteen jouw kant op. Half trots, half sorry.`]; }, opts:[
+    {l:'Hem feliciteren', st:'kalm', b:80, toon:'kalm', ok:()=>{ zetVriendBand(4); return {t:'Je tikt hem op zijn schouder. "Mooie goal, man." Hij grijnst.', d:0}; }, mis:()=>{ zetVriendBand(2); return {t:'Je steekt je duim op, maar hij ziet het niet eens.', d:0}; }},
+    {l:'Knikken en doorgaan', st:'kalm', b:70, toon:'bal', ok:()=>{ revanche(.03); return {t:'Een knikje. Vriendschap is voor na de wedstrijd.', d:.05}; }, mis:()=>({t:'Je probeert door te gaan, maar je hoofd zit er even niet bij.', d:-.05})},
+    {l:'"Dat was je laatste!"', st:'kalm', b:60, toon:'fel', ok:()=>{ revanche(.06); zetVriendBand(-3); return {t:'Je roept het hem na. Hij lacht, maar je ziet dat het steekt.', d:.1}; }, mis:()=>{ revanche(.03); zetVriendBand(-3); return {t:'Je roept het, maar het klinkt vooral boos.', d:0}; }}]},
   provocatie:{teksten:['Je tegenstander duwt je en zegt iets lelijks.','Je tegenstander trapt op je voet en grijnst erbij.'], opts:[
     {l:'Rustig blijven', st:'kalm', b:45, kaart:'geel', ok:()=>({t:'Je laat je niet gek maken. Hij wordt er zelf gek van.', d:.2}), mis:()=>({t:'Je zegt toch iets terug. De scheids geeft je geel.', d:-.3, geel:true})},
     {l:'Terugduwen', st:'kalm', b:72, kaart:'rood', ok:()=>({t:'Je duwt terug, maar de scheids ziet het niet.', d:0}), mis:()=> rnd() < .3 ? {t:'De scheids ziet het. Direct ROOD!', d:-1.5, rood:true} : {t:'Gele kaart voor jou. Stom.', d:-.4, geel:true}},
@@ -204,7 +216,7 @@ export function kans(opt){
   // Kalmte (rustig blijven, niet reageren) wordt tegen een betere ploeg maar half zo veel lastiger: kalmte groeit niet mee met je klasse
   const tegen = opt.st === 'kalm' && oppS > KALM_KNIK ? (KALM_KNIK - 48) + (oppS - KALM_KNIK) * .5 : oppS - 48;
   const moeilijk = opt.b + tegen + top * (TOP_EXTRA[opt.st] || 0);
-  return clamp(.5 + (M.pending && M.pending.rivaal ? M.rivaalBonus || 0 : 0) + (statWaarde(opt.st) - moeilijk) / 45 + sp.vorm * .03 + staminaEffect(stamina(M)) + (sp.moraal - 50) / 500 + focusEffect(sp.focus ?? 65) + (opt.st === 'pas' && telt(M) ? (chemie() - 50) / 600 : 0) + (sp.items.analist ? .02 : 0) + tactiekKans(opt.st) + persKans(opt.st, M.pending && M.pending.type) + lichaamKans(opt, M.pending && M.pending.type), .05, .95);
+  return clamp(.5 + (M.pending && M.pending.rivaal ? M.rivaalBonus || 0 : 0) + (statWaarde(opt.st) - moeilijk) / 45 + sp.vorm * .03 + staminaEffect(stamina(M)) + (sp.moraal - 50) / 500 + focusEffect(sp.focus ?? 65) + (opt.st === 'pas' && telt(M) ? (chemie() - 50) / 600 : 0) + (sp.items.analist ? .02 : 0) + tactiekKans(opt.st) + persKans(opt.st, M.pending && M.pending.type) + lichaamKans(opt, M.pending && M.pending.type) + karakterKans(opt) + (M.revanche || 0), .05, .95);
 }
 export function risico(p){ return p > .7 ? ['Veilig','r-veilig'] : p >= .45 ? ['Gemiddeld','r-gem'] : ['Riskant','r-riskant']; }
 export const KAART_MOMENTEN = ['tackle', 'opstootje', 'provocatie', 'verdedigen'];

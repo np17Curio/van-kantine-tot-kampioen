@@ -17,11 +17,12 @@ import { statusDrempel, statusNaam, statusNiveau } from '../../game/speler/statu
 import { rugnummer } from '../../game/team/rugnummers.js';
 import { fixture } from '../../game/competitie/competitie.js';
 import { clubLogo } from '../../data/logos.js';
-import { PERS, mijnPers } from '../../game/speler/persoonlijkheid.js';
+import { PERS, karakter, mijnPers } from '../../game/speler/persoonlijkheid.js';
 import { HOOFDSTUKKEN, KLAAR, bijJou, deelVan, vriendClubNaam, hoofdstukTitel, toonLabel, vriendKlasse, vriendStats } from '../../game/speler/journey.js';
 import { bandLabel } from '../../game/speler/rivaal.js';
 import { gewichtVan, lengteTxt, lichaam } from '../../game/speler/lichaam.js';
 import { vHistorie } from '../../game/seizoen/historie.js';
+import { OORDEEL, besteLeagues, mijnLeague } from '../../game/speler/niveau.js';
 
 export function balk(l, v, cls = ''){ return `<div class="balk ${cls}"><span>${l}</span><span class="b"><i style="width:${clamp(v, 0, 100)}%"></i></span><span class="v">${Math.round(v)}</span></div>`; }
 export function vStatus(){
@@ -123,6 +124,7 @@ function vVerhaal(){
   return `<div class="verhaalkaart"><span class="label">${J.h < KLAAR ? `Jouw verhaal · deel ${deelVan(J.h).nr} · hoofdstuk ${J.h}: ${esc(hoofdstukTitel(J.h))}` : 'Jouw verhaal · voltooid'}</span>${J.h < KLAAR - 1 && J.h >= 7 ? `<p class="muted klein-tekst">Volgende hoofdstuk: <b>${esc(hoofdstukTitel(J.h + 1))}</b></p>` : ''}
     <div class="toonmeter" title="Kalme keuzes: de trainer vertrouwt je meer. Felle keuzes: de fans houden van je vuur."><span>🧊 Rustig</span><span class="b"><i style="left:${(t + 100) / 2}%"></i></span><span>Heethoofd 🔥</span></div>
     ${v ? (() => { const st = vriendStats(); return `<p class="muted klein-tekst">Jij ${S.ss.g || 0} G · ${S.ss.a || 0} A · klasse ${ovr(sp)} — ${esc(v.voornaam)} ${st.g} G · ${st.a} A · klasse ${vriendKlasse()}</p>`; })() : ''}
+    ${(() => { const k = karakter(); return `<p class="klein-tekst karaktereffect" title="${esc(k.veld + ' ' + k.buiten)}">${k.i} <b>${k.n}</b>: ${esc(k.veld)} ${esc(k.buiten)}</p>`; })()}
     <p class="muted klein-tekst">Karakter: <b>${toonLabel()}</b>${b !== null ? ` · ${v.weg ? 'ex-vriend' : 'jeugdvriend'} ${esc(v.voornaam)}: ${v.weg ? bandLabel(b).toLowerCase() : b >= 60 ? 'beste vrienden' : b >= 20 ? 'goede vrienden' : 'het schuurt'}${!v.weg && vriendClubNaam() ? (bijJou() ? ' (jouw club)' : ` (${esc(vriendClubNaam())})`) : ''}` : ''}</p></div>`;
 }
 export function vZij(){
@@ -133,7 +135,7 @@ export function vZij(){
   const spelerKaart = () => `<div class="kaart">
       <div>${knop(tmp.stats ? 'Terug naar het spel' : '📊 Mijn carrière', () => { tmp.stats = !tmp.stats; }, 'klein')}</div>
       <div class="speler"><div class="ovr">${ovr(sp)}<small>KLASSE</small></div>
-        <div><div class="naam">${sp.o23 || sp.clubloos ? '' : `<span class="muted">#${rugnummer()}</span> `}${esc(sp.naam)}</div><div class="muted">${POS[sp.pos].n} · ${sp.leeftijd} jaar · ${lengteTxt(lichaam().lengte)} · ${gewichtVan(lichaam().lengte, lichaam().bmi)} kg · ${sp.clubloos ? 'zonder club' : esc(c.n)}${sp.o23 ? ' O23' : ''}${sp.huur ? ` (gehuurd van ${esc(CLUBS[sp.huur.ouder].n)})` : ''}</div><div class="label" title="Verwachting van scouts">Talent ${sterren(sp.pot)}</div></div></div>
+        <div><div class="naam">${sp.o23 || sp.clubloos ? '' : `<span class="muted">#${rugnummer()}</span> `}${esc(sp.naam)}</div><div class="muted">${POS[sp.pos].n} · ${sp.leeftijd} jaar · ${lengteTxt(lichaam().lengte)} · ${gewichtVan(lichaam().lengte, lichaam().bmi)} kg · ${sp.clubloos ? 'zonder club' : esc(c.n)}${sp.o23 ? ' O23' : ''}${sp.huur ? ` (gehuurd van ${esc(CLUBS[sp.huur.ouder].n)})` : ''}</div><div class="label" title="Verwachting van scouts">Talent ${sterren(sp.pot)}</div>${(() => { const M = mijnLeague(); if (!M) return ''; const b = besteLeagues()[0], beter = M.oordeel === 'tegoed' || M.oordeel === 'tehoog'; return `<div class="muted klein-tekst" title="Zie Carrière: Jouw niveau">Niveau: ${OORDEEL[M.oordeel].n.toLowerCase()} ${M.oordeel === 'past' ? 'in' : 'voor'} de ${esc(M.naam)}${beter && b ? ` · beter: ${esc(b.naam)}` : ''}</div>`; })()}</div></div>
       ${mijnPers().length ? `<div class="perschips">${mijnPers().map(id => `<span class="tag pers" title="In het veld: ${esc(PERS[id].veld)} Buiten het veld: ${esc(PERS[id].buiten)}">${PERS[id].i} ${PERS[id].n}</span>`).join('')}</div>` : ''}
       ${vStatus()}
       ${vVerhaal()}
