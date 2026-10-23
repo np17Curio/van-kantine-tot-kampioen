@@ -17,9 +17,11 @@ import { nieuweWeek, verhoog } from '../week.js';
 import { talentSeizoen } from '../speler/talent.js';
 import { doelInfo } from '../transfers/zaakwaarnemer.js';
 import { europaKrant } from '../competitie/europa.js';
+import { ontwikkelLanden } from '../competitie/landsterkte.js';
 import { rivaalOuder, rivaalSeizoen } from '../speler/rivaal.js';
 import { magAfscheid, maakAfscheid } from './afscheidswedstrijd.js';
 import { verhaalEpiloog, vriendOuder, vriendSeizoen } from '../speler/journey.js';
+import { galaReacties, goudenBalWinst } from './gouden-bal-winst.js';
 import { historieSeizoen } from './historie.js';
 
 /* ===================== Seizoen ===================== */
@@ -56,7 +58,7 @@ export function seizoenEinde(){
   if (svs.winnaar && svs.winnaar.jij) prijzen.push(`Speler van het Seizoen ${seizoenLabel()}`);
   if ((S.ss.goed || 0) >= 5) prijzen.push(`Maatschappelijk betrokken speler ${seizoenLabel()}`);
   const gb = goudenBal(gem);
-  if (gb.telt && gb.plek === 1){ prijzen.push(`Gouden Bal ${seizoenLabel()}`); mod('rep', 10); mod('moraal', 15); S.car.hist.push(`${seizoenLabel()}: Gouden Bal gewonnen, beste speler van de wereld!`); krantMelding(`${sp.naam} wint de Gouden Bal!`, 'De beste speler van de wereld. Een droom die uitkomt voor de jongen uit de kantine.', KRANTEN[0]); }
+  if (gb.telt && gb.plek === 1){ prijzen.push(`Gouden Bal ${seizoenLabel()}`); mod('rep', 10); mod('moraal', 15); S.car.hist.push(`${seizoenLabel()}: Gouden Bal gewonnen, beste speler van de wereld!`); S.gbWinst = true; }
   else if (gb.telt && gb.plek <= 3) S.car.hist.push(`${seizoenLabel()}: ${gb.plek}e bij de verkiezing van de Gouden Bal`);
   S.car.prijzen.push(...prijzen);
   if (plek === 1){ mod('rep', 8); mod('moraal', 10); }
@@ -67,7 +69,9 @@ export function seizoenEinde(){
   if (mijnWissel && mijnWissel.naar < mijnWissel.van) prijzen.push(`Promotie naar de ${DIVS[mijnWissel.naar]}${mijnWissel.po ? ' via de nacompetitie' : ''} ${seizoenLabel()}`);
   if (mijnWissel && !mijnWissel.po) S.car.hist.push(`${seizoenLabel()}: ${mijnWissel.naar < mijnWissel.van ? 'gepromoveerd' : 'gedegradeerd'} met ${club().n} naar de ${DIVS[mijnWissel.naar]}`);
   (S.car.seizoenen = S.car.seizoenen || []).push({s:seizoenLabel(), club:los ? 'Zonder club' : club().n, div:DIVS[t], wed:S.ss.wed + (S.ss.bw || 0), g:S.ss.g + (S.ss.bg || 0), a:S.ss.a + (S.ss.ba || 0), gem: gem === null ? null : Math.round(gem * 10) / 10, plek, beker:los ? null : bekerResultaat(sp.club)});
+  const gbWon = S.gbWinst; S.gbWinst = false;
   S.eind = {clubloos:los, gb, plek, t, divisie:DIVS[t], clubNaam:los ? 'Zonder club' : club().n, prijzen, wed:S.ss.wed, g:S.ss.g, a:S.ss.a, gem, statusTekst, topscorer:S.ss.topscorer, svs:{naam:svs.winnaar && svs.winnaar.naam, club:svs.winnaar && svs.winnaar.club, jij:!!(svs.winnaar && svs.winnaar.jij), plek:svs.plek, reden:svs.reden}, wissels, mijnWissel, po:los ? null : [...(S.ss.po || [])].reverse().find(p => p.hoog === sp.club || p.laag === sp.club) || null, poAlle:S.ss.po || [], toernooi:toernooiSelectie()};
+  if (gbWon) goudenBalWinst(); // het gala en de gevolgen
   // De krant: bij Speler van het Seizoen en topscorer een foto van jou met de prijs
   const bron = KRANTEN[t], krant = [], wanneer = `einde seizoen ${seizoenLabel()}`;
   if (S.eind.svs.jij) krant.push({bron:bron[0], kop:`${sp.naam} is de Speler van het Seizoen`, tekst:`De ${DIVS[t]} kiest ${sp.naam} van ${club().n} als beste speler: ${S.ss.g} goals, ${S.ss.a} assists${gem !== null ? ` en gemiddeld een ${gem.toFixed(1).replace('.', ',')}` : ''}.`, wanneer, foto:fotoVan('svs', `${sp.naam} met de bokaal voor Speler van het Seizoen.`)});
@@ -76,6 +80,7 @@ export function seizoenEinde(){
   vriendSeizoen(); // de cijfers van je jeugdvriend bij zijn carrière
   const rv = rivaalSeizoen(); if (rv){ krant.push({bron:bron[0], kop:rv.kop, tekst:rv.tekst, wanneer}); S.eind.rivaal = rv; if (rv.prijs){ S.car.prijzen.push(rv.prijs); S.eind.prijzen.push(rv.prijs); } }
   for (const k of europaKrant(wissels).slice(0, 3)) krant.push({bron:KRANTEN[0][0], kop:k.kop, tekst:k.tekst, wanneer});
+  for (const k of ontwikkelLanden().slice(0, 2)) krant.push({bron:KRANTEN[0][0], kop:k.kop, tekst:k.tekst, wanneer}); // de landen worden sterker of zwakker
   S.eind.krant = krant; S.nieuws = krant.concat(S.nieuws || []).slice(0, 6);
   S.fase = 'seizoenEinde';
 }
@@ -92,7 +97,7 @@ export function naSeizoen(){
   if (tal) S.eind.ontw.unshift(tal);
   sp.potSz = 0;
   S.eind.ontw.push(...seizoenGeld());
-  sp.sponsors = (sp.sponsors || []).filter(d => { d.jaren--; if (d.jaren <= 0){ S.eind.ontw.push(`Je contract met ${d.merk} loopt af.`); return false; } return true; });
+  sp.sponsors = (sp.sponsors || []).filter(d => { if (d.levenslang) return true; d.jaren--; if (d.jaren <= 0){ S.eind.ontw.push(`Je contract met ${d.merk} loopt af.`); return false; } return true; });
   if (sp.leeftijd === 18 && sp.school && sp.school.cijfers.length){
     const g = gemiddelde(sp.school.cijfers.map(x => x.c));
     if (g >= 5.5){ S.eind.ontw.push(`Je bent 18 en hebt je diploma gehaald, met gemiddeld een ${fmt1(g)}! Nu kun je je helemaal op voetbal richten.`); S.car.prijzen.push(`Schooldiploma (gemiddeld ${fmt1(g)})`); S.car.hist.push(`${seizoenLabel()}: diploma gehaald`); mod('moraal', 10); }
@@ -115,9 +120,12 @@ export function startNieuwSeizoen(){
   if (ag && ag.doel != null && !ag.gehaald) ag.antwoord = `Nieuw seizoen. Voor ${doelInfo().n} begint de teller weer bij nul: laat het opnieuw zien.`;
   S.eind = null;
   nieuweWeek(true);
+  galaReacties(); // reacties op je Gouden Bal
 }
 export function stoppen(reden){
   S.einde = {reden};
+  // levenslange contracten: na je carrière blijven ze betalen (5 jaar de helft, in één keer)
+  for (const d of (S.sp.sponsors || []).filter(d => d.levenslang)){ const b = Math.round(d.bedrag * 2.5 / 1000) * 1000; S.sp.geld += b; S.car.hist.push(`${S.jaar}: ${d.merk} blijft je levenslang betalen (nu ${Math.round(b / 1000)}k in één keer)`); }
   S.car.hist.push(`${S.jaar}: einde carrière`);
   S.einde.eer = afscheid();
   S.fase = 'einde';

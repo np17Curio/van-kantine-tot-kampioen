@@ -64,6 +64,7 @@ export const kansTxt = k => k === null ? 'geen kans' : k >= .68 ? 'grote kans' :
 export function kanAanvragen(m){
   const sp = S.sp, d = schoenDeal();
   if (!prof()) return 'Pas als je prof bent in een van de leagues.';
+  if (d && d.levenslang) return `Je hebt een levenslang contract met ${d.merk}.`;
   if (d && niveau(d.merk) >= MERKEN.indexOf(m)) return d.merk === m.n ? 'Dit is jouw merk.' : 'Je hebt al een groter merk.';
   if ((sp.schoenAanvraag || {})[m.id] === periode()) return 'Al gevraagd: probeer het in de volgende transferperiode opnieuw.';
   return null;
@@ -92,7 +93,7 @@ export function vraagAan(id){
 // Een merk klopt zelf aan (vanuit maakSponsorEvent): het beste merk waarvoor je bijna goed genoeg bent, als dat beter is dan je huidige
 export function schoenEvent(){
   if (!prof()) return null;
-  const sp = S.sp, o = ovr(sp), d = schoenDeal(), nu = d ? niveau(d.merk) : -1;
+  const sp = S.sp, o = ovr(sp), d = schoenDeal(), nu = d ? niveau(d.merk) : -1; if (d && d.levenslang) return null;
   const m = MERKEN.filter((x, i) => i > nu && o >= x.min - 2).pop(); if (!m) return null;
   const bedrag = schoenBedrag(m), jaren = randInt(1, 3);
   return {soort:'sponsor', tekst:`Schoenenmerk ${m.n} (${m.tekst}) wil dat je op hun schoenen speelt. Ze bieden ${geldTxt(bedrag)} per jaar, ${jaren} ${jaren === 1 ? 'seizoen' : 'seizoenen'} lang. Extra: ${m.perkTxt}.${d ? ` Je contract met ${d.merk} vervalt dan.` : ''}`, opts:[

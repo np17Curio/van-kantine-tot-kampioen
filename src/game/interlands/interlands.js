@@ -8,6 +8,7 @@ import { planWedstrijd, stand2, verderSpelen } from '../wedstrijd/wedstrijd.js';
 import { nieuweWeek } from '../week.js';
 import { staminaNaWedstrijd } from '../wedstrijd/stamina.js';
 import { krantMelding } from '../media/roddel.js';
+import { vriendInterland, vriendNaInterland } from '../speler/journey.js';
 
 /* ===================== Interlands ===================== */
 export const magInterland = () => club().t <= 2 && S.sp.leeftijd >= 17 && !S.sp.o23 && !S.sp.clubloos && !S.sp.interStop;
@@ -57,6 +58,9 @@ export function startInterland(naam){
   const T = L.s + (ovr(sp) - L.s) * .1 + (thuis ? 2 : 0), Opp = opp.s + (thuis ? 0 : 2);
   const M = {inter:{land:naam, type:O.type}, oppS:opp.s, wij:naam, zij:opp.n, thuis, rol, us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false};
   S.M = M;
+  // je jeugdvriend in de selectie? (journey.js)
+  M.vriendMee = vriendInterland(naam);
+  if (M.vriendMee) M.log.push({m:'', t:`Je jeugdvriend ${S.sp.vriend.voornaam} zit ook in de selectie${M.vriendMee.basis ? ', in de basis' : ', op de bank'}. Samen het volkslied zingen, net als vroeger in de achtertuin.`, k:'info'});
   planWedstrijd(M, T, Opp);
   M.log.push({m:"1'", t:`${O.type}. Het volkslied klinkt. ${rol === 'basis' ? 'Je staat in de basis.' : st && st.caps ? 'Je begint op de bank.' : 'Je zit op de bank en hoopt op je debuut.'}`, k:''});
   S.fase = 'match';
@@ -80,6 +84,7 @@ export function eindeInterland(){
   const debuut = st.caps === 0, eersteGoal = st.g === 0 && M.goals > 0;
   st.caps++; st.g += M.goals; st.a += M.assists;
   M.interTekst = [];
+  M.interTekst.push(...vriendNaInterland(M)); // je jeugdvriend in het nationale team
   if (M.bonus) M.interTekst.push(M.bonus.tekst);
   if (debuut){ S.car.hist.push(`${seizoenLabel()}: debuut voor ${naam} tegen ${M.zij}`); M.interTekst.push(`Je debuut voor ${naam}! Dit vergeet je nooit meer.`); }
   if (eersteGoal){ S.car.hist.push(`${seizoenLabel()}: eerste interlandgoal voor ${naam}`); M.interTekst.push(`Je eerste interlandgoal voor ${naam}!`); }

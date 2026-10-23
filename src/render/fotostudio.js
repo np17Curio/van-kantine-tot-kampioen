@@ -26,6 +26,11 @@ function prijs(soort, env){
     const beker = draai([[0, 0], [.022, 0], [.022, .006], [.007, .02], [.006, .06], [.016, .07], [.04, .11], [.042, .14], [.036, .14], [.03, .115], [0, .1]], goud);
     beker.position.y = .04; g.add(beker);
     g.position.y = -.08;
+  } else if (soort === 'goudenbal'){
+    // de Gouden Bal: een gouden voetbal op een zwarte sokkel
+    const voet = draai([[0, 0], [.05, 0], [.05, .03], [.035, .045], [0, .045]], zwart(env)); g.add(voet);
+    const bal = new THREE.Mesh(new THREE.SphereGeometry(.07, 40, 28), goud); bal.position.y = .115; g.add(bal);
+    g.position.y = -.075;
   } else if (soort === 'svs'){
     // een grote bokaal met twee oren
     const voet = draai([[0, 0], [.06, 0], [.06, .02], [.045, .03], [.02, .05], [0, .05]], zwart(env)); g.add(voet);
@@ -59,7 +64,7 @@ const POSES = {
   een:[['upperarm_r', 1, 0, 0, -.9], ['upperarm_r', 0, 0, 1, .55], ['lowerarm_r', 1, 0, 0, -1.7], ['lowerarm_r', 0, 1, 0, -.4],
     ['upperarm_l', 0, 0, 1, -.15]],
 };
-const POSE_VAN = {hattrick:'een', motm:'borst', svs:'omhoog', topscorer:'borst', portret:null};
+const POSE_VAN = {hattrick:'een', motm:'borst', svs:'omhoog', goudenbal:'borst', topscorer:'borst', portret:null};
 // Waar de prijs komt: tussen beide handen, of in de rechterhand. Een beetje naar voren (de handen houden hem vast, niet erin)
 const HAND = {hattrick:'r', motm:'beide', svs:'beide', topscorer:'beide'};
 

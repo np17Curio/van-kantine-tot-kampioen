@@ -6,6 +6,8 @@ import { social } from './social.js';
 import { fmt1 } from '../speler/o23.js';
 import { teken } from '../transfers/transfers.js';
 import { schoenEvent } from './schoenen.js';
+import { isSuperster } from './merken.js';
+import { krantMelding } from '../media/roddel.js';
 import { plafond, verhoog } from '../week.js';
 
 /* ===================== Sponsors ===================== */
@@ -22,10 +24,28 @@ export function sponsorPerk(cat){
   else if (cat === 'audio') mod('moraal', 2);
   else if (cat === 'verzorging') mod('rep', 1);
 }
+// Een superster krijgt soms een levenslang contract van zijn schoenen- of kledingmerk: elk jaar geld, ook na je carrière,
+// maar dan ben je voor altijd van dat merk (geen andere deals meer in die categorie). Hooguit twee keer aangeboden.
+export function levenslangEvent(){
+  const sp = S.sp, L0 = sp.levenslang; if (!isSuperster() && !(L0 && L0.gb)) return null;
+  const deals = sp.sponsors || [], L = sp.levenslang = sp.levenslang || {aanbod:0, laatste:null};
+  if (L.aanbod >= 2 || L.laatste === S.jaar || deals.some(d => d.levenslang)) return null;
+  const d = deals.find(x => (x.cat === 'schoenen' && ['Volta Boots', 'Strikr'].includes(x.merk)) || x.cat === 'kleding'); if (!d) return null;
+  L.aanbod++; L.laatste = S.jaar; L.gb = false;
+  const bedrag = Math.round(d.bedrag * 1.3 / 1000) * 1000, wat = d.cat === 'schoenen' ? 'schoenenmerk' : 'kledingmerk';
+  const teken = b => { d.bedrag = b; d.levenslang = true; d.jaren = 999; S.car.hist.push(`${seizoenLabel()}: levenslang contract met ${d.merk}`);
+    krantMelding(`${d.merk} legt ${sp.naam} voor het leven vast`, `Een levenslang contract van ${geldTxt(b)} per jaar. Alleen de allergrootsten krijgen zo'n deal.`);
+    return `Getekend! ${d.merk} betaalt je ${geldTxt(b)} per jaar, voor de rest van je leven. Ook na je carrière.`; };
+  return {soort:'sponsor', tekst:`${d.merk} wil je voor altijd aan zich binden: een LEVENSLANG contract van ${geldTxt(bedrag)} per jaar. Ook als je stopt met voetballen blijven ze betalen. Maar dan ben je voor altijd van hen: geen ander ${wat} meer.`, opts:[
+    {l:`Levenslang tekenen (${geldTxt(bedrag)} per jaar)`, f(){ return teken(bedrag); }},
+    {l:'Onderhandelen over meer', f(){ if (rnd() < .5) return 'Ze gaan akkoord met 20% meer. ' + teken(Math.round(bedrag * 1.2 / 1000) * 1000); L.aanbod--; L.laatste = S.jaar; return `${d.merk} gaat niet hoger. "Denk er rustig over na," zeggen ze. Het aanbod komt nog eens terug.`; }},
+    {l:'Nee, ik blijf vrij', f(){ return `Je bedankt ${d.merk}. Je wilt je niet voor altijd vastleggen.`; }}]};
+}
 // Hoe bekender je bent, hoe vaker een merk aanklopt. Eén deal per soort product
 export function maakSponsorEvent(){
   const sp = S.sp; if (!isProf() || sp.o23) return null;
   const deals = sp.sponsors = sp.sponsors || [];
+  if (rnd() < .25 || (sp.levenslang && sp.levenslang.gb)){ const lv = levenslangEvent(); if (lv) return lv; }
   // voetbalschoenen: het merk dat bij je niveau past (schoenen.js)
   if (rnd() < .025 + sp.rep / 1500){ const se = schoenEvent(); if (se) return se; }
   const vrij = Object.keys(SPONSOR_CAT).filter(c => c !== 'schoenen' && !deals.some(d => d.cat === c) && (!SPONSOR_CAT[c].rijbewijs || sp.rijbewijs));

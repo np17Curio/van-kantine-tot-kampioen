@@ -2,7 +2,7 @@ import { S, club, gemCijfer, ovr, salarisLabel, seizoenLabel, sterren, tmp, waar
 import { knop, tabBalk } from '../../core/ui.js';
 import { clamp, esc, geldTxt } from '../../core/utils.js';
 import { AANTAL_RONDES, ATTR, CLUBS, DIVS, LEGENDE, POS, SPONSOR_CAT, STATUS, STATUS_KORT, TRAINBAAR, landInfo, STATUS_ROL, STATUS_UITLEG, WINTER, rondeInWeek, rondesVan, rondesVoor } from '../../data/gegevens.js';
-import { vBekerKaart } from '../../game/competitie/beker.js';
+import { bekerAgenda, vBekerKaart } from '../../game/competitie/beker.js';
 import { stand } from '../../game/competitie/spelers.js';
 import { interStatus, kanStoppenInter, kanTerugInter, landenVoor, magInterland, stopInternational, terugInternational } from '../../game/interlands/interlands.js';
 import { vCompetitieKaart, vNieuwsKaart } from '../../game/media/nieuws.js';
@@ -63,7 +63,12 @@ export function vSeizoenStrip(){
     if (!naam || los) return `<span class="${cls}" title="${esc(titel)}">${r ? r.r : gespeeld ? '·' : i + 1}</span>`;
     return `<span class="${cls}" title="${esc(titel)}">${clubLogo(w.opp, 18)}<i class="tu">${w.thuis ? 'T' : 'U'}</i>${r ? `<b class="ul">${r.r}</b>` : ''}</span>`;
   };
-  const helft = (a, b) => `<div class="helft">${Array.from({length:b - a}, (_, k) => blok(a + k)).join('')}</div>`;
+  // bekerrondes: een smal blokje na de competitieweek waarna ze gespeeld worden (🏆 nationale beker, ⭐ Europa)
+  const ag = los ? [] : bekerAgenda().filter(x => !x.uitgeschakeld);
+  const bekerBlok = x => { const ic = x.europa ? '⭐' : '🏆', naam = x.opp != null && CLUBS[x.opp] ? CLUBS[x.opp].n : null;
+    const titel = `${x.naam} · ${x.ronde}${x.vrij ? ' · vrije doorgang' : naam ? ` · ${x.thuis ? 'thuis' : 'uit'} tegen ${naam}` : ''}${x.score ? ` · ${x.score} ${UITSLAG[x.r]}` : x.loting ? ' · loting volgt' : x.nu ? ' · deze week' : ''}`;
+    return `<span class="blok beker${x.r ? ` u-${x.r}` : ''}${x.loting ? ' loting' : ''}${x.nu ? ' u-nu' : ''}" title="${esc(titel)}">${naam ? clubLogo(x.opp, 16) : ic}${x.r ? `<b class="ul">${x.r}</b>` : ''}</span>`; };
+  const helft = (a, b) => `<div class="helft">${Array.from({length:b - a}, (_, k) => blok(a + k) + ag.filter(x => x.week === a + k + 1).map(bekerBlok).join('')).join('')}</div>`;
   const t = club().t, tot = rondesVan(t), gespeeld = Math.min(rondesVoor(t, S.ronde + (S.fase === 'matchEnd' ? 1 : 0)), tot);
   return `<div class="strip"><div class="rij" style="justify-content:space-between"><span class="label">Seizoen ${seizoenLabel()} · ${tot} wedstrijden in ${AANTAL_RONDES} weken</span><span class="label">${gespeeld} gespeeld · nog ${tot - gespeeld}</span></div>
     <div class="blokken" title="T = thuis, U = uit · W = gewonnen, G = gelijk, V = verloren · – = speelvrije week">${helft(0, WINTER)}<span class="winter" title="Winterstop"></span>${helft(WINTER, AANTAL_RONDES)}</div>
@@ -71,11 +76,14 @@ export function vSeizoenStrip(){
 }
 // Het hele programma als lijst (uitklapbaar): week, tegenstander, thuis/uit en de uitslag
 function vProgramma(){
-  const regels = [];
+  const regels = [], ag = bekerAgenda();
+  const bekerRegel = x => x.uitgeschakeld ? `<li class="beker uitgeschakeld"><span class="wk">${x.europa ? '⭐' : '🏆'}</span><span class="cn">${esc(x.naam)}: uitgeschakeld</span></li>`
+    : `<li class="beker${x.r ? ` u-${x.r}` : ''}${x.nu ? ' nu' : ''}"><span class="wk">${x.europa ? '⭐' : '🏆'}</span>${x.opp != null && CLUBS[x.opp] ? clubLogo(x.opp, 18) : ''}<span class="cn">${esc(x.naam)} · ${esc(x.ronde)}${x.opp != null && CLUBS[x.opp] ? `: ${esc(CLUBS[x.opp].n)}` : ''}</span><span class="tu">${x.opp != null ? (x.thuis ? 'thuis' : 'uit') : ''}</span><span class="res">${x.score ? `${esc(x.score)} ${x.r}` : x.vrij ? 'vrij' : x.loting ? 'loting volgt' : x.nu ? 'deze week' : ''}</span></li>`;
   for (let i = 0; i < AANTAL_RONDES; i++){
     const w = weekInfo(i); if (w.vrij || w.opp == null || !CLUBS[w.opp]) continue;
     const r = w.r, nu = i === S.ronde && S.fase !== 'matchEnd';
     regels.push(`<li class="${nu ? 'nu' : ''}${r ? ` u-${r.r}` : ''}"><span class="wk">${i + 1}</span>${clubLogo(w.opp, 18)}<span class="cn">${esc(CLUBS[w.opp].n)}</span><span class="tu">${w.thuis ? 'thuis' : 'uit'}</span><span class="res">${r ? `${esc(r.s.split(' tegen ')[0])} ${r.r}` : nu ? 'deze week' : ''}</span></li>`);
+    for (const x of ag.filter(x => x.week === i + 1)) regels.push(bekerRegel(x));
     if (i === WINTER - 1) regels.push('<li class="winterregel">Winterstop</li>');
   }
   return `<details id="programmaPanel" class="programma" ${tmp.programmaOpen ? 'open' : ''}><summary class="label">Programma</summary><ol>${regels.join('')}</ol></details>`;
@@ -114,7 +122,7 @@ export function vSponsorKaart(){
   if (!deals.length && !isProf()) return '';
   const totaal = deals.reduce((a, d) => a + d.bedrag, 0);
   return `<div class="kaart"><h3>Sponsors</h3>
-    ${deals.length ? deals.map(d => `<div class="landrij"><div><b>${esc(d.merk)}</b> <span class="muted">· ${SPONSOR_CAT[d.cat].n.toLowerCase()}</span><div class="muted klein-tekst">nog ${d.jaren} ${d.jaren === 1 ? 'seizoen' : 'seizoenen'} · ${SPONSOR_CAT[d.cat].perk}</div></div><span class="niv">${geldTxt(d.bedrag)}/jaar</span></div>`).join('') + `<p class="muted klein-tekst">Samen ${geldTxt(totaal)} per jaar, bovenop je salaris.</p>`
+    ${deals.length ? deals.map(d => `<div class="landrij"><div><b>${esc(d.merk)}</b> <span class="muted">· ${SPONSOR_CAT[d.cat].n.toLowerCase()}</span><div class="muted klein-tekst">${d.levenslang ? '<b>levenslang</b>' : `nog ${d.jaren} ${d.jaren === 1 ? 'seizoen' : 'seizoenen'}`} · ${SPONSOR_CAT[d.cat].perk}</div></div><span class="niv">${geldTxt(d.bedrag)}/jaar</span></div>`).join('') + `<p class="muted klein-tekst">Samen ${geldTxt(totaal)} per jaar, bovenop je salaris.</p>`
       : '<p class="muted klein-tekst">Nog geen sponsors. Hoe bekender je bent (reputatie), hoe vaker merken bij je aankloppen.</p>'}</div>`;
 }
 // Jouw verhaal: welk hoofdstuk, je karakter (rustig of heethoofd) en je band met je jeugdvriend

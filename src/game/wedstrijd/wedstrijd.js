@@ -35,6 +35,7 @@ import { animAnderen, animPush, animSoort, animVariant } from '../../render/pitc
 import { talentNaWedstrijd } from '../speler/talent.js';
 import { reeksTekst, vormBonus } from '../competitie/vorm.js';
 import { krantMelding } from '../media/roddel.js';
+import { merkenNaWedstrijd } from '../prive/merken.js';
 
 /* ===================== Wedstrijd ===================== */
 // Achtergrondgoals als jij meespeelt (naast jouw momenten): factor voor jullie en voor de tegenstander
@@ -142,7 +143,9 @@ export function verslag(e, M){
   const opS = T ? (hijScoort ? rivX : zijScoort ? vrX : e.type === 'them' ? gewogen(T, 'g') : pick(inVeld(T))) : null, op = T ? opS.n : pick(TEGENSTANDERS);
   const coach = M.inter ? 'De bondscoach' : 'De trainer', jijSpeelt = M.rol === 'basis' || (M.rol === 'invaller' && M.idx > M.ev.findIndex(x => x.type === 'inval'));
   switch (e.type){
-    case 'us': { if (!e.varPen){ const va = varTegen(M, wij, tm); if (va) return va; } M.us++; const l = [
+    case 'us': { if (!e.varPen){ const va = varTegen(M, wij, tm); if (va) return va; } M.us++;
+      if (M.inter && M.vriendMee && M.vriendMee.basis && rnd() < .25){ M.vriendGoals = (M.vriendGoals || 0) + 1; return {t:`GOAL! ${vriendNaam()} kopt raak voor ${wij}! Hij rent meteen naar jou toe. ${stand2()}`, k:'goal'}; }
+      const l = [
       `GOAL! ${tm} kopt een voorzet van ${tm2} binnen. ${stand2()}`,
       `GOAL! ${tm} schiet van afstand raak. ${stand2()}`,
       `GOAL! Na een mooie combinatie met ${tm2} schuift ${tm} de bal in de hoek. ${stand2()}`,
@@ -314,6 +317,9 @@ export function verderSpelen(){
   if (M.varKeuze) return varKeuze(0);
   while (M.idx < M.ev.length){
     const e = M.ev[M.idx++]; M.min = e.min; wisselCheck(M);
+    // Een ruime voorsprong: jullie halen de voet van het gas, de tegenstander gooit alles op de verdediging
+    if (e.type === 'us' && !e.varPen){ const vs = M.us - M.them; if (vs >= 3 && rnd() < (vs >= 5 ? .7 : .45)){ e.type = 'kansUs';
+      if (!M.gasEraf){ M.gasEraf = true; M.log.push({m:e.min + "'", t:'Met deze voorsprong haalt jullie ploeg de voet van het gas. De tegenstander gooit alles op de verdediging.', k:'info'}); } } }
     if (e.type !== 'inval' && e.type !== 'moment'){ const v = verslag(e, M); if (v){ M.log.push({m:e.min + "'", t:v.t, k:v.k}); animAnderen(M, e, v); }
       if (e.type === 'rust' && M.rol === 'basis' && !M.rood && M.gewisseld === undefined && M.us < M.them && !M.inter && isAanvoerder()){ M.pending = bouwMoment('toespraak'); return; }
       // je rivaal of je vriend scoorde: in het veld reageer je meteen, vanaf de bank wil je erin (revanche als je invalt)
@@ -385,7 +391,7 @@ export function kies(i){
   M.pending = null;
   if (varWacht && !M.rood){ M.log.push({m, t:'📺 VAR-check! De scheidsrechter legt zijn hand bij zijn oor en loopt naar het scherm...', k:'var'}); M.varKeuze = {uitslag:varWacht, m}; return; }
   if (out.goal && M.reunie && !M.juichGekozen && !M.rood){ M.juichGekozen = true; M.pending = bouwMoment('juichen'); return; }
-  if (out.next && !M.rood){
+  if (out.next && !M.rood && M.us - M.them < 4){ // (bij een ruime voorsprong geen extra scoremoment meer)
     // Vervolgactie in dezelfde aanval: zelfde minuut, zodat het verslag op volgorde blijft
     M.pending = bouwMoment(out.next);
     return;
@@ -508,6 +514,7 @@ export function eindeWedstrijd(){
   M.statusTekst = checkStatus();
   M.agentTekst = agentCheck();
   fansNaWedstrijd(M, speelde);
+  if (speelde) merkenNaWedstrijd(M); // je eigen merken: goals en topcijfers geven hype
   reunieNaWedstrijd(M, speelde);
   if (speelde) recordsNaWedstrijd(M);
   M.nieuws = maakNieuws(M, speelde);

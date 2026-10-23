@@ -99,6 +99,29 @@ export function bekerRondeKlaar(k){
   if (B.levend.length === 1){ B.winnaar = B.levend[0]; }
 }
 // De naam van ronde i: hangt af van hoeveel clubs er dan nog over zijn (bij een oneven aantal krijgt één club een vrije doorgang)
+// Jouw bekerrondes voor de seizoensagenda: per beker waar je club in zit, de gespeelde rondes (met uitslag),
+// de rondes die nog komen (loting volgt) zolang je erin zit, en de ronde waarin je eruit ging
+export function bekerAgenda(){
+  const B = S.ss && S.ss.bekers, sp = S.sp, id = sp.club, uit = []; if (!B || sp.clubloos || id == null) return uit;
+  for (const k in B){
+    const b = B[k], schema = bekerSchema(k); if (!schema.length) continue;
+    const mee = (b.rondes || []).some(r => r.some(m => m.h === id || m.u === id)) || (b.levend || []).includes(id); if (!mee) continue;
+    let weg = false;
+    schema.forEach((week, j) => {
+      if (weg) return;
+      const r = (b.rondes || [])[j], m = r && r.find(x => x.h === id || x.u === id);
+      const basis = {k, naam:BEKERS[k].naam, ronde:bekerRondeNaam(k, j), week, europa:!!BEKERS[k].europa};
+      if (m && m.w != null){ const thuis = m.h === id, voor = thuis ? m.gh : m.gu, tegen = thuis ? m.gu : m.gh, won = m.w === id;
+        uit.push({...basis, opp:thuis ? m.u : m.h, thuis, score:`${voor}-${tegen}${m.pen ? ' (pen.)' : ''}`, r:voor > tegen ? 'W' : voor < tegen ? 'V' : won ? 'W' : 'V', pen:!!m.pen});
+        if (!won){ weg = true; } }
+      else if (r && !m){ if (!(b.levend || []).includes(id) && !(b.vrij || []).includes(id)){ weg = true; } else uit.push({...basis, vrij:true}); }
+      else if (m && m.wacht) uit.push({...basis, opp:m.h === id ? m.u : m.h, thuis:m.h === id, nu:true});
+      else if (b.winnaar == null && (b.levend || []).includes(id)) uit.push({...basis, loting:true});
+    });
+    if (weg) uit.push({k, naam:BEKERS[k].naam, uitgeschakeld:true, week:(uit.filter(x => x.k === k).pop() || {week:0}).week, europa:!!BEKERS[k].europa});
+  }
+  return uit.sort((a, b) => a.week - b.week);
+}
 export function bekerRondeNaam(k, i){
   const B = S.ss.bekers && S.ss.bekers[k]; let c = B && B.start ? B.start : 16;
   for (let j = 0; j < i; j++) c = Math.ceil(c / 2);

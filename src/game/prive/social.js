@@ -50,9 +50,9 @@ export const VOLG_ACTIES = [
   {id:'live',     min:1000,   l:'Livestream met fans (vragenuur)', d:'moraal +4 · fans gaan meer van je houden'},
   {id:'deal',     min:5000,   l:'Betaalde samenwerking met een merk', d:'eenmalig geld · kies zelf het merk'},
   {id:'inzamel',  min:25000,  l:'Inzamelen voor een goed doel', d:'je volgers doneren · reputatie omhoog · telt als goed doel'},
-  {id:'kleding',  min:50000,  l:'Eigen kledinglijn lanceren', d:'€20k · daarna elke week inkomsten', eenmalig:true}
 ];
-export const kledingPerWeek = () => S.sp.merk ? Math.round(social().volgers * .0015) : 0;
+// (je eigen kledinglijn en andere merken: Geld en zaken, merken.js)
+export const kledingPerWeek = () => 0; // (vervangen door je eigen merken, merken.js)
 export function volgActie(id){
   const sp = S.sp, w = S.week, so = social(), x = VOLG_ACTIES.find(a => a.id === id); if (!x || w.volg || so.volgers < x.min) return;
   if (id === 'live'){ mod('moraal', 4); statusPunten(1); modFans(2); so.volgers += Math.round(so.volgers * .01); w.tekst.push(`Je doet een livestream. ${volgersTxt(Math.max(50, so.volgers * .03))} fans kijken mee en stellen vragen. "Wat is je lievelingseten?" "Wie is je beste vriend in het team?" Je fans gaan nog meer van je houden.`); }

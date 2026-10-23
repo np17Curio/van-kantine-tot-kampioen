@@ -1,6 +1,8 @@
 import { S, club, gemCijfer, mod, ovr, salarisVoor, waarde } from '../../core/state.js';
 import { pick, randInt, rnd } from '../../core/utils.js';
-import { CLUBS, CLUBS_LAND, ELITE_ID, ELITE_THUIS, MIN, NL_CLUBS, clubsLand, divClubs, landBasis, zetClubs } from '../../data/gegevens.js';
+import { CLUBS, CLUBS_LAND, DIVS, ELITE_ID, ELITE_THUIS, GAST_START, MIN, NL_CLUBS, WINTER, clubsLand, divClubs, landBasis, zetClubs } from '../../data/gegevens.js';
+import { speelRonde, stand } from '../competitie/spelers.js';
+import { bekerSchema, nieuweBekers, speelBekerRonde } from '../competitie/beker.js';
 import { LAND_DATA, NL, SPEEL_LANDEN, thuisLand, zetLand } from '../../data/landen.js';
 import { nl } from '../prive/school.js';
 import { nieuweTabellen } from '../speler/status.js';
@@ -21,8 +23,8 @@ export function vreemdeClub(land, id){
 export const isBuitenland = o => !!(o && o.land && o.land !== thuisLand());
 export const clubInfo = o => isBuitenland(o) ? vreemdeClub(o.land, o.club) : CLUBS[o.club];
 export const okey = o => (isBuitenland(o) ? o.land + '|' : '') + o.club;
-// In de zomer melden zich soms clubs uit een ander land (vanaf je 18e)
-export function buitenlandseBods(modus){
+// In de transferperiode melden zich soms clubs uit een ander land (vanaf je 18e); in de winter minder vaak en hooguit één
+export function buitenlandseBods(modus, winter){
   const sp = S.sp, eigen = club(), o = ovr(sp), score = transferScore();
   if (!(modus === 'normaal' || modus === 'vrij') || eigen.t < 1 || sp.leeftijd < 18 || sp.o23 || sp.huur) return [];
   const gem = gemCijfer() ?? S.vorigGem ?? 6.5, uit = [];
@@ -30,8 +32,8 @@ export function buitenlandseBods(modus){
   // Scouts van een buitenlandse club volgden je dit seizoen: dat bod komt er zeker (als je nog goed genoeg bent)
   const sc = sp.scout; if (sc && sc.land !== thuisLand() && past(sc.land, sc.club)) uit.push(bodVan(sc.land, sc.club, true));
   const kans = .35 + Math.min(.2, sp.rep / 200) + (gem >= 7 ? .15 : gem >= 6.5 ? .07 : 0) + (sp.transferlijst ? .2 : 0) - (sp.imago > 0 ? .12 : 0);
-  if (rnd() > kans) return uit;
-  const landen = SPEEL_LANDEN.filter(l => l !== thuisLand()), aantal = rnd() < .15 ? 3 : rnd() < .4 ? 2 : 1;
+  if (rnd() > kans * (winter ? .5 : 1)) return uit;
+  const landen = SPEEL_LANDEN.filter(l => l !== thuisLand()), aantal = winter ? (uit.length ? 0 : 1) : rnd() < .15 ? 3 : rnd() < .4 ? 2 : 1;
   for (let k = 0; k < aantal; k++){
     const vrij = landen.filter(l => !uit.some(b => b.land === l)); if (!vrij.length) break;
     const land = pick(vrij);
@@ -97,7 +99,24 @@ export function wisselLand(nl){
   S.tab = nieuweTabellen();
 }
 
-// Tijdens het seizoen: scouts van een buitenlandse club op de tribune (de overstap zelf kan pas in de zomer)
+// Overstap naar een ander land in de winterstop: de nieuwe competitie is dan al halverwege. Die eerste helft wordt in één keer
+// gespeeld (met jouw nieuwe club erbij), zodat er een echte stand is. Jouw eigen cijfers van dit seizoen lopen door.
+// De nationale beker van je oude land is voorbij voor je; de Europese bekers houden alleen clubs die er nog zijn.
+export function winterInhalen(){
+  const sp = S.sp, los = sp.clubloos;
+  S.ss.res = {}; S.ss.st = {}; S.ss.uitslagen = []; S.tab = nieuweTabellen();
+  sp.clubloos = {tijdelijk:true}; // ook de wedstrijden van jouw nieuwe club worden gespeeld
+  for (let w = 0; w < WINTER; w++) speelRonde(w, 0, 0, null);
+  sp.clubloos = los;
+  S.ronde = WINTER;
+  const B = S.ss.bekers || {};
+  // de nationale beker van het nieuwe land: opnieuw geloot, en de rondes tot nu toe ingehaald (jouw nieuwe club doet gewoon mee)
+  if (B.nat){ B.nat = nieuweBekers().nat; for (const w of bekerSchema('nat').filter(w => w <= WINTER)){ if (B.nat.winnaar !== null || B.nat.levend.length < 2) break; S.ronde = w; speelBekerRonde('nat', false); } S.ronde = WINTER; }
+  for (const k of ['cl', 'eur']) if (B[k]) B[k].levend = (B[k].levend || []).filter(id => id < 8 || id >= GAST_START);
+  const l = stand(club().t), plek = l.indexOf(sp.club) + 1;
+  return `De ${DIVS[club().t]} is al halverwege: ${club().n} staat ${plek}e van de ${l.length}.`;
+}
+// Tijdens het seizoen: scouts van een buitenlandse club op de tribune (de overstap zelf kan in de winterstop of de zomer)
 export function scoutEvent(){
   if (!S.ss || !S.ss.c) return null;
   const sp = S.sp, eigen = club(), gem = gemCijfer();

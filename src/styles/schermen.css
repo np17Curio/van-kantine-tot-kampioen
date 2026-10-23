@@ -37,6 +37,11 @@
 .blok.u-G{background:var(--lamp);border-color:var(--lamp);color:var(--op-lamp);font-weight:500}
 .blok.u-V{background:var(--fout);border-color:var(--fout);color:var(--op-lamp);font-weight:500}
 .blok.zonder{opacity:.5}
+/* bekerwedstrijden in de seizoensstrip en het programma */
+.blok.beker{border-color:#d4af37;box-shadow:inset 0 0 0 1px #d4af3755}
+.blok.beker.loting{border-style:dashed;opacity:.8}
+.programma li.beker .wk{color:#d4af37}
+.programma li.beker.uitgeschakeld{opacity:.6}
 .blok.u-nu{border:2px solid var(--lamp);color:var(--krijt)}
 .opst{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline}
 .opst .risico{font-family:var(--f-mono)}

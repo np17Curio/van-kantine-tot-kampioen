@@ -3,7 +3,7 @@ import { clamp, pick, randInt, rnd } from '../../core/utils.js';
 import { AANTAL_RONDES, CLUBS, DIVS, LAAGSTE, MEIDEN, clubsLand, divClubs, WINTER, rondeInWeek, weekFactor } from '../../data/gegevens.js';
 import { thuisLand } from '../../data/landen.js';
 import { vreemdeClub } from '../transfers/buitenland.js';
-import { landenVoor } from '../interlands/interlands.js';
+import { interDrempel, landenVoor } from '../interlands/interlands.js';
 import { OPBOUW, selectie, startElf } from '../competitie/spelers.js';
 import { herschik } from '../transfers/markt.js';
 import { krantMelding } from '../media/roddel.js';
@@ -399,7 +399,8 @@ export function vriendSeizoen(){
 // eerste elftal (of allebei bij de O23) zitten en hij in de basis staat
 export const vriendSpeler = () => { const sp = S.sp, v = sp.vriend; if (!v || v.club == null || !vriendHier()) return null; return selectie(v.club).find(y => y.vriend) || null; };
 export function vriendInTeam(M){
-  const sp = S.sp, v = sp.vriend; if (!M || !v || M.inter) return false;
+  const sp = S.sp, v = sp.vriend; if (!M || !v) return false;
+  if (M.inter) return !!(M.vriendMee && M.vriendMee.basis); // samen in het nationale team
   if (M.selectie) return true;
   if (!vriendActief() || !bijJou() || !!v.o23 !== !!sp.o23) return false;
   if (sp.o23) return !!vriendSpeler();
@@ -466,6 +467,25 @@ export function vriendActie(id){
   else if (id === 'afstand'){ zetBand(-10); t = `Je reageert niet meer op de berichtjes van ${vn}. Hij merkt het wel.`; }
   w.vriend = id; w.tekst.push(t);
 }
+// ---------- samen in het nationale team ----------
+// Hij komt uit hetzelfde land als jij (jullie groeiden samen op). Opgeroepen als zijn klasse rond de drempel van dat land ligt.
+export function vriendInterland(land){
+  const sp = S.sp, v = sp.vriend; if (!v || S.trainer) return null;
+  const zijnLand = (sp.herkomst && sp.herkomst.geboren) || interLand(); if (land !== zijnLand) return null;
+  const d = interDrempel(land); if (v.k + randInt(-2, 2) < d) return null;
+  return {basis:v.k >= d + 4, eerste:!(v.int && v.int.caps)};
+}
+// Na de interland: zijn interlands en goals, en de eerste keer een debuut samen
+export function vriendNaInterland(M){
+  const sp = S.sp, v = sp.vriend, V = M && M.vriendMee; if (!v || !V) return [];
+  const I = v.int = v.int || {caps:0, g:0}, g = M.vriendGoals || 0, uit = [];
+  I.caps++; I.g += g;
+  if (V.eerste){ zetBand(5); uit.push(`Debuut voor ${v.voornaam}! Samen in het nationale team, net als jullie vroeger droomden.`); S.car.hist.push(`${seizoenLabel()}: samen met jeugdvriend ${v.voornaam} in het nationale team`);
+    krantMelding(`Jeugdvrienden samen bij ${M.inter.land}`, `${sp.naam} en ${v.voornaam} ${v.n} speelden als kinderen samen op het pleintje. Vandaag stonden ze samen in het nationale team.`); }
+  uit.push(`${v.voornaam}: ${I.caps} ${I.caps === 1 ? 'interland' : 'interlands'}, ${I.g} ${I.g === 1 ? 'goal' : 'goals'}${g ? ` (vandaag ${g})` : ''}.`);
+  return uit;
+}
+
 // ---------- hem naar jouw club halen ----------
 // Hij beslist zelf: welke rol krijgt hij bij jou (op jouw linie, op klasse, met jou erbij), is hij te goed of te slecht
 // voor je club, is het een stap omhoog of omlaag, staat hij nu in de basis, en hoe goed is jullie band?
@@ -539,7 +559,7 @@ function vriendLokt(){
 export function vriendBodVenster(soort){
   const sp = S.sp, v = sp.vriend, K = sp.vriendBod; if (!K || !v) return null;
   if (!vriendActief() || bijJou() || v.club !== K.club || vriendLand() !== K.land){ sp.vriendBod = null; return {tekst:`${v.voornaam} speelt niet meer bij de club die jou wilde. Zijn verzoek vervalt.`}; }
-  const bl = K.land !== thuisLand(); if (bl && soort !== 'zomer') return null; // even wachten tot de zomer
+  const bl = K.land !== thuisLand(); // (een overstap naar het buitenland kan ook in de winterstop)
   sp.vriendBod = null;
   const c = zijnClubInfo();
   const bod = {club:K.club, ...(bl ? {land:K.land} : {}), salaris:Math.round(salarisVoor(c.t, ovr(sp), c.s) / 100) * 100, jaren:sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4), som:waarde(sp), viaVriend:true};
@@ -607,10 +627,6 @@ export function vriendEvents(){
     ['Gaan, met een mooi cadeau', 'kalm', 6, `Je geeft hem een ingelijste foto van jullie twee op het jeugdtoernooi. Hij is er stil van.`],
     ['Even langs voor een taartje', 'bal', 3, 'Hij is blij dat je er even was.'],
     ['Een appje: "Gefeliciteerd!"', 'fel', -4, 'Hij reageert met een duimpje. Meer niet.']]));
-  if (v.k >= 72 && mag('oproep', Infinity)) L.push(ev('oproep', `Groot nieuws: ${vn} is voor het eerst opgeroepen voor het nationale team! Hij belt jou als eerste.`, [
-    ['"Je verdient het, man. Ik ben zo trots."', 'kalm', 6, 'Je hoort dat hij een brok in zijn keel heeft.'],
-    ['"Gefeliciteerd! Laat zien wat je kan."', 'bal', 3, '"Dat ga ik doen," zegt hij.'],
-    ['"Eindelijk. Ik was je al voor."', 'fel', -3, 'Hij lacht, maar het klinkt een beetje geforceerd.']]));
   if ((S.ronde <= 2 || S.ronde >= AANTAL_RONDES - 3) && mag('vakantie', 2)) L.push(ev('vakantie', `${vn} stelt voor: na het seizoen samen een week op vakantie, net als vroeger met jullie ouders.`, [
     ['Ja! Een week zon en zee', 'kalm', 8, 'Een week vol lachen, slechte zonnebrand en goede herinneringen.'],
     ['Een lang weekend', 'bal', 4, 'Kort, maar heerlijk.'],
