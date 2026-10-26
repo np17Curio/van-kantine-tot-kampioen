@@ -1,10 +1,10 @@
 import { S, club, mod, ovr, seizoenLabel } from '../../core/state.js';
 import { clamp, geldTxt, randInt, rnd } from '../../core/utils.js';
-import { CLUBS } from '../../data/gegevens.js';
 import { HAAR, HAAR_NAAM, HUID, KAPSELS, KAPSEL_KEUZE, SCHOENEN } from '../../data/uiterlijk.js';
 import { krantMelding } from '../media/roddel.js';
 import { social, volgersTxt } from './social.js';
 import { verhoog } from '../week.js';
+import { huurOuder } from '../speler/o23.js';
 
 /* ===================== Kapper en voetbalschoenen ===================== */
 // ---------- Je uiterlijk (zonder eigen keuze: hetzelfde als het 3D-model het met de dobbelsteen maakt) ----------
@@ -49,9 +49,9 @@ export const merkVan = naam => MERKEN.find(m => m.n === naam);
 const niveau = naam => { const m = merkVan(naam); return m ? MERKEN.indexOf(m) : -1; };
 export const schoenDeal = () => (S.sp.sponsors || []).find(d => d.cat === 'schoenen') || null;
 const periode = () => `${S.jaar}-${S.ronde >= 19 ? 2 : 1}`;
-export const prof = () => { const sp = S.sp; return !sp.clubloos && !sp.o23 && (sp.huur ? CLUBS[sp.huur.ouder].t : club().t) <= 2; };
+export const prof = () => { const sp = S.sp; return !sp.clubloos && !sp.o23 && (sp.huur ? huurOuder().t : club().t) <= 2; };
 export function schoenBedrag(m){
-  const sp = S.sp, t = sp.huur ? CLUBS[sp.huur.ouder].t : club().t, volg = Math.min(.5, Math.max(0, Math.log10(social().volgers + 1) - 3) * .12);
+  const sp = S.sp, t = sp.huur ? huurOuder().t : club().t, volg = Math.min(.5, Math.max(0, Math.log10(social().volgers + 1) - 3) * .12);
   return Math.round(m.basis * (t === 1 ? 1 : .6) * (1 + sp.rep / 100 + volg) * (.85 + rnd() * .3) / 1000) * 1000;
 }
 // Kans dat ze je nemen (null: geen kans, je bent te zwak)

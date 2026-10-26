@@ -4,7 +4,7 @@ import { esc } from '../../core/utils.js';
 import { landInfo } from '../../data/gegevens.js';
 import { interRol, landenVoor, naInterland, startInterland, stopVanuitOproep, zegAf } from '../../game/interlands/interlands.js';
 import { naToernooiWedstrijd, vTwTabel } from '../../game/interlands/toernooi.js';
-import { scorebord, vFit, vLog } from './match.js';
+import { scorebord, vFit, vLog, statRegel } from './match.js';
 
 export function vOproep(){
   const O = S.oproep, sp = S.sp, meer = O.landen.length > 1;
@@ -27,6 +27,6 @@ export function vInterEnd(){
   const oordeel = M.cijfer >= 8.5 ? 'Uitblinker! Het hele land praat over je.' : M.cijfer >= 7.3 ? 'Sterke interland. De bondscoach is tevreden.' : M.cijfer >= 6 ? 'Degelijk. Je hoort erbij.' : 'Een lastige avond. De bondscoach denkt erover na.';
   return scorebord() + `<div class="verhaal"><span class="label">${I.type} · ${uitslag}</span>
     <div class="rij" style="gap:20px;align-items:flex-end"><div><span class="label">Jouw cijfer</span><div class="groot">${M.cijfer.toFixed(1).replace('.', ',')}</div></div>
-    <div class="muted">${M.goals} ${M.goals === 1 ? 'goal' : 'goals'} · ${M.assists} ${M.assists === 1 ? 'assist' : 'assists'}${M.rood ? ' · rode kaart' : ''}<br>Interland ${st.caps} voor ${esc(I.land)} · ${st.g} interlandgoals</div></div>
+    <div class="muted">${statRegel(M)}${M.rood ? ' · rode kaart' : ''}<br>Interland ${st.caps} voor ${esc(I.land)} · ${st.g} interlandgoals</div></div>
     <p>${oordeel}</p>${M.focusTekst ? `<p class="${M.focusOmlaag ? 'fouttxt' : 'goedtxt'}">${esc(M.focusTekst)}</p>` : ''}${vFit(M)}${(M.interTekst || []).map(t => `<p class="melding">${esc(t)}</p>`).join('')}${M.pens ? `<p class="melding">Strafschoppen: ${M.pensWin ? 'gewonnen' : 'verloren'} (${M.pens}).</p>` : ''}${M.rood && I.toernooi ? '<p class="fouttxt">Door je rode kaart ben je de volgende toernooiwedstrijd geschorst.</p>' : ''}${M.twTekst ? `<div class="${S.tw && S.tw.res === 'winst' ? 'kampioen' : 'melding'}"><p>${esc(M.twTekst)}</p></div>` : ''}${I.toernooi && S.tw && S.tw.fase === 'groep' ? `<div class="paneel"><span class="label">Poule</span>${vTwTabel()}</div>` : ''}</div>` + vLog() + (I.toernooi ? knop('Verder', naToernooiWedstrijd) : knop(`Terug naar ${esc(club().n)}`, naInterland));
 }

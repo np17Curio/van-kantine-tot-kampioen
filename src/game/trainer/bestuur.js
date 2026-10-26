@@ -4,6 +4,7 @@ import { CLUBS, DIVS, LAAGSTE, divClubs, AANTAL_RONDES, WINTER, rondesVan } from
 import { stand } from '../competitie/spelers.js';
 import { rivaal } from '../wedstrijd/fans-pers.js';
 import { jeugdSpeler, mijnSel, refKracht } from './ploeg.js';
+import { o23Stand } from './loopbaan.js';
 
 /* ===================== Trainer: de eisen van het bestuur ===================== */
 // Aan het begin van elk seizoen 3 eisen: een hoofdeis (de eindklassering, telt dubbel) en twee nevendoelen.
@@ -11,6 +12,7 @@ import { jeugdSpeler, mijnSel, refKracht } from './ploeg.js';
 export const rangOpSterkte = id => divClubs(CLUBS[id].t).sort((a, b) => CLUBS[b].s - CLUBS[a].s).indexOf(id) + 1;
 export function maakEisen(halverwege = false){
   const T0 = S.trainer, id = T0.club, c = CLUBS[id], t = c.t, rang = rangOpSterkte(id), onderste = t >= LAAGSTE;
+  if (T0.o23) return maakO23Eisen(halverwege, rang);
   // De hoofdeis: wat je op papier minstens moet kunnen (met wat ruimte voor pech)
   // (de zwakste club van de competitie: geen klassering, wel een fatsoenlijk aantal punten)
   const max = rang === 1 ? 3 : rang === 2 ? 4 : rang === 3 ? 5 : rang <= 6 ? Math.min(7, rang + 2) : onderste || rang === 8 ? 8 : 7;
@@ -31,9 +33,22 @@ export function maakEisen(halverwege = false){
   T0.eisen = {jaar:S.jaar, halverwege, rang, lijst:[hoofd, ...kies], gezien:false};
   return T0.eisen;
 }
+// De O23: de technisch directeur wil een goede klassering, talenten die doorstromen naar het eerste en spelers die groeien
+function maakO23Eisen(halverwege, rang){
+  const T0 = S.trainer, t = CLUBS[T0.club].t, n = divClubs(t).length, max = Math.max(3, Math.min(n - 2, rang + 2)); // wat de O23 van deze club op papier kan, met wat ruimte
+  const hoofd = {soort:'plek', max, hoofd:true, tekst:`Eindig met de O23 in de top ${max}`};
+  const pts = Math.round(rondesVan(t) * (1.45 - rang / n * .7));
+  const pool = [
+    {soort:'door', n:rang <= 4 ? 2 : 1, tekst:`Laat ${rang <= 4 ? 'twee talenten' : 'een talent'} doorstromen naar het eerste elftal`},
+    {soort:'groei', n:3, tekst:'Laat drie spelers minstens 3 klassen groeien'},
+    {soort:'punten', n:pts, tekst:`Haal minstens ${pts} punten`},
+  ];
+  T0.eisen = {jaar:S.jaar, halverwege, rang, o23:true, lijst:[hoofd, ...shuffle(pool).slice(0, 2)], gezien:false};
+  return T0.eisen;
+}
 // Hoe staat een eis ervoor? {ok (gehaald), bijna (net gemist), staat: 'gehaald' | 'koers' | 'bijna' | 'gevaar', tekst}
 export function status(e){
-  const T0 = S.trainer, id = T0.club, z = T0.sz, plek = stand(CLUBS[id].t).indexOf(id) + 1, tab = S.tab[id] || {pt:0, g:0};
+  const T0 = S.trainer, id = T0.club, z = T0.sz, plek = (T0.o23 ? o23Stand() : stand(CLUBS[id].t)).indexOf(id) + 1, tab = (T0.o23 ? (T0.o23Tab || {})[id] : S.tab[id]) || {pt:0, g:0};
   const klaar = S.ronde >= AANTAL_RONDES;
   switch (e.soort){
     case 'plek': { const ok = plek <= e.max, bijna = !ok && plek === e.max + 1; if (!tab.g) return {ok:false, staat:'koers', tekst:'Nog niet begonnen'}; return {ok, bijna, staat: ok ? (klaar ? 'gehaald' : 'koers') : bijna ? 'bijna' : 'gevaar', tekst: bijna ? `Nu ${plek}e: net niet, 1 plek te laag` : `Nu ${plek}e`}; }
@@ -42,6 +57,8 @@ export function status(e){
     case 'jeugd': { const b = Math.max(0, ...mijnSel().filter(jeugdSpeler).map(x => x.bT || 0)), ok = b >= e.n; return {ok, staat: ok ? 'gehaald' : b + (AANTAL_RONDES - S.ronde) >= e.n ? 'koers' : 'gevaar', tekst:`${b} van ${e.n} basisplaatsen`}; }
     case 'verkoop': { const ok = z.saldo >= e.n, nogOpen = S.ronde < WINTER || !!T0.venster; return {ok, staat: ok ? (nogOpen ? 'koers' : 'gehaald') : nogOpen ? 'koers' : 'gevaar', tekst:`Saldo ${geldTxt(z.saldo)}`}; }
     case 'aankoop': { const ok = z.gekocht.some(k => k >= e.n); return {ok, staat: ok ? 'gehaald' : S.ronde < WINTER || T0.venster ? 'koers' : 'gevaar', tekst: ok ? 'Gehaald' : 'Nog niet'}; }
+    case 'door': { const d = z.door || 0, ok = d >= e.n; return {ok, staat: ok ? 'gehaald' : klaar ? 'gevaar' : S.ronde > AANTAL_RONDES * .7 ? 'gevaar' : 'koers', tekst:`${d} van ${e.n} doorgestroomd`}; }
+    case 'groei': { const d = mijnSel().filter(x => x.k - (x.kStart ?? x.k) >= 3).length, ok = d >= e.n; return {ok, staat: ok ? 'gehaald' : klaar ? 'gevaar' : 'koers', tekst:`${d} van ${e.n} spelers +3`}; }
     case 'rivaal': { const ok = (z.rivaalPt || 0) > 0; return {ok, staat: ok ? 'gehaald' : z.rivaalGes < 2 ? 'koers' : 'gevaar', tekst: ok ? `${z.rivaalPt} ${z.rivaalPt === 1 ? 'punt' : 'punten'}` : `${z.rivaalGes} van 2 gespeeld`}; }
   }
   return {ok:false, staat:'gevaar', tekst:''};

@@ -35,7 +35,7 @@ export function spelerVanHetSeizoen(t, gem){
   // jij, als je mee mag doen
   const reden = club().t === t ? magMeedoen(wed, basis, gem) : 'Je speelde niet in deze competitie.';
   if (!reden){
-    const cs = sp.pos === 'VERD' ? (ss.cs || 0) : 0;
+    const cs = sp.pos === 'VERD' || sp.pos === 'KEEPER' ? (ss.cs || 0) * (sp.pos === 'KEEPER' ? 1.5 : 1) : 0;
     const punten = g * 3 + a * 2 + cijferPunten(gem) * Math.min(1, basis / 10) + cs + ploegBonus(plekVan(sp.club));
     lijst.push({naam:sp.naam, club:club().n, g, a, punten, jij:true});
   }

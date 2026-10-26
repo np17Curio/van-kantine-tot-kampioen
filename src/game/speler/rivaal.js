@@ -1,6 +1,6 @@
-import { S, club, gemCijfer, mod, ovr } from '../../core/state.js';
+import { S, club, gemCijfer, mod, ovr, attr } from '../../core/state.js';
 import { clamp, pick, randInt, rnd } from '../../core/utils.js';
-import { AANTAL_RONDES, ATTR, CLUBS, LAAGSTE, TRAINBAAR, divClubs, WINTER } from '../../data/gegevens.js';
+import { AANTAL_RONDES, CLUBS, LAAGSTE, TRAINBAAR, divClubs, WINTER } from '../../data/gegevens.js';
 import { selectie } from '../competitie/spelers.js';
 import { metVoorletter } from '../media/nieuws.js';
 import { krantMelding } from '../media/roddel.js';
@@ -12,7 +12,7 @@ import { fixture } from '../competitie/competitie.js';
 /* ===================== Je vaste rivaal ===================== */
 // Een speler van jouw leeftijd, op jouw positie en van ongeveer jouw niveau, bij een andere club.
 // Hij staat echt in de selectie van die club (dus hij scoort ook in de andere wedstrijden), groeit mee en volgt je omhoog.
-const POS_LINIE = {SPITS:'A', MID:'M', VERD:'V'};
+const POS_LINIE = {SPITS:'A', MID:'M', VERD:'V', KEEPER:'K'};
 const NAMEN = ['Van Rijswijk', 'Brandsma', 'De Haas', 'Kortenhoeven', 'Vermeulen', 'Okonkwo', 'Lindqvist', 'Van der Stroom', 'El Haddaoui', 'Moreau', 'Kuipers', 'Sanchez-Duin'];
 const VOORL = ['J', 'M', 'R', 'T', 'L', 'S', 'D', 'K'];
 const ACHTERGROND = [
@@ -32,12 +32,12 @@ export function rivaalSpeler(){
 }
 // Hem bij een club in de selectie zetten (als basisspeler op zijn linie)
 export function plaats(id){
-  const R = rivaal(), sel = selectie(id), linie = POS_LINIE[S.sp.pos];
+  const R = rivaal(), sel = selectie(id), linie = POS_LINIE[R.pos || S.sp.pos]; // (een ex-vriend houdt zijn eigen positie)
   const oud = rivaalSpeler(); if (oud && oud.id !== id){ const s2 = selectie(oud.id); s2.splice(s2.indexOf(oud.x), 1); selectie(oud.id); }
   if (sel.some(y => y.n === R.n && y.v === R.v)) return;
   // de zwakste bankspeler op zijn linie maakt plaats
   const bank = sel.filter(y => y.pos === linie && !y.basis).sort((a, b) => a.k - b.k)[0]; if (bank) sel.splice(sel.indexOf(bank), 1);
-  sel.push({v:R.v, n:R.n, pos:linie, basis:true, g:linie === 'A' ? 4.5 : linie === 'M' ? 2.4 : 1, a:linie === 'M' ? 2.8 : 1.6, k:R.k, lft:R.lft, rivaal:true});
+  sel.push({v:R.v, n:R.n, pos:linie, basis:true, g:linie === 'A' ? 4.5 : linie === 'M' ? 2.4 : linie === 'K' ? 0 : 1, a:linie === 'M' ? 2.8 : linie === 'K' ? .1 : 1.6, k:R.k, lft:R.lft, rivaal:true});
   R.club = id;
 }
 // Een club voor hem: niet de jouwe, op jouw niveau (of eentje hoger/lager)
@@ -192,7 +192,7 @@ export function rivaalEvents(){
   if (R.reactie){ R.reactie = false; return [kaats]; }
   if (R.band < -40) uit.push(kaats);
   if (rs && rs.verschil <= -2) uit.push({soort:'prive', tekst:`${naam} heeft al ${rs.hij} ${rs.woord}, jij ${rs.jij}. Op social media worden jullie vergeleken, en niet in jouw voordeel.`, opts:[
-    {l:'Extra trainen', f(){ mod('fit', -8); const k = TRAINBAAR.slice().sort((a, b) => sp.a[a] - sp.a[b])[0]; if (rnd() < .4){ sp.a[k] = Math.min(99, sp.a[k] + 1); return `Je traint elke avond extra. Je ${ATTR[k].toLowerCase()} gaat omhoog naar ${sp.a[k]}.`; } return 'Je traint elke avond extra. Moe, maar gemotiveerd.'; }},
+    {l:'Extra trainen', f(){ mod('fit', -8); const k = TRAINBAAR.slice().sort((a, b) => sp.a[a] - sp.a[b])[0]; if (rnd() < .4){ sp.a[k] = Math.min(99, sp.a[k] + 1); return `Je traint elke avond extra. Je ${attr(k).toLowerCase()} gaat omhoog naar ${sp.a[k]}.`; } return 'Je traint elke avond extra. Moe, maar gemotiveerd.'; }},
     {l:'Hem feliciteren', f(){ zetBand(10); mod('rep', 1); return `Je feliciteert ${naam} met zijn goede seizoen. Sportief: dat valt op.`; }},
     {l:'Er niets mee doen', f(){ mod('moraal', -2); return 'Je doet alsof het je niets doet. Maar het knaagt.'; }}]});
   if (!R.blessure && rnd() < .3) uit.push({soort:'prive', tekst:`Slecht nieuws voor je rivaal: ${naam} is geblesseerd en is een paar weken uit de roulatie.`, opts:[
@@ -236,7 +236,7 @@ export function raceWeek(eerste){
 
 /* ----- Het duel: momenten, het interview vooraf ----- */
 // Bestaande momenten (die al animaties hebben), passend bij je positie
-export const RIVAAL_MOMENTEN = {SPITS:['eenOpEen', 'kopduel', 'volley'], MID:['counter', 'diepteBal', 'eenOpEen'], VERD:['tackle', 'verdedigen', 'kopduel']};
+export const RIVAAL_MOMENTEN = {SPITS:['eenOpEen', 'kopduel', 'volley'], MID:['counter', 'diepteBal', 'eenOpEen'], VERD:['tackle', 'verdedigen', 'kopduel'], KEEPER:['redding', 'eenOpEenKeeper', 'hogeBal']};
 const VOORZET = [
   n => `Daar is hij: je rivaal ${n}. Dit is jullie duel.`,
   n => `${n} staat recht tegenover je. Het hele stadion weet wat dit betekent.`,
@@ -246,6 +246,7 @@ const VOORZET = [
 export function rivaalVoorzet(M, e){
   const n = rivaalNaam();
   if (e.provo) return `Je rivaal ${n} loopt langs en fluistert iets in je oor.`;
+  if ((rivaal() || {}).pos === 'KEEPER') return `In het doel staat je rivaal ${n}. Dit is jullie duel.`; // (je ex-vriend is keeper)
   const g = M.rivVoorzet = M.rivVoorzet || []; let vrij = VOORZET.map((_, i) => i).filter(i => !g.includes(i)); if (!vrij.length){ g.length = 0; vrij = VOORZET.map((_, i) => i); }
   const i = pick(vrij); g.push(i); return VOORZET[i](n);
 }

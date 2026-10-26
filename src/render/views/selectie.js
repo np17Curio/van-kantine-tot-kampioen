@@ -8,7 +8,7 @@ import { clubLogo } from '../../data/logos.js';
 /* ===================== Teamoverzicht: de klasse van elke speler ===================== */
 // Hoe sterk is je team, wie zijn de besten, en wie groeit of gaat achteruit (ten opzichte van vorig seizoen)
 const LINIES = [['K', 'Keepers'], ['V', 'Verdedigers'], ['M', 'Middenvelders'], ['A', 'Aanvallers']];
-const MIJN_POS = {SPITS:'A', MID:'M', VERD:'V'};
+const MIJN_POS = {SPITS:'A', MID:'M', VERD:'V', KEEPER:'K'};
 const NAAM = {K:'keeper', V:'verdediger', M:'middenvelder', A:'aanvaller'}, NAAM_MV = {K:'keepers', V:'verdedigers', M:'middenvelders', A:'aanvallers'};
 // Nog geen klasse van vorig seizoen (eerste seizoen, net uit de jeugd of net gekocht): een streepje in plaats van een pijl
 const trend = (nu, vorig) => vorig === undefined || vorig === null ? '<span class="muted" title="Nog geen vorig seizoen om mee te vergelijken">–</span>'

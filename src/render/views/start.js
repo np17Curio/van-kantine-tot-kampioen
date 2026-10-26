@@ -1,8 +1,9 @@
 import { herstel } from '../../core/migratie.js';
-import { laad, setS, tmp } from '../../core/state.js';
+import { SLOTS, laad, saves, setS, tmp, vrijeSlot, wis } from '../../core/state.js';
+import { VOORNAMEN } from '../../game/speler/journey.js';
 import { act, knop } from '../../core/ui.js';
 import { esc } from '../../core/utils.js';
-import { CLUBS, DIVS, LANDEN_LIJST, NIVEAU, POS } from '../../data/gegevens.js';
+import { DIVS, LANDEN_LIJST, NIVEAU, POS } from '../../data/gegevens.js';
 import { SPEEL_LANDEN, zetLand } from '../../data/landen.js';
 import { nieuwSpel } from '../../game/speler/status.js';
 import { LEEFTIJDEN, START } from '../../game/speler/startverhaal.js';
@@ -55,26 +56,51 @@ function vLeeftijd(){
   return `<div><span class="label">Leeftijd en verhaal</span><div class="keuzes leeftijden" style="margin-top:6px">${LEEFTIJDEN.map(l => { const V = START[l];
     return `<button class="keuze leeftijd ${tmp.leeftijd === l ? 'aan' : ''}" aria-pressed="${tmp.leeftijd === l}" data-i="${act(() => { tmp.leeftijd = l; })}" data-blijf><span class="t"><b>${l}</b> · ${V.titel}</span><span class="v">${V.kort}</span><span class="s">${V.waar}</span></button>`; }).join('')}</div></div>`;
 }
+// Je carrières: verder spelen of verwijderen (5 opslagplekken)
+function vSaves(){
+  const l = saves().filter(x => !x.leeg); if (!l.length) return '';
+  const verder = slot => () => { const d = laad(slot); if (!d) return; const st = herstel(d); st.slot = slot; setS(st); };
+  return `<div class="paneel"><span class="label">Jouw carrières · ${l.length} van ${SLOTS}</span>${l.map(x => `<div class="eisrij"><span><b>${esc(x.naam)}</b> <span class="muted klein-tekst">${esc([x.rol, x.club, x.leeftijd ? `${x.leeftijd} jaar` : '', x.seizoen, x.einde ? 'carrière voorbij' : ''].filter(Boolean).join(' · '))}</span></span>
+    ${knop('Verder', verder(x.slot), 'klein')}${knop('🗑', () => { wis(x.slot); if (tmp.slot === x.slot) tmp.slot = null; }, 'klein', `data-blijf title="Verwijderen" data-bevestig="De carrière van ${esc(x.naam)} wordt verwijderd. Dit kun je niet ongedaan maken." data-ja="Ja, verwijderen"`)}</div>`).join('')}</div>`;
+}
+// Waar komt de nieuwe carrière? De eerste vrije plek; zijn ze allemaal vol, dan kies je welke je overschrijft
+function nieuweSlot(){ const v = vrijeSlot(); if (v) return v; return tmp.slot || null; }
+function vSlotKeuze(){
+  if (vrijeSlot()) return '';
+  return `<div class="paneel"><span class="label">Alle ${SLOTS} plekken zijn vol. Welke carrière mag weg?</span><div class="rij" style="gap:6px;flex-wrap:wrap">${saves().map(x => knop(`${x.slot}. ${esc(x.naam || '')}`, () => { tmp.slot = x.slot; }, 'klein' + (tmp.slot === x.slot ? ' aan' : ''), 'data-blijf')).join('')}</div></div>`;
+}
+const POS_UITLEG = {SPITS:'Goals maken, schieten, dribbelen', MID:'Passen, counters, vrije trappen', VERD:'Tackles, kopduels, opbouwen', KEEPER:'Reddingen, uittrappen, de baas in de zestien'};
+// Je beste vriend: zijn naam en positie (hij groeit samen met jou op)
+function vVriend(){
+  if (!tmp.vriendVoorbeeld) tmp.vriendVoorbeeld = VOORNAMEN[Math.floor(Math.random() * VOORNAMEN.length)];
+  const vp = tmp.vriendPos || tmp.pos;
+  return `<div><span class="label">Je beste vriend</span><div class="invoer"><label class="label" for="vriendNaam">Naam (voornaam en eventueel achternaam)</label><input id="vriendNaam" maxlength="24" placeholder="bijv. ${esc(tmp.vriendVoorbeeld)}" value="${esc(tmp.vriendNaam || '')}"></div>
+    <div class="rij" style="gap:6px;flex-wrap:wrap;margin-top:6px"><span class="muted klein-tekst">Zijn positie:</span>${Object.keys(POS).map(k => knop(POS[k].n, () => { tmp.vriendPos = k; }, 'klein' + (vp === k ? ' aan' : ''), 'data-blijf')).join('')}${knop('🎲', () => { tmp.vriendNaam = VOORNAMEN[Math.floor(Math.random() * VOORNAMEN.length)]; }, 'klein', 'data-blijf title="Willekeurige naam"')}</div>
+    <p class="muted klein-tekst">Jullie groeiden samen op en droomden van dezelfde carrière. Speelt hij op een andere plek dan jij, dan zitten jullie elkaar niet in de weg als jullie bij dezelfde club spelen.</p></div>`;
+}
 export function vStart(){
-  const opgeslagen = laad();
-  zetLand(opgeslagen && opgeslagen.land || opgroeiKeuze());
-  const posKnop = k => `<button class="keuze ${tmp.pos === k ? 'aan' : ''}" data-i="${act(() => { tmp.pos = k; })}"><span class="t">${POS[k].n}</span><span class="s">${k === 'SPITS' ? 'Goals maken, schieten, dribbelen' : k === 'MID' ? 'Passen, counters, vrije trappen' : 'Tackles, kopduels, opbouwen'}</span></button>`;
+  zetLand(opgroeiKeuze());
+  const posKnop = k => `<button class="keuze ${tmp.pos === k ? 'aan' : ''}" data-i="${act(() => { tmp.pos = k; })}"><span class="t">${POS[k].n}</span><span class="s">${POS_UITLEG[k]}</span></button>`;
+  const slot = nieuweSlot(), bezet = slot && saves().find(x => x.slot === slot && !x.leeg);
   return `<div class="verhaal">
       <span class="label">Nieuwe carrière</span>
       <h1>Het Grote Doorbreken</h1>
       <p>Maak je speler en kies hoe je begint: als wonderkind, gewoon als 18-jarige of als laatbloeier die zich moet bewijzen. Je begint met 3 selectiewedstrijden: speel je goed, dan tekent een club uit de hoogste league; speel je slecht, dan begin je bij de O23. Van daaruit klim je misschien wel naar de Europese top.</p>
       <p class="muted">Ook buiten het veld gebeurt van alles: school, feestjes, ongelukjes, de liefde en de media. Jouw keuzes bepalen je reputatie.</p>
     </div>
-    ${opgeslagen ? `<div class="rij">${knop(`Verder met ${esc(opgeslagen.sp.naam)}`, () => { setS(herstel(opgeslagen)); })}<span class="muted">${esc(CLUBS[opgeslagen.sp.club].n)} · ${opgeslagen.sp.leeftijd} jaar</span></div>` : ''}
+    ${vSaves()}
     ${opslagKnoppen()}
+    <span class="label">Nieuwe carrière</span>
     ${vUiterlijk()}
     ${vLeeftijd()}
     ${vPersoonlijkheid()}
-    <div><span class="label">Positie</span><div class="keuzes" style="margin-top:6px">${posKnop('SPITS')}${posKnop('MID')}${posKnop('VERD')}</div></div>
+    <div><span class="label">Positie</span><div class="keuzes" style="margin-top:6px">${posKnop('SPITS')}${posKnop('MID')}${posKnop('VERD')}${posKnop('KEEPER')}</div></div>
+    ${vVriend()}
     <div style="display:grid;gap:8px"><span class="label">Afkomst</span>${vHerkomstKeuze()}<p class="muted klein-tekst">Hiermee bepaal je voor welke landen je later interlands kunt spelen.</p></div>
     <div style="display:grid;gap:8px"><label class="label" for="opgroei">Waar groei je op?</label><select id="opgroei">${SPEEL_LANDEN.map(n => `<option ${opgroeiKeuze() === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
       <p class="muted klein-tekst">Hier begin je je carrière. Elk land heeft zijn eigen competitie, clubs en kranten. De nummers 1 en 2 van elke hoogste competitie spelen de Champions League.</p></div>
-    ${knop('Start carrière', () => { nieuwSpel((tmp.naam || '').trim() || 'Daan de Kanon', tmp.pos, herkomstUitTmp(), opgroeiKeuze(), {leeftijd:tmp.leeftijd || 15, uiterlijk:tmp.uiterlijk, sleutel:tmp.uitSleutel, pers:tmp.pers || []}); },'hoofd', opgeslagen ? `data-bevestig="Je opgeslagen carrière met ${esc(opgeslagen.sp.naam)} wordt overschreven." data-ja="Ja, nieuwe carrière"` : '')}`;
+    ${vSlotKeuze()}
+    ${slot ? knop('Start carrière', () => { nieuwSpel((tmp.naam || '').trim() || 'Daan de Kanon', tmp.pos, herkomstUitTmp(), opgroeiKeuze(), {leeftijd:tmp.leeftijd || 15, uiterlijk:tmp.uiterlijk, sleutel:tmp.uitSleutel, pers:tmp.pers || [], slot, vriend:{naam:(tmp.vriendNaam || '').trim(), pos:tmp.vriendPos || tmp.pos}}); }, 'hoofd', bezet ? `data-bevestig="De carrière van ${esc(bezet.naam)} wordt overschreven." data-ja="Ja, overschrijven"` : '') : '<p class="muted">Kies eerst welke carrière mag worden overschreven.</p>'}`;
 }
 // Spelregels in het kort: op het startscherm en in het hulpvenster (?)
 const UITLEG = [

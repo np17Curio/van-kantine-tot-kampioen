@@ -19,7 +19,7 @@ const EV = {
     {id:'vg-nacht', tekst:'Het is 23:00 en er zijn nog twee wedstrijden uit de Champions League te kijken. Morgen is er om 9 uur training.', opts:[
       {l:'Alles kijken en aantekeningen maken', f(){ mod('fit', -6); mod('focus', 5); return 'Om 1 uur lig je in bed, je hoofd vol loopacties en patronen. Moe, maar je hebt veel geleerd.'; }},
       {l:'Toch maar slapen', f(){ mod('fit', 4); return 'Met pijn in je hart doe je de tv uit. Je kijkt de samenvatting bij het ontbijt.'; }}]},
-    {id:'vg-pleintje', tekst:'Op je vrije middag zie je kinderen voetballen op een pleintje. Ze herkennen je.', opts:[
+    {id:'vg-pleintje', get tekst(){ return `Op je vrije middag zie je kinderen voetballen op een pleintje. ${S.sp.rep >= 25 ? 'Ze herkennen je.' : 'Ze vragen of je meedoet.'}`; }, opts:[
       {l:'Meedoen tot het donker is', f(){ mod('moraal', 6); mod('fit', -4); modFans(3); return 'Je speelt drie uur mee. Een vader filmt het en de clip gaat rond. "Hij leeft voor voetbal."'; }},
       {l:'Een paar handtekeningen en door', f(){ mod('moraal', 2); return 'De kinderen zijn er blij mee. Thuis kijk je nog een uur voetbal.'; }}]},
   ],
@@ -51,9 +51,16 @@ const EV = {
     {id:'ld-ruzie', tekst:`In de kleedkamer krijgen twee teamgenoten ruzie. De rest kijkt naar jou.`, opts:[
       {l:'Ingrijpen en het uitpraten', f(){ statusPunten(3); mod('vert', 3); iedereen(2); return 'Je zet ze tegenover elkaar en laat ze het uitpraten. Na tien minuten geven ze elkaar een hand. De trainer heeft het gezien.'; }},
       {l:'Je erbuiten houden', f(){ iedereen(-2); return 'Het gedoe sleept nog een week door. Niemand pakt de leiding.'; }}]},
-    {id:'ld-jong', tekst:'Een jonge speler zit er na een slechte wedstrijd helemaal doorheen.', opts:[
-      {l:'Na de training met hem praten', f(){ const n = maat(); zetBand(n, 12); statusPunten(2); mod('moraal', 2); return `Je praat een uur met ${n}. "Iedereen heeft zulke wedstrijden. Volgende keer laat je het zien." Hij knikt.`; }},
-      {l:'Hij moet het zelf leren', f(){ return 'Hij zit nog een week stil in de hoek van de kleedkamer.'; }}]},
+    // Ben je zelf nog jong, dan gaat het over een ploeggenoot van jouw leeftijd; ben je ouder, dan help jij een jonge speler
+    {id:'ld-jong', maak(){ const sp = S.sp, jong = sp.leeftijd < 21, sel = selectie(sp.club);
+      const kand = sel.filter(x => jong ? (x.lft || 25) <= sp.leeftijd + 2 : (x.lft || 25) <= 21).sort((a, b) => (a.lft || 25) - (b.lft || 25));
+      const x = kand[0] || sel.slice().sort((a, b) => (a.lft || 25) - (b.lft || 25))[0], n = x ? x.n : maat(), wie = x ? `${x.v}. ${x.n}` : n, lft = x && x.lft ? ` (${x.lft})` : '';
+      if (jong) return {tekst:`${wie}${lft}, net als jij een van de jongsten in de selectie, zit er na een slechte wedstrijd helemaal doorheen.`, opts:[
+        {l:'Naast hem gaan zitten en praten', f(){ zetBand(n, 14); statusPunten(2); mod('moraal', 3); return `Jullie praten tot de schoonmakers de kleedkamer dichtdoen. "Wij komen er samen wel," zeg je. "Jij hebt mij vorige week ook geholpen." ${wie} lacht weer een beetje.`; }},
+        {l:'Hem met rust laten', f(){ return `${wie} zit nog een week stil in de hoek van de kleedkamer. Jij weet ook niet goed wat je moet zeggen.`; }}]};
+      return {tekst:`${wie}${lft}, een van de jonge spelers in de selectie, zit er na een slechte wedstrijd helemaal doorheen.`, opts:[
+        {l:'Na de training met hem praten', f(){ zetBand(n, 12); statusPunten(2); mod('moraal', 2); return `Je praat een uur met ${wie}. "Iedereen heeft zulke wedstrijden. Volgende keer laat je het zien." Hij knikt.`; }},
+        {l:'Hij moet het zelf leren', f(){ return `${wie} zit nog een week stil in de hoek van de kleedkamer.`; }}]}; }},
   ],
   showman:[
     {id:'sm-juich', tekst:'Een sportmerk wil dat je bij je volgende goal een gekke, nieuwe juich doet.', opts:[
@@ -100,8 +107,11 @@ const EV = {
       {l:'Met het team mee', f(){ iedereen(2); mod('moraal', 2); return 'Gezellig met de selectie. Je moeder bewaart een bord voor je.'; }}]},
   ],
 };
+// Wat in de kleedkamer, bij de trainer of met de pers gebeurt staat onder "Bij de club"; de rest onder "Buiten het veld"
+const CLUB = ['ld-ruzie', 'ld-jong', 'ts-assist', 'ts-uitje', 'rb-kapsel', 'rb-scheids', 'sm-hakje', 'pf-voeding', 'ik-pers', 'ik-provocatie', 'dz-revalidatie'];
 export function persEvents(){
   const sp = S.sp, gezien = sp.persGezien || [], ver = inBuitenland();
-  return mijnPers().flatMap(id => (EV[id] || []).filter(e => !gezien.includes(e.id) && !(e.thuis && ver) && !(e.ver && !ver)).map(e => ({soort:'prive', ...e, opts:e.opts.map(o => ({...o, f(){ (sp.persGezien = (sp.persGezien || []).concat(e.id).slice(-8)); return o.f(); }}))})));
+  return mijnPers().flatMap(id => (EV[id] || []).filter(e => !gezien.includes(e.id) && !(e.thuis && ver) && !(e.ver && !ver)).map(e => { const x = e.maak ? e.maak() : {tekst:e.tekst, opts:e.opts};
+    return {soort:CLUB.includes(e.id) ? 'club' : 'prive', id:e.id, tekst:x.tekst, opts:x.opts.map(o => ({...o, f(){ (sp.persGezien = (sp.persGezien || []).concat(e.id).slice(-8)); return o.f(); }}))}; }));
 }
 export const PERS_EVENTS = EV;

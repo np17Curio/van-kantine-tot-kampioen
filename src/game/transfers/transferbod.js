@@ -4,6 +4,7 @@ import { clamp, geldTxt, pick, randInt, rnd } from '../../core/utils.js';
 import { AANTAL_RONDES, AANV, CLUBS, DIVS, WINTER } from '../../data/gegevens.js';
 import { rolBijClub, statusNiveau, statusPunten } from '../speler/status.js';
 import { kandidaatClubs, wissel } from './transfers.js';
+import { eersteSeizoen } from './vertrek.js';
 
 /* ===================== Transferbod tijdens het seizoen ===================== */
 export function maakBodEvent(){
@@ -13,10 +14,11 @@ export function maakBodEvent(){
   const kand = kandidaatClubs(); if (!kand.length) return null;
   const cl = sp.clausule && sp.clausule.club === sp.club ? sp.clausule : null;
   if (rnd() > (cl ? .25 : .18)) return null;
+  const betaalt = cl && rnd() < .5;
+  if (eersteSeizoen() && !betaalt) return null; // (je eerste seizoen: alleen als een club je afkoopclausule betaalt)
   S.ss.bods = (S.ss.bods || 0) + 1;
   const id = pick(kand), c = CLUBS[id], oud = eigen.n, lvl = statusNiveau();
   const w = Math.max(waarde(sp), 50000);
-  const betaalt = cl && rnd() < .5;
   const som = betaalt ? cl.bedrag : Math.round(w * (.85 + rnd() * .6) / 10000) * 10000;
   const bod = {club:id, som, salaris:Math.round(salarisVoor(c.t, ovr(sp), c.s) * (1 + rnd() * .3) / 1000) * 1000, jaren: sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4)};
   // Kans dat je club het bod accepteert: hoger bod = makkelijker, aanvoerder/legende = moeilijker

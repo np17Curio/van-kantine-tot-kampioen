@@ -8,10 +8,10 @@ export const FORMATIES = {
   '4-4-2':{V:4, M:4, A:2}, '4-3-3':{V:4, M:3, A:3}, '5-3-2':{V:5, M:3, A:2}, '3-5-2':{V:3, M:5, A:2}, '4-5-1':{V:4, M:5, A:1},
 };
 export const LINIE = ['K', 'V', 'M', 'A'];
-export const mijnSel = () => selectie(S.trainer.club);
-export const kan = x => !(x.bles > 0);
+export const mijnSel = () => S.trainer.o23 ? S.trainer.o23Sel : selectie(S.trainer.club); // bij de O23 je eigen jeugdselectie
+export const kan = x => !(x.bles > 0) && !(x.schors > 0); // geblesseerd of geschorst (kleedkamer-drama)
 // Hoe goed speelt hij nu? Wie moe is (fitheid onder de 60), speelt slechter
-export const eff = x => x.k - (fit(x) < 60 ? (60 - fit(x)) / 4 : 0);
+export const eff = x => x.k - (fit(x) < 60 ? (60 - fit(x)) / 4 : 0) - (x.ontevreden > 0 ? 2 : 0); // een ontevreden speler speelt minder goed
 export const fit = x => x.fit ?? 100;
 const aantal = (f, pos) => pos === 'K' ? 1 : FORMATIES[f][pos];
 
@@ -79,9 +79,10 @@ export function naWedstrijd({rotatie = false, conditie = false} = {}){
   const sel = mijnSel(), o = opst(), blessures = [];
   for (const x of sel){
     if (x.bles > 0){ x.bles--; x.fit = clamp(fit(x) + 10, 0, 100); continue; }
-    if (o.ids.includes(x.n)){
+    if (x.schors > 0){ x.schors--; x.fit = clamp(fit(x) + 15, 0, 100); continue; }
+    if (o.ids.includes(x.n)){ // (een conditietrainer: 40% minder blessures)
       x.fit = clamp(fit(x) - (rotatie ? randInt(3, 5) : randInt(8, 13)) + 6, 20, 100); x.bT = (x.bT || 0) + 1; // spelen kost fitheid, in de week herstel je een deel
-      if (rnd() < .03 + (conditie ? .01 : 0) + (fit(x) < 50 ? .03 : 0)){ x.bles = randInt(1, 4); blessures.push(x); }
+      if (rnd() < (.03 + (conditie ? .01 : 0) + (fit(x) < 50 ? .03 : 0)) * ((S.trainer.staf || []).includes('conditie') ? .6 : 1)){ x.bles = randInt(1, 4); blessures.push(x); }
     } else x.fit = clamp(fit(x) + 15, 0, 100);
   }
   return blessures;

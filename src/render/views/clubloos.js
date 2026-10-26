@@ -1,14 +1,14 @@
-import { S, ovr } from '../../core/state.js';
+import { S, ovr, attr } from '../../core/state.js';
 import { keuzeKnop, knop } from '../../core/ui.js';
 import { clamp, esc, geldTxt } from '../../core/utils.js';
-import { AANTAL_RONDES, ATTR, CLUBS, TRAINBAAR } from '../../data/gegevens.js';
+import { AANTAL_RONDES, CLUBS, TRAINBAAR } from '../../data/gegevens.js';
 import { CLUBLOOS_ACTIES, bodKans, clubsVoorJou, doeClubloos, stopZonderClub, volgendeWeekClubloos } from '../../game/speler/clubloos.js';
 import { plafond } from '../../game/week.js';
 
 // De week zonder club: alleen trainen, een proeftraining of je zaakwaarnemer laten bellen, en wachten op een club
 export function vClubloos(){
   const sp = S.sp, L = sp.clubloos, w = S.week, kans = Math.round(bodKans() * 100), kand = clubsVoorJou().length;
-  const train = TRAINBAAR.map(k => keuzeKnop(`Alleen trainen: ${ATTR[k].toLowerCase()}`, `<span class="mini"><i style="width:${clamp(sp.a[k], 0, 100)}%"></i></span> ${sp.a[k]} · ${sp.a[k] >= plafond() ? 'plafond bereikt' : 'kleine kans op +1 · fitheid −6'}`, () => doeClubloos('train', k))).join('');
+  const train = TRAINBAAR.map(k => keuzeKnop(`Alleen trainen: ${attr(k).toLowerCase()}`, `<span class="mini"><i style="width:${clamp(sp.a[k], 0, 100)}%"></i></span> ${sp.a[k]} · ${sp.a[k] >= plafond() ? 'plafond bereikt' : 'kleine kans op +1 · fitheid −6'}`, () => doeClubloos('train', k))).join('');
   const overig = Object.entries(CLUBLOOS_ACTIES).map(([id, a]) => keuzeKnop(a.n, a.s, () => doeClubloos(id))).join('');
   return `<div class="verhaal"><span class="label">Zonder club · week ${Math.min(S.ronde + 1, AANTAL_RONDES)}/${AANTAL_RONDES}</span>
       <h2>Je zit zonder club</h2>

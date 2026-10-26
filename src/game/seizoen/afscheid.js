@@ -4,7 +4,7 @@ import { BEKER_ALT, PRIJS_LAND } from '../../data/landen.js';
 import { recs } from './records.js';
 
 /* ===================== Afscheid en eindscherm ===================== */
-export const RUGNUMMER = {SPITS:9, MID:10, VERD:4};
+export const RUGNUMMER = {SPITS:9, MID:10, VERD:4, KEEPER:1};
 export function afscheid(){
   const sp = S.sp, C = S.car, R = recs(), eer = [];
   const legendes = [...new Set(C.prijzen.filter(p => /^Clublegende van /.test(p)).map(p => p.replace('Clublegende van ', '')))];

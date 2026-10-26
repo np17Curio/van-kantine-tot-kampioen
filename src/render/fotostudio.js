@@ -105,7 +105,9 @@ export async function maakFoto(soort, ctx){
   if (ctx.clubId != null && !ctx.logoImg) ctx.logoImg = await new Promise(ok => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = logoURL(ctx.clubId, 256); });
   const mk = ctx.club + ctx.muur + ctx.accent + (ctx.logoImg ? 'L' : '');
   if (STUDIO.muurKey !== mk){ if (muur.material.map) muur.material.map.dispose(); muur.material.map = muurTex(ctx); muur.material.needsUpdate = true; STUDIO.muurKey = mk; }
-  const uit = uiterlijkVoor('jij|' + ctx.sleutel, ctx.uiterlijk), m = maakModelSpeler(uit, tenueVoor('wij', ctx.tenue ? {wij:ctx.tenue} : null));
+  // het tenue met het clublogo en de shirtsponsor (een profclub heeft er allebei een)
+  const tenue = ctx.tenue ? {...ctx.tenue, ...(ctx.clubId != null && ctx.logoImg ? {logoImg:ctx.logoImg, logoId:ctx.clubId} : {}), ...(ctx.sponsor ? {sponsor:ctx.sponsor} : {})} : null;
+  const uit = uiterlijkVoor('jij|' + ctx.sleutel, ctx.uiterlijk), m = maakModelSpeler(uit, tenueVoor('wij', tenue ? {wij:tenue} : null));
   if (!m) return null;
   if (ctx.band) zetBand(m); // aanvoerder: de band om je arm
   // rusthouding uit het begin van de modelanimatie, daarna de pose erop
@@ -123,7 +125,9 @@ export async function maakFoto(soort, ctx){
   // camera: half-totaal, op de hoogte van de borst (bij de bokaal boven het hoofd iets ruimer)
   const hoog = soort === 'svs';
   const portret = soort === 'portret', kijk = new THREE.Vector3(0, (hoog ? 1 : portret ? .87 : .79) * uit.lengte, 0);
-  camera.position.set(.1, kijk.y + .02, hoog ? 1.95 : portret ? 1.02 : 1.25); camera.lookAt(kijk); camera.updateProjectionMatrix();
+  camera.position.set(.1, kijk.y + .02, hoog ? 1.95 : portret ? 1.02 : 1.25);
+  if (ctx.dichtbij){ kijk.y = .97 * uit.lengte; camera.position.set(.04, kijk.y + .02, .55); } // (om te testen: alleen het hoofd)
+  camera.lookAt(kijk); camera.updateProjectionMatrix();
   const cv = fotoRender(scene, camera, FOTO_B, FOTO_H);
   scene.remove(speler); scene.remove(p);
   p.traverse(o => { if (o.isMesh){ o.geometry.dispose(); if (o.material.map) o.material.map.dispose(); o.material.dispose(); } });

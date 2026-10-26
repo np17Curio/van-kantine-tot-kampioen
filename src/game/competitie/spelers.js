@@ -1,3 +1,4 @@
+import { competitieNieuws } from '../media/competitienieuws.js';
 import { S, club } from '../../core/state.js';
 import { clamp, pick, randInt, rnd, shuffle } from '../../core/utils.js';
 import { CLUBS, DIVS, divClubs, rondeInWeek } from '../../data/gegevens.js';
@@ -56,7 +57,7 @@ function vulAan(lijst, jeugdVan){
 }
 // De basiself van een club voor een wedstrijd: altijd precies 11 (met jou erbij als metJou), en de wissels.
 // Je vriend en je rivaal gaan voor; speel jij mee, dan maakt de zwakste op jouw linie plaats; te weinig: de sterkste wissel vult aan
-const MIJN_LINIE = {SPITS:'A', MID:'M', VERD:'V'};
+const MIJN_LINIE = {SPITS:'A', MID:'M', VERD:'V', KEEPER:'K'};
 export function startElf(id, metJou, vulPos){
   const sel = selectie(id).filter(x => !(x.bles > 0)), ik = MIJN_LINIE[S.sp.pos], plek = metJou ? 10 : 11, speciaal = x => x.vriend || x.rivaal;
   const basis = sel.filter(x => x.basis).sort((a, b) => (speciaal(b) ? 1 : 0) - (speciaal(a) ? 1 : 0) || b.k - a.k), bank = sel.filter(x => !x.basis).sort((a, b) => b.k - a.k);
@@ -116,6 +117,7 @@ export function speelRonde(w, mijnVoor, mijnTegen, doelen){
       }
     }
   }
+  competitieNieuws(w); // nieuws over de rest van de competitie (competitienieuws.js)
 }
 // Doelpunten in een clubwedstrijd bijhouden (niet bij O23 en interlands)
 export const telt = M => M && !M.o23 && !M.inter;

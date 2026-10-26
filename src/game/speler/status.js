@@ -125,6 +125,7 @@ export function nieuwSpel(naam, pos, herkomst, land, opties = {}){
     fase:'week', week:null, ev:null, M:null, venster:null, eind:null});
   S.ss.bekers = nieuweBekers();
   S.selectie = {cijfers:[], g:0, a:0, tegen:[], verhaal:V.id};
-  maakJourney(sp); // je verhaal: jeugdvriend, opa en de hoofdstukken (journey.js)
+  S.slot = opties.slot || 1; // de opslagplek van deze carrière
+  maakJourney(sp, opties.vriend || {}); // je verhaal: jeugdvriend (met de naam en positie die je koos), opa en de hoofdstukken (journey.js)
   openHoofdstuk(0, 'selectie');
 }

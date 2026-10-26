@@ -1,7 +1,7 @@
-import { S, club, gemCijfer, ovr, salarisLabel, seizoenLabel, sterren, tmp, waarde } from '../../core/state.js';
+import { S, club, gemCijfer, ovr, salarisLabel, seizoenLabel, sterren, tmp, waarde, attr } from '../../core/state.js';
 import { knop, tabBalk } from '../../core/ui.js';
 import { clamp, esc, geldTxt } from '../../core/utils.js';
-import { AANTAL_RONDES, ATTR, CLUBS, DIVS, LEGENDE, POS, SPONSOR_CAT, STATUS, STATUS_KORT, TRAINBAAR, landInfo, STATUS_ROL, STATUS_UITLEG, WINTER, rondeInWeek, rondesVan, rondesVoor } from '../../data/gegevens.js';
+import { AANTAL_RONDES, CLUBS, DIVS, LEGENDE, POS, SPONSOR_CAT, STATUS, STATUS_KORT, TRAINBAAR, landInfo, STATUS_ROL, STATUS_UITLEG, WINTER, rondeInWeek, rondesVan, rondesVoor } from '../../data/gegevens.js';
 import { bekerAgenda, vBekerKaart } from '../../game/competitie/beker.js';
 import { stand } from '../../game/competitie/spelers.js';
 import { interStatus, kanStoppenInter, kanTerugInter, landenVoor, magInterland, stopInternational, terugInternational } from '../../game/interlands/interlands.js';
@@ -12,7 +12,7 @@ import { VAKKEN } from '../../game/prive/school.js';
 import { isProf } from '../../game/prive/sponsors.js';
 import { autoInfo, woning } from '../../game/prive/wonen-auto.js';
 import { vKalmte } from '../../game/speler/kalmte.js';
-import { fmt1, gemiddelde } from '../../game/speler/o23.js';
+import { fmt1, gemiddelde, huurOuder } from '../../game/speler/o23.js';
 import { statusDrempel, statusNaam, statusNiveau } from '../../game/speler/status.js';
 import { rugnummer } from '../../game/team/rugnummers.js';
 import { fixture } from '../../game/competitie/competitie.js';
@@ -143,11 +143,11 @@ export function vZij(){
   const spelerKaart = () => `<div class="kaart">
       <div>${knop(tmp.stats ? 'Terug naar het spel' : '📊 Mijn carrière', () => { tmp.stats = !tmp.stats; }, 'klein')}</div>
       <div class="speler"><div class="ovr">${ovr(sp)}<small>KLASSE</small></div>
-        <div><div class="naam">${sp.o23 || sp.clubloos ? '' : `<span class="muted">#${rugnummer()}</span> `}${esc(sp.naam)}</div><div class="muted">${POS[sp.pos].n} · ${sp.leeftijd} jaar · ${lengteTxt(lichaam().lengte)} · ${gewichtVan(lichaam().lengte, lichaam().bmi)} kg · ${sp.clubloos ? 'zonder club' : esc(c.n)}${sp.o23 ? ' O23' : ''}${sp.huur ? ` (gehuurd van ${esc(CLUBS[sp.huur.ouder].n)})` : ''}</div><div class="label" title="Verwachting van scouts">Talent ${sterren(sp.pot)}</div>${(() => { const M = mijnLeague(); if (!M) return ''; const b = besteLeagues()[0], beter = M.oordeel === 'tegoed' || M.oordeel === 'tehoog'; return `<div class="muted klein-tekst" title="Zie Carrière: Jouw niveau">Niveau: ${OORDEEL[M.oordeel].n.toLowerCase()} ${M.oordeel === 'past' ? 'in' : 'voor'} de ${esc(M.naam)}${beter && b ? ` · beter: ${esc(b.naam)}` : ''}</div>`; })()}</div></div>
+        <div><div class="naam">${sp.o23 || sp.clubloos ? '' : `<span class="muted">#${rugnummer()}</span> `}${esc(sp.naam)}</div><div class="muted">${POS[sp.pos].n} · ${sp.leeftijd} jaar · ${lengteTxt(lichaam().lengte)} · ${gewichtVan(lichaam().lengte, lichaam().bmi)} kg · ${sp.clubloos ? 'zonder club' : esc(c.n)}${sp.o23 ? ' O23' : ''}${sp.huur ? ` (gehuurd van ${esc(huurOuder().n)})` : ''}</div><div class="label" title="Verwachting van scouts">Talent ${sterren(sp.pot)}</div>${(() => { const M = mijnLeague(); if (!M) return ''; const b = besteLeagues()[0], beter = M.oordeel === 'tegoed' || M.oordeel === 'tehoog'; return `<div class="muted klein-tekst" title="Zie Carrière: Jouw niveau">Niveau: ${OORDEEL[M.oordeel].n.toLowerCase()} ${M.oordeel === 'past' ? 'in' : 'voor'} de ${esc(M.naam)}${beter && b ? ` · beter: ${esc(b.naam)}` : ''}</div>`; })()}</div></div>
       ${mijnPers().length ? `<div class="perschips">${mijnPers().map(id => `<span class="tag pers" title="In het veld: ${esc(PERS[id].veld)} Buiten het veld: ${esc(PERS[id].buiten)}">${PERS[id].i} ${PERS[id].n}</span>`).join('')}</div>` : ''}
       ${vStatus()}
       ${vVerhaal()}
-      <div class="balken">${TRAINBAAR.map(k => balk(ATTR[k], sp.a[k])).join('')}</div>
+      <div class="balken">${TRAINBAAR.map(k => balk(attr(k), sp.a[k])).join('')}</div>
       <div class="balken2">${balk('Fitheid', sp.fit, 'st')}${balk('Moraal', sp.moraal, 'st')}${balk('Focus', sp.focus ?? 65, 'st')}${vKalmte()}${balk('Vertrouwen', sp.vert, 'st')}${balk('Reputatie', sp.rep, 'st')}</div>
       <div class="feiten">
         <div><span class="label">Vorm</span><b>${vorm}</b></div>
@@ -165,7 +165,7 @@ export function vZij(){
     speler: ['Speler', spelerKaart],
     stand: ['Stand', () => vCompetitieKaart() + vBekerKaart()],
     historie: ['Historie', vHistorie],
-    nieuws: ['Nieuws', () => vNieuwsKaart() || leeg('Nog geen nieuws over jou. Speel een paar wedstrijden.')],
+    nieuws: ['Nieuws', () => vNieuwsKaart() || leeg('Nog geen nieuws.')],
     meer: ['Meer', () => vSchoolKaart() + vSponsorKaart() + vInterlandKaart() || leeg('Hier komen je rapport, sponsors en interlands.')],
   };
   const tab = tabs[tmp.zijTab] ? tmp.zijTab : 'speler';

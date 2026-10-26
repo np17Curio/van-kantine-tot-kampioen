@@ -14,11 +14,11 @@ import { planWedstrijd, verderSpelen } from '../wedstrijd/wedstrijd.js';
 import { animPush, reeksStrafschoppen } from '../../render/pitch.js';
 
 /* ===================== Eindtoernooien: WK, EK en de andere continenten ===================== */
-export const CONTINENT = {Nederland:'eu', 'België':'eu', Duitsland:'eu', Frankrijk:'eu', Spanje:'eu', Engeland:'eu', Portugal:'eu', 'Italië':'eu', 'Kroatië':'eu', Turkije:'eu', Polen:'eu',
+export const CONTINENT = {Nederland:'eu', 'België':'eu', Duitsland:'eu', Frankrijk:'eu', Spanje:'eu', Engeland:'eu', Portugal:'eu', 'Italië':'eu', 'Kroatië':'eu', Turkije:'eu', Polen:'eu', Zwitserland:'eu', Denemarken:'eu', Noorwegen:'eu', 'Tsjechië':'eu', Griekenland:'eu',
   'Brazilië':'zam', 'Argentinië':'zam', Marokko:'af', Senegal:'af', Nigeria:'af', Ghana:'af', 'Kaapverdië':'af', Japan:'as', 'Indonesië':'as', 'Curaçao':'nam', Suriname:'nam'};
 // Extra tegenstanders op toernooien (je kunt er zelf niet voor uitkomen)
 export const EXTRA_LANDEN = [
-  {n:'Denemarken',s:79,c:'eu'},{n:'Zwitserland',s:80,c:'eu'},{n:'Oostenrijk',s:78,c:'eu'},{n:'Schotland',s:74,c:'eu'},{n:'Servië',s:76,c:'eu'},{n:'Oekraïne',s:76,c:'eu'},{n:'Tsjechië',s:75,c:'eu'},{n:'Zweden',s:76,c:'eu'},{n:'Noorwegen',s:77,c:'eu'},{n:'Wales',s:72,c:'eu'},{n:'Hongarije',s:73,c:'eu'},
+  {n:'Oostenrijk',s:78,c:'eu'},{n:'Schotland',s:74,c:'eu'},{n:'Servië',s:76,c:'eu'},{n:'Oekraïne',s:76,c:'eu'},{n:'Zweden',s:76,c:'eu'},{n:'Wales',s:72,c:'eu'},{n:'Hongarije',s:73,c:'eu'},
   {n:'Uruguay',s:82,c:'zam'},{n:'Colombia',s:81,c:'zam'},{n:'Ecuador',s:77,c:'zam'},{n:'Chili',s:74,c:'zam'},{n:'Paraguay',s:73,c:'zam'},{n:'Peru',s:71,c:'zam'},{n:'Venezuela',s:70,c:'zam'},{n:'Bolivia',s:64,c:'zam'},
   {n:'Egypte',s:76,c:'af'},{n:'Algerije',s:76,c:'af'},{n:'Ivoorkust',s:77,c:'af'},{n:'Kameroen',s:75,c:'af'},{n:'Tunesië',s:73,c:'af'},{n:'Mali',s:73,c:'af'},{n:'Zuid-Afrika',s:70,c:'af'},{n:'DR Congo',s:71,c:'af'},
   {n:'Zuid-Korea',s:78,c:'as'},{n:'Iran',s:77,c:'as'},{n:'Australië',s:76,c:'as'},{n:'Saoedi-Arabië',s:73,c:'as'},{n:'Qatar',s:70,c:'as'},{n:'Irak',s:69,c:'as'},{n:'Oezbekistan',s:70,c:'as'},{n:'China',s:63,c:'as'},{n:'Vietnam',s:62,c:'as'},
@@ -105,7 +105,7 @@ export function toernooiWedstrijd(){
   }
   tw.melding = null;
   const sc = (sp.bonds[tw.land] ?? 40) + sp.vorm * 6 + randInt(-8, 8), rol = sc >= 50 || ovr(sp) >= L.s ? 'basis' : 'invaller';
-  const M = {inter:{land:tw.land, type:`${tw.titel} · ${ronde}`, toernooi:true, ko:tw.fase === 'ko'}, oppS:opp.s, wij:tw.land, zij:oppN, thuis:true, rol, us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false};
+  const M = {inter:{land:tw.land, type:`${tw.titel} · ${ronde}`, toernooi:true, ko:tw.fase === 'ko'}, oppS:opp.s, wij:tw.land, zij:oppN, thuis:true, rol, us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' || sp.pos === 'KEEPER' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false};
   S.M = M;
   planWedstrijd(M, T, O);
   M.log.push({m:"1'", t:`${tw.titel}, ${ronde.toLowerCase()} tegen ${oppN}. Het volkslied klinkt, het stadion zit vol en thuis kijkt het hele land mee. ${rol === 'basis' ? 'Je staat in de basis.' : 'Je begint op de bank.'}`, k:''});

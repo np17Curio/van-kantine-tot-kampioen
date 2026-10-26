@@ -1,4 +1,4 @@
-import { S } from './state.js';
+import { S, attr } from './state.js';
 import { esc, geldTxt } from './utils.js';
 import { ATTR } from '../data/gegevens.js';
 
@@ -16,7 +16,7 @@ export function momentopname(){
 export function toonVerschil(voor){
   if (!voor || voor.S !== S || !S.sp) return;
   const sp = S.sp, uit = [];
-  for (const k in ATTR) if (k in voor.a && sp.a[k] !== voor.a[k]) uit.push([ATTR[k], sp.a[k] - voor.a[k]]);
+  for (const k in ATTR) if (k in voor.a && sp.a[k] !== voor.a[k]) uit.push([attr(k), sp.a[k] - voor.a[k]]);
   for (const [k, l] of VELDEN){ const d = Math.round(sp[k] ?? 0) - Math.round(voor[k] ?? 0); if (d) uit.push([l, d]); }
   const dg = Math.round(sp.geld - voor.geld);
   const chips = uit.map(([l, d]) => `<span class="eff ${d > 0 ? 'plus' : 'min'}">${d > 0 ? '+' : '−'}${Math.abs(d)}</span> ${esc(l)}`);

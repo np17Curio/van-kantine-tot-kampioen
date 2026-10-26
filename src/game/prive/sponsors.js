@@ -1,9 +1,9 @@
-import { S, club, mod, ovr, seizoenLabel } from '../../core/state.js';
+import { S, club, mod, ovr, seizoenLabel, attr } from '../../core/state.js';
 import { geldTxt, pick, randInt, rnd } from '../../core/utils.js';
-import { ATTR, CLUBS, SPONSOR_CAT, TRAINBAAR, WINKEL } from '../../data/gegevens.js';
+import { SPONSOR_CAT, TRAINBAAR, WINKEL } from '../../data/gegevens.js';
 import { ouders } from './familie.js';
 import { social } from './social.js';
-import { fmt1 } from '../speler/o23.js';
+import { fmt1, huurOuder } from '../speler/o23.js';
 import { teken } from '../transfers/transfers.js';
 import { schoenEvent } from './schoenen.js';
 import { isSuperster } from './merken.js';
@@ -11,9 +11,9 @@ import { krantMelding } from '../media/roddel.js';
 import { plafond, verhoog } from '../week.js';
 
 /* ===================== Sponsors ===================== */
-export const isProf = () => (S.sp.huur ? CLUBS[S.sp.huur.ouder].t : club().t) <= 2;
+export const isProf = () => (S.sp.huur ? huurOuder().t : club().t) <= 2;
 export function sponsorBedrag(cat){
-  const sp = S.sp, t = sp.huur ? CLUBS[sp.huur.ouder].t : club().t;
+  const sp = S.sp, t = sp.huur ? huurOuder().t : club().t;
   return Math.round((5000 + sp.rep * sp.rep * 15) * ([5, 2.5, 1][t] || 1) * SPONSOR_CAT[cat].f * (.85 + rnd() * .3) / 1000) * 1000;
 }
 export function sponsorPerk(cat){
@@ -69,7 +69,7 @@ export function topBonus(M){
   if (!vrij.length) return {tekst:`Topwedstrijd met een ${fmt1(M.cijfer)}! Al je eigenschappen zitten aan je plafond, dus er kan niets meer bij.`};
   const k = pick(vrij), voor = sp.a[k];
   verhoog(k, 3);
-  return {k, n:sp.a[k] - voor, tekst:`Topwedstrijd met een ${fmt1(M.cijfer)}! Bonus: +${sp.a[k] - voor} ${ATTR[k].toLowerCase()}.`};
+  return {k, n:sp.a[k] - voor, tekst:`Topwedstrijd met een ${fmt1(M.cijfer)}! Bonus: +${sp.a[k] - voor} ${attr(k).toLowerCase()}.`};
 }
 export function koop(id){
   const sp = S.sp, it = WINKEL.find(x => x.id === id);

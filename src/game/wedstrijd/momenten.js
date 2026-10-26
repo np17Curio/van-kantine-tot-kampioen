@@ -184,6 +184,22 @@ MOMENTS.vriendTegen = {
     {get l(){ return `${vn()} uitdagen en voorbij dribbelen`; }, st:'drib', b:58, toon:'bal', ok:()=>({t:`Je zet ${vn()} met een schijnbeweging op het verkeerde been. "Die is voor de foto!"`, d:.3, next:'eenOpEen'}), mis:()=>({t:`${vn()} pakt de bal af en lacht je uit. "Te langzaam, maatje!"`, d:-.2, vriend:1})},
     {get l(){ return `Panna door de benen van ${vn()}`; }, st:'drib', b:66, toon:'fel', ok:()=>({t:`PANNA! Door de benen van ${vn()}. Het hele stadion joelt. Hij kijkt je ongelovig aan.`, d:.5, vriend:-1}), mis:()=>({t:`${vn()} zet zijn benen dicht. "Nice try."`, d:-.3})},
     {l:'Keihard erin op hem', st:'verd', b:52, toon:'fel', kaart:'geel', ok:()=>({t:`Een stevige maar eerlijke tackle op ${vn()}. Bal veroverd. Hij staat op en schudt je hand.`, d:.3, vriend:-4}), mis:()=>({t:`Te laat! Je haalt ${vn()} onderuit. Gele kaart. Hij kijkt je boos aan.`, d:-.4, geel:true, vriend:-6})}]};
+// Je vriend is jouw keeper (jij speelt in het veld): hij zoekt jou meteen na een redding
+MOMENTS.vriendKeeperUit = {
+  get teksten(){ return [`${vn()} plukt een voorzet uit de lucht en gooit de bal meteen naar jou uit.`, `${vn()} redt, staat op en zoekt jou al: "Gaan!"`]; },
+  opts:[
+    {l:'Kaatsen en de counter in', st:'pas', b:54, toon:'bal', ok:()=>({t:`Eén keer kaatsen en jullie staan ineens met drie tegen twee. ${vn()} steekt zijn duim op vanuit zijn doel.`, d:.3, next:'counter', vriend:1}), mis:()=>({t:'Je kaatsbal komt niet aan. Bal kwijt.', d:-.2})},
+    {l:'Zelf oprukken', st:'cond', b:56, toon:'fel', ok:()=>({t:'Je neemt de bal mee en sprint over het halve veld.', d:.3, next:'rand'}), mis:()=>({t:'Je wordt ingehaald en de bal is weg.', d:-.2})},
+    {get l(){ return `Terug naar ${vn()}, rustig opbouwen`; }, st:'pas', b:36, toon:'kalm', ok:()=>({t:`Rustig terug naar ${vn()}. Jullie hebben dit duizend keer gedaan. De trainer knikt.`, d:.1, vriend:2}), mis:()=>({t:`Je terugspeelbal is te zacht, ${vn()} moet er vol voor gaan. "Pas op, man!"`, d:-.3, vriend:-1})},
+    {l:'Om een lange bal vragen', st:'afw', b:62, toon:'fel', ok:()=>({t:`${vn()} trapt hem precies in je loop, zoals vroeger. Je bent alleen door!`, d:.4, next:'eenOpEen', vriend:1}), mis:()=>({t:'De lange bal is net te lang. Doeltrap.', d:-.1})}]};
+// Je vriend staat in het doel van de tegenstander (jij speelt in het veld)
+MOMENTS.vriendKeeperTegen = {
+  get teksten(){ return [`Je bent alleen door, en in het doel staat... ${vn()}. Hij grijnst: "Kom maar op."`, `Een steekpass, en daar sta je: oog in oog met ${vn()}, net als vroeger op het pleintje.`]; },
+  opts:[
+    {l:'Hard schieten', st:'afw', b:58, toon:'bal', ok:()=>({...goal(`Keihard, in de hoek. ${vn()} kan er niets aan doen en schudt lachend zijn hoofd.`, 1.3), vriend:0}), mis:()=>({t:`${vn()} redt! En hij laat het je nooit vergeten.`, d:-.3, vriend:1})},
+    {l:'Stiften over hem heen', st:'afw', b:68, toon:'bal', ok:()=>({...goal(`Een stift over ${vn()} heen. Hij kijkt de bal na en lacht: "Dat deed je vroeger ook al."`, 1.6), vriend:0}), mis:()=>({t:`${vn()} blijft staan en vangt hem. "Die ken ik al tien jaar, maatje."`, d:-.5, vriend:1})},
+    {l:'Panna door zijn benen', st:'drib', b:72, toon:'fel', ok:()=>({...goal(`PANNA door de benen van ${vn()}, en binnen! Het hele stadion joelt. Hij kijkt je ongelovig aan.`, 1.8), vriend:-2}), mis:()=>({t:`${vn()} zet zijn benen dicht en pakt de bal. "Nice try."`, d:-.5, vriend:-1})},
+    {l:'Hem uitspelen, net als op het pleintje', st:'drib', b:62, toon:'kalm', ok:()=>({...goal(`Een schijnbeweging, ${vn()} gaat liggen, en jij schuift hem in het lege doel. Jullie moeten allebei lachen.`, 1.4), vriend:1}), mis:()=>({t:`${vn()} duikt naar je voeten en pakt de bal. Hij wijst naar je: "Te voorspelbaar."`, d:-.3, vriend:1})}]};
 MOMENTS.vriendVrij = {
   get teksten(){ return [`${vn()} staat helemaal vrij aan de andere kant van de zestien en steekt zijn hand op.`, `Je dribbelt richting de goal. ${vn()} sprint mee in de rug van zijn man en roept je naam.`, `Een counter! Jij hebt de bal, ${vn()} loopt naast je. Twee tegen één.`]; },
   opts:[
@@ -194,6 +210,50 @@ MOMENTS.vriendVrij = {
 
 
 // Extra moeilijkheid per eigenschap tegen ploegen van Europees topniveau
+// ===== Keeper: reddingen, hoge ballen, penalty's en de opbouw =====
+// Een gemiste redding wordt vaak een tegengoal. Was het een schot dat er anders zeker in was gegaan (zeker), dan altijd
+const keeperTegen = (p, tGoal, tRed, d1 = -.5, d2 = -.1) => (S.M && S.M.pending && S.M.pending.zeker) || rnd() < p * (S.M && S.M.pending && S.M.pending.kans ? .35 : 1) ? {t:tGoal, d:d1, tegen:true} : {t:tRed, d:d2};
+const red = (t, d = .5) => ({t, d:d * .6, redding:true}); // (een keeper heeft veel momenten: een redding telt wat minder zwaar)
+export const KEEPER_MOMENTEN = ['redding', 'eenOpEenKeeper', 'hogeBal', 'penaltyKeeper', 'uittrap', 'terugspeel'];
+Object.assign(MOMENTS, {
+  redding:{keeper:true, teksten:['Een middenvelder van de tegenstander haalt uit van twintig meter. De bal komt op je af!', 'Hun spits draait weg bij zijn man en schiet in de korte hoek.', 'Een kopbal uit een vrije trap, recht op je doel!', 'Een afgeslagen corner wordt in één keer op je doel geschoten.'], opts:[
+    {l:'Naar de hoek duiken', st:'verd', b:54, ok:()=>red(pick(['Je strekt je helemaal uit en tikt hem om de paal! Wat een redding.', 'Een snoekduik! Je vingertoppen houden hem eruit.']), .6), mis:()=>keeperTegen(.75, 'Net te laat. De bal gaat in de hoek.', 'Je bent te laat, maar de bal gaat net naast.', -.4)},
+    {l:'Blijven staan, goed gepositioneerd', st:'afw', b:50, ok:()=>red('Je staat precies goed en plukt hem uit de lucht.', .4), mis:()=>keeperTegen(.7, 'Hij gaat langs je heen. Tegengoal.', 'Je raakt hem net, en de bal gaat over.')},
+    {l:'Uitkomen en de hoek verkleinen', st:'afw', b:56, ok:()=>red('Je komt goed uit en hij schiet recht tegen je aan.', .5), mis:()=>keeperTegen(.8, 'Hij tikt de bal over je heen. Binnen.', 'Hij schiet over je heen, maar ook over het doel.', -.5)},
+    {l:'Wegstompen', st:'verd', b:48, ok:()=>red('Je stompt de bal ver weg. Gevaar geweken.', .3), mis:()=>keeperTegen(.6, 'Je stompt hem recht voor de voeten van een tegenstander. Die schiet raak.', 'Je stompt hem half weg; een verdediger ruimt op.')},
+    {l:'Met de voet redden', st:'drib', b:60, ok:()=>red('Met je voet! Een reflex van wereldklasse.', .7), mis:()=>keeperTegen(.75, 'Je voet is te laat. Binnen.', 'Je mist hem, maar de bal tikt tegen de paal en gaat uit!')}]},
+  eenOpEenKeeper:{keeper:true, teksten:['Hun spits is alleen door! Alleen jij staat nog tussen hem en het doel.', 'Een steekpass splijt jullie verdediging. De spits komt recht op je af.'], opts:[
+    {l:'Spreiden en groot maken', st:'verd', b:56, ok:()=>red('Je maakt je zo groot mogelijk en hij schiet tegen je benen. Gered!', .7), mis:()=>keeperTegen(.85, 'Hij schuift hem langs je heen. Tegengoal.', 'Hij schuift hem langs je, maar ook langs de paal.', -.4)},
+    {l:'Op de lijn blijven', st:'afw', b:60, ok:()=>red('Je blijft staan, hij twijfelt, en jij pakt zijn schot.', .5), mis:()=>keeperTegen(.85, 'Hij heeft alle tijd en schiet raak.', 'Hij schiet, maar net naast.', -.4)},
+    {l:'Vroeg naar zijn voeten duiken', st:'drib', b:54, ok:()=>red('Je duikt naar zijn voeten en pakt de bal. Moedig!', .7), mis:()=> rnd() < .35 ? {t:'Je haalt hem neer. Penalty, en geel voor jou.', d:-.4, geel:true, next:'penaltyKeeper'} : keeperTegen(.85, 'Hij springt over je heen en scoort.', 'Hij springt over je heen, maar je verdediger redt op de lijn.', -.5)},
+    {l:'Wachten tot hij schiet', st:'kalm', b:56, ok:()=>red('IJskoud. Jij blijft staan en hij schiet recht op je.', .6), mis:()=>keeperTegen(.85, 'Hij wacht nog langer dan jij en schiet hem in de hoek.', 'Hij wacht te lang, een verdediger is terug.', -.4)}]},
+  hogeBal:{keeper:true, teksten:['Een hoge voorzet draait voor je doel.', 'Corner voor de tegenstander. Een kluwen spelers in jouw zestien.', 'Een vrije trap wordt hoog voor je doel gedraaid.'], opts:[
+    {l:'Vangen', st:'cond', b:54, ok:()=>red('Je komt hoog uit en klemt de bal vast. Rust in de tent.', .4), mis:()=>keeperTegen(.5, 'Je laat hem vallen... en hun spits tikt binnen.', 'Je laat hem vallen, maar een verdediger ruimt op.', -.7, -.3)},
+    {l:'Wegstompen', st:'cond', b:48, ok:()=>red('Een harde vuist: de bal ligt op de middenlijn.', .3), mis:()=>keeperTegen(.45, 'Je mist de bal en hun kopbal gaat erin.', 'Je mist de bal, maar hun kopbal gaat over.', -.6)},
+    {l:'Op de lijn blijven', st:'afw', b:52, ok:()=>red('De kopbal gaat recht op je af. Makkelijke redding.', .2), mis:()=>keeperTegen(.6, 'Ongehinderd kopt hun spits raak.', 'De kopbal gaat net naast.')},
+    {l:'Roepen en uitkomen', st:'kalm', b:50, ok:()=>red('"KEEPER!" Iedereen maakt ruimte en jij pakt de bal.', .4), mis:()=>keeperTegen(.55, 'Botsing met je eigen verdediger. De bal valt voor een tegenstander: goal.', 'Botsing met je verdediger, maar de bal gaat uit.', -.6, -.2)}]},
+  penaltyKeeper:{keeper:true, teksten:['Penalty voor de tegenstander. Jij staat op de lijn. Hun specialist legt de bal klaar.', 'De scheids wijst naar de stip. Het hele stadion kijkt naar jou.'], opts:[
+    {l:'Naar links duiken', st:'verd', b:68, ok:()=>red('Links! Je zit in de goede hoek en stopt de penalty!', 1.0), mis:()=>keeperTegen(.95, 'Hij schiet rechts. Binnen.', 'Hij schiet naast!', -.2, .2)},
+    {l:'Naar rechts duiken', st:'verd', b:68, ok:()=>red('Rechts! Je tikt hem tegen de paal en eruit!', 1.0), mis:()=>keeperTegen(.95, 'Hij schiet links. Binnen.', 'Hij schiet over!', -.2, .2)},
+    {l:'Blijven staan', st:'kalm', b:74, ok:()=>red('Hij schiet door het midden en jij blijft staan. Gestopt!', 1.0), mis:()=>keeperTegen(.95, 'Hij schiet in de hoek. Jij stond nog.', 'Hij schiet tegen de paal!', -.2, .2)},
+    {l:'Hem gek maken op de lijn', st:'kalm', b:64, kaart:'geel', ok:()=>red('Je danst op de lijn, hij twijfelt... en schiet naast!', .8), mis:()=>({...keeperTegen(.95, 'Hij blijft koel en schiet raak.', 'Hij schiet naast, maar de scheids waarschuwt je.', -.3, .1), geel:rnd() < .4})}]},
+  uittrap:{keeper:true, teksten:['Je hebt de bal na een redding. Hun spitsen lopen terug.', 'Doeltrap voor jou. De tegenstander zet hoog druk.'], opts:[
+    {l:'Lange trap op de spits', st:'pas', b:58, ok:()=>assistKans(.2, 'Je lange trap komt precies bij'), mis:()=>({t:'Je trap is te lang. Bal voor de tegenstander.', d:-.1})},
+    {l:'Kort uitverdedigen', st:'pas', b:46, ok:()=>({t:'Rustig opgebouwd. De trainer knikt.', d:.2}), mis:()=>keeperTegen(.3, 'Je pass wordt onderschept en ze scoren meteen. Pijnlijk.', 'Je pass wordt onderschept, maar ze schieten naast.', -.8, -.3)},
+    {l:'Snel uitgooien voor een counter', st:'pas', b:54, ok:()=>assistKans(.3, 'Je gooit hem snel uit. Een flitsende counter, en de bal komt bij'), mis:()=>({t:'Je worp komt niet aan.', d:-.1})},
+    {l:'Tijd rekken', st:'kalm', b:30, kaart:'geel', ok:()=>({t:'Je neemt rustig de tijd. Het publiek fluit, jij lacht.', d:.05}), mis:()=>({t:'De scheids is het zat: geel voor tijdrekken.', d:-.2, geel:true})}]},
+  terugspeel:{keeper:true, teksten:['Een verdediger speelt de bal terug. Hun spits sprint op je af!', 'Terugspeelbal onder druk. Je hebt maar een seconde.'], opts:[
+    {l:'Ver wegschieten', st:'pas', b:40, ok:()=>({t:'Ver weg. Geen risico.', d:.1}), mis:()=>({t:'Je schiet hem tegen de spits aan, maar de bal gaat uit.', d:-.2})},
+    {l:'De spits uitkappen', st:'drib', b:64, ok:()=>({t:'Je kapt de spits uit! Het publiek gaat los.', d:.4}), mis:()=>keeperTegen(.85, 'Hij pikt de bal af en scoort in het lege doel. Oei.', 'Hij pikt de bal af, maar schiet naast het lege doel!', -1.0, -.4)},
+    {l:'Snel inspelen', st:'pas', b:52, ok:()=>({t:'Een snelle pass, en jullie zijn onder de druk uit.', d:.25}), mis:()=>keeperTegen(.4, 'Onderschept. Tegengoal.', 'Onderschept, maar je verdediger herstelt.', -.6, -.2)},
+    {l:'Op de tribune', st:'kalm', b:25, ok:()=>({t:'De bal vliegt de tribune in. Veilig.', d:0}), mis:()=>({t:'Je raakt hem verkeerd: hoekschop.', d:-.1})}]},
+});
+// De animatie per keuze bij je vriend (zijn naam staat in het label, dus de tabel met labels werkt hier niet).
+// 'pass/keeper' = naar je eigen keeper (je vriend als hij keeper is); bij vriendKeeperTegen is hij de keeper van de tegenstander
+[['vriendVrij', [['pass', 'normaal'], ['schot', 'normaal'], ['pass', 'eentwee'], ['pass', 'hak']]],
+ ['vriendKeeperUit', [['pass', 'eentwee'], ['dribbel', 'oprukken'], ['pass', 'keeper'], ['dribbel', 'borst']]],
+ ['vriendKeeperTegen', [['schot', 'normaal'], ['chip', 'normaal'], ['dribbel', 'panna'], ['dribbel', 'omspelen']]]
+].forEach(([m, l]) => MOMENTS[m].opts.forEach((o, i) => { o.anim = l[i]; }));
 export const TOP_EXTRA = {afw:1, pas:.3, drib:.3, verd:0, cond:0, kalm:0};
 export const KALM_KNIK = 64; // tot deze sterkte telt de tegenstander bij kalmte-acties gewoon mee
 export const TOP_VANAF = 82; // vanaf welke sterkte een tegenstander extra lastig is (geleidelijk, geen sprong)
@@ -217,7 +277,7 @@ export function kans(opt){
   const top = Math.max(0, oppS - TOP_VANAF);
   // Kalmte (rustig blijven, niet reageren) wordt tegen een betere ploeg maar half zo veel lastiger: kalmte groeit niet mee met je klasse
   const tegen = opt.st === 'kalm' && oppS > KALM_KNIK ? (KALM_KNIK - 48) + (oppS - KALM_KNIK) * .5 : oppS - 48;
-  const moeilijk = opt.b + tegen + top * (TOP_EXTRA[opt.st] || 0);
+  const moeilijk = opt.b + tegen + top * (TOP_EXTRA[opt.st] || 0) + (M.pending && M.pending.zeker ? 12 : 0); // (keeper: een schot dat anders zeker binnen was, is lastig te redden)
   return clamp(.5 + (M.pending && M.pending.rivaal ? M.rivaalBonus || 0 : 0) + (statWaarde(opt.st) - moeilijk) / 45 + sp.vorm * .03 + staminaEffect(stamina(M)) + (sp.moraal - 50) / 500 + focusEffect(sp.focus ?? 65) + (opt.st === 'pas' && telt(M) ? (chemie() - 50) / 600 : 0) + (sp.items.analist ? .02 : 0) + tactiekKans(opt.st) + persKans(opt.st, M.pending && M.pending.type) + lichaamKans(opt, M.pending && M.pending.type) + karakterKans(opt) + (M.revanche || 0) - voorsprongRem(opt, M), .05, .9); // (ook een wereldspeler mist soms: hooguit 90%)
 }
 export function risico(p){ return p > .7 ? ['Veilig','r-veilig'] : p >= .45 ? ['Gemiddeld','r-gem'] : ['Riskant','r-riskant']; }

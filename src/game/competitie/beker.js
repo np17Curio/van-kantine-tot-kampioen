@@ -17,14 +17,15 @@ import { maakPers, modFans, vPers } from '../wedstrijd/fans-pers.js';
 import { focusNaWedstrijd } from '../wedstrijd/focus.js';
 import { MOMENTS, kans } from '../wedstrijd/momenten.js';
 import { ontvangst, reunieAftrap, reunieMet, reunieNaWedstrijd, vReunieEinde } from '../wedstrijd/reunie.js';
-import { planWedstrijd, stand2, verderSpelen, vervolgNaRonde } from '../wedstrijd/wedstrijd.js';
+import { keeperRol, planWedstrijd, stand2, verderSpelen, vervolgNaRonde } from '../wedstrijd/wedstrijd.js';
 import { animPush, reeksStrafschoppen } from '../../render/pitch.js';
-import { scorebord, vFit, vLog } from '../../render/views/match.js';
+import { scorebord, vFit, vLog, statRegel } from '../../render/views/match.js';
 import { staminaNaWedstrijd } from '../wedstrijd/stamina.js';
 import { vormBonus } from './vorm.js';
 import { GAST_START, GASTEN } from '../../data/gegevens.js';
 import { SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
 import { ck, vreemdeClub } from '../transfers/buitenland.js';
+import { landenRanking } from './landsterkte.js';
 
 /* ===================== Beker ===================== */
 // Elke competitie heeft een beker: knock-out, bij gelijkspel strafschoppen. Bekerwedstrijden vallen tussen de speelrondes
@@ -46,19 +47,21 @@ export function nieuweBekers(){
   for (const k in BEKERS){ const clubs = BEKERS[k].europa ? eu[k] : CLUBS.map((c, i) => i).filter(i => BEKERS[k].niveaus.includes(CLUBS[i].t)); b[k] = {levend:shuffle(clubs), rondes:[], winnaar:null, start:clubs.length, schema:maakSchema(k, clubs.length)}; }
   return b;
 }
-// Europees voetbal: de nummers 1 en 2 van de hoogste competitie van elk land spelen de Champions League (16 clubs),
-// de nummers 3 en 4 van jouw land en de nummer 3 van 6 andere landen de Europa Cup (8 clubs).
+// Europees voetbal: de Champions League (16 clubs) en de Europa Cup (8 clubs). Jouw land: nr. 1 en 2 naar de Champions League,
+// nr. 3 en 4 naar de Europa Cup. De andere landen naar hun plek op de landenranking (EURO_PLEKKEN): hoe sterker, hoe meer plaatsen.
 // Jouw land: de eindstand van vorig seizoen (S.vorig), zonder eindstand de clubsterkte. Andere landen: op sterkte,
 // met wat toeval (die competities worden niet gespeeld). Zij doen mee via de gastplaatsen in CLUBS.
+// Per plek op de ranking (zonder jouw land): [plaatsen in de Champions League, plaatsen in de Europa Cup]. Samen 14 + 6 = GASTEN
+const EURO_PLEKKEN = [[2, 0], [2, 0], [2, 0], [2, 0], [1, 1], [1, 1], [1, 1], [1, 0], [1, 0], [1, 0], [0, 1], [0, 1], [0, 1], [0, 0]];
 export function vulGasten(){
-  const andere = SPEEL_LANDEN.filter(l => l !== thuisLand()), cl = [], eur = [];
+  const hier = thuisLand(), rang = landenRanking().map(x => x.land).filter(l => l !== hier), andere = rang.concat(SPEEL_LANDEN.filter(l => l !== hier && !rang.includes(l))), cl = [], eur = [];
   let g = GAST_START;
   const zet = (land, id, rang, lijst) => { const c = vreemdeClub(land, id); Object.assign(CLUBS[g], {n:c.n, s:c.s, t:-1, gast:{land, id, rang}}); if (S.sel) delete S.sel[ck(g)]; lijst.push(g); g++; };
   andere.forEach((land, k) => {
     const top = []; for (let id = 8; id < clubsLand(land); id++){ const c = vreemdeClub(land, id); if (c.t === 1) top.push([id, c.s + rnd() * 10]); } // een gesimuleerde eindstand: de sterkste wint meestal, niet altijd
     top.sort((a, b) => b[1] - a[1]);
-    if (top[0]) zet(land, top[0][0], 1, cl); if (top[1]) zet(land, top[1][0], 2, cl);
-    if (k < 6 && top[2]) zet(land, top[2][0], 3, eur);
+    const [ncl, neur] = EURO_PLEKKEN[k] || [0, 0];
+    top.slice(0, ncl + neur).forEach(([id], i) => { if (g < GAST_START + GASTEN) zet(land, id, i + 1, i < ncl ? cl : eur); });
   });
   S.gasten = CLUBS.slice(GAST_START, GAST_START + GASTEN).map(c => ({n:c.n, s:c.s, gast:c.gast}));
   return {cl, eur};
@@ -152,12 +155,12 @@ export function startBeker(k, m){
   if (sp.o23) rol = 'o23';
   else if (sp.blessure > 0) rol = 'blessure';
   else if (sp.fit < 20) rol = 'rust';
-  else { const sc = opstellingScore() + randInt(-6, 6); rol = sc >= 50 ? 'basis' : sc >= 12 ? 'invaller' : 'tribune'; if (rol !== 'basis') reden = ' ' + opstellingReden(); }
+  else { const sc = opstellingScore() + randInt(-6, 6); rol = keeperRol(sc >= 50 ? 'basis' : sc >= 12 ? 'invaller' : 'tribune'); if (rol !== 'basis') reden = ' ' + opstellingReden(); }
   const speelt = rol === 'basis' || rol === 'invaller';
   const T = teamKracht(c.s, {speelt, thuis:thuis && !finale}), O = opp.s + (!thuis && !finale ? 2 : 0) + vormBonus(oppId);
-  const M = {beker:{k, naam:BEKERS[k].naam, ronde:rondeNaam, finale}, opp:oppId, oppS:opp.s, wij:c.n, zij:opp.n, thuis, rol, us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false};
+  const M = {beker:{k, naam:BEKERS[k].naam, ronde:rondeNaam, finale}, opp:oppId, oppS:opp.s, wij:c.n, zij:opp.n, thuis, rol, us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' || sp.pos === 'KEEPER' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false};
   S.M = M;
-  M.log.push({m:'', t:`${k === 'cl' ? 'De Champions League-hymne klinkt door het stadion. Kippenvel. ' : ''}${BEKERS[k].naam} · ${rondeNaam}${finale ? ' in een uitverkocht stadion' : ''}. ${rol === 'basis' ? 'Je staat in de basis.' : rol === 'invaller' ? 'Je begint op de bank.' + reden : rol === 'o23' ? 'Je speelt bij de O23 en kijkt vanaf de tribune.' : rol === 'blessure' ? 'Je bent geblesseerd en kijkt vanaf de tribune.' : rol === 'rust' ? 'Je bent kapot en krijgt rust.' : 'De trainer laat je buiten de selectie.' + reden}`, k:'rust'});
+  M.log.push({m:'', t:`${k === 'cl' ? 'De Champions League-hymne klinkt door het stadion. Kippenvel. ' : ''}${BEKERS[k].naam} · ${rondeNaam}${finale ? ' in een uitverkocht stadion' : ''}. ${rol === 'basis' ? 'Je staat in de basis.' : rol === 'invaller' ? 'Je begint op de bank.' + reden : rol === 'o23' ? 'Je speelt bij de O23 en kijkt vanaf de tribune.' : rol === 'blessure' ? 'Je bent geblesseerd en kijkt vanaf de tribune.' : rol === 'rust' ? 'Je bent kapot en krijgt rust.' : rol === 'bank' ? 'Je zit op de bank als reservekeeper.' : 'De trainer laat je buiten de selectie.' + reden}`, k:'rust'});
   if (!speelt){ const [a, b] = simGoals(T, O, false); if (reunieMet(oppId)) M.reunie = {club:oppId, type:reunieMet(oppId).type, ontvangst:ontvangst(oppId)}; planWedstrijd(M, T, O, {us:a, them:b}); }
   else { reunieAftrap(M); planWedstrijd(M, T, O); }
   S.fase = 'match';
@@ -226,7 +229,7 @@ export function vBekerEnd(){
   const M = S.M, k = M.beker.k, B = S.ss.bekers[k], uitslag = M.us > M.them ? 'Gewonnen' : M.us < M.them ? 'Verloren' : 'Gelijkspel';
   const ronde = B.rondes[B.rondes.length - 1];
   let h = scorebord() + `<div class="verhaal"><span class="label">${esc(M.beker.naam)} · ${esc(M.beker.ronde)} · ${uitslag}${M.pens ? ` (strafschoppen ${M.pens})` : ''}</span>`;
-  if (M.cijfer !== null) h += `<div class="rij" style="gap:20px;align-items:flex-end"><div><span class="label">Jouw cijfer</span><div class="groot">${fmt1(M.cijfer)}</div></div><div class="muted">${M.goals} ${M.goals === 1 ? 'goal' : 'goals'} · ${M.assists} ${M.assists === 1 ? 'assist' : 'assists'}</div></div>`
+  if (M.cijfer !== null) h += `<div class="rij" style="gap:20px;align-items:flex-end"><div><span class="label">Jouw cijfer</span><div class="groot">${fmt1(M.cijfer)}</div></div><div class="muted">${statRegel(M)}</div></div>`
     + (M.focusTekst ? `<p class="${M.focusOmlaag ? 'fouttxt' : 'goedtxt'}">${esc(M.focusTekst)}</p>` : '') + vFit(M) + (M.bonus ? `<p class="melding">${esc(M.bonus.tekst)}</p>` : '');
   if (M.bekerWinst) h += `<div class="kampioen"><span class="label">Bekerwinnaar!</span><h2>🏆 ${esc(M.beker.naam)}</h2><p>${esc(club().n)} wint de ${esc(M.beker.naam)}! De beker gaat van hand tot hand en jij mag hem als eerste omhoog houden.</p></div>`;
   else if (M.bekerUit) h += `<p class="melding" style="color:var(--fout);border-color:var(--fout)">${esc(M.bekerUit)}</p>`;

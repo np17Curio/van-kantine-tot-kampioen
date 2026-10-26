@@ -4,7 +4,7 @@ import { thuisLand } from '../../data/landen.js';
 import { krantMelding } from '../media/roddel.js';
 import { modFans } from '../wedstrijd/fans-pers.js';
 import { statusNiveau } from './status.js';
-import { MAKELAAR, interLand, laatsteWeek, opaNaam, vriendActief, vriendClubNaam, zetBand, zetRivaalBand } from './journey.js';
+import { MAKELAAR, bijJou, vriendInBasis, vriendPos, isKeeper, nulTxt, prestatie, interLand, laatsteWeek, opaNaam, vriendActief, vriendClubNaam, zetBand, zetRivaalBand } from './journey.js';
 
 /* ===================== Jouw verhaal, deel 2 tot en met 4 ===================== */
 // Na je eerste seizoen gaat het verhaal door, over je hele carrière. Een hoofdstuk komt op een moment in je loopbaan
@@ -95,13 +95,17 @@ export const VERVOLG = {
       o('"Ik wil naar de top. Regel het."', 'fel', () => { mod('rep', 2); modFans(-3); return 'Het nieuws lekt uit. Sommige fans fluiten je uit, andere snappen het.'; })]}},
   13: {wanneer:c => c.sz >= 2 && (S.ronde >= 8 || c.sz >= 3) ? {} : null, inhoud:() => {
     const r = rol(), v = vn();
-    if (r === 'vriend') return {
-      tekst:[`${v} belt je, laat op de avond. Bij ${zijnClub()} zit hij al weken op de bank. "Ik twijfel of ik nog wel goed genoeg ben."`,
+    // (kijk of hij echt op de bank zit: staat hij in de basis, dan gaat het om kritiek van de fans en de kranten)
+    if (r === 'vriend'){ const basis = vriendInBasis(), samen = bijJou(), slecht = vriendPos() === 'KEEPER' ? 'een paar dure fouten' : 'een paar slechte wedstrijden';
+      const zorg = samen ? `Na de training blijft ${v} in de kleedkamer zitten. ${basis ? `Hij staat wel in de basis, maar na ${slecht} fluiten de fans hem uit.` : 'Hij zit al weken op de bank.'}`
+        : `${v} belt je, laat op de avond. Bij ${zijnClub()} ${basis ? `staat hij elke week in de basis, maar het loopt niet. Na ${slecht} schrijven de kranten dat hij zijn plek niet verdient, en bij de laatste wedstrijd floten de fans hem uit.` : 'zit hij al weken op de bank.'}`;
+      return {
+      tekst:[`${zorg} "Ik twijfel of ik nog wel goed genoeg ben."`,
         `Je hebt hem nog nooit zo stil gehoord. Je denkt terug aan ${penalty()}.`],
       opa:'"Een vriend die je nodig heeft, is belangrijker dan een wedstrijd die je moet winnen."',
-      opts:[o('"Kom dit weekend bij me. We trainen samen."', 'kalm', () => { zetBand(10); mod('focus', -2); return 'Jullie trainen twee dagen samen op het oude veldje. Hij lacht weer.'; }),
-        o('"Praat met je trainer. Vraag wat je moet verbeteren."', 'bal', () => { zetBand(5); return '"Goed idee," zegt hij. "Je bent slimmer geworden."'; }),
-        o('"Stop met klagen en knok ervoor."', 'fel', () => { zetBand(-3); return `Het is even stil. "Oké," zegt ${v}. "Ik zal het je laten zien." Hij hangt op.`; })]};
+      opts:[o(samen ? '"Kom, we blijven na de training nog even samen oefenen."' : '"Kom dit weekend bij me. We trainen samen."', 'kalm', () => { zetBand(10); mod('focus', -2); return 'Jullie trainen twee dagen samen op het oude veldje. Hij lacht weer.'; }),
+        o(samen ? '"Vraag de trainer wat je moet verbeteren."' : '"Praat met je trainer. Vraag wat je moet verbeteren."', 'bal', () => { zetBand(5); return '"Goed idee," zegt hij. "Je bent slimmer geworden."'; }),
+        o('"Stop met klagen en knok ervoor."', 'fel', () => { zetBand(-3); return `Het is even stil. "Oké," zegt ${v}. "Ik zal het je laten zien." ${samen ? 'Hij pakt zijn tas en loopt weg.' : 'Hij hangt op.'}`; })]}; }
     if (r === 'rivaal') return {
       tekst:[`Na de wedstrijd tegen ${zijnClub()} staat ${v} ineens bij jullie spelersbus. Jullie hebben elkaar al maanden niet gesproken, alleen op het veld.`,
         '"Mag ik even met je praten?" vraagt hij. Je ploeggenoten kijken toe vanuit de bus.'],
@@ -117,8 +121,8 @@ export const VERVOLG = {
         o('"Ik heb het te druk."', 'fel', () => { mod('focus', 3); modFans(-2); return 'Je jeugdtrainer zegt dat hij het snapt. Het klinkt teleurgesteld.'; })]};
   }},
   14: {wanneer:c => c.sz >= 3 ? {} : null, inhoud:() => {
-    const l = (S.car.seizoenen || []).slice(-2), g = l.reduce((a, x) => a + x.g, 0), w = l.reduce((a, x) => a + x.wed, 0);
-    return {tekst:[`Twee seizoenen verder. ${w} wedstrijden, ${g} goals. Je bent niet meer "dat talent", je bent een vaste waarde.`,
+    const l = (S.car.seizoenen || []).slice(-2), g = l.reduce((a, x) => a + x.g, 0), w = l.reduce((a, x) => a + x.wed, 0), nul = l.reduce((a, x) => a + (x.nul || 0), 0);
+    return {tekst:[`Twee seizoenen verder. ${w} wedstrijden, ${prestatie(g, nul)}. Je bent niet meer "dat talent", je bent een vaste waarde.`,
       rol() === 'vriend' ? `${vn()} en jij zijn nog steeds vrienden. Dat is in het profvoetbal bijzonder.` : rol() === 'rivaal' ? `${vn()} en jij: rivalen. ${S.sp.rivaal.band >= 20 ? 'Maar met respect.' : 'Nog altijd ijzig.'}` : 'Het voetbal heeft je veel gegeven, en ook wat mensen gekost.',
       `${opaZin()} zit op zijn vaste plek op de bank. "Deel twee," zegt hij. "Nu begint het echte werk: de top."`],
       opa:'"Goed is de vijand van geweldig."', opts:[]};
@@ -172,9 +176,10 @@ export const VERVOLG = {
       opa:'"Ik heb nooit iemand zien terugkomen zonder iemand die in hem bleef geloven."',
       opts:[o('"Ik help je terug. Elke week."', 'kalm', () => { zetBand(15); mod('moraal', 3); mod('focus', -2); return 'Je gaat elke maandag langs bij zijn revalidatie. Het wordt jullie vaste afspraak.'; }),
         o('"Je komt terug. Ik weet het zeker."', 'bal', () => { zetBand(8); return 'Hij knikt. Hij gelooft het een beetje meer.'; }),
-        o('"Ik maak mijn volgende goal voor jou."', 'fel', () => { zetBand(6); mod('focus', 5); modFans(3); return 'Bij je volgende goal laat je zijn rugnummer zien. Het hele stadion klapt.'; })]};
+        isKeeper() ? o('"Ik houd de volgende nul voor jou."', 'fel', () => { zetBand(6); mod('focus', 5); modFans(3); return 'Na je volgende nul houd je zijn shirt omhoog. Het hele stadion klapt.'; })
+          : o('"Ik maak mijn volgende goal voor jou."', 'fel', () => { zetBand(6); mod('focus', 5); modFans(3); return 'Bij je volgende goal laat je zijn rugnummer zien. Het hele stadion klapt.'; })]};
     if (r === 'rivaal') return {
-      tekst:[`De titelrace komt neer op jou en ${v}. Wie de meeste goals maakt, wint waarschijnlijk alles. De media noemen het "het duel van het decennium".`,
+      tekst:[`De titelrace komt neer op jou en ${v}. ${isKeeper() ? 'Jij houdt de nul, hij moet erlangs: wie dat duel wint' : 'Wie de meeste goals maakt'}, wint waarschijnlijk alles. De media noemen het "het duel van het decennium".`,
         'Op een galadiner staan jullie ineens naast elkaar bij de bar.'],
       opa:'"Ik heb mijn beste vriend ooit laten gaan om een ruzie over niks. Leer van mijn fout."',
       opts:[o('"Zullen we het na het seizoen uitpraten?"', 'kalm', () => { zetRivaalBand(25); return 'Hij kijkt je aan. "Ja," zegt hij. "Dat wil ik ook."'; }),
@@ -195,9 +200,9 @@ export const VERVOLG = {
       o('"Ik geniet vooral van mijn opa naast me."', 'bal', () => { mod('moraal', 8); modFans(3); return 'De camera draait naar opa. Hij zwaait. Het filmpje gaat de hele wereld rond.'; }),
       o(d.nom ? '"Volgend jaar win ik hem."' : '"Volgend jaar sta ik op die lijst."', 'fel', () => { mod('focus', 5); modFans(3); return 'Een uitspraak die je nog vaak terughoort.'; })]})},
   21: {wanneer:c => c.sz >= 6 || (S.sp.leeftijd >= 29 && c.sz >= 4) ? {} : null, inhoud:() => ({
-    tekst:[`Je hebt de top gehaald. ${S.car.g} goals in je carrière, ${(S.car.prijzen || []).length} prijzen en onderscheidingen.`,
+    tekst:[`Je hebt de top gehaald. ${isKeeper() ? `${nulTxt(S.car.nul || 0)} en ${S.car.red || 0} reddingen` : `${S.car.g} goals`} in je carrière, ${(S.car.prijzen || []).length} prijzen en onderscheidingen.`,
       `Op een zondag zit je bij ${opaZin()}. Hij bladert door een plakboek dat hij over jou bijhoudt. Het is al het derde.`],
-    opa:'"Weet je wat het mooiste is? Niet de goals. Dat je nog steeds elke zondag langskomt."', opts:[]})},
+    opa:isKeeper() ? '"Weet je wat het mooiste is? Niet de reddingen. Dat je nog steeds elke zondag langskomt."' : '"Weet je wat het mooiste is? Niet de goals. Dat je nog steeds elke zondag langskomt."', opts:[]})},
   // ---------- Deel 4: Het afscheid ----------
   22: {wanneer:() => S.sp.leeftijd >= 30 ? {} : null, inhoud:() => ({
     tekst:['Dertig. Je herstelt trager na een wedstrijd. Bij de sprinttest ben je voor het eerst niet de snelste.', 'De clubarts zegt: "Je kunt nog jaren mee. Als je slim bent."'],
@@ -234,7 +239,7 @@ export const VERVOLG = {
   }},
   26: {wanneer:() => null, inhoud:() => {
     const sp = S.sp, r = rol(), v = vn(), clubs = new Set((S.car.clubs || []).map(c => c.club)).size;
-    return {tekst:[`Het is voorbij. ${S.car.wed} wedstrijden, ${S.car.g} goals en ${S.car.a} assists, bij ${clubs} ${clubs === 1 ? 'club' : 'clubs'}.`,
+    return {tekst:[`Het is voorbij. ${S.car.wed} wedstrijden, ${isKeeper() ? `${nulTxt(S.car.nul || 0)} en ${S.car.red || 0} reddingen` : `${S.car.g} goals en ${S.car.a} assists`}, bij ${clubs} ${clubs === 1 ? 'club' : 'clubs'}.`,
       r === 'vriend' ? `${v} en jij zijn je hele carrière vrienden gebleven. Het begon met ${penalty()}. Dat verhaal vertellen jullie nog steeds op verjaardagen.`
         : r === 'rivaal' ? (sp.rivaal.band >= 30 ? `${v} en jij werden rivalen, maar jullie hebben het uitgepraat. Hij zit naast je op je afscheidsfeest.` : `${v} en jij zijn rivalen gebleven. Soms vraag je je af hoe het anders had kunnen lopen. Misschien bel je hem morgen.`)
         : 'Je jeugdvriend en jij zijn uit elkaar gegroeid, zoals dat gaat. Maar die foto met de beker hangt nog altijd bij je ouders.',

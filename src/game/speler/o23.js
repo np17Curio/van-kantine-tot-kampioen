@@ -1,6 +1,9 @@
 import { S, club, mod, ovr, seizoenLabel } from '../../core/state.js';
-import { clamp, randInt, rnd, shuffle } from '../../core/utils.js';
-import { CLUBS, LAAGSTE, POS, divClubs, weekFactor } from '../../data/gegevens.js';
+import { clamp, pick, randInt, rnd, shuffle } from '../../core/utils.js';
+import { CLUBS, LAAGSTE, POS, clubsLand, divClubs, weekFactor } from '../../data/gegevens.js';
+import { SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
+import { isBuitenland, vreemdeClub, winterInhalen, wisselLand } from '../transfers/buitenland.js';
+import { startBuitenland, thuis as thuisStart } from '../prive/buitenland-leven.js';
 import { fixture, simGoals } from '../competitie/competitie.js';
 import { speelRonde } from '../competitie/spelers.js';
 import { KRANTEN, reeks } from '../media/nieuws.js';
@@ -65,7 +68,7 @@ export function startO23(){
   const o = ovr(sp), o23 = (s, d) => Math.round(Math.min(s - 8, o + d + (s - 66) * .25));
   const wijS = o23(c.s, -3), oppS = o23(opp.s, -8 + randInt(-1, 1)), thuis = rnd() < .5;
   const T = teamKracht(wijS, {speelt:true, thuis, bonus:false}), O = oppS + (thuis ? 0 : 2);
-  const M = {o23:true, eerste:{us:a, them:b, opp:fx.opp, thuis:fx.thuis}, oppS, wij:`${c.n} O23`, zij:`${opp.n} O23`, thuis, rol:'basis', us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false};
+  const M = {o23:true, eerste:{us:a, them:b, opp:fx.opp, thuis:fx.thuis}, oppS, wij:`${c.n} O23`, zij:`${opp.n} O23`, thuis, rol:'basis', us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' || sp.pos === 'KEEPER' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false};
   S.M = M;
   { const r = onderwijsCoach(); if (r) M.log.push(r); }
   planWedstrijd(M, T, O);
@@ -77,7 +80,7 @@ export function eindeO23(){
   const sp = S.sp, M = S.M, E = M.eerste, O = sp.o23;
   M.klaar = true;
   if (M.us > M.them) M.cijfer += .3; else if (M.us < M.them) M.cijfer -= .3;
-  if (sp.pos === 'VERD' && M.them === 0) M.cijfer += .5;
+  if ((sp.pos === 'VERD' || sp.pos === 'KEEPER') && M.them === 0) M.cijfer += sp.pos === 'KEEPER' ? .7 : .5; // (de nul gehouden)
   M.cijfer = Math.round(clamp(M.cijfer, 3, 10) * 10) / 10;
   sp.vorm = clamp(sp.vorm * .5 + (M.cijfer - 6.5) * .7, -3, 3);
   staminaNaWedstrijd(M);
@@ -110,35 +113,60 @@ export function huurNodig(){
   if (sp.huur || (sp.sindsTransfer || 0) < 7) return false;
   return !!sp.o23 || (S.ss.c.length >= 5 && gemiddelde(S.ss.c) < 6.2);
 }
+// Huuropties: {club, land?}. Twee clubs uit je eigen land, en vanaf je 18e meestal ook een club uit het buitenland
 export function huurClubs(){
   const eigen = club();
   const kand = (eigen.t < LAAGSTE ? divClubs(eigen.t + 1) : []).concat(divClubs(eigen.t).filter(i => i !== S.sp.club && CLUBS[i].s <= eigen.s - 6));
-  return shuffle(kand).slice(0, 2);
+  const uit = shuffle(kand).slice(0, 2).map(id => ({club:id}));
+  // (zelf gevraagd: altijd een buitenlandse optie)
+  const bl = S.sp.leeftijd >= 18 && rnd() < (S.sp.huurWens ? 1 : .6) ? buitenlandseHuur() : null; if (bl) uit.push(bl);
+  return uit;
 }
-export function gaHuren(id){
-  const sp = S.sp, V = S.venster, ouder = club();
+// Een club in een ander land: zwakker dan je eigen club, maar van jouw niveau (daar speel je)
+function buitenlandseHuur(){
+  const o = ovr(S.sp), eigen = club(), land = pick(SPEEL_LANDEN.filter(l => l !== thuisLand())), kand = [];
+  for (let id = 8; id < clubsLand(land); id++){ const c = vreemdeClub(land, id); if (c.t >= 1 && c.s <= eigen.s - 4 && c.s >= o - 6) kand.push([id, Math.abs(c.s - (o + 2))]); }
+  if (!kand.length) return null;
+  return {club:pick(kand.sort((a, b) => a[1] - b[1]).slice(0, 3))[0], land};
+}
+// Je eigen club tijdens een huurperiode (in het buitenland staat die niet in CLUBS: daar hoort het nummer bij een andere club)
+export function huurOuder(){
+  const h = S.sp.huur; if (!h) return club();
+  return h.ouderLand && h.ouderLand !== thuisLand() ? {n:h.ouderNaam, t:h.ouderT, s:h.ouderS} : CLUBS[h.ouder];
+}
+export function gaHuren(x){
+  const o = typeof x === 'number' ? {club:x} : x, sp = S.sp, V = S.venster, oc = club(), ouder = {n:oc.n, t:oc.t, s:oc.s}, bl = isBuitenland(o), krant = KRANTEN[ouder.t];
   if (V.agentBod != null) agentReset('Je koos voor een huurperiode. Zeg het maar als je daarna een nieuw doel hebt.');
-  sp.huur = {ouder:sp.club, clubWed:sp.clubWed, clubSz:sp.clubSz, status:sp.status, legende:sp.legendeHier, cijfers:[]};
+  sp.huur = {ouder:sp.club, ouderLand:thuisLand(), ouderNaam:ouder.n, ouderT:ouder.t, ouderS:ouder.s, clubWed:sp.clubWed, clubSz:sp.clubSz, status:sp.status, legende:sp.legendeHier, cijfers:[],
+    ...(bl ? {bl:sp.buitenland || null, heimwee:sp.heimwee || 0} : {})}; // (na de huur weer zoals het was)
+  if (bl) wisselLand(o.land); // (daarna hoort het clubnummer bij een club in dat land: ouder is een kopie)
+  const naam = CLUBS[o.club].n, waar = bl ? ` in ${o.land}` : '';
   sp.o23 = null; sp.recent = []; sp.gewaarschuwd = false;
-  sp.club = id; sp.clubWed = 0; sp.clubSz = 0; sp.legendeHier = false; sp.status = 38; sp.vert = 55; sp.sindsTransfer = 0;
+  sp.club = o.club; sp.clubWed = 0; sp.clubSz = 0; sp.legendeHier = false; sp.status = 38; sp.vert = 55; sp.sindsTransfer = 0;
   sp.statusNiveau = statusNiveau();
   mod('moraal', 5);
-  S.car.clubs.push({club:id, van:S.jaar, huur:true});
-  S.car.hist.push(`${seizoenLabel()}: verhuurd door ${ouder.n} aan ${CLUBS[id].n}`);
-  krantMelding(`${ouder.n} verhuurt ${sp.naam} aan ${CLUBS[id].n}`, `Bij ${CLUBS[id].n} moet hij speeltijd krijgen. In de zomer keert hij terug.`, KRANTEN[ouder.t]);
-  S.verhuisTekst = `Je bent verhuurd aan ${CLUBS[id].n} tot het einde van het seizoen. Hier krijg je speeltijd. Laat zien wat je kan!`;
+  S.car.clubs.push({club:o.club, van:S.jaar, huur:true, land:thuisLand(), n:naam});
+  S.car.hist.push(`${seizoenLabel()}: verhuurd door ${ouder.n} aan ${naam}${bl ? ` (${o.land})` : ''}`);
+  krantMelding(`${ouder.n} verhuurt ${sp.naam} aan ${naam}${bl ? ` uit ${o.land}` : ''}`, `Bij ${naam} moet hij speeltijd krijgen. In de zomer keert hij terug.`, krant);
+  let tekst = `Je bent verhuurd aan ${naam}${waar} tot het einde van het seizoen. Hier krijg je speeltijd. Laat zien wat je kan!`;
+  if (bl){ const t = startBuitenland(o.land); if (t) tekst += ' ' + t; if (V.soort === 'winter') tekst += ' ' + winterInhalen(); }
+  S.verhuisTekst = tekst;
   sluitVenster();
 }
 // Einde huurperiode (zomer): terug naar je eigen club, met een plek die past bij hoe je het deed
 export function terugVanHuur(){
-  const sp = S.sp, h = sp.huur, huurId = sp.club, huurNaam = club().n, ouder = CLUBS[h.ouder], c = h.cijfers, g = c.length ? gemiddelde(c) : null;
+  const sp = S.sp, h = sp.huur, huurId = sp.club, huurNaam = club().n, huurLand = thuisLand(), weg = !!h.ouderLand && h.ouderLand !== huurLand;
+  // Een huurperiode in het buitenland: terug naar je eigen land (taal en heimwee weer zoals vóór de huur)
+  if (weg){ wisselLand(h.ouderLand); sp.buitenland = h.bl || null; sp.heimwee = h.heimwee || 0; }
+  const ouder = CLUBS[h.ouder], c = h.cijfers, g = c.length ? gemiddelde(c) : null;
   sp.club = h.ouder; sp.huur = null; sp.o23 = null; sp.recent = []; sp.gewaarschuwd = false;
-  sp.clubWed = h.clubWed; sp.clubSz = h.clubSz; sp.legendeHier = h.legende; sp.sindsTransfer = 10;
+  sp.clubWed = h.clubWed; sp.clubSz = h.clubSz; sp.legendeHier = h.legende; sp.sindsTransfer = 10; sp.huurTerug = true; // (geen 'eerste seizoen' meer bij je eigen club)
   let tekst;
   if (g !== null && g >= 7){ sp.status = Math.max(h.status, 38); sp.vert = 55; tekst = `Je huurperiode bij ${huurNaam} was een succes (gemiddeld ${fmt1(g)}). ${ouder.n} haalt je terug en rekent op je.`; }
   else if (g !== null && g >= 6.4){ sp.status = Math.max(h.status, 22); sp.vert = 45; tekst = `Je speelde redelijk bij ${huurNaam} (gemiddeld ${fmt1(g)}). Terug bij ${ouder.n} moet je knokken voor een basisplaats.`; }
   else { sp.status = Math.min(h.status, 12); sp.vert = 30; tekst = `Je huurperiode bij ${huurNaam} liep niet goed${g !== null ? ` (gemiddeld ${fmt1(g)})` : ''}. ${ouder.n} is nog niet overtuigd.`; }
   sp.statusNiveau = statusNiveau();
   S.car.hist.push(`${seizoenLabel()}: terug van huur bij ${huurNaam} naar ${ouder.n}`);
-  return {tekst, koop: g !== null && g >= 7.2 && c.length >= 5 ? huurId : null};
+  if (weg) tekst = `${h.ouderLand === thuisStart() ? 'Terug thuis' : `Terug in ${h.ouderLand}`} na een seizoen in ${huurLand}. ` + tekst;
+  return {tekst, koop: g !== null && g >= 7.2 && c.length >= 5 ? {club:huurId, ...(weg ? {land:huurLand} : {})} : null};
 }

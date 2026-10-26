@@ -1,6 +1,6 @@
 import { S, club, mod, ovr, salarisVoor, seizoenLabel, waarde } from '../../core/state.js';
 import { clamp, pick, randInt, rnd } from '../../core/utils.js';
-import { AANTAL_RONDES, CLUBS, DIVS, LAAGSTE, MEIDEN, clubsLand, divClubs, WINTER, rondeInWeek, weekFactor } from '../../data/gegevens.js';
+import { AANTAL_RONDES, CLUBS, DIVS, LAAGSTE, MEIDEN, clubsLand, divClubs, WINTER, rondeInWeek, weekFactor, LINIE_VAN, POS } from '../../data/gegevens.js';
 import { thuisLand } from '../../data/landen.js';
 import { vreemdeClub } from '../transfers/buitenland.js';
 import { interDrempel, landenVoor } from '../interlands/interlands.js';
@@ -13,6 +13,7 @@ import { PERS, karakter } from './persoonlijkheid.js';
 import { groeiSeizoen, plaats as plaatsRivaal } from './rivaal.js';
 import { iedereen, zetBand as kleedBand } from '../team/kleedkamer.js';
 import { DELEN, VERVOLG, deelVan } from './journey-delen.js';
+import { eersteSeizoen } from '../transfers/vertrek.js';
 export { DELEN, deelVan };
 
 /* ===================== Jouw verhaal: hoofdstukken zoals in "The Journey" ===================== */
@@ -47,7 +48,7 @@ export const vriendActief = () => { const v = S.sp && S.sp.vriend; return !!(v &
 export const KLAAR = HOOFDSTUKKEN.length; // daarna speel je vrij verder
 export const journey = () => S && S.sp && S.sp.journey;
 export const inVerhaal = () => { const J = journey(); return !!(J && J.h < KLAAR); };
-const VOORNAMEN = ['Sem', 'Daan', 'Milan', 'Jayden', 'Noah', 'Luuk', 'Bram', 'Ryan', 'Thijs', 'Mo'];
+export const VOORNAMEN = ['Sem', 'Daan', 'Milan', 'Jayden', 'Noah', 'Luuk', 'Bram', 'Ryan', 'Thijs', 'Mo'];
 const ACHTERNAMEN = ['Walker', 'Brouwers', 'De Ruiter', 'Mertens', 'Bakkali', 'Van Loon', 'Hoekman', 'Pinas', 'Verbeek', 'Smits'];
 const OPA = ['Jan', 'Kees', 'Henk', 'Wim', 'Gerrit'];
 export const MAKELAAR = 'Max Vos';
@@ -71,10 +72,19 @@ export function toonEffect(t){
 }
 export const toonLabel = (v = S.sp.toon || 0) => v <= -40 ? 'Rustig' : v <= -12 ? 'Beheerst' : v < 12 ? 'Evenwichtig' : v < 40 ? 'Vurig' : 'Heethoofd';
 
+// Ben jij keeper? Dan vertelt het verhaal over reddingen en de nul houden in plaats van goals
+export const isKeeper = () => S.sp.pos === 'KEEPER';
+export const nulTxt = n => `${n} keer de nul gehouden`;
+// Wat je liet zien: voor een keeper de nul gehouden, anders goals
+export const prestatie = (g, nul) => isKeeper() ? nulTxt(nul || 0) : `${g} ${g === 1 ? 'goal' : 'goals'}`;
+// De positie van je beste vriend (gekozen bij het begin; oude opslag: dezelfde als jij)
+export const vriendPos = () => (S.sp.vriend && S.sp.vriend.pos) || S.sp.pos;
 // ---------- begin ----------
-export function maakJourney(sp){
-  const vn = pick(VOORNAMEN);
-  sp.vriend = {voornaam:vn, v:vn[0], n:pick(ACHTERNAMEN), lft:sp.leeftijd, k:clamp(ovr(sp) + randInt(-2, 3), 30, 95), band:60, club:null, o23:false, talentV2:true};
+// keuze: {naam, pos} van het startscherm (je kiest zelf hoe je beste vriend heet en waar hij speelt)
+export function maakJourney(sp, keuze = {}){
+  const delen = String(keuze.naam || '').trim().split(/\s+/).filter(Boolean), vn = delen[0] ? delen[0][0].toUpperCase() + delen[0].slice(1) : pick(VOORNAMEN);
+  const rest = delen.slice(1), an = rest.length ? rest.map((w, i) => i === rest.length - 1 ? w[0].toUpperCase() + w.slice(1) : w).join(' ') : pick(ACHTERNAMEN), vpos = POS[keuze.pos] ? keuze.pos : sp.pos;
+  sp.vriend = {voornaam:vn, v:vn[0], n:an, pos:vpos, lft:sp.leeftijd, k:clamp(ovr(sp) + randInt(-2, 3), 30, 95), band:60, club:null, o23:false, talentV2:true};
   sp.vriend.pot = clamp(sp.pot + randInt(-5, 3), sp.vriend.k + 4, 95);
   sp.opa = {naam:pick(OPA)};
   sp.toon = 0;
@@ -92,24 +102,26 @@ export function hoofdstukInhoud(){
   const o = (l, toon, f) => ({l, toon, f});
   if (H.h >= 8) return VERVOLG[H.h] ? VERVOLG[H.h].inhoud(d) : {tekst:[], opa:'', opts:[]}; // deel 2 tot en met 4
   switch (H.h){
-    case 0: return {
+    case 0: { const ik = isKeeper(), hij = !ik && vriendPos() === 'KEEPER'; // als keeper sta jij in het doel (of je vriend)
+      return {
       tekst:[`Tien jaar geleden. De finale van het regionale jeugdtoernooi, op een veld vol plassen. Jij en ${vn} ${v.n} zijn tien jaar en al sinds de kleuterschool onafscheidelijk.`,
-        `Het wordt strafschoppen. Bij 4-4 kijkt de trainer naar jullie twee: wie neemt de laatste? Langs de lijn staat ${opa}, die veertig jaar geleden zelf spits was, met zijn handen in zijn jaszakken.`],
-      opa:'"Een echte spits wil die bal. Maar een echte vriend weet wanneer hij hem moet geven."',
+        ik ? `Het wordt strafschoppen. Jij staat in het doel en stopt er twee. Bij 4-4 mag jullie ploeg de laatste nemen. De trainer kijkt naar jou en ${vn}: wie? Langs de lijn staat ${opa}, die veertig jaar geleden zelf spits was, met zijn handen in zijn jaszakken.`
+          : `Het wordt strafschoppen.${hij ? ` ${vn} staat in het doel en stopt er twee.` : ''} Bij 4-4 kijkt de trainer naar jullie twee: wie neemt de laatste? Langs de lijn staat ${opa}, die veertig jaar geleden zelf spits was, met zijn handen in zijn jaszakken.`],
+      opa:ik ? '"Een keeper die een penalty neemt? Dat durven alleen de echten. Maar een echte vriend weet wanneer hij de bal moet geven."' : '"Een echte spits wil die bal. Maar een echte vriend weet wanneer hij hem moet geven."',
       opts:[
-        o('Zelf de laatste nemen', 'fel', () => { zetBand(-5); sp.journey.penalty = 'zelf'; mod('rep', 1); return `Je pakt de bal voordat ${vn} iets kan zeggen. Hard, linksboven: kampioen! ${vn} juicht mee, maar je ziet dat hij hem zelf ook had willen nemen.`; }),
-        o(`${vn} hem laten nemen`, 'kalm', () => { zetBand(10); sp.journey.penalty = 'vriend'; return `Je geeft ${vn} de bal. Hij schiet hem keihard in de kruising. Hij rent meteen naar jou toe: "Samen, man. Altijd samen."`; }),
-        o('Samen beslissen: tossen', 'bal', () => { zetBand(4); sp.journey.penalty = 'samen'; return `Jullie tossen. ${vn} wint, neemt hem en scoort. Op de foto in de krant staan jullie samen met de beker.`; })]};
+        o(ik ? 'Zelf de laatste nemen, als keeper' : 'Zelf de laatste nemen', 'fel', () => { zetBand(-5); sp.journey.penalty = 'zelf'; mod('rep', 1); return ik ? `Je loopt uit je doel naar de stip, voordat ${vn} iets kan zeggen. Een keeper die de laatste neemt, dat zie je zelden. Hard, linksboven: kampioen! ${vn} juicht mee, maar je ziet dat hij hem zelf ook had willen nemen.` : `Je pakt de bal voordat ${vn} iets kan zeggen. Hard, linksboven: kampioen! ${vn} juicht mee, maar je ziet dat hij hem zelf ook had willen nemen.`; }),
+        o(`${vn} hem laten nemen`, 'kalm', () => { zetBand(10); sp.journey.penalty = 'vriend'; return ik ? `Je geeft ${vn} de bal. Hij schiet hem keihard in de kruising en rent dwars over het veld naar jouw doel: "Jij stopte er twee, ik maakte hem af. Samen, man. Altijd samen."` : `Je geeft ${vn} de bal. Hij schiet hem keihard in de kruising. Hij rent meteen naar jou toe: "Samen, man. Altijd samen."`; }),
+        o('Samen beslissen: tossen', 'bal', () => { zetBand(4); sp.journey.penalty = 'samen'; return `Jullie tossen. ${vn} wint, neemt hem en scoort. Op de foto in de krant staan jullie samen met de beker${ik ? ', jij nog in je keepershandschoenen' : ''}.`; })]}; }
     case 1: return {
       tekst:[`Nu, ${sp.leeftijd} jaar oud. De selectiedagen in ${land}: twintig talenten, drie wedstrijden, en tribunes vol scouts. Jij en ${vn} zijn er allebei.`,
-        `Je begint op plek 15 van de scoutingranglijst. Alleen wie hoog eindigt, krijgt een aanbieding van een club uit de hoogste league. ${vn} slaat je op je schouder: "Wij gaan dit samen halen."`],
+        `Op de scoutingranglijst sta je onderaan bij de ${{SPITS:'spitsen', MID:'middenvelders', VERD:'verdedigers', KEEPER:'keepers'}[sp.pos] || 'talenten'}. Alleen wie hoog eindigt, krijgt een aanbieding van een club uit de hoogste league. ${vn} slaat je op je schouder: "Wij gaan dit samen halen."`],
       opa:'"Kijk niet naar die lijst. Kijk naar de bal. De lijst volgt vanzelf."',
       opts:[
         o('"Samen halen we het."', 'kalm', () => { zetBand(4); return `${vn} grijnst. "Zo ken ik je."`; }),
         o('"Ik ga er gewoon voor."', 'bal', () => 'Je knikt en trekt je schoenen strak. Focus.'),
         o('"Sorry, maar vandaag ben jij ook mijn concurrent."', 'fel', () => { zetBand(-6); return `${vn} lacht, maar het klinkt een beetje geforceerd. "Dan zien we wel wie er hoger eindigt."`; })]};
     case 2: return {
-      tekst:[`De selectiedagen zitten erop. Je eindigde op plek ${d.plek} van de ${d.van}${d.plek <= 10 ? ', in de top 10' : ''}. ${vn} eindigde op plek ${d.vriendPlek}.`,
+      tekst:[`De selectiedagen zitten erop. Je eindigde op plek ${d.plek} van de ${d.van}${d.meerv ? ` ${d.meerv}` : ''}${d.plek <= (d.meerv ? 3 : 10) ? `, in de top ${d.meerv ? 3 : 10}` : ''}. ${vn} eindigde ${d.vriendMeerv && d.vriendMeerv !== d.meerv ? `bij de ${d.vriendMeerv} ` : ''}op plek ${d.vriendPlek}${d.vriendVan ? ` van de ${d.vriendVan}` : ''}.`,
         `Je telefoon blijft maar trillen: meerdere clubs willen met je praten. Nu moet jij kiezen welke club het beste bij je past. Speeltijd, salaris, het niveau, de speelstijl: denk goed na.`],
       opa:'"Ik koos ooit voor het geld. Twee jaar op de bank. Kies de club waar je speelt, jongen."', opts:[]};
     case 3: return {
@@ -159,9 +171,9 @@ export function hoofdstukInhoud(){
         o('"We houden voetbal en vriendschap gescheiden."', 'bal', () => { zetBand(3); return 'Een volwassen antwoord. Je trainer knikt.'; }),
         o('"Op het veld ben ik nog steeds beter dan hij."', 'fel', () => { zetBand(-4); return `${vn} stuurt je een appje: "Dat gaan we nog zien 😄". Hij kan er wel om lachen.`; })]};
       return {
-      tekst:[`${vn} is nu je rivaal. Elke goal die hij maakt, zie je voorbijkomen op je telefoon. De media smullen ervan: "De jeugdvrienden die rivalen werden".`,
+      tekst:[`${vn} is nu je rivaal. ${vriendPos() === 'KEEPER' ? 'Elke redding die hij maakt' : 'Elke goal die hij maakt'}, zie je voorbijkomen op je telefoon. De media smullen ervan: "De jeugdvrienden die rivalen werden".`,
         'Een journalist belt je voor een interview. "Wat vind je ervan dat je beste vriend je heeft verlaten?"'],
-      opa:'"Laat je beste antwoord op het veld zien. Woorden worden vergeten, goals niet."',
+      opa:isKeeper() ? '"Laat je beste antwoord op het veld zien. Woorden worden vergeten, reddingen niet."' : '"Laat je beste antwoord op het veld zien. Woorden worden vergeten, goals niet."',
       opts:[
         o('"Hij is een topspeler. Ik wens hem het beste."', 'kalm', () => { zetRivaalBand(8); return 'Een keurig antwoord. De trainer leest het en knikt.'; }),
         o('"We zien wel wie er aan het eind van het seizoen beter is."', 'bal', () => 'Een eerlijk antwoord. De race is begonnen.'),
@@ -212,11 +224,11 @@ export function verderHoofdstuk(){
 // ---------- je vriend ----------
 // Hem in de selectie van een club zetten (bij de O23: op de bank)
 export function plaatsVriend(id, o23){
-  const v = S.sp.vriend, sel = selectie(id), linie = {SPITS:'A', MID:'M', VERD:'V'}[S.sp.pos];
+  const v = S.sp.vriend, sel = selectie(id), linie = LINIE_VAN[vriendPos()];
   v.club = id; v.o23 = !!o23; v.land = thuisLand();
   if (sel.some(y => y.vriend)) return;
   const bank = sel.filter(y => y.pos === linie && !y.basis).sort((a, b) => a.k - b.k)[0]; if (bank) sel.splice(sel.indexOf(bank), 1);
-  sel.push({v:v.v, n:v.n, pos:linie, basis:!o23, g:linie === 'A' ? 4 : linie === 'M' ? 2.2 : 1, a:linie === 'M' ? 2.6 : 1.4, k:v.k, lft:v.lft, vriend:true});
+  sel.push({v:v.v, n:v.n, pos:linie, basis:!o23, g:linie === 'A' ? 4 : linie === 'M' ? 2.2 : linie === 'K' ? 0 : 1, a:linie === 'M' ? 2.6 : linie === 'K' ? .1 : 1.4, k:v.k, lft:v.lft, vriend:true});
 }
 // De breuk: hij vertrekt naar een club in jouw league (het liefst je aartsrivaal) en wordt je vaste rivaal
 export function breukDoel(){
@@ -246,9 +258,9 @@ export function vriendWordtRivaal(band, naar = S.hoofdstuk && S.hoofdstuk.data.n
   // Had je al een (andere) rivaal, dan neemt je ex-vriend die plaats in
   if (sp.rivaal && !sp.rivaal.exVriend){ const r = sp.rivaal, sel = CLUBS[r.club] ? selectie(r.club) : null; if (sel){ const x = sel.find(y => y.n === r.n && y.v === r.v); if (x) x.rivaal = false; } sp.rivaal = null; }
   if (sp.rivaal) return;
-  if (sp.journey) sp.journey.route = 'rivaal';
+  if (sp.journey) sp.journey.route = 'rivaal'; // (je ex-vriend houdt als rivaal zijn eigen positie: pos)
   const oud = v.club != null ? selectie(v.club) : null; if (oud){ const x = oud.find(y => y.vriend); if (x) oud.splice(oud.indexOf(x), 1); }
-  sp.rivaal = {v:v.v, n:v.n, lft:v.lft, k:v.k, pot:v.pot, kVorig:v.k, club:naar, achtergrond:'Jullie waren beste vrienden, tot hij vertrok.', karakter:pick(Object.keys(PERS)),
+  sp.rivaal = {v:v.v, n:v.n, pos:vriendPos(), lft:v.lft, k:v.k, pot:v.pot, kVorig:v.k, club:naar, achtergrond:'Jullie waren beste vrienden, tot hij vertrok.', karakter:pick(Object.keys(PERS)),
     onderling:{w:0, g:0, v:0}, hist:[], seizoen:null, band, race:{}, exVriend:true};
   plaatsRivaal(naar);
   v.club = naar; v.weg = true; v.land = thuisLand();
@@ -305,8 +317,8 @@ export function vriendStats(){
   const v = S.sp && S.sp.vriend; let g = 0, a = 0; if (!v) return {g, a};
   // Speelt hij in een ander land dan jij, dan zit zijn competitie niet in het spel: een schatting uit zijn klasse en de speelronde
   if (!v.weg && !vriendHier() && v.club != null){
-    const k = v.k || 60, pos = {SPITS:'A', MID:'M', VERD:'V'}[S.sp.pos] || 'M', ronde = Math.min(S.ronde || 0, 34) * .85, vorm = .8 + ((S.jaar * 37 + v.n.length * 11) % 40) / 100;
-    const rg = pos === 'A' ? .3 + (k - 65) * .012 : pos === 'M' ? .12 + (k - 65) * .004 : .04, ra = pos === 'A' ? .12 : pos === 'M' ? .2 + (k - 65) * .004 : .06;
+    const k = v.k || 60, pos = LINIE_VAN[vriendPos()] || 'M', ronde = Math.min(S.ronde || 0, 34) * .85, vorm = .8 + ((S.jaar * 37 + v.n.length * 11) % 40) / 100;
+    const rg = pos === 'A' ? .3 + (k - 65) * .012 : pos === 'M' ? .12 + (k - 65) * .004 : pos === 'K' ? 0 : .04, ra = pos === 'A' ? .12 : pos === 'M' ? .2 + (k - 65) * .004 : pos === 'K' ? .01 : .06;
     return {g:Math.max(0, Math.round(rg * ronde * vorm)), a:Math.max(0, Math.round(ra * ronde * vorm))};
   }
   for (const x of Object.values((S.ss && S.ss.st) || {})) if (!x.jij && x.n === v.n && x.v === v.v){ g += x.g || 0; a += x.a || 0; }
@@ -390,7 +402,7 @@ export function vriendSeizoen(){
   const st = vriendStats(), k = vriendKlasse(), C = v.carriere = v.carriere || {g:0, a:0, seizoenen:0};
   if (v.carriereJaar === S.jaar) return; // al meegeteld
   C.g += st.g; C.a += st.a; C.seizoenen++; v.carriereJaar = S.jaar; if (k) v.k = k;
-  const woord = sp.pos === 'SPITS' ? 'goals' : 'assists', jij = sp.pos === 'SPITS' ? S.ss.g || 0 : S.ss.a || 0, hij = sp.pos === 'SPITS' ? st.g : st.a;
+  const doel = vriendPos() === 'SPITS' || sp.pos === 'SPITS' ? 'g' : 'a', woord = doel === 'g' ? 'goals' : 'assists', jij = S.ss[doel] || 0, hij = st[doel];
   (v.hist = v.hist || []).push(`${seizoenLabel()}: jij ${jij}, ${v.voornaam} ${hij} ${woord} · zijn klasse ${k}`); if (v.hist.length > 12) v.hist.shift();
 }
 
@@ -489,13 +501,15 @@ export function vriendNaInterland(M){
 // ---------- hem naar jouw club halen ----------
 // Hij beslist zelf: welke rol krijgt hij bij jou (op jouw linie, op klasse, met jou erbij), is hij te goed of te slecht
 // voor je club, is het een stap omhoog of omlaag, staat hij nu in de basis, en hoe goed is jullie band?
-const LINIE = {SPITS:'A', MID:'M', VERD:'V'}, LINIE_NAAM = {A:'aanvallers', M:'middenvelders', V:'verdedigers'}, ROL_TXT = {basis:'basisspeler', wissel:'wissel', tribune:'tribune'};
+const LINIE = LINIE_VAN, LINIE_NAAM = {A:'aanvallers', M:'middenvelders', V:'verdedigers', K:'keepers'}, ROL_TXT = {basis:'basisspeler', wissel:'wissel', tribune:'tribune'};
 const zijnSterkte = () => { const v = S.sp.vriend; if (v.club == null) return 50; return vriendHier() ? (CLUBS[v.club] ? CLUBS[v.club].s : 50) : vreemdeClub(vriendLand(), v.club).s; };
+// Staat je vriend bij zijn club in de basis? In jouw land: zijn plek in de selectie; in het buitenland een schatting
+export const vriendInBasis = () => { const x = vriendSpeler(); return x ? !!x.basis : S.sp.vriend.k >= zijnSterkte() - 3; };
 export function vriendBijMij(){
-  const sp = S.sp, v = sp.vriend, l = LINIE[sp.pos] || 'M', basis = (OPBOUW[l] || {basis:3}).basis;
-  const rij = [...selectie(sp.club).filter(x => x.pos === l && !x.vriend && !(x.bles > 0)).map(x => x.k || 0), ovr(sp)].sort((a, b) => b - a);
+  const sp = S.sp, v = sp.vriend, l = LINIE[vriendPos()] || 'M', basis = (OPBOUW[l] || {basis:3}).basis; // (zijn eigen linie; speel jij daar ook, dan telt jij mee)
+  const rij = [...selectie(sp.club).filter(x => x.pos === l && !x.vriend && !(x.bles > 0)).map(x => x.k || 0), ...(LINIE[sp.pos] === l ? [ovr(sp)] : [])].sort((a, b) => b - a);
   const plek = rij.filter(k => k > v.k).length, rol = plek < basis ? 'basis' : plek < basis + 2 ? 'wissel' : 'tribune';
-  const x = vriendSpeler(), nuBasis = x ? !!x.basis : v.k >= zijnSterkte() - 3;
+  const nuBasis = vriendInBasis();
   return {rol, plek:plek + 1, van:rij.length + 1, linie:LINIE_NAAM[l], teGoed:v.k - CLUBS[sp.club].s >= 10, stap:CLUBS[sp.club].s - zijnSterkte(), nuBasis};
 }
 export const vriendRolTxt = () => { const b = vriendBijMij(); return `bij jou: ${ROL_TXT[b.rol]} (${b.plek}e van ${b.van} ${b.linie})${b.teGoed ? ' · hij is te goed voor je club' : b.stap <= -5 ? ' · voor hem een stap terug' : b.stap >= 5 ? ' · voor hem een stap omhoog' : ''}`; };
@@ -540,14 +554,14 @@ export function rolBijHem(){
   const sp = S.sp, v = sp.vriend, o = ovr(sp), c = zijnClubInfo(), l = LINIE[sp.pos] || 'M', basis = (OPBOUW[l] || {basis:3}).basis;
   if (!vriendHier()) return o >= c.s + 3 ? 'basis' : o >= c.s - 4 ? 'wissel' : 'tribune';
   const rij = selectie(v.club).filter(x => x.pos === l && !x.vriend && !(x.bles > 0)).map(x => x.k || 0);
-  if (LINIE[sp.pos] === l) rij.push(v.k);
+  if (LINIE[vriendPos()] === l) rij.push(v.k);
   const plek = rij.filter(k => k > o).length;
   return plek < basis ? 'basis' : plek < basis + 2 ? 'wissel' : 'tribune';
 }
 function vriendLokt(){
   const sp = S.sp, v = sp.vriend, vn = v.voornaam, c = zijnClubInfo(), rol = rolBijHem(), bl = !vriendHier(), stap = c.s - club().s;
   const K = {club:v.club, land:vriendLand()};
-  const tekst = `${vn} belt je, helemaal enthousiast. "Onze trainer zoekt nog ${{SPITS:'een spits', MID:'een middenvelder', VERD:'een verdediger'}[sp.pos] || 'een speler'}. Ik heb jouw naam genoemd! ${rol === 'basis' ? 'Bij ons sta je meteen in de basis.' : 'Je moet knokken voor je plek, maar je hoort er echt bij.'} Kom je naar ${c.n}?"`
+  const tekst = `${vn} belt je, helemaal enthousiast. "Onze trainer zoekt nog ${{SPITS:'een spits', MID:'een middenvelder', VERD:'een verdediger', KEEPER:'een keeper'}[sp.pos] || 'een speler'}. Ik heb jouw naam genoemd! ${rol === 'basis' ? 'Bij ons sta je meteen in de basis.' : 'Je moet knokken voor je plek, maar je hoort er echt bij.'} Kom je naar ${c.n}?"`
     + (bl ? ` Dan moet je wel verhuizen naar ${vriendLand()}.` : '') + (stap >= 5 ? ' Het zou een stap omhoog zijn.' : stap <= -5 ? ` ${c.n} is wel kleiner dan ${club().n}.` : '');
   const wanneer = () => bl || S.ronde >= WINTER ? 'zomer' : 'winterstop';
   return {soort:'prive', tekst, opts:[
@@ -651,7 +665,7 @@ export function vriendWeek(eerste){
     // Na de verleiding: zijn jullie toch uit elkaar gegroeid, dan probeert de zaakwaarnemer het nog een keer (eens per seizoen, bij de winterstop)
     if (J && J.h >= 5 && v.band < 25 && S.ronde === WINTER && v.vosJaar !== S.jaar && !S.wachtEv){ v.vosJaar = S.jaar; S.wachtEv = vosOpnieuw(); }
     // Hij vraagt of jij naar zijn club komt (hooguit eens per seizoen, als jij daar minstens wissel zou zijn)
-    else if ((!J || J.h >= 5) && v.band >= 20 && v.lokJaar !== S.jaar && S.ronde >= 6 && !bijJou() && !sp.o23 && !sp.huur && !sp.clubloos && !sp.vriendBod && !v.komt && !S.wachtEv && v.club != null && rnd() < .05 && rolBijHem() !== 'tribune'){ v.lokJaar = S.jaar; S.wachtEv = vriendLokt(); }
+    else if ((!J || J.h >= 5) && v.band >= 20 && v.lokJaar !== S.jaar && S.ronde >= 6 && !bijJou() && !sp.o23 && !sp.huur && !sp.clubloos && !eersteSeizoen() && !sp.vriendBod && !v.komt && !S.wachtEv && v.club != null && rnd() < .05 && rolBijHem() !== 'tribune'){ v.lokJaar = S.jaar; S.wachtEv = vriendLokt(); }
     return;
   }
   // Een rivaal met wie het weer goed zit, wordt weer je vriend
@@ -708,7 +722,7 @@ function finaleTegenRivaal(){
 }
 function epiloogData(){
   const sp = S.sp, sz = (S.car.seizoenen || []).slice(-1)[0];
-  const samenvatting = sz ? `${sz.wed} wedstrijden, ${sz.g} goals en ${sz.a} assists bij ${sz.club}${sz.gem ? `, gemiddeld een ${String(sz.gem).replace('.', ',')}` : ''}. Eindstand: plek ${sz.plek}.` : 'Het was een seizoen om nooit te vergeten.';
+  const samenvatting = sz ? `${sz.wed} wedstrijden, ${isKeeper() ? `${nulTxt(sz.nul || 0)} en ${S.car.red || 0} reddingen` : `${sz.g} goals en ${sz.a} assists`} bij ${sz.club}${sz.gem ? `, gemiddeld een ${String(sz.gem).replace('.', ',')}` : ''}. Eindstand: plek ${sz.plek}.` : 'Het was een seizoen om nooit te vergeten.';
   const bondscoach = ovr(sp) >= 62 || sp.rep >= 35;
   if (bondscoach) krantMelding(`${sp.naam} op voorlopige lijst van de bondscoach`, `Na een sterk eerste seizoen staat ${sp.naam} (${sp.leeftijd}) op de lijst met mogelijke debutanten.`);
   return {samenvatting, bondscoach};

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as kloonSkelet } from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { HAAR, HUID, KAPSELS, SCHOENEN } from '../data/uiterlijk.js';
+import { HAAR, HUID, KAPSELS, SCHOENEN, KROES_KAPSELS } from '../data/uiterlijk.js';
 import { STANDAARD } from '../data/tenues.js';
 
 /* ===================== Spelersmodel (GLB) ===================== */
@@ -104,10 +104,12 @@ export { HAAR, HUID, KAPSELS, SCHOENEN }; // de lijsten staan in data/uiterlijk.
 export function hashGetal(s){ let h = 2166136261; for (let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 // Een vaste dobbelsteen: dezelfde sleutel geeft altijd hetzelfde uiterlijk, en ook dezelfde manier van bewegen.
 // eigen = wat je zelf koos bij het aanmaken van je speler (huid, haar, kapsel); de rest blijft van de dobbelsteen
+const GEWOON = KAPSELS.filter(k => !KROES_KAPSELS.includes(k)); // de andere kapsels (met 'model' dubbel)
 export function uiterlijkVoor(sleutel, eigen){
   let h = hashGetal(sleutel); const d = n => { h = Math.imul(h ^ (h >>> 15), 2246822519) >>> 0; return h % n; };
   const huid = d(HUID.length);
-  const u = {huid, haar: huid >= 4 && d(3) ? 0 : d(HAAR.length), kapsel:KAPSELS[d(KAPSELS.length)], lengte:.93 + d(15) / 100, bouw:.9 + d(21) / 100, schoen:d(SCHOENEN.length),
+  // (een donkere huid: vaker kroeshaar-kapsels, zoals een afro, cornrows of vlechten)
+  const u = {huid, haar: huid >= 4 && d(3) ? 0 : d(HAAR.length), kapsel:huid >= 3 && d(5) < 3 ? KROES_KAPSELS[d(KROES_KAPSELS.length)] : d(25) === 0 ? 'vlechten' : GEWOON[d(GEWOON.length)], lengte:.93 + d(15) / 100, bouw:.9 + d(21) / 100, schoen:d(SCHOENEN.length),
     stijl:{arm:.8 + d(41) / 100, pas:.9 + d(26) / 100, houding:d(11) / 100, veer:.85 + d(31) / 100}};
   if (eigen){ if (HUID[eigen.huid]) u.huid = eigen.huid; if (HAAR[eigen.haar]) u.haar = eigen.haar; if (KAPSELS.includes(eigen.kapsel)) u.kapsel = eigen.kapsel; if (SCHOENEN[eigen.schoen]) u.schoen = eigen.schoen;
     // gekozen lengte (165-200 cm) en bouw (bmi 20-27,5)
@@ -122,7 +124,7 @@ export function tenueVoor(rol, tenues){
   if (rol === 'R') return {shirt:'#15161c', accent:'#15161c', patroon:'effen', broek:'#15161c', sok:'#15161c'};
   return STANDAARD;
 }
-const tenueKey = t => [t.shirt, t.accent, t.patroon, t.broek, t.sok].join('|');
+const tenueKey = t => [t.shirt, t.accent, t.patroon, t.broek, t.sok, t.sponsor ? t.sponsor.naam : '', t.logoImg ? 'L' + (t.logoId ?? '') : ''].join('|');
 // Welk deel van het shirt krijgt de accentkleur? u en v zijn plaatsen op de shirttextuur (0 tot 1)
 const PATROON = {
   effen: () => false,
@@ -133,9 +135,12 @@ const PATROON = {
   blokken: (u, v) => (Math.floor(u * 10) + Math.floor(v * 10)) % 2 === 1,
   bies: (u, v) => v < .09 || (v < .3 && ((u * 2) % 1 < .07 || (u * 2) % 1 > .93)),
 };
+// Waar op de shirttextuur de voorkant zit (gemeten met een testraster in de fotostudio): het midden van de borst,
+// de hoogte van de sponsor, en het logo links op de borst (voor wie kijkt: rechts)
+const VOOR = {u:.382, sponsor:.775, breed:.235, letter:.075, logoU:.455, logoV:.86, logo:.058};
 // Gekleurde shirttextuur: de vouwen en schaduw van het model, in de kleuren en het design van het tenue
 function shirtTex(t){
-  const key = 'shirt|' + t.shirt + t.accent + t.patroon;
+  const key = 'shirt|' + t.shirt + t.accent + t.patroon + (t.sponsor ? '|' + t.sponsor.naam : '') + (t.logoImg ? '|L' + (t.logoId ?? '') : '');
   if (BASIS.tex[key]) return BASIS.tex[key];
   const bron = BASIS.bron['t_shirt_basic_tucked']; if (!bron) return null;
   const c = document.createElement('canvas'), w = c.width = bron.width, h = c.height = bron.height;
@@ -150,6 +155,26 @@ function shirtTex(t){
     d[i] = Math.min(255, kl[0] * v); d[i + 1] = Math.min(255, kl[1] * v); d[i + 2] = Math.min(255, kl[2] * v);
   }
   g.putImageData(img, 0, 0);
+  // Clublogo links op de borst en de sponsor midden op de borst (alleen in de krantenfoto's).
+  // De textuur staat verticaal gespiegeld op het model (hoger op het shirt = lager op de textuur): daarom scale(1, -1)
+  if (t.sponsor || t.logoImg){
+    const licht = c1[0] * .299 + c1[1] * .587 + c1[2] * .114 > 150;
+    if (t.sponsor){ g.save(); g.translate(VOOR.u * w, VOOR.sponsor * h); g.scale(1, -1);
+      // groot over de borst; past een lange naam niet, dan op twee regels (en pas daarna kleiner)
+      const font = f => `900 ${f}px Arial Black, Arial, sans-serif`, max = VOOR.breed * w, naam = t.sponsor.naam;
+      let f = Math.round(w * VOOR.letter); g.font = font(f); let regels = [naam];
+      if (g.measureText(naam).width > max && naam.includes(' ')){ const wd = naam.split(' '); let best = null;
+        for (let k = 1; k < wd.length; k++){ const r = [wd.slice(0, k).join(' '), wd.slice(k).join(' ')], b = Math.max(...r.map(x => g.measureText(x).width)); if (!best || b < best.b) best = {r, b}; }
+        regels = best.r; f = Math.round(f * .85); g.font = font(f); }
+      const mw = Math.max(...regels.map(x => g.measureText(x).width)); if (mw > max){ f = Math.floor(f * max / mw); g.font = font(f); }
+      g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+      regels.forEach((r, i) => { const y = (i - (regels.length - 1) / 2) * f * 1.05; // (de eerste regel bovenaan op het shirt)
+        // een randje in de tegenkleur: ook leesbaar op strepen en blokken
+        g.globalAlpha = 1; g.lineWidth = Math.max(2, f * .14); g.strokeStyle = licht ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.55)'; g.strokeText(r, 0, y);
+        g.fillStyle = licht ? '#15161c' : '#ffffff'; g.globalAlpha = .95; g.fillText(r, 0, y); });
+      g.restore(); }
+    if (t.logoImg){ const s = VOOR.logo * w; g.save(); g.translate(VOOR.logoU * w, VOOR.logoV * h); g.scale(1, -1); g.drawImage(t.logoImg, -s / 2, -s / 2, s, s); g.restore(); }
+  }
   return BASIS.tex[key] = tex(c);
 }
 function tenueMaterialen(t){
@@ -202,6 +227,32 @@ function haarGeo(kapsel){
       const lager = Math.max(0, -.1 - w), achter = glad(-.6, .1, v);
       p.z -= lager * h.z * 2.2 * achter; p.y += lager * h.y * .25 * achter;
       p.x += Math.sign(u) * lager * h.x * .12 * achter;
+    } else if (kapsel === 'afro'){
+      // een ronde bol rondom het hoofd; boven de ogen en bij het gezicht minder, zodat het gezicht vrij blijft
+      kort(p, w, v); kort(p, w, v); // eerst de lengte eraf (geen pony, geen nek): dan wordt het een ronde bol
+      // opbollen vanuit een punt hoog in het hoofd; aan de voorkant (voorhoofd) en onderaan (oren, nek) blijft het kort
+      const voor = glad(-.15, -.75, v), onder = glad(-.05, -.55, w), groei = (1 - .85 * voor * glad(.5, -.2, w)) * (1 - .85 * onder);
+      const top = s.clone(); top.z += h.z * .45;
+      const q = p.clone().sub(top), d = q.length(), golf = Math.sin(p.x / h.x * 23) * Math.sin(p.y / h.y * 21) * Math.sin(p.z / h.z * 25);
+      const rond = huid * (1.78 + .06 * golf) + (d - huid) * .25, nd = d + (Math.max(d, rond) - d) * groei;
+      p.copy(top).add(q.multiplyScalar(nd / d)); p.z += voor * h.z * .15; p.y += voor * h.y * .1; // de haarlijn iets omhoog en naar achteren
+    } else if (kapsel === 'kroes'){
+      // kort, met wat meer volume en een fijne kroesstructuur
+      kort(p, w, v); const q = p.clone().sub(s), golf = Math.sin(p.x / h.x * 27) * Math.sin(p.y / h.y * 25) * Math.sin(p.z / h.z * 29);
+      p.copy(s).add(q.multiplyScalar(1.05 + .025 * golf));
+    } else if (kapsel === 'cornrows' || kapsel === 'vlechten'){
+      // strak tegen het hoofd, met evenwijdige ribbels van voor naar achter
+      kort(p, w, v); kort(p, w, v); // extra kort: strak tegen het hoofd
+      const q = p.clone().sub(s), d = q.length(), rib = Math.pow(Math.abs(Math.sin(u * Math.PI * 4.5)), 4);
+      p.copy(s).add(q.multiplyScalar((d + huid * .15 * rib) / d)); // ribbels naar buiten (nooit de schedel in)
+      if (kapsel === 'vlechten'){
+        // lange vlechten: aan de zij- en achterkant in losse strengen naar beneden
+        const lager = Math.max(0, .05 - w), achter = glad(-.5, .15, v), baan = Math.round(u * 5) / 5;
+        if (lager > 0){ const g = glad(0, .1, lager) * achter; // (hoe lager, hoe meer losse vlechten)
+          p.z -= lager * h.z * 3.4 * achter; p.y += lager * h.y * .3 * achter;
+          p.x = c.x + (u + (baan - u) * .9 * g) * h.x + Math.sign(u) * lager * h.x * .15 * achter + Math.sin(lager * 45 + baan * 9) * h.x * .04 * g; // strengen met een vlechtpatroon
+          p.y += Math.cos(lager * 45 + baan * 9) * h.y * .05 * g + Math.abs(u - baan) * h.y * .25 * g; }
+      }
     } else if (kapsel === 'staart'){
       // voor en bovenop kort; de achterkant bij elkaar gebonden en als een staart naar beneden
       // alleen het onderste deel van de achterkant wordt de staart; de rest blijft het hoofd bedekken

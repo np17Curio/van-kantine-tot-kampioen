@@ -8,7 +8,7 @@ import { RODDELBLADEN } from '../game/media/roddel.js';
 // Elk land heeft twee leagues met het echte aantal clubs (LIGA in gegevens.js), met eigen namen voor de divisies, clubs, beker en kranten.
 // De clubs staan van sterk naar zwak: de eerste n1 spelen in de hoogste league, de volgende n2 in de 2e league.
 // De Europese Elite (clubs 0-7) is voor iedereen hetzelfde. Clubnamen zijn verzonnen.
-export const SPEEL_LANDEN = ['Nederland', 'België', 'Engeland', 'Duitsland', 'Frankrijk', 'Spanje', 'Italië', 'Portugal'];
+export const SPEEL_LANDEN = ['Nederland', 'België', 'Engeland', 'Duitsland', 'Frankrijk', 'Spanje', 'Italië', 'Portugal', 'Turkije', 'Tsjechië', 'Griekenland', 'Polen', 'Denemarken', 'Noorwegen', 'Zwitserland'];
 export const LAND_DATA = {
   'België':{divs:['Eerste Klasse', 'Tweede Klasse'], beker:'Belgische Beker',
     clubs:['Royal Scheldestad', 'Club Kempenland', 'Standaard Maasvallei', 'KAA Leiestad', 'Racing Dijlestad', 'Sporting Sambre', 'KV Kustlijn', 'OH Hageland',
@@ -67,7 +67,56 @@ export const LAND_DATA = {
       'CD Ribafria', 'SC Penedo', 'FC Alverca Nova', 'GD Lagoa', 'FC Pastel de Nata', 'Bacalhau FC', 'SC Sardinha', 'CD Fado',
       'UD Saudade', 'GD Bifana', 'FC Galo', 'SC Vinho Verde'],
     kranten:{2:['Golo Diário', 'A Bancada', 'Noite de Futebol TV'], 1:['Golo Diário', 'A Bancada', 'Noite de Futebol TV']},
-    roddel:['Mexericos Semanais', 'Revista Famosos', 'Golo Diário']}
+    roddel:['Mexericos Semanais', 'Revista Famosos', 'Golo Diário']},
+  Turkije:{divs:['Süper Lig', '1. Lig'], beker:'Türkiye Kupası',
+    clubs:['Galata Spor', 'Boğaz SK', 'Kartal Spor', 'Anadolu Yıldızı', 'Karadeniz FK', 'Ege Gücü', 'Başkent SK', 'Bursa Yeşil',
+      'Kapadokya SK', 'Akdeniz Spor', 'Toros FK', 'Marmara Gençlik', 'Konak SK', 'Fırat Spor', 'Pamukkale FK', 'Kızılırmak SK',
+      'Sakarya Dalga', 'Çamlıca SK', 'Uludağ Spor', 'Erciyes FK', 'Kırklar Spor', 'Meram FK', 'Yeşilköy SK', 'Bozdağ Spor',
+      'Altınova FK', 'Göksu SK', 'Kaçkar Spor', 'Datça FK', 'Kuşadası Gücü', 'Nemrut SK', 'Akçay Spor', 'Ağrı Dağı FK',
+      'Çınaraltı SK', 'Dolmuş FK', 'Simit Spor', 'Çay Bahçesi SK', 'Lokum FK', 'Baklava Spor'],
+    kranten:{2:['Spor Postası', 'Gol Gazetesi', 'Maç Gecesi TV'], 1:['Spor Postası', 'Gol Gazetesi', 'Maç Gecesi TV']},
+    roddel:['Magazin Haber', 'Ünlüler Haftası', 'Spor Postası']},
+  'Tsjechië':{divs:['První Liga', 'Národní Liga'], beker:'Pohár Národa',
+    clubs:['Slavia Vltava', 'Sparta Hradčany', 'Viktoria Plzeňská', 'Baník Ostravice', 'Slovan Ještěd', 'Sigma Morava', 'Bohemka Zlatá', 'Dukla Petřín',
+      'FK Jablonecká', 'Zbrojovka Svratka', 'SK Krkonoše', 'FC Šumava', 'Hradec Labe', 'FK Teplická', 'Slovácko Vinice', 'MFK Beskydy',
+      'FK Vysočina', 'SK Brdy', 'FC Orlice', 'Tatran Lužnice', 'FK Jizera', 'SK Sázava', 'FC Křivoklát', 'Spartak Ohře',
+      'FK Kamenice', 'SK Podyjí', 'FC Knedlík', 'SK Pivovar', 'FK Trdelník', 'Hospoda United', 'SK Houbička', 'FC Hokejka'],
+    kranten:{2:['Sportovní Den', 'Gól Noviny', 'Fotbal Večer TV'], 1:['Sportovní Den', 'Gól Noviny', 'Fotbal Večer TV']},
+    roddel:['Bulvár Týden', 'Hvězdy & Skandály', 'Sportovní Den']},
+  Griekenland:{divs:['Souper Liga', 'Souper Liga 2'], beker:'Kypello Elladas',
+    clubs:['Olympia Pireaki', 'Panelliniki Akropolis', 'Athlitiki Attiki', 'Thermaikos FC', 'Aris Olymbou', 'Parnitha AO', 'Knossos FC', 'Asteras Arkadias',
+      'Delta Aitolias', 'Argo Volou', 'Elikonas AO', 'Fthiotida FC', 'Strymonas AO', 'Platanos Kifisias', 'Ionikos Kerkyras', 'Lykavittos FC',
+      'Doxa Pindou', 'Iraklis Chalkidikis', 'Elies Kalamatas', 'Ymittos AO', 'Ethnikos Kykladon', 'Proodeftiki Santorinis', 'Apollon Delfon', 'Niki Thessalias',
+      'AO Feta', 'Souvlaki FC', 'Tzatziki Athletic', 'AO Ouzo', 'Gyros United', 'Moussaka FC'],
+    kranten:{2:['Athlitiki Imera', 'Goal News', 'Podosfairo TV'], 1:['Athlitiki Imera', 'Goal News', 'Podosfairo TV']},
+    roddel:['Koutsombolio', 'Lampsi Weekly', 'Athlitiki Imera']},
+  Polen:{divs:['Ekstraklasa', 'Pierwsza Liga'], beker:'Puchar Polski',
+    clubs:['Legia Wisła', 'Lech Warta', 'Raków Jura', 'Jagiellonia Podlasie', 'Pogoń Odra', 'Górnik Śląsk', 'Wisła Wawel', 'Śląsk Odrzański',
+      'Cracovia Kazimierz', 'Lechia Motława', 'Zagłębie Miedź', 'Piast Gliwicki', 'Widzew Łódzki', 'Korona Świętokrzyska', 'Radomiak Kozienice', 'Stal Sandomierz',
+      'Motor Lubelski', 'Puszcza Niepołomicka', 'Arka Bałtyk', 'Ruch Hutnik', 'Odra Opolska', 'Znicz Mazowsze', 'Polonia Starówka', 'Chrobry Głogowski',
+      'Miedź Legnicka', 'Stomil Mazury', 'Warta Poznańska', 'Resovia Podkarpacie', 'Sandecja Tatry', 'Pieniny Nieciecza', 'KS Pierogi', 'Kiełbasa Kickers',
+      'Bigos FC', 'Żubr United', 'KS Pączek', 'Oscypek FC'],
+    kranten:{2:['Przegląd Bramek', 'Sport Dziś', 'Wieczór Piłkarski TV'], 1:['Przegląd Bramek', 'Sport Dziś', 'Wieczór Piłkarski TV']},
+    roddel:['Plotki Tygodnia', 'Gwiazdy i Skandale', 'Przegląd Bramek']},
+  Denemarken:{divs:['Superligaen', '1. Division'], beker:'Landspokalen',
+    clubs:['FC Kongehavn', 'Brøndvig IF', 'Hedeby FC', 'Aarhusbugt GF', 'Skovsø FC', 'Fyn BK', 'Gudenå FC', 'Domkirke FF',
+      'Søhøjlandet IF', 'Grænseland FK', 'Fjordby BK', 'Lyngvig BK', 'Vesterhav FC', 'Mariager IK', 'Havnestad FC', 'Limfjord BK',
+      'Slotsby FC', 'Strandby IF', 'Voldby FC', 'Susåen BK', 'BK Smørrebrød', 'FC Hygge', 'Frikadelle IF', 'Rød Pølse BK'],
+    kranten:{2:['Sportsbladet', 'Bold Nyt', 'Fodboldaften TV'], 1:['Sportsbladet', 'Bold Nyt', 'Fodboldaften TV']},
+    roddel:['Sladder Ugen', 'Kendte & Skandaler', 'Sportsbladet']},
+  Noorwegen:{divs:['Eliteserien', '1. divisjon'], beker:'NM-cupen',
+    clubs:['Glimt Nordlys', 'Nidelv BK', 'Romsdal FK', 'Bergenhus SK', 'Fjordby IL', 'Oslo Øst FK', 'Romerike IF', 'Glomma FK',
+      'Ishavet IL', 'Gamlebyen FK', 'Drammenselv IF', 'Karmsund FK', 'Hvalfangst IL', 'Ekeberg FK', 'Mjøsa IL', 'Nordmøre BK',
+      'Skienselva FK', 'Sunnmøre IL', 'Frognerseter FK', 'Sørlandet IK', 'Jæren FK', 'Bærum IF', 'Elvebredd FK', 'Trondheimsfjord IL',
+      'Ekko FK', 'Toten IL', 'IL Brunost', 'Lutefisk FK', 'Fjellvandrer IL', 'Vaffel BK', 'Midnattsol FK', 'Elg United'],
+    kranten:{2:['Sportsavisen', 'Ballnytt', 'Fotballkveld TV'], 1:['Sportsavisen', 'Ballnytt', 'Fotballkveld TV']},
+    roddel:['Sladder & Stjerner', 'Kjendisuka', 'Sportsavisen']},
+  Zwitserland:{divs:['Super League', 'Challenge League'], beker:'Schweizer Cup',
+    clubs:['FC Rheinknie', 'Young Fellows Aare', 'Grasshopper Limmat', 'Servette Léman', 'FC Säntis', 'Lugano Ceresio', 'FC Pilatus', 'Lausanne Lavaux',
+      'FC Rhonetal', 'Winterthur Töss', 'Thun Oberland', 'FC Jura Neuchâtel', 'FC Emmental', 'Bellinzona Ticino', 'FC Engadin', 'Aarau Rebstock',
+      'FC Alpenrhein', 'FC Zugersee', 'FC Fondue', 'Schoggi Kickers', 'FC Rösti', 'Kuhglocke United'],
+    kranten:{2:['Sportbote', 'Le Matin Foot', 'Fussballabend TV'], 1:['Sportbote', 'Le Matin Foot', 'Fussballabend TV']},
+    roddel:['Klatsch Woche', 'Promi Schweiz', 'Sportbote']}
 };
 export const BEKER_NAMEN = ['Nationale Beker', ...Object.values(LAND_DATA).map(l => l.beker)];
 export const BEKER_ALT = BEKER_NAMEN.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
@@ -102,5 +151,11 @@ export const NIEUWE_CLUBS = {
   'Italië':['AC Lagonero','US Montevalle','FC Portoverde','SS Collina','Sporting Vallescura','AS Marittima','Calcio Torrebianca','Virtus Fiumara'],
   Portugal:['SC Ribamar','FC Serra Alta','Académica Douro','CD Mareira','Vitória Costa Verde','União Lusitana','SC Alvorada','Desportivo Tejo'],
   Denemarken:['FC Øresund','Aalvik BK','Silkeby IF','FC Jyllandshavn','Bornholt BK','Lyngby Fjord'],
+  Turkije:['Yeni Anadolu SK', 'Boğaziçi FK', 'Ege Yıldızı', 'Kartal Gençlik', 'Toros Gücü', 'Akdeniz Birlik'],
+  'Tsjechië':['FK Vltavín', 'SK Labská', 'FC Moravia Nova', 'Bohemia Unie', 'FK Sněžka', 'SK Polabí'],
+  Griekenland:['Neos Olympos', 'Aigaio FC', 'Peloponnisos AO', 'Thessalia Enosi', 'Kriti Athlitiki', 'Ionio FC'],
+  Polen:['KS Nowa Wisła', 'Unia Mazowiecka', 'Odra Zjednoczona', 'Pomorze Gdańskie', 'Tatry Zakopiańskie', 'KS Warmia'],
+  Noorwegen:['Nordfjord FK', 'Lofoten IL', 'Fjellheim BK', 'Vestland FK', 'Nordkapp IL', 'Hardanger FK'],
+  Zwitserland:['FC Gotthard', 'Union Léman', 'FC Bodensee', 'AC Leventina', 'FC Glarnerland', 'Servette Unie'],
   'Oekraïne':['FK Stepovyi','Dnipro-Zirka','Metalurh Azovsk','Karpaty Verkhovyna','Zorya Polissya','FK Chornomorets-Sud']
 };

@@ -96,7 +96,7 @@ export function maakNieuws(M, speelde){
   top.forEach(x => laatst[x.sl] = nr);
   const bronnen = shuffle(KRANTEN[t]);
   const items = top.map((x, i) => ({bron:bronnen[i % bronnen.length], kop:x.kop, tekst:x.tekst, wanneer:`week ${S.ronde + 1}, ${seizoenLabel()}`, ...(x.foto ? {foto:x.foto} : {})}));
-  S.nieuws = items.concat(S.nieuws || []).slice(0, 6);
+  S.nieuws = items.concat(S.nieuws || []).slice(0, 12);
   return items;
 }
 // Een foto bij een artikel: jouw speler met de prijs (de foto zelf wordt na de weergave gemaakt, zie render/krantfoto.js)
@@ -106,9 +106,9 @@ function vFoto(f){
   const door = 'Studio Doorbraak';
   return `<figure class="krantfoto"><div class="lijst"><img data-foto="${esc(f.soort)}" alt="${esc(S.sp.naam + ' ' + (FOTO_ALT[f.soort] || ''))}" width="720" height="480"><span class="ontwikkel">Foto wordt ontwikkeld…</span></div><figcaption>${esc(f.onder)} <span>Foto: ${door}</span></figcaption></figure>`;
 }
-export function vKrant(items){
+export function vKrant(items, titel = 'In de krant'){
   if (!items || !items.length) return '';
-  return `<div class="krantblok"><span class="label">In de krant</span>${items.map(n => `<article class="krant${n.foto ? ' metfoto' : ''}"><span class="bron">${esc(n.bron)}</span>${n.foto ? vFoto(n.foto) : ''}<h4>${esc(n.kop)}</h4><p>${esc(n.tekst)}</p></article>`).join('')}</div>`;
+  return `<div class="krantblok"><span class="label">${esc(titel)}</span>${items.map(n => `<article class="krant${n.foto ? ' metfoto' : ''}"><span class="bron">${esc(n.bron)}</span>${n.foto ? vFoto(n.foto) : ''}<h4>${esc(n.kop)}</h4><p>${esc(n.tekst)}</p></article>`).join('')}</div>`;
 }
 // Ranglijst van de competitie op niveau t: k = 'g' (goals) of 'a' (assists)
 export function ranglijst(t, k){
@@ -182,6 +182,7 @@ export function vOokGespeeld(){
   return `<div class="krantblok"><span class="label">Ook gespeeld · speelronde ${r + 1}</span>${vUitslagen(t, r, true)}</div>`;
 }
 export function vNieuwsKaart(){
-  const l = (S.nieuws || []).slice(0, 4); if (!l.length) return '';
-  return `<div class="kaart"><h3>Laatste nieuws</h3><div class="nieuwslijst">${l.map(n => `<div><span class="niv">${esc(n.bron)} · ${esc(n.wanneer)}</span><b>${esc(n.kop)}</b></div>`).join('')}</div></div>`;
+  const l = (S.nieuws || []).slice(0, 8); if (!l.length) return '';
+  const label = n => n.comp ? '<span class="risico r-gem">Competitie</span> ' : '<span class="risico r-veilig">Jij</span> '; // (competitienieuws of nieuws over jou en je club)
+  return `<div class="kaart"><h3>Laatste nieuws</h3><div class="nieuwslijst">${l.map(n => `<div><span class="niv">${label(n)}${esc(n.bron)} · ${esc(n.wanneer)}</span><b>${esc(n.kop)}</b>${n.comp && n.tekst ? `<span class="muted klein-tekst">${esc(n.tekst)}</span>` : ''}</div>`).join('')}</div></div>`;
 }

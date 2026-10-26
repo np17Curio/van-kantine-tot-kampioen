@@ -8,7 +8,8 @@ import { vMatch, vMatchEnd } from '../render/views/match.js';
 import { vEinde, vOntwikkeling, vSeizoenEinde } from '../render/views/seizoen.js';
 import { vStart, vZijStart } from '../render/views/start.js';
 import { vStats } from '../render/views/stats.js';
-import { vTrainer, vTrainerAanbod, vTrainerSeizoen, vTrainerUitslag, vZijTrainer } from '../render/views/trainer.js';
+import { vTrainerLive } from '../render/views/trainer-extra.js';
+import { vTrainer, vTrainerAanbod, vTrainerCursus, vTrainerSeizoen, vTrainerUitslag, vZijTrainer } from '../render/views/trainer.js';
 import { vVenster } from '../render/views/venster.js';
 import { vEvent, vWeek } from '../render/views/week.js';
 import { vZij } from '../render/views/zijbalk.js';
@@ -36,8 +37,8 @@ export function tabBalk(tabs, actief, kies, cls = 'hubtabs'){
 
 export function render(){
   resetActs();
-  const veld = document.getElementById('veld'), trainerFase = S && /^(trainer|analist|eigenaar)/.test(S.fase);
-  veld.innerHTML = S && tmp.stats ? vStats() : S ? ({selectie:vSelectie, selectieKeuze:vSelectieKeuze, hoofdstuk:vHoofdstuk, week:vWeek, oproep:vOproep, event:vEvent, match:vMatch, matchEnd:vMatchEnd, venster:vVenster, clubloos:vClubloos, afscheid:vAfscheid, seizoenEinde:vSeizoenEinde, ontwikkeling:vOntwikkeling, toernooi:vToernooi, toernooiEinde:vToernooiEinde, einde:vEinde, trainerAanbod:vTrainerAanbod, trainer:vTrainer, trainerUitslag:vTrainerUitslag, trainerSeizoen:vTrainerSeizoen, analist:vAnalist, analistUitslag:vAnalistUitslag, analistSeizoen:vAnalistSeizoen, eigenaarAanbod:vEigenaarAanbod, eigenaar:vEigenaar, eigenaarSeizoen:vEigenaarSeizoen}[S.fase] || vStart)() : vStart();
+  const veld = document.getElementById('veld'), trainerFase = S && (/^(trainer|analist|eigenaar)/.test(S.fase) || (S.fase === 'event' && S.trainer && !S.trainer.gestopt)); // (een privégebeurtenis als trainer)
+  veld.innerHTML = S && tmp.stats ? vStats() : S ? ({selectie:vSelectie, selectieKeuze:vSelectieKeuze, hoofdstuk:vHoofdstuk, week:vWeek, oproep:vOproep, event:vEvent, match:vMatch, matchEnd:vMatchEnd, venster:vVenster, clubloos:vClubloos, afscheid:vAfscheid, seizoenEinde:vSeizoenEinde, ontwikkeling:vOntwikkeling, toernooi:vToernooi, toernooiEinde:vToernooiEinde, einde:vEinde, trainerAanbod:vTrainerAanbod, trainerCursus:vTrainerCursus, trainerLive:vTrainerLive, trainer:vTrainer, trainerUitslag:vTrainerUitslag, trainerSeizoen:vTrainerSeizoen, analist:vAnalist, analistUitslag:vAnalistUitslag, analistSeizoen:vAnalistSeizoen, eigenaarAanbod:vEigenaarAanbod, eigenaar:vEigenaar, eigenaarSeizoen:vEigenaarSeizoen}[S.fase] || vStart)() : vStart();
   document.getElementById('zij').innerHTML = S && /^(analist|eigenaar)/.test(S.fase) ? (vZijNa() || vZijStart()) : S && S.trainer && trainerFase ? vZijTrainer() : S && S.fase !== 'einde' && !trainerFase && !S.selectie ? vZij() : vZijStart();
   const hud = document.getElementById('hud');
   hud.innerHTML = vHud(!!(S && !trainerFase && S.fase !== 'einde' && !S.selectie));

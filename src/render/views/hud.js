@@ -1,8 +1,9 @@
 import { S, club, ovr, seizoenLabel } from '../../core/state.js';
 import { clamp, esc, geldTxt } from '../../core/utils.js';
-import { AANTAL_RONDES, CLUBS, NIVEAU, POS } from '../../data/gegevens.js';
+import { AANTAL_RONDES, NIVEAU, POS } from '../../data/gegevens.js';
 import { statusNaam, statusNiveau } from '../../game/speler/status.js';
 import { rugnummer } from '../../game/team/rugnummers.js';
+import { huurOuder } from '../../game/speler/o23.js';
 
 // Kleine meter in de HUD: rood onder 35, geel tot 60, groen daarboven (focus vanaf 80: flow)
 function meter(kort, lang, v, flow){
@@ -20,7 +21,7 @@ export function vHud(inSpel){
   return `<div class="hudspeler">
       <div class="hudovr" title="Klasse (overall)">${ovr(sp)}</div>
       <div class="hudnaam"><b>${sp.o23 || sp.clubloos ? '' : `<span class="muted">#${rugnummer()}</span> `}${esc(sp.naam)}</b>
-        <span class="niv">${POS[sp.pos].n} · ${sp.leeftijd} jr · ${sp.clubloos ? 'zonder club' : esc(c.n)}${sp.o23 ? ' O23' : ''}${sp.huur ? ` · gehuurd van ${esc(CLUBS[sp.huur.ouder].n)}` : ''}</span></div>
+        <span class="niv">${POS[sp.pos].n} · ${sp.leeftijd} jr · ${sp.clubloos ? 'zonder club' : esc(c.n)}${sp.o23 ? ' O23' : ''}${sp.huur ? ` · gehuurd van ${esc(huurOuder().n)}` : ''}</span></div>
     </div>
     <div class="hudmeters">${meter('FIT', 'Fitheid', sp.fit)}${meter('FOC', 'Focus', sp.focus ?? 65, true)}${meter('MOR', 'Moraal', sp.moraal)}</div>
     <div class="hudinfo">

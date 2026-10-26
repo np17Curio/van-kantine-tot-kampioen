@@ -17,9 +17,9 @@ import { opstellingReden, opstellingScore } from '../team/opstelling.js';
 import { focusNaWedstrijd } from '../wedstrijd/focus.js';
 import { MOMENTS, kans } from '../wedstrijd/momenten.js';
 import { staminaNaWedstrijd } from '../wedstrijd/stamina.js';
-import { planWedstrijd, verderSpelen } from '../wedstrijd/wedstrijd.js';
+import { planWedstrijd, verderSpelen, keeperRol } from '../wedstrijd/wedstrijd.js';
 import { animPush, reeksStrafschoppen } from '../../render/pitch.js';
-import { scorebord, vFit, vLog } from '../../render/views/match.js';
+import { scorebord, vFit, vLog, statRegel } from '../../render/views/match.js';
 import { vormBonus } from './vorm.js';
 
 /* ===================== Nacompetitie ===================== */
@@ -70,13 +70,13 @@ export function startNacompetitie(p){
   else if (sp.blessure > 0) rol = 'blessure';
   else if (sp.fit < 20) rol = 'rust';
   else if (sp.geschorst > 0) rol = 'geschorst';
-  else { const sc = opstellingScore() + randInt(-6, 6); rol = sc >= 50 ? 'basis' : sc >= 12 ? 'invaller' : 'tribune'; if (rol !== 'basis') reden = ' ' + opstellingReden(); }
+  else { const sc = opstellingScore() + randInt(-6, 6); rol = keeperRol(sc >= 50 ? 'basis' : sc >= 12 ? 'invaller' : 'tribune'); if (rol !== 'basis') reden = ' ' + opstellingReden(); }
   const speelt = rol === 'basis' || rol === 'invaller';
   const T = teamKracht(c.s, {speelt, thuis}), O = opp.s + (thuis ? 0 : 2) + vormBonus(oppId);
-  const M = {po:{t:p.t, soort, boven:DIVS[p.t], onder:DIVS[p.t + 1]}, opp:oppId, oppS:opp.s, wij:c.n, zij:opp.n, thuis, rol, us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false};
+  const M = {po:{t:p.t, soort, boven:DIVS[p.t], onder:DIVS[p.t + 1]}, opp:oppId, oppS:opp.s, wij:c.n, zij:opp.n, thuis, rol, us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' || sp.pos === 'KEEPER' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false};
   S.M = M;
   const inzet = soort === 'promotie' || soort === 'finale' ? `Win je, dan promoveer je naar de ${DIVS[p.t]}. Verlies je, dan blijf je in de ${DIVS[p.t + 1]}.` : soort === 'halve' ? `Win je, dan speel je de finale van de play-offs om promotie. Verlies je, dan blijf je in de ${DIVS[p.t + 1]}.` : `Win je, dan blijf je in de ${DIVS[p.t]}. Verlies je, dan degradeer je naar de ${DIVS[p.t + 1]}.`;
-  const jij = rol === 'basis' ? 'Je staat in de basis.' : rol === 'invaller' ? 'Je begint op de bank.' + reden : rol === 'o23' ? 'Je speelt bij de O23 en kijkt vanaf de tribune.' : rol === 'blessure' ? 'Je bent geblesseerd en kijkt vanaf de tribune.' : rol === 'rust' ? 'Je bent kapot en krijgt rust.' : rol === 'geschorst' ? 'Je bent geschorst en kijkt vanaf de tribune.' : 'De trainer laat je buiten de selectie.' + reden;
+  const jij = rol === 'basis' ? 'Je staat in de basis.' : rol === 'invaller' ? 'Je begint op de bank.' + reden : rol === 'bank' ? 'Je zit op de bank als reservekeeper.' : rol === 'o23' ? 'Je speelt bij de O23 en kijkt vanaf de tribune.' : rol === 'blessure' ? 'Je bent geblesseerd en kijkt vanaf de tribune.' : rol === 'rust' ? 'Je bent kapot en krijgt rust.' : rol === 'geschorst' ? 'Je bent geschorst en kijkt vanaf de tribune.' : 'De trainer laat je buiten de selectie.' + reden;
   const wie = soort === 'promotie' ? `de nummer ${stand(p.t).indexOf(oppId) + 1} van de ${DIVS[p.t]}` : soort === 'degradatie' ? `de nummer ${stand(p.t + 1).indexOf(oppId) + 1} van de ${DIVS[p.t + 1]}` : `de nummer ${stand(p.t + 1).indexOf(oppId) + 1} van de ${DIVS[p.t + 1]}`;
   M.log.push({m:'', t:`${soort === 'halve' ? 'HALVE FINALE PLAY-OFFS' : soort === 'finale' ? 'FINALE PLAY-OFFS' : 'NACOMPETITIE'} tegen ${opp.n}, ${wie}. ${inzet} Het stadion is uitverkocht. ${jij}`, k:'info'});
   if (!speelt){ const m = simBeker(p.hoog, p.laag), a = thuis ? m.gh : m.gu, b = thuis ? m.gu : m.gh; planWedstrijd(M, T, O, {us:a, them:b}); }
@@ -126,7 +126,7 @@ export function naNacompetitie(){ S.M = null; volgendeNacompetitie(); }
 export function vNacompetitieEnd(){
   const M = S.M, uitslag = M.us > M.them ? 'Gewonnen' : M.us < M.them ? 'Verloren' : 'Gelijkspel', goed = M.poWinst;
   let h = scorebord() + `<div class="verhaal"><span class="label">${M.po.soort === 'halve' ? 'Play-offs · halve finale' : M.po.soort === 'finale' ? 'Play-offs · finale' : 'Nacompetitie'} · ${uitslag}${M.pens ? ` (strafschoppen ${M.pens})` : ''}</span>`;
-  if (M.cijfer !== null) h += `<div class="rij" style="gap:20px;align-items:flex-end"><div><span class="label">Jouw cijfer</span><div class="groot">${fmt1(M.cijfer)}</div></div><div class="muted">${M.goals} ${M.goals === 1 ? 'goal' : 'goals'} · ${M.assists} ${M.assists === 1 ? 'assist' : 'assists'}</div></div>`
+  if (M.cijfer !== null) h += `<div class="rij" style="gap:20px;align-items:flex-end"><div><span class="label">Jouw cijfer</span><div class="groot">${fmt1(M.cijfer)}</div></div><div class="muted">${statRegel(M)}</div></div>`
     + (M.focusTekst ? `<p class="${M.focusOmlaag ? 'fouttxt' : 'goedtxt'}">${esc(M.focusTekst)}</p>` : '') + vFit(M) + (M.bonus ? `<p class="melding">${esc(M.bonus.tekst)}</p>` : '');
   if (M.po.soort === 'halve' && goed) h += `<div class="kampioen"><span class="label">Door naar de finale!</span><p>${esc(M.poTekst)}</p></div>`;
   else if ((M.po.soort === 'promotie' || M.po.soort === 'finale') && goed) h += `<div class="kampioen"><span class="label">Promotie!</span><h2>Naar de ${esc(M.po.boven)}</h2><p>${esc(M.poTekst)} De spelers dansen op het veld en de fans zingen tot diep in de nacht.</p></div>`;

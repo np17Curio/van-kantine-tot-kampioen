@@ -1,7 +1,7 @@
-import { S, club, mod, ovr, tmp } from '../../core/state.js';
+import { S, club, mod, ovr, tmp, attr } from '../../core/state.js';
 import { act, keuzeKnop, knop, tabBalk } from '../../core/ui.js';
 import { clamp, esc, geldTxt } from '../../core/utils.js';
-import { AANTAL_RONDES, ATTR, CLUBS, DIVS, TRAINBAAR, WINKEL, WINKEL_GROEPEN, WINTER, rondesVan, rondesVoor } from '../../data/gegevens.js';
+import { AANTAL_RONDES, CLUBS, DIVS, TRAINBAAR, WINKEL, WINKEL_GROEPEN, WINTER, rondesVan, rondesVoor } from '../../data/gegevens.js';
 import { BEKERS, bekerRondeNaam, bekerSchema, bekersVan } from '../../game/competitie/beker.js';
 import { fixture } from '../../game/competitie/competitie.js';
 import { kiesEvent } from '../../game/gebeurtenissen.js';
@@ -24,13 +24,13 @@ import { vUitgaan } from '../../game/prive/verleidingen.js';
 import { AUTOS, EXAMEN_PRIJS, RIJLES, THEORIE_PRIJS, WONINGEN, autoInfo, autoWaarde, koopAuto, praktijkExamen, rijles, startTheorie, theorieAntwoord, verhuis, verkoopWaarde, woning } from '../../game/prive/wonen-auto.js';
 import { welkomTekst } from '../../game/speler/startverhaal.js';
 import { verhaalActiviteiten, verhaalTitel } from '../../game/speler/verhaal.js';
-import { O23_EIS, fmt1, gemiddelde } from '../../game/speler/o23.js';
+import { fmt1, gemiddelde, huurOuder, O23_EIS } from '../../game/speler/o23.js';
 import { aanvoerderActie, isAanvoerder, kleedPersonen, teamUitjePrijs } from '../../game/team/aanvoerder.js';
 import { band, bandLabel, chemie, maatActie, teamKracht } from '../../game/team/kleedkamer.js';
 import { tactiekOpst, verwachteOpstelling } from '../../game/team/opstelling.js';
 import { netGekocht, netUitJeugd, rugTeam, stNaam, vRugnummer } from '../../game/team/rugnummers.js';
 import { TACTIEKEN, TRAIN_FIT, WINT_VAN, clubTactiek, inzicht, matchup, pasScore, tactiekEig, zwaarste } from '../../game/team/tactiek.js';
-import { vVertrek } from '../../game/transfers/vertrek.js';
+import { vHuur, vVertrek } from '../../game/transfers/vertrek.js';
 import { vContract } from '../../game/transfers/contract.js';
 import { isDerby, vFans } from '../../game/wedstrijd/fans-pers.js';
 import { focusBoost, focusStaat, focusWinst } from '../../game/wedstrijd/momenten.js';
@@ -176,7 +176,7 @@ function activiteit(id, t, s, fn, extra = ''){
 function vActiviteiten(){
   const sp = S.sp, fitKost = sp.items.fitness ? 5 : 8;
   const tid = clubTactiek(sp.club), iz = inzicht(tid);
-  const train = TRAINBAAR.map(k => keuzeKnop(`Train ${ATTR[k].toLowerCase()}`, `<span class="mini"><i style="width:${clamp(sp.a[k], 0, 100)}%"></i></span> ${sp.a[k]} · ${sp.a[k] >= plafond() ? 'plafond bereikt (groeit met sterke wedstrijden)' : `fitheid −${fitKost} · voortgang ${Math.round(trainXP(k) * 100)}% naar +1`}`, () => doeActiviteit('train', k))).join('')
+  const train = TRAINBAAR.map(k => keuzeKnop(`Train ${attr(k).toLowerCase()}`, `<span class="mini"><i style="width:${clamp(sp.a[k], 0, 100)}%"></i></span> ${sp.a[k]} · ${sp.a[k] >= plafond() ? 'plafond bereikt (groeit met sterke wedstrijden)' : `fitheid −${fitKost} · voortgang ${Math.round(trainXP(k) * 100)}% naar +1`}`, () => doeActiviteit('train', k))).join('')
     + activiteit('tactiek', `Tactiek: ${TACTIEKEN[tid].n.toLowerCase()}`, `<span class="mini"><i style="width:${iz}%"></i></span> inzicht ${iz} · fitheid −${TRAIN_FIT}`, () => doeActiviteit('tactiek'));
   const extra = heeft('voetbalgek') ? activiteit('extra', '⚽ Extra trainen na de training', 'Kans op +1 bij je zwakste eigenschap · vertrouwen +1 · fitheid −6', () => doeActiviteit('extra')) : '';
   const herstel = activiteit('rust', 'Rustig aan', `Fitheid +22 · focus +${focusWinst(8)} · vorm iets beter`, () => doeActiviteit('rust'))
@@ -204,7 +204,7 @@ function vDezeWeek(){
   html += `</div>` + (fx ? vVooruitblik(fx, opp, vo) : vSpeelvrij()) + vRivaalInterview(fx) + vVriendInterview(fx);
   html += fx ? vReunie() : '';
   if (sp.o23){ const c = sp.o23.cijfers; html += `<div class="paneel"><span class="label">Bij de O23</span><p>${O23_EIS}</p><p class="muted">${c.length ? 'Je cijfers bij de O23: ' + c.map(fmt1).join(' · ') : 'Je hebt nog geen wedstrijd gespeeld bij de O23.'}</p></div>`; }
-  if (sp.huur){ const c = sp.huur.cijfers; html += `<div class="paneel"><span class="label">Op huurbasis tot de zomer</span><p>Je speelt bij ${esc(club().n)} en gaat in de zomer terug naar ${esc(CLUBS[sp.huur.ouder].n)}. Hoe beter je hier speelt, hoe beter je plek daar. Gemiddeld een 7,0 of hoger en ze rekenen op je.</p><p class="muted">${c.length ? `Gemiddeld cijfer hier: ${fmt1(gemiddelde(c))} (${c.length} ${c.length === 1 ? 'wedstrijd' : 'wedstrijden'})` : 'Je hebt hier nog niet gespeeld.'}</p></div>`; }
+  if (sp.huur){ const c = sp.huur.cijfers; html += `<div class="paneel"><span class="label">Op huurbasis tot de zomer</span><p>Je speelt bij ${esc(club().n)} en gaat in de zomer terug naar ${esc(huurOuder().n)}. Hoe beter je hier speelt, hoe beter je plek daar. Gemiddeld een 7,0 of hoger en ze rekenen op je.</p><p class="muted">${c.length ? `Gemiddeld cijfer hier: ${fmt1(gemiddelde(c))} (${c.length} ${c.length === 1 ? 'wedstrijd' : 'wedstrijden'})` : 'Je hebt hier nog niet gespeeld.'}</p></div>`; }
   if (!sp.herkomst) html += `<div class="paneel"><span class="label">Nieuw: interlands</span><p>Uit welke landen kom je? Daarmee bepaal je voor welke landen je later interlands kunt spelen.</p>${vHerkomstKeuze()}<div>${knop('Opslaan', () => { sp.herkomst = herkomstUitTmp(); }, 'hoofd middel', 'data-blijf')}</div></div>`;
   if (w.tekst.length) html += `<div class="verhaal">${w.tekst.map(t => `<p class="moment">${esc(t)}</p>`).join('')}</div>`;
   if (S.krantWacht && S.krantWacht.length) html += vKrant(S.krantWacht);
@@ -231,7 +231,7 @@ function vTeamTab(){
   return h || `<p class="muted">Bij de O23 heb je geen eigen kleedkamer. Bewijs jezelf eerst.</p>`;
 }
 function vCarriereTab(){
-  return vNiveau() + vGoudenBal() + vRivaal() + vAgent() + vContract() + vVertrek();
+  return vNiveau() + vGoudenBal() + vRivaal() + vAgent() + vContract() + vVertrek() + vHuur();
 }
 // Jouw niveau: te goed of te slecht voor je competitie, en welke leagues het beste bij je passen (niveau.js)
 function vNiveau(){

@@ -1,6 +1,6 @@
 import './styles/index.css';
 import { bevestig, momentopname, openModal, sneltoetsen, toonVerschil } from './core/feedback.js';
-import { S, exporteer, importeer, setS, tmp } from './core/state.js';
+import { S, SLOTS, bewaar, exporteer, importeer, resetTmp, setS, tmp } from './core/state.js';
 import { herstel } from './core/migratie.js';
 import { ACTS, render } from './core/ui.js';
 import { instel } from './render/pitch.js';
@@ -23,6 +23,7 @@ document.addEventListener('click', async e => {
 document.addEventListener('input', e => {
   const id = e.target.id;
   if (id === 'naam') tmp.naam = e.target.value;
+  else if (id === 'vriendNaam') tmp.vriendNaam = e.target.value;
   else if (id === 'agentInput'){ tmp.agentQ = e.target.value; const box = document.getElementById('agentSugg'); if (box) box.innerHTML = suggHtml(tmp.agentQ); }
   else if (HERKOMST_IDS.includes(id)) tmp[id] = e.target.value;
 });
@@ -35,13 +36,18 @@ document.addEventListener('click', e => {
   const t = exporteer(); if (!t){ alert('Er is nog geen opgeslagen carrière.'); return; }
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], {type:'application/json'})); a.download = 'doorbreken-carriere.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 });
+// Naar het hoofdmenu: bewaren en terug naar het startscherm (daar kies je een andere carrière of begin je een nieuwe)
+document.addEventListener('click', e => {
+  if (!e.target.closest || !e.target.closest('#naarMenu')) return;
+  if (S) bewaar(); setS(null); resetTmp(); const m = document.getElementById('modal'); if (m && m.open) m.close(); render();
+});
 document.addEventListener('change', async e => {
   if (e.target.id !== 'opslagLaad' || !e.target.files || !e.target.files[0]) return;
   const tekst = await e.target.files[0].text(); e.target.value = '';
   if (S && !(await bevestig('Je huidige carrière wordt vervangen door die uit het bestand.', 'Ja, laden'))) return;
   const r = importeer(tekst); if (r.fout){ alert(r.fout); return; }
   const m = document.getElementById('modal'); if (m && m.open) m.close();
-  setS(herstel(r.d)); render();
+  const st = herstel(r.d); st.slot = r.slot; setS(st); render();
 });
 document.addEventListener('toggle', e => { if (e.target.id === 'clubLijstPanel') tmp.clubLijstOpen = e.target.open; if (e.target.id === 'hulpPanel') tmp.hulpOpen = e.target.open; if (e.target.id === 'programmaPanel') tmp.programmaOpen = e.target.open; if (e.target.id === 'focusPanel' && tmp.focusOpen !== e.target.open){ tmp.focusOpen = e.target.open; render(); } }, true);
 window.addEventListener('resize', () => { const h = document.getElementById('hud'); if (h) document.documentElement.style.setProperty('--hud-h', h.offsetHeight + 'px'); });
@@ -55,7 +61,8 @@ async function toonHulp(){
     <ul class="toetsen"><li><kbd>1</kbd>–<kbd>9</kbd> kies de genummerde keuze</li><li><kbd>Enter</kbd> hoofdknop (verder, speel, volgende week)</li><li><kbd>←</kbd> <kbd>→</kbd> wissel van tabblad</li><li><kbd>Esc</kbd> sluit dit venster</li></ul>
     ${hulpInhoud()}
     <h3>Opslag</h3>
-    <p class="muted klein-tekst">Je carrière wordt in deze browser bewaard, bij dit adres. Download hem als bestand om hem mee te nemen of veilig te bewaren.</p>${opslagKnoppen()}
+    <p class="muted klein-tekst">Je carrière wordt in deze browser bewaard, bij dit adres (tot ${SLOTS} carrières naast elkaar). Download hem als bestand om hem mee te nemen of veilig te bewaren.</p>${opslagKnoppen()}
+    ${S ? '<p><button class="klein" id="naarMenu" type="button">🏠 Naar het hoofdmenu (andere carrière)</button></p>' : ''}
     <h3>Bronnen</h3>
     <p class="muted klein-tekst">3D-spelersmodel: <a href="https://sketchfab.com/3d-models/pallone-da-calciogiocatore-3016826bcb984b02869f8dcc296120e0" target="_blank" rel="noopener" style="color:var(--info)">"pallone da calcio+giocatore"</a> door rosaliarenda (Sketchfab), licentie <a href="http://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener" style="color:var(--info)">CC-BY-4.0</a>. Aangepast voor dit spel: spijkerbroek, bal en wimpers weggelaten, texturen verkleind, eigen tenues, huidskleur, kapsels, lengte, bouw en bewegingen.</p>`);
   const m = document.getElementById('modal');

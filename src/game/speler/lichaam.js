@@ -6,7 +6,7 @@ import { S } from '../../core/state.js';
 // Het effect is klein (hooguit ±8% per actie): je eigenschappen blijven het belangrijkst.
 export const LENGTES = [165, 170, 175, 180, 185, 190, 195, 200];
 export const BOUW = [{id:'tenger', n:'Tenger', bmi:20}, {id:'normaal', n:'Normaal', bmi:22.5}, {id:'stevig', n:'Stevig', bmi:25}, {id:'zwaar', n:'Zwaar', bmi:27.5}];
-export const STANDAARD_LENGTE = {SPITS:182, MID:177, VERD:186};
+export const STANDAARD_LENGTE = {SPITS:182, MID:177, VERD:186, KEEPER:190};
 export const gewichtVan = (lengte, bmi) => Math.round(bmi * (lengte / 100) ** 2);
 export const lengteTxt = l => (l / 100).toFixed(2).replace('.', ',') + ' m';
 // Zonder keuze (oude opslag): 1,80 m en normaal, dus geen effect

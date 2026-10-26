@@ -4,6 +4,7 @@ import { CLUBS, CLUBS_LAND, DIVS, ELITE_LAND, MIN, clubsLand, divClubs } from '.
 import { SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
 import { vreemdeClub } from './buitenland.js';
 import { slotLand } from '../competitie/europa.js';
+import { eersteSeizoen } from './vertrek.js';
 
 /* ===================== Zaakwaarnemer ===================== */
 export const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -80,7 +81,7 @@ export function eisenVoor(doel){
 }
 export function agentReset(t){ const ag = S.sp.agent; ag.doel = null; ag.doelLand = null; ag.gehaald = false; ag.sugg = null; ag.antwoord = t; }
 // Een club in het buitenland komt in de zomer: halverwege het seizoen van competitie (en land) wisselen kan niet
-export const wanneerBod = d => d.land ? 'in de zomer' : 'in de volgende transferperiode';
+export const wanneerBod = d => d.land || eersteSeizoen() ? 'in de zomer' : 'in de volgende transferperiode';
 export function agentCheck(){
   const ag = S.sp.agent, d = doelBod(); if (!d || ag.gehaald || isHier(d)) return null;
   if (!eisenVoor(d).every(e => e.ok)) return null;

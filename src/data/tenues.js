@@ -32,7 +32,8 @@ const LAND = {
   Turkije:[K.rood, K.wit, 'effen', K.wit, K.rood], Senegal:[K.wit, K.groen, 'bies', K.wit, K.wit], Japan:[K.marine, K.wit, 'effen', K.marine, K.marine],
   Polen:[K.wit, K.rood, 'helften', K.rood, K.wit], Nigeria:[K.groen, K.wit, 'sjerp', K.groen, K.groen], Ghana:[K.wit, K.zwart, 'bies', K.wit, K.wit],
   'Kaapverdië':[K.blauw, K.wit, 'banen', K.blauw, K.blauw], 'Curaçao':[K.blauw, K.geel, 'bies', K.blauw, K.blauw], Suriname:[K.groen, K.wit, 'bies', K.wit, K.groen],
-  'Indonesië':[K.rood, K.wit, 'helften', K.wit, K.rood],
+  'Indonesië':[K.rood, K.wit, 'helften', K.wit, K.rood], 'Tsjechië':[K.rood, K.wit, 'bies', K.blauw, K.rood], Griekenland:[K.blauw, K.wit, 'effen', K.wit, K.blauw],
+  Denemarken:[K.rood, K.wit, 'effen', K.wit, K.rood], Noorwegen:[K.rood, K.wit, 'bies', K.wit, K.marine], Zwitserland:[K.rood, K.wit, 'effen', K.rood, K.rood],
 };
 export function landTenue(naam){
   const l = LAND[naam]; if (l) return tenue(...l);

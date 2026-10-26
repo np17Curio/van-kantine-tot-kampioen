@@ -20,6 +20,13 @@ export const LIGA = {
   Spanje:   {n:[20, 22], omlaag:3, omhoog:2, po:{soort:'playoff', van:3, tot:6}},
   'Italië': {n:[20, 20], omlaag:3, omhoog:2, po:{soort:'playoff', van:3, tot:6}},
   Portugal: {n:[18, 18], omlaag:2, omhoog:2, po:{soort:'barrage', boven:16, onder:3}},
+  Turkije:  {n:[18, 20], omlaag:3, omhoog:2, po:{soort:'playoff', van:3, tot:6}},
+  'Tsjechië':{n:[16, 16], omlaag:1, omhoog:1, po:{soort:'barrage', boven:15, onder:2}},
+  Griekenland:{n:[14, 16], omlaag:2, omhoog:2, po:{soort:'barrage', boven:12, onder:3}},
+  Polen:    {n:[18, 18], omlaag:3, omhoog:2, po:{soort:'playoff', van:3, tot:6}},
+  Denemarken:{n:[12, 12], omlaag:1, omhoog:1, po:{soort:'barrage', boven:11, onder:2}},
+  Noorwegen:{n:[16, 16], omlaag:2, omhoog:2, po:{soort:'barrage', boven:14, onder:3}},
+  Zwitserland:{n:[12, 10], omlaag:1, omhoog:1, po:{soort:'barrage', boven:11, onder:2}},
 };
 export const ligaVan = land => LIGA[land] || LIGA.Nederland;
 export const MAX_LAND = Math.max(...Object.values(LIGA).map(l => l.n[0] + l.n[1])); // zoveel plaatsen voor de clubs van een land (Engeland: 44)
@@ -45,10 +52,14 @@ export const isGast = id => id >= GAST_START && id < GAST_START + GASTEN;
 export const ELITE_THUIS = {Spanje:{n:'Real Montclaro', s:91}, 'Italië':{n:'AC Vellano', s:89}, Frankrijk:{n:'Olympique Lumière', s:88}, Portugal:{n:'Sporting Alvor', s:83}, Duitsland:{n:'Rapid Steinau', s:89}, Engeland:{n:'Celtic Harbour', s:91}};
 export const ELITE_ID = 15;
 // Het niveau van elk land, naar de UEFA-landenranking (vijf jaar clubcoëfficiënt, 2025/26: Engeland ±117, Italië ±100,
-// Spanje ±96, Duitsland ±92, Frankrijk ±83, Portugal ±73, Nederland ±68, België ±62): sterkte van de beste en de slechtste club per league
+// Spanje ±96, Duitsland ±92, Frankrijk ±83, Portugal ±73, Nederland ±68, België ±62, Turkije ±52, Tsjechië ±48, Griekenland ±46,
+// Polen ±44, Denemarken ±40, Noorwegen ±40, Zwitserland ±36): sterkte van de beste en de slechtste club per league
 export const LAND_NIVEAU = {
   Engeland:{t1:[88, 74], t2:[73, 60]}, 'Italië':{t1:[86, 70], t2:[67, 54]}, Spanje:{t1:[86, 68], t2:[66, 53]}, Duitsland:{t1:[85, 69], t2:[67, 55]},
   Frankrijk:{t1:[83, 66], t2:[64, 52]}, Portugal:{t1:[79, 62], t2:[60, 49]}, Nederland:{t1:[80, 64], t2:[63, 51]}, 'België':{t1:[77, 62], t2:[60, 49]},
+  // (Turkije: grote topclubs en veel verschil; Polen: een vlakke league; Noorwegen: één uitschieter)
+  Turkije:{t1:[78, 60], t2:[58, 47]}, 'Tsjechië':{t1:[75, 58], t2:[56, 45]}, Griekenland:{t1:[75, 57], t2:[54, 44]}, Polen:{t1:[72, 58], t2:[56, 45]},
+  Denemarken:{t1:[73, 57], t2:[55, 45]}, Noorwegen:{t1:[73, 55], t2:[53, 43]}, Zwitserland:{t1:[72, 56], t2:[53, 43]},
 };
 export const niveauVan = land => LAND_NIVEAU[land] || LAND_NIVEAU.Nederland;
 // Startniveau en -sterkte van elke club in een land (LAND_NIVEAU). Door promotie en degradatie verandert dat; de stand van zaken staat in S.clubs
@@ -77,15 +88,22 @@ export function zetClubs(lijst){ (lijst || CLUBS_BASIS).forEach(([t, s], i) => {
 
 export const ATTR = {afw:'Afwerking', pas:'Passen', drib:'Dribbelen', verd:'Verdedigen', cond:'Conditie', kalm:'Kalmte'};
 export const TRAINBAAR = ['afw', 'pas', 'drib', 'verd', 'cond'];
+// Een keeper heeft dezelfde eigenschappen, met andere namen: afwerking = positiespel, verdedigen = reflexen, enzovoort
+export const KEEPER_ATTR = {afw:'Positiespel', pas:'Uittrappen', drib:'Voetenwerk', verd:'Reflexen', cond:'Sprongkracht', kalm:'Kalmte'};
+export const attrNaam = (k, pos) => (pos === 'KEEPER' ? KEEPER_ATTR : ATTR)[k] || ATTR[k] || k;
+// Op welke linie speelt een positie (K, V, M, A in de selecties)
+export const LINIE_VAN = {SPITS:'A', MID:'M', VERD:'V', KEEPER:'K'};
 export const POS = {
   SPITS:{n:'Spits',        w:{afw:.40, drib:.25, pas:.15, cond:.15, verd:.05}, start:{afw:44,drib:40,pas:33,verd:22,cond:38}},
   MID:  {n:'Middenvelder', w:{pas:.40, drib:.20, afw:.15, verd:.10, cond:.15}, start:{afw:33,drib:39,pas:44,verd:31,cond:39}},
-  VERD: {n:'Verdediger',   w:{verd:.45, pas:.20, cond:.20, drib:.10, afw:.05}, start:{afw:24,drib:29,pas:35,verd:44,cond:41}}
+  VERD: {n:'Verdediger',   w:{verd:.45, pas:.20, cond:.20, drib:.10, afw:.05}, start:{afw:24,drib:29,pas:35,verd:44,cond:41}},
+  KEEPER:{n:'Keeper',      w:{verd:.35, afw:.25, pas:.15, cond:.15, drib:.10}, start:{afw:40,drib:28,pas:35,verd:44,cond:38}}
 };
 export const MOMENT_POOL = {
   SPITS:{rand:3, eenOpEen:1.5, corner:1.5, vrijeTrap:1, counter:1.5, penalty:.4, kopduel:1, volley:1, provocatie:.5, keeperFout:.3, tackle:1, opstootje:.4},
   MID:  {rand:2, counter:2.5, vrijeTrap:1.5, corner:1, verdedigen:1, eenOpEen:.7, kopduel:1, volley:1, diepteBal:1.5, provocatie:.5, tackle:1.6, opstootje:.5},
-  VERD: {verdedigen:3, verdCorner:1.5, counter:1.5, corner:1, kopduel:1.5, provocatie:.6, opbouw:1.5, tackle:2, opstootje:.5}
+  VERD: {verdedigen:3, verdCorner:1.5, counter:1.5, corner:1, kopduel:1.5, provocatie:.6, opbouw:1.5, tackle:2, opstootje:.5},
+  KEEPER:{redding:3, eenOpEenKeeper:1.4, hogeBal:2, penaltyKeeper:.35, uittrap:1.5, terugspeel:1, provocatie:.3, opstootje:.2}
 };
 export const TEAMGENOTEN = ['De Vries','Bakker','El Amrani','Jansen','Mulder','Bosman','Kaya','Visser','Smit','Mendes','Van Dijkhuizen','Okafor','Hendriks','Yilmaz'];
 export const TEGENSTANDERS = ['Van Leeuwen','Hoekstra','Dekker','Brouwer','Peters','Willems','Koster','Postma','Lindqvist','Moreno','Rossi','Kowalski','Haddad','Fischer','Nkosi','Carvalho'];
@@ -111,6 +129,7 @@ export const LANDEN = [
   {n:'Nederland',s:84},{n:'België',s:83},{n:'Duitsland',s:85},{n:'Frankrijk',s:88},{n:'Spanje',s:87},{n:'Engeland',s:86},
   {n:'Portugal',s:85},{n:'Italië',s:84},{n:'Brazilië',s:87},{n:'Argentinië',s:88},{n:'Kroatië',s:80},{n:'Marokko',s:80},
   {n:'Turkije',s:77},{n:'Senegal',s:77},{n:'Japan',s:78},{n:'Polen',s:75},{n:'Nigeria',s:75},{n:'Ghana',s:72},
+  {n:'Zwitserland',s:80},{n:'Denemarken',s:79},{n:'Noorwegen',s:77},{n:'Tsjechië',s:75},{n:'Griekenland',s:74},
   {n:'Kaapverdië',s:67},{n:'Curaçao',s:63},{n:'Suriname',s:61},{n:'Indonesië',s:59}
 ];
 export const LANDEN_LIJST = ['Nederland', ...LANDEN.map(l => l.n).filter(n => n !== 'Nederland').sort((a, b) => a.localeCompare(b, 'nl'))];
@@ -151,6 +170,8 @@ export const SPONSOR_CAT = {
 // Speelschema voor een league van n clubs (n even): iedereen twee keer tegen iedereen, 2(n-1) rondes.
 // Wie er thuis speelt, wisselt per club af: wie vorige ronde uit speelde, speelt nu thuis (anders wie de minste thuiswedstrijden heeft).
 // De tweede seizoenshelft is de eerste omgekeerd, dus elk paar speelt één keer thuis en één keer uit
+// Een kleine league speelt vaker tegen elkaar, zoals in het echt: 3 keer bij 12 clubs (Denemarken), 4 keer bij 10 clubs (Zwitserland)
+export const keerVan = n => n <= 10 ? 4 : n <= 12 ? 3 : 2;
 const SCHEMA = {}, SCHEMA_OUD = {};
 export function genRounds(n = 8){
   if (SCHEMA[n]) return SCHEMA[n];
@@ -165,7 +186,9 @@ export function genRounds(n = 8){
     eerste.push(pr);
     l = [l[0], l[n - 1], ...l.slice(1, n - 1)];
   }
-  return SCHEMA[n] = eerste.concat(eerste.map(pr => pr.map(([a, b]) => [b, a])));
+  const terug = eerste.map(pr => pr.map(([a, b]) => [b, a])), uit = [];
+  for (let k = 0; k < keerVan(n); k++) uit.push(...(k % 2 ? terug : eerste));
+  return SCHEMA[n] = uit;
 }
 // Het oude schema (thuis/uit per plaats in plaats van per club), voor een seizoen dat daar al mee begonnen is
 export function genRoundsOud(n = 8){
@@ -185,7 +208,7 @@ export function genRoundsOud(n = 8){
 export let AANTAL_RONDES = 38;     // weken per seizoen (beginwaarde: Nederland)
 export let WINTER = 19;            // na deze week: de winterstop (het transfervenster)
 export let INTER_WEKEN = [11, 30]; // na deze weken: interlandperiodes
-export const rondesVan = t => Math.max(0, 2 * (divClubs(t).length - 1)); // wedstrijden per seizoen in league t
+export const rondesVan = t => { const n = divClubs(t).length; return Math.max(0, keerVan(n) * (n - 1)); }; // wedstrijden per seizoen in league t
 export function zetKalender(){
   AANTAL_RONDES = Math.max(rondesVan(1), rondesVan(2), 2);
   WINTER = Math.floor(AANTAL_RONDES / 2);

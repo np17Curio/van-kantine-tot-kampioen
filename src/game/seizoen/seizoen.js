@@ -68,7 +68,7 @@ export function seizoenEinde(){
   const wissels = bepaalPromotie(), mijnWissel = los ? null : wissels.find(w => w.id === sp.club);
   if (mijnWissel && mijnWissel.naar < mijnWissel.van) prijzen.push(`Promotie naar de ${DIVS[mijnWissel.naar]}${mijnWissel.po ? ' via de nacompetitie' : ''} ${seizoenLabel()}`);
   if (mijnWissel && !mijnWissel.po) S.car.hist.push(`${seizoenLabel()}: ${mijnWissel.naar < mijnWissel.van ? 'gepromoveerd' : 'gedegradeerd'} met ${club().n} naar de ${DIVS[mijnWissel.naar]}`);
-  (S.car.seizoenen = S.car.seizoenen || []).push({s:seizoenLabel(), club:los ? 'Zonder club' : club().n, div:DIVS[t], wed:S.ss.wed + (S.ss.bw || 0), g:S.ss.g + (S.ss.bg || 0), a:S.ss.a + (S.ss.ba || 0), gem: gem === null ? null : Math.round(gem * 10) / 10, plek, beker:los ? null : bekerResultaat(sp.club)});
+  (S.car.seizoenen = S.car.seizoenen || []).push({s:seizoenLabel(), club:los ? 'Zonder club' : club().n, div:DIVS[t], wed:S.ss.wed + (S.ss.bw || 0), g:S.ss.g + (S.ss.bg || 0), a:S.ss.a + (S.ss.ba || 0), nul:S.ss.cs || 0, gem: gem === null ? null : Math.round(gem * 10) / 10, plek, beker:los ? null : bekerResultaat(sp.club)});
   const gbWon = S.gbWinst; S.gbWinst = false;
   S.eind = {clubloos:los, gb, plek, t, divisie:DIVS[t], clubNaam:los ? 'Zonder club' : club().n, prijzen, wed:S.ss.wed, g:S.ss.g, a:S.ss.a, gem, statusTekst, topscorer:S.ss.topscorer, svs:{naam:svs.winnaar && svs.winnaar.naam, club:svs.winnaar && svs.winnaar.club, jij:!!(svs.winnaar && svs.winnaar.jij), plek:svs.plek, reden:svs.reden}, wissels, mijnWissel, po:los ? null : [...(S.ss.po || [])].reverse().find(p => p.hoog === sp.club || p.laag === sp.club) || null, poAlle:S.ss.po || [], toernooi:toernooiSelectie()};
   if (gbWon) goudenBalWinst(); // het gala en de gevolgen
@@ -81,7 +81,7 @@ export function seizoenEinde(){
   const rv = rivaalSeizoen(); if (rv){ krant.push({bron:bron[0], kop:rv.kop, tekst:rv.tekst, wanneer}); S.eind.rivaal = rv; if (rv.prijs){ S.car.prijzen.push(rv.prijs); S.eind.prijzen.push(rv.prijs); } }
   for (const k of europaKrant(wissels).slice(0, 3)) krant.push({bron:KRANTEN[0][0], kop:k.kop, tekst:k.tekst, wanneer});
   for (const k of ontwikkelLanden().slice(0, 2)) krant.push({bron:KRANTEN[0][0], kop:k.kop, tekst:k.tekst, wanneer}); // de landen worden sterker of zwakker
-  S.eind.krant = krant; S.nieuws = krant.concat(S.nieuws || []).slice(0, 6);
+  S.eind.krant = krant; S.nieuws = krant.concat(S.nieuws || []).slice(0, 12);
   S.fase = 'seizoenEinde';
 }
 export function naSeizoen(){

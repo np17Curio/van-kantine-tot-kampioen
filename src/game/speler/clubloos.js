@@ -1,6 +1,6 @@
-import { S, club, mod, ovr, salarisVoor, seizoenLabel } from '../../core/state.js';
+import { S, club, mod, ovr, salarisVoor, seizoenLabel, attr as attrN } from '../../core/state.js';
 import { clamp, pick, rnd } from '../../core/utils.js';
-import { ATTR, CLUBS, DIVS, LAAGSTE } from '../../data/gegevens.js';
+import { CLUBS, DIVS, LAAGSTE } from '../../data/gegevens.js';
 import { naWedstrijd } from '../competitie/beker.js';
 import { speelRonde } from '../competitie/spelers.js';
 import { krantMelding } from '../media/roddel.js';
@@ -57,8 +57,8 @@ export function doeClubloos(soort, attr){
   let t, ev = null;
   if (soort === 'train'){
     mod('fit', -6);
-    if (sp.a[attr] >= plafond()) t = `Je traint in je eentje op ${ATTR[attr].toLowerCase()}, maar je zit aan je plafond (${plafond()}).`;
-    else { const voor = sp.a[attr], g = trainVoortgang(attr, .6); t = g.plus ? `Je traint in je eentje op ${ATTR[attr].toLowerCase()} op een leeg veldje. Het lukt: ${voor} → ${sp.a[attr]}.` : `Je traint in je eentje op ${ATTR[attr].toLowerCase()}. Zonder trainer en teamgenoten gaat het langzaam: voortgang ${Math.round(g.na * 100)}% naar +1.`; }
+    if (sp.a[attr] >= plafond()) t = `Je traint in je eentje op ${attrN(attr).toLowerCase()}, maar je zit aan je plafond (${plafond()}).`;
+    else { const voor = sp.a[attr], g = trainVoortgang(attr, .6); t = g.plus ? `Je traint in je eentje op ${attrN(attr).toLowerCase()} op een leeg veldje. Het lukt: ${voor} → ${sp.a[attr]}.` : `Je traint in je eentje op ${attrN(attr).toLowerCase()}. Zonder trainer en teamgenoten gaat het langzaam: voortgang ${Math.round(g.na * 100)}% naar +1.`; }
   } else if (soort === 'conditie'){
     mod('fit', 12); mod('moraal', 1);
     t = 'Je loopt elke ochtend tien kilometer en gaat naar de sportschool. Als er een club belt, ben je er klaar voor.';

@@ -312,5 +312,5 @@ export function kiesEvent(i){
   const st = sp.clubloos ? null : checkStatus(); if (st) S.week.tekst.push(st);
   if (S.volgEv){ S.ev = S.volgEv; S.volgEv = null; S.fase = 'event'; }
   else if (S.naVenster){ S.naVenster = false; S.ev = null; openVenster('winter'); }
-  else { S.ev = null; S.fase = sp.clubloos ? 'clubloos' : 'week'; }
+  else { S.ev = null; S.fase = S.trainer && !S.trainer.gestopt ? 'trainer' : sp.clubloos ? 'clubloos' : 'week'; } // (als trainer: terug naar je club)
 }

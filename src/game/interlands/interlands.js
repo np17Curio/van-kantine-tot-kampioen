@@ -56,7 +56,7 @@ export function startInterland(naam){
   const rol = st && st.caps && sp.bonds[naam] + sp.vorm * 6 + randInt(-8, 8) >= 55 ? 'basis' : 'invaller';
   const thuis = rnd() < .5;
   const T = L.s + (ovr(sp) - L.s) * .1 + (thuis ? 2 : 0), Opp = opp.s + (thuis ? 0 : 2);
-  const M = {inter:{land:naam, type:O.type}, oppS:opp.s, wij:naam, zij:opp.n, thuis, rol, us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false};
+  const M = {inter:{land:naam, type:O.type}, oppS:opp.s, wij:naam, zij:opp.n, thuis, rol, us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' || sp.pos === 'KEEPER' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false};
   S.M = M;
   // je jeugdvriend in de selectie? (journey.js)
   M.vriendMee = vriendInterland(naam);
@@ -70,7 +70,7 @@ export function eindeInterland(){
   const sp = S.sp, M = S.M, I = M.inter, naam = I.land;
   M.klaar = true;
   if (M.us > M.them) M.cijfer += .3; else if (M.us < M.them) M.cijfer -= .3;
-  if (sp.pos === 'VERD' && M.them === 0 && M.rol === 'basis') M.cijfer += .5;
+  if ((sp.pos === 'VERD' || sp.pos === 'KEEPER') && M.them === 0 && M.rol === 'basis') M.cijfer += sp.pos === 'KEEPER' ? .7 : .5; // (de nul gehouden)
   M.cijfer = Math.round(clamp(M.cijfer, 3, 10) * 10) / 10;
   sp.bonds[naam] = clamp((sp.bonds[naam] ?? 40) + (M.cijfer - 6.3) * 7 + 3, 0, 100);
   if (M.cijfer >= 8.5) S.car.motm = (S.car.motm || 0) + 1;

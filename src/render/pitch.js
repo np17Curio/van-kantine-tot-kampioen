@@ -12,7 +12,34 @@ export const instel = () => S.instel || (S.instel = {anim:'normaal'});
 export const PITCH_ZICHT = 30; // zoveel meter veld is op de voorste lijn in beeld
 export const PITCH_KLEUR = {wij:'#c6f432', zij:'#e05252', K:'#9b6bd6', k:'#3fae6a', R:'#222'};
 // Startopstelling per soort moment
-export function pitchScene(type){
+// Keeper: dezelfde scènes als een kans of goal van de tegenstander (of de opbouw), maar dan sta jij in het doel
+const KEEPER_SCENE = {redding:'tegenKans', eenOpEenKeeper:'tegenKans', hogeBal:'tegenKans', penaltyKeeper:'tegenKans', uittrap:'opbouw', terugspeel:'opbouw'};
+export function pitchScene(type){ if (KEEPER_SCENE[type]){ const sc = pitchSceneBasis(KEEPER_SCENE[type]); return alsKeeper({sc, st:[]}).sc; } return keeperVeld(pitchSceneBasis(type), type); }
+// Als keeper: een duel (provocatie, opstootje) speelt zich af bij je eigen doel, en bij een wissel draag je je keepersshirt
+const KEEPER_DUEL = ['provocatie', 'opstootje'];
+function keeperVeld(sc, type){
+  if (!(S && S.sp && S.sp.pos === 'KEEPER')) return sc;
+  const E = sc.ents;
+  if (type === 'wissel' && E.J){ E.J.rol = 'k'; return sc; }
+  if (!KEEPER_DUEL.includes(type) || !E.J) return sc;
+  const dx = 11 - E.J.x, dy = 34 - E.J.y;
+  for (const k in E){ E[k].x += dx; E[k].y += dy; }
+  E.J.rol = 'k'; delete E.k;
+  if (sc.bal){ sc.bal = {...sc.bal, x:sc.bal.x + dx, y:sc.bal.y + dy}; }
+  sc.cam = 18;
+  return sc;
+}
+// Jij ("J") neemt de plek van je eigen keeper ("k") in; de veldspeler die J was heet nu Q
+export function alsKeeper(r){
+  const E = r.sc.ents; if (!E.k) return r;
+  const ren = k => k === 'k' ? 'J' : k === 'J' ? 'Q' : k, ne = {};
+  for (const k in E){ const nk = ren(k); ne[nk] = {...E[k], id:nk}; }
+  ne.J.rol = 'k'; if (ne.Q) ne.Q.rol = 'wij';
+  r.sc.ents = ne;
+  for (const s of r.st){ if (s.moves){ const nm = {}; for (const k in s.moves) nm[ren(k)] = s.moves[k]; s.moves = nm; } if (s.bal && s.bal.volg) s.bal = {...s.bal, volg:ren(s.bal.volg)}; }
+  return r;
+}
+function pitchSceneBasis(type){
   const e = (id, x, y, rol) => ({id, x, y, z:0, rol});
   const L = {
     rand:     [e('J',84,30,'wij'), e('A',92,41,'wij'), e('B',79,49,'wij'), e('X',88,32,'zij'), e('Y',91,38,'zij'), e('Z',86,24,'zij'), e('K',104,34,'K')],
@@ -39,6 +66,7 @@ export function pitchScene(type){
     // je valt in: jij bij de dug-out, de vierde official met het bord, de speler die eruit gaat in het veld
     wissel:   [e('J',52.5,71,'wij'), e('A',61,52,'wij'), e('B',44,40,'wij'), e('X',58,38,'zij'), e('Y',47,30,'zij'), e('R',50.6,70.4,'R')]
   };
+  L.vriendKeeperTegen = L.eenOpEen; L.vriendKeeperUit = L.opbouw; // (bij je eigen doel: je vriend is je keeper) // (momenten met je vriend als keeper)
   L.teamGoal = L.teamKans = [e('A',93,37,'wij'), e('B',88,58,'wij'), e('C',84,30,'wij'), e('J',78,45,'wij'), e('X',95,34.5,'zij'), e('Y',91,41,'zij'), e('K',104,34,'K')];
   L.tegenGoal = L.tegenKans = [e('X',12,31,'zij'), e('Y',17,58,'zij'), e('Z',21,38,'zij'), e('A',10,33.5,'wij'), e('B',14,41,'wij'), e('J',27,29,'wij'), e('k',1,34,'k')];
   L.shootout = [e('S',92.5,34,'wij'), e('J',84,44,'wij'), e('A',84,40,'wij'), e('X',84,28,'zij'), e('Y',84,24,'zij'), e('K',104.6,34,'K')];
@@ -89,7 +117,7 @@ export function animAnderen(M, e, v){
   else if (e.type === 'them'){ soort = 'tegenGoal'; variant = /kopt/.test(t) ? 'kop' : /fstandsschot|vrije trap/.test(t) ? 'afstand' : 'combi'; }
   else if (e.type === 'kansUs' && /paal|lijn|redt fantastisch|over de lat/.test(t)){ soort = 'teamKans'; variant = /Kopbal/.test(t) ? 'kop' : /afstand|krult/.test(t) ? 'afstand' : 'combi'; einde = /paal/.test(t) ? 'paal' : /lijn/.test(t) ? 'lijn' : /lat/.test(t) ? 'over' : 'redding'; }
   else if (e.type === 'kansThem' && /paal|lijn|vingertoppen|redt knap/.test(t)){ soort = 'tegenKans'; variant = /Kopbal/.test(t) ? 'kop' : 'combi'; einde = /paal/.test(t) ? 'paal' : /lijn/.test(t) ? 'lijn' : 'redding'; }
-  if (soort) animPush(M, {soort, type:soort, variant, einde, onder:`${e.min}' · ${kort}`, anderen:true, ...(bank ? {bank:true} : tribune ? {tribune:true} : {})});
+  if (soort) animPush(M, {soort, type:soort, variant, einde, onder:`${e.min}' · ${kort}`, anderen:true, ...(bank ? {bank:true} : tribune ? {tribune:true} : inVeld && S.sp.pos === 'KEEPER' ? {jijKeeper:true} : {})});
 }
 
 // Elke keuze in een wedstrijd heeft een eigen animatie: [soort, variant]. 'type|label' gaat voor als hetzelfde label bij een ander moment iets anders betekent
@@ -139,8 +167,11 @@ export const animVariant = (type, l) => { const k = keuze(type, l); return k ? k
 export const POSES = ['duw', 'struikel', 'val', 'sliding', 'steek', 'schouder', 'trek', 'borst', 'kopstoot', 'lach', 'roep', 'kalm', 'wijs', 'protest', 'wuif', 'kaart', 'sorry', 'kniel', 'ssst', 'juich', 'klap', 'praat', 'vang', 'blok', 'omhaal', 'volley', 'spreid', 'jockey'];
 // Het script: een lijst stappen. Elke stap verplaatst spelers en/of de bal in d milliseconden.
 // moves: {id:{x, y, z, pose, rol}}  ·  bal: {to, boog, krul, trap, van} of {volg}  ·  fx: tekst-effect aan het eind van de stap
-export function animScript(a){
-  const sc = pitchScene(a.type), E = sc.ents, st = [], r = () => Math.random();
+export function animScript(a){ const r = animScriptBasis(a); return a.jijKeeper ? alsKeeper(r) : r; }
+function animScriptBasis(a){
+  const sc = keeperVeld(pitchSceneBasis(a.type), a.type), E = sc.ents, st = [], r = () => Math.random();
+  // Keeper in de opbouw: jij staat op de doellijn met de bal (je eigen keeper is er dan niet)
+  if (a.keeperUit && E.J){ Object.assign(E.J, {x:4, y:34, rol:'k'}); delete E.k; sc.bal = {x:5, y:34, z:0}; }
   // Vanaf de bank: jij staat langs de lijn bij de dug-out; vanaf de tribune: buiten beeld
   if ((a.bank || a.tribune) && E.J){ Object.assign(E.J, a.bank ? {x:52.5, y:71.5} : {x:-30, y:90}); }
   const J = E.J, maat = E.A || E.B, tegen = E.X, K = E.K || E.k, v = a.variant || 'normaal';
@@ -625,7 +656,7 @@ export function pitchStatisch(el, type){
   requestAnimationFrame(frame);
 }
 // Welke clubs staan er op het veld, en wie ben jij (voor een vast uiterlijk in 3D; jouw uiterlijk wordt één keer gekozen en bewaard)
-export function ploegen(){ const sp = S && S.sp; if (!sp) return {}; if (!sp.uitSleutel) sp.uitSleutel = Math.random().toString(36).slice(2, 10); return {wij:sp.club, zij:S.M ? S.M.opp : null, jij:sp.uitSleutel, jijUit:sp.uiterlijk || null, tenues:tenuesVanWedstrijd(), band:!sp.clubloos && isAanvoerder() && !(S.M && (S.M.inter || S.M.selectie))}; }
+export function ploegen(){ const sp = S && S.sp; if (!sp) return {}; if (!sp.uitSleutel) sp.uitSleutel = Math.random().toString(36).slice(2, 10); return {wij:sp.club, zij:S.M ? S.M.opp : null, jij:sp.uitSleutel, jijUit:sp.uiterlijk || null, tenues:tenuesVanWedstrijd(), band:!S.trainer && !sp.clubloos && isAanvoerder() && !(S.M && (S.M.inter || S.M.selectie))}; }
 // De tenues van deze wedstrijd: landen bij een interland, anders de clubs (bij een kleurconflict speelt de uitploeg in het uittenue)
 export function tenuesVanWedstrijd(){
   const M = S && S.M, sp = S && S.sp; if (!M || !sp) return null;
@@ -635,7 +666,7 @@ export function tenuesVanWedstrijd(){
 }
 // Shirtkleur per rol, voor het 2D-veld en de eenvoudige poppen
 export const kleurenVan = T => { const t = T && T.ploegen && T.ploegen.tenues; if (!t) return PITCH_KLEUR; const k = {R:'#222'}; for (const r in t) k[r] = t[r].shirt; return k; };
-export const rugnummerVeilig = () => { try { return S.M && (S.M.inter || S.M.o23) ? '' : rugnummer(); } catch (e){ return ''; } };
+export const rugnummerVeilig = () => { try { return S.M && (S.M.inter || S.M.o23 || S.M.trainer) ? '' : rugnummer(); } catch (e){ return ''; } };
 export function pitchSpeel(el, a, klaar){
   const cv = pitchCanvas(el), {sc, st} = animScript(a), snel = instel().anim === 'snel' ? .5 : 1;
   const T = {ents:sc.ents, bal:{...sc.bal}, cam:sc.cam, zoom:sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(), onder:a.onder || (a.soort === 'shootout' ? 'Strafschoppen' : null)};

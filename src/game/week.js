@@ -1,6 +1,6 @@
-import { S, mod, ovr } from '../core/state.js';
+import { S, mod, ovr, attr as attrN } from '../core/state.js';
 import { clamp, rnd } from '../core/utils.js';
-import { AANTAL_RONDES, ATTR, TRAINBAAR, weekFactor } from '../data/gegevens.js';
+import { AANTAL_RONDES, TRAINBAAR, weekFactor } from '../data/gegevens.js';
 import { maakEvent } from './gebeurtenissen.js';
 import { uitgaanKrant } from './media/uitgaan-krant.js';
 import { buitenWeek } from './prive/buiten-week.js';
@@ -116,9 +116,9 @@ export function doeActiviteit(soort, attr){
     mod('fit', sp.items.fitness ? -5 : -8); mod('vert', 1);
     if (sp.a[attr] >= plafond()){
       const d = talentDoorbraak();
-      t = d ? `Je traint keihard op ${ATTR[attr].toLowerCase()}. ${d} Je plafond ligt nu op ${plafond()}.` : `Je ${ATTR[attr].toLowerCase()} zit aan je plafond (${plafond()}). Train liever iets anders, of laat in wedstrijden zien dat er meer in je zit: sterke wedstrijden laten je talent groeien.`;
+      t = d ? `Je traint keihard op ${attrN(attr).toLowerCase()}. ${d} Je plafond ligt nu op ${plafond()}.` : `Je ${attrN(attr).toLowerCase()} zit aan je plafond (${plafond()}). Train liever iets anders, of laat in wedstrijden zien dat er meer in je zit: sterke wedstrijden laten je talent groeien.`;
     } else {
-      const g = trainVoortgang(attr), naam = ATTR[attr].toLowerCase();
+      const g = trainVoortgang(attr), naam = attrN(attr).toLowerCase();
       t = g.plus ? `Je traint keihard op ${naam}. Het werpt z'n vruchten af: +${g.plus} ${naam}.` : `Je traint op ${naam}. Je wordt beter: voortgang ${pct(g.voor)} → ${pct(g.na)} naar +1.`;
     }
   } else if (soort === 'tactiek'){
@@ -139,7 +139,7 @@ export function doeActiviteit(soort, attr){
     // Voetbalgek: nog een uur doorgaan als de rest al onder de douche staat
     mod('fit', -6); mod('vert', 1);
     const k = TRAINBAAR.filter(x => sp.a[x] < plafond()).sort((a, b) => sp.a[a] - sp.a[b])[0];
-    if (k && rnd() < .35 * weekFactor()){ const voor = sp.a[k]; verhoog(k, 1); t = `Als iedereen al naar huis is, sta jij nog op het veld. Je ${ATTR[k].toLowerCase()} gaat van ${voor} naar ${sp.a[k]}.`; }
+    if (k && rnd() < .35 * weekFactor()){ const voor = sp.a[k]; verhoog(k, 1); t = `Als iedereen al naar huis is, sta jij nog op het veld. Je ${attrN(k).toLowerCase()} gaat van ${voor} naar ${sp.a[k]}.`; }
     else t = 'Je blijft na de training nog een uur ballen. Moe maar voldaan ga je naar huis.';
   } else if (soort === 'uit'){
     mod('moraal', 10 + pers('uitMoraal')); mod('fit', -6); mod('focus', -3 + pers('uitFocus'));
