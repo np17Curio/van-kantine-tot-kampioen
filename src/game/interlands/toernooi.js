@@ -12,6 +12,8 @@ import { fmt1, gemiddelde } from '../speler/o23.js';
 import { MOMENTS, kans } from '../wedstrijd/momenten.js';
 import { planWedstrijd, verderSpelen } from '../wedstrijd/wedstrijd.js';
 import { animPush, reeksStrafschoppen } from '../../render/pitch.js';
+import { nationS } from '../../data/gegevens.js';
+import { ik, team } from '../../core/geslacht.js';
 
 /* ===================== Eindtoernooien: WK, EK en de andere continenten ===================== */
 export const CONTINENT = {Nederland:'eu', 'België':'eu', Duitsland:'eu', Frankrijk:'eu', Spanje:'eu', Engeland:'eu', Portugal:'eu', 'Italië':'eu', 'Kroatië':'eu', Turkije:'eu', Polen:'eu', Zwitserland:'eu', Denemarken:'eu', Noorwegen:'eu', 'Tsjechië':'eu', Griekenland:'eu',
@@ -25,7 +27,7 @@ export const EXTRA_LANDEN = [
   {n:'Verenigde Staten',s:79,c:'nam'},{n:'Mexico',s:79,c:'nam'},{n:'Canada',s:76,c:'nam'},{n:'Panama',s:70,c:'nam'},{n:'Costa Rica',s:70,c:'nam'},{n:'Jamaica',s:68,c:'nam'},{n:'Honduras',s:66,c:'nam'},{n:'Haïti',s:62,c:'nam'}
 ];
 export const CONT_TOERNOOI = {eu:'EK', zam:'Copa América', af:'Afrika Cup', as:'Azië Cup', nam:'Gold Cup'};
-export const alleLanden = () => LANDEN.map(l => ({n:l.n, s:l.s, c:CONTINENT[l.n] || 'eu'})).concat(EXTRA_LANDEN);
+export const alleLanden = () => LANDEN.map(l => ({n:l.n, s:l.s, c:CONTINENT[l.n] || 'eu'})).concat(EXTRA_LANDEN.map(l => ({...l, s:nationS(l.n, l.s)}))); // (vrouwen: andere sterktes)
 export const tLand = n => alleLanden().find(l => l.n === n) || {n, s:70, c:'eu'};
 export const lidw = naam => /^(WK|EK)$/.test(naam) ? 'het' : 'de';
 // Zomer na het seizoen: om de 2 jaar een toernooi, afwisselend het WK en het EK (of het toernooi van je eigen continent)
@@ -69,7 +71,7 @@ export function startToernooi(keus){
     const o = typeof keus === 'string' && T0.keuze.find(x => x.land === keus); if (!o) return;
     Object.assign(T0, {land:o.land, naam:o.naam, titel:o.titel});
     S.car.hist.push(`${seizoenLabel()}: kiest definitief voor ${o.land} (${o.titel})`);
-    krantMelding(`${sp.naam} kiest voor ${o.land}`, `Hij gaat mee naar ${lidw(o.naam)} ${o.titel}. Daarmee ligt zijn keuze vast: vanaf nu komt hij alleen nog uit voor ${o.land}.`);
+    krantMelding(`${sp.naam} kiest voor ${o.land}`, `${ik.Hij} gaat mee naar ${lidw(o.naam)} ${o.titel}. Daarmee ligt ${ik.zijn} keuze vast: vanaf nu komt ${ik.hij} alleen nog uit voor ${o.land}.`);
   }
   const mijn = tLand(T0.land);
   sp.land = T0.land;
@@ -152,7 +154,7 @@ export function eindeToernooi(){
   C.hist.push(`${tw.titel}: ${resTekst}`);
   if (tw.res === 'winst'){
     tw.prijzen.push(`${tw.titel} met ${tw.land}`); mod('moraal', 15); mod('rep', 10); sp.bonds[tw.land] = clamp((sp.bonds[tw.land] ?? 40) + 10, 0, 100); social().volgers = Math.round(social().volgers * 1.15);
-    tw.kop = {kop:`${tw.land} wint ${lw} ${tw.titel}!`, tekst:`Het hele land staat op zijn kop.${tw.goals ? ` ${sp.naam} scoorde ${tw.goals} keer op het toernooi.` : ''} De spelers worden als helden onthaald.`};
+    tw.kop = {kop:`${tw.land} wint ${lw} ${tw.titel}!`, tekst:`Het hele land staat op zijn kop.${tw.goals ? ` ${sp.naam} scoorde ${tw.goals} keer op het toernooi.` : ''} De ${team.spelers} worden als helden onthaald.`};
   } else if (tw.res === 'Finale') tw.kop = {kop:`Finale verloren: ${tw.land} net niet`, tekst:`Zo dichtbij. Toch is het land trots op de spelers.`};
   else if (tw.res === 'poule') tw.kop = {kop:`Drama: ${tw.land} al na de poule naar huis`, tekst:`Een grote teleurstelling. De bondscoach ligt onder vuur.`};
   else tw.kop = {kop:`${tw.land} strandt in de ${tw.res.toLowerCase()}`, tekst:`Het avontuur op ${lw} ${tw.titel} is voorbij.`};

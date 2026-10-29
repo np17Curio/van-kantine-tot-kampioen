@@ -5,6 +5,7 @@ import { simGoals } from '../competitie/competitie.js';
 import { selectie } from '../competitie/spelers.js';
 import { metVoorletter } from '../media/nieuws.js';
 import { krantMelding } from '../media/roddel.js';
+import { ik } from '../../core/geslacht.js';
 
 /* ===================== Na je carrière: commentator / tv-analist ===================== */
 // Elke week analyseer je een topwedstrijd: je voorspelt de uitslag en kiest hoe je praat. Goede voorspellingen en een
@@ -51,7 +52,7 @@ export function analyseer(){
   const sterk = (CLUBS[w.h].s + CLUBS[w.u].s) / 2, kraker = 1 + Math.max(0, sterk - 70) / 40;
   let kijk = basisKijkers(A) * st.kijk * kraker * (goed ? 1.15 : .9) * (A.bonus || 1) * (.9 + rnd() * .2); A.bonus = 1;
   const rel = rnd() < st.rel;
-  if (rel){ kijk *= 1.2; A.rep = clamp(A.rep - 6, 0, 100); A.rels++; krantMelding(`Ophef om uitspraak van analist ${S.sp.naam}`, `Na ${CLUBS[w.h].n} - ${CLUBS[w.u].n} schiet ${S.sp.naam} uit zijn slof. De zender krijgt honderden klachten.`); }
+  if (rel){ kijk *= 1.2; A.rep = clamp(A.rep - 6, 0, 100); A.rels++; krantMelding(`Ophef om uitspraak van analist ${S.sp.naam}`, `Na ${CLUBS[w.h].n} - ${CLUBS[w.u].n} schiet ${S.sp.naam} uit ${ik.zijn} slof. De zender krijgt honderden klachten.`); }
   if (goed){ A.goed++; A.rep = clamp(A.rep + 2, 0, 100); }
   if (k.stijl !== 'nuchter' && !rel) A.rep = clamp(A.rep + 1, 0, 100);
   kijk = Math.round(kijk / 1000) * 1000; A.kijkers.push(kijk); A.totaalKijkers += kijk; A.week++;

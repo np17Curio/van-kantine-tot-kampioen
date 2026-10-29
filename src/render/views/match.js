@@ -24,6 +24,7 @@ import { vSelectieEnd } from './selectiedagen.js';
 import { vSeizoenStrip } from './zijbalk.js';
 import { clubLogo } from '../../data/logos.js';
 import { isAanvoerder } from '../../game/team/aanvoerder.js';
+import { vrouwenWereld } from '../../core/geslacht.js';
 // Wat je deed in de wedstrijd: goals en assists, of als keeper je reddingen en tegengoals
 export function statRegel(M){
   if (S.sp && S.sp.pos === 'KEEPER') return `${M.reddingen || 0} ${M.reddingen === 1 ? 'redding' : 'reddingen'} · ${M.them === 0 ? 'de nul gehouden' : `${M.them} ${M.them === 1 ? 'tegengoal' : 'tegengoals'}`}`;
@@ -146,7 +147,7 @@ export function vMatchEnd(){
   const uitslag = M.us > M.them ? 'Gewonnen' : M.us < M.them ? 'Verloren' : 'Gelijkgespeeld';
   let oordeel = '';
   if (M.cijfer !== null){
-    oordeel = M.cijfer >= 8.5 ? 'Man of the Match! De fans scanderen je naam.' : M.cijfer >= 7.3 ? 'Sterke wedstrijd. De trainer geeft je een schouderklopje.' : M.cijfer >= 6 ? 'Degelijk. Niks mis mee.' : M.cijfer >= 5 ? 'Matige wedstrijd. De trainer kijkt je niet aan.' : 'Dramatisch. In de kantine wordt over je gepraat.';
+    oordeel = M.cijfer >= 8.5 ? `${vrouwenWereld() ? 'Speelster van de Wedstrijd' : 'Man of the Match'}! De fans scanderen je naam.` : M.cijfer >= 7.3 ? 'Sterke wedstrijd. De trainer geeft je een schouderklopje.' : M.cijfer >= 6 ? 'Degelijk. Niks mis mee.' : M.cijfer >= 5 ? 'Matige wedstrijd. De trainer kijkt je niet aan.' : 'Dramatisch. In de kantine wordt over je gepraat.';
   }
   let html = scorebord() + vSeizoenStrip() + `<div class="verhaal"><span class="label">${uitslag}${M.gesimuleerd ? ' · gesimuleerd' : ''}</span>${M.gesimuleerd ? '<p class="muted klein-tekst">Gesimuleerd: je speler koos zelf de veiligste acties.</p>' : ''}`;
   if (M.cijfer !== null){

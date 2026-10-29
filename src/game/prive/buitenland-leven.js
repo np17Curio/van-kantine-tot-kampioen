@@ -8,6 +8,7 @@ import { zetBand as teamBand } from '../team/kleedkamer.js';
 import { modFans } from '../wedstrijd/fans-pers.js';
 import { social } from './social.js';
 import { kinderen } from './gezin.js';
+import { ik, vr } from '../../core/geslacht.js';
 
 /* ===================== Leven in het buitenland: taal, heimwee, gezin ===================== */
 export const TAAL = {Spanje:'Spaans', 'Italië':'Italiaans', Frankrijk:'Frans', Portugal:'Portugees', Duitsland:'Duits', Engeland:'Engels', 'België':'Nederlands en Frans', Nederland:'Nederlands',
@@ -48,7 +49,7 @@ export function buitenlandWeek(eerste){
   if (sp.heimwee > 80){ mod('focus', -2); S.week.tekst.push(`Je hebt last van heimwee. Je mist ${thuis()}.`); }
   const M = B.mijlpalen, T = TAAL[B.land] || 'de taal';
   if (taal() >= 40 && !M.t40){ M.t40 = true; S.week.tekst.push(`Je kunt je verstaanbaar maken in het ${T}. De uitleg van de trainer gaat je steeds beter af.`); }
-  if (taal() >= 70 && !M.t70){ M.t70 = true; modFans(5); krantMelding(`${sp.naam} geeft zijn eerste interview in het ${T}`, `De fans van ${club().n} zijn trots: "Hij hoort bij ons."`); S.week.tekst.push(`Je geeft je eerste interview in het ${T}. De fans zijn trots.`); }
+  if (taal() >= 70 && !M.t70){ M.t70 = true; modFans(5); krantMelding(`${sp.naam} geeft ${ik.zijn} eerste interview in het ${T}`, `De fans van ${club().n} zijn trots: "${ik.Hij} hoort bij ons."`); S.week.tekst.push(`Je geeft je eerste interview in het ${T}. De fans zijn trots.`); }
   if (sp.heimwee < 20 && B.weken > 10 && !M.thuis){ M.thuis = true; S.week.tekst.push(`Je voelt je thuis in ${B.land}.`); }
 }
 // Eén actie per week (paneel in Privé)
@@ -87,7 +88,7 @@ export function buitenlandEvents(){
     {l:`Antwoorden in het ${T}`, f(){ if (t >= 50){ mod('rep', 3); modFans(3); return 'Je antwoordt in het ' + T + '. De fans vinden het geweldig dat je de moeite neemt.'; } social().volgers = Math.round(social().volgers * 1.03 + 40); mod('rep', -1); return 'Je antwoord bevat een grappige fout. Het fragment gaat viraal. Iedereen lacht, jij ook maar een beetje.'; }},
     {l:'Via een tolk', f(){ return 'De tolk vertaalt netjes. Een saai, maar veilig antwoord.'; }},
     {l:'In het Engels', f(){ mod('rep', 1); return 'Je antwoordt in het Engels. Prima, maar de lokale fans hadden liever hun eigen taal gehoord.'; }}]});
-  if ((sp.heimwee || 0) >= 40) uit.push({soort:'prive', tekst:pick([`Je moeder belt: oma is jarig. De hele familie is er, behalve jij.`, `Je mist het eten van thuis. Hier smaakt alles anders.`, `Je beste vriend uit ${thuis()} gaat trouwen. Hij hoopt dat je er bent.`]), opts:[
+  if ((sp.heimwee || 0) >= 40) uit.push({soort:'prive', tekst:pick([`Je moeder belt: oma is jarig. De hele familie is er, behalve jij.`, `Je mist het eten van thuis. Hier smaakt alles anders.`, `Je beste ${vr.vriend} uit ${thuis()} gaat trouwen. ${vr.Hij} hoopt dat je er bent.`]), opts:[
     {l:'Naar huis vliegen', f(){ const p = vluchtPrijs(); sp.geld = Math.max(0, sp.geld - p); heimwee(-30); mod('vert', -3); return `Je vliegt naar huis (${geldTxt(p)}). Het voelt goed, maar je mist wel een training.`; }},
     {l:'Videobellen', f(){ heimwee(-10); return 'Je videobelt. Het is niet hetzelfde, maar het helpt.'; }},
     {l:'Doorbijten', f(){ mod('moraal', -3); heimwee(5); return 'Je bijt door. Maar je ligt die avond lang wakker.'; }}]});

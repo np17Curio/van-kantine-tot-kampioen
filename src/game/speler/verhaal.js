@@ -10,6 +10,7 @@ import { plafond, verhoog } from '../week.js';
 import { kalmData, onrust } from './kalmte.js';
 import { statusPunten } from './status.js';
 import { START } from './startverhaal.js';
+import { ik, team } from '../../core/geslacht.js';
 
 /* ===================== Jouw verhaal ===================== */
 // Elke start (wonderkind van 15, gewone 18-jarige, laatbloeier van 23) heeft eigen weekkeuzes en eigen gebeurtenissen,
@@ -76,7 +77,7 @@ export function doeVerhaal(id){
     }
     case 'derdehelft': {
       iedereen(2); mod('moraal', 6); mod('fit', -3);
-      return 'Na de training blijf je hangen in de spelershome. Bitterballen, verhalen van vroeger en een potje klaverjassen met de oudere jongens. Je hoort er echt bij.';
+      return 'Na de training blijf je hangen in de spelershome. Bitterballen, verhalen van vroeger en een potje klaverjassen met de oudere ' + team.jongens + '. Je hoort er echt bij.';
     }
     case 'sportkunde': {
       sp.sportkunde = (sp.sportkunde || 0) + 1; mod('focus', 3); mod('moraal', 2);
@@ -109,7 +110,7 @@ export function verhaalEvents(){
   let l = [];
   if (v === 'wonder') l = [
     eenmalig('w-toernooi', {soort:'verhaal', tekst:'Een topclub nodigt je uit voor een internationaal jeugdtoernooi in Spanje. Je eigen club speelt die week ook.', opts:[
-      {l:'Gaan: dit is je kans', f(){ mod('rep', 5); mod('moraal', 8); mod('fit', -10); mod('vert', -4); return `Je speelt tegen jongens van de grootste clubs van Europa en ${sp.pos === 'KEEPER' ? 'houdt twee keer de nul. Je stopt zelfs een penalty' : 'scoort twee keer'}. Scouts schrijven je naam op. Je trainer thuis is minder blij.`; }},
+      {l:'Gaan: dit is je kans', f(){ mod('rep', 5); mod('moraal', 8); mod('fit', -10); mod('vert', -4); return `Je speelt tegen ${team.jongens} van de grootste clubs van Europa en ${sp.pos === 'KEEPER' ? 'houdt twee keer de nul. Je stopt zelfs een penalty' : 'scoort twee keer'}. Scouts schrijven je naam op. Je trainer thuis is minder blij.`; }},
       {l:'Trouw blijven aan je club', f(){ mod('vert', 8); statusPunten(4); mod('moraal', -2); return `Je zegt nee. De trainer van ${c} hoort ervan en zegt: "Dat vergeet ik niet."`; }}]}),
     eenmalig('w-schoenen', {soort:'verhaal', tekst:'Een sportmerk wil je een schoenencontract geven. Je bent 15. Je ouders twijfelen.', opts:[
       {l:'Tekenen', f(){ sp.geld += 750; mod('rep', 4); mod('focus', -5); return `Je krijgt ${geldTxt(750)}, gratis schoenen en een fotoshoot. Op school wil iedereen ineens je vriend zijn.`; }},
@@ -137,7 +138,7 @@ export function verhaalEvents(){
       {l:'Thuisblijven en trainen', f(){ mod('moraal', -4); mod('vert', 3); return 'Je ziet de foto\'s voorbijkomen. Balen, maar de trainer merkt dat je er staat.'; }}]}),
     eenmalig('n-oudespits', {soort:'verhaal', tekst:`De oude ${({SPITS:'spits', MID:'middenvelder', VERD:'verdediger', KEEPER:'keeper'})[sp.pos] || 'rot'} van de club (${sp.pos === 'KEEPER' ? 37 : 35}) neemt je na de training apart. "Ik zie mezelf in jou. Zal ik je wat trucjes leren?"`, opts:[
       {l:'Graag', f(){ const k = Object.keys(POS[sp.pos].w).sort((a, b) => POS[sp.pos].w[b] - POS[sp.pos].w[a])[0]; verhoog(k, 1); mod('vert', 3); return `Weken lang blijft hij na de training met je oefenen. Je ${attr(k).toLowerCase()} gaat vooruit.`; }},
-      {l:'Je gaat liever je eigen weg', f(){ mod('focus', 2); return 'Hij haalt zijn schouders op. "Zoals je wilt, jongen."'; }}]}),
+      {l:'Je gaat liever je eigen weg', f(){ mod('focus', 2); return 'Hij haalt zijn schouders op. "Zoals je wilt, ' + ik.jongen + '."'; }}]}),
     eenmalig('n-studie', {soort:'verhaal', tekst:'Je moet kiezen: een hbo-opleiding naast het voetbal, of vol voor het voetbal gaan.', opts:[
       {l:'Studeren naast het voetbal', f(){ mod('focus', -4); mod('moraal', 4); bandOuders(6); sp.sportkunde = Math.max(sp.sportkunde || 0, 3); return 'Je ouders zijn blij met je plan B. Het wordt wel puzzelen met je tijd.'; }},
       {l:'Vol voor het voetbal', f(){ mod('fit', 6); mod('vert', 4); mod('moraal', 2); return 'Je zet alles op één kaart. Extra trainingen, op tijd naar bed.'; }}]}),
@@ -165,7 +166,7 @@ export function verhaalEvents(){
       {l:'Ja, leuk', f(){ sp.geld += 300; mod('moraal', 6); mod('fit', -4); iedereen(1); return `De kinderen kijken tegen je op. Je verdient ${geldTxt(300)} en krijgt er veel energie van.`; }},
       {l:'Nee, ik focus op mezelf', f(){ mod('focus', 3); return 'Je hebt je tijd nodig voor je eigen kansen.'; }}]}),
     eenmalig('b-laatbloeier', {soort:'verhaal', tekst:'Een journalist wil een stuk schrijven over laatbloeiers, met jou als voorbeeld.', opts:[
-      {l:'Interview geven', f(){ mod('rep', 4); krantMelding(`Laatbloeier ${sp.naam}: "Ik heb nooit opgegeven"`, `Op zijn 17e weggestuurd, op zijn ${sp.leeftijd}e bij ${c}. "Ik wil laten zien dat het nooit te laat is."`); return 'Het stuk wordt veel gedeeld. Mensen sturen je berichten: "Jij geeft mij moed."'; }},
+      {l:'Interview geven', f(){ mod('rep', 4); krantMelding(`Laatbloeier ${sp.naam}: "Ik heb nooit opgegeven"`, `Op ${ik.zijn} 17e weggestuurd, op ${ik.zijn} ${sp.leeftijd}e bij ${c}. "Ik wil laten zien dat het nooit te laat is."`); return 'Het stuk wordt veel gedeeld. Mensen sturen je berichten: "Jij geeft mij moed."'; }},
       {l:'Focus op het voetbal', f(){ mod('focus', 4); return 'Eerst presteren, dan praten.'; }}]}),
   ];
   return l.filter(e => e && e.als !== false);

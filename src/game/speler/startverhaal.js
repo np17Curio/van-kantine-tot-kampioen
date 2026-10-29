@@ -2,6 +2,7 @@ import { S, club } from '../../core/state.js';
 import { fotoVan } from '../media/nieuws.js';
 import { krantMelding } from '../media/roddel.js';
 import { karakterZin } from './persoonlijkheid.js';
+import { ik, team } from '../../core/geslacht.js';
 
 /* ===================== Hoe begint je carrière? ===================== */
 // Je kiest je leeftijd, en elke leeftijd heeft een eigen verhaal: het wonderkind, de gewone start en de laatbloeier.
@@ -14,7 +15,7 @@ export const START = {
   18:{id:'normaal', titel:'Gewoon beginnen', kort:'Je bent 18 en net klaar met school. Geen hype, gewoon hard werken: laat op de selectiedagen zien wat je kunt.',
     waar:'3 selectiewedstrijden · avondschool, eerste salaris', extra:15, pot:[72, 90], rep:3, vert:55, geld:600, woning:'ouders', rijbewijs:false, auto:null},
   23:{id:'bewijs', titel:'Laatbloeier', kort:'Je bent 23. Als tiener werd je weggestuurd bij een profjeugd. De selectiedagen zijn je laatste kans om het alsnog te maken.',
-    waar:'3 selectiewedstrijden · fysio, mentor van de jongens', extra:18, pot:[66, 82], rep:4, vert:45, geld:4000, woning:'studio', rijbewijs:true, auto:'oud'},
+    get waar(){ return '3 selectiewedstrijden · fysio, mentor van de ' + team.jongens; }, extra:18, pot:[66, 82], rep:4, vert:45, geld:4000, woning:'studio', rijbewijs:true, auto:'oud'},
 };
 export const startVoor = lft => START[lft] || START[15];
 // Welkomsttekst boven de eerste trainingsweek, per verhaal (oude saves zonder verhaal krijgen de tekst van het wonderkind)
@@ -31,13 +32,13 @@ export function startIntro(u){
   if (u && u.o23) w.push(`De selectiedagen zijn voorbij.${gem} Dat was niet genoeg voor een plek in een selectie, maar ${c} ziet iets in je. Bij de O23 moet je je bewijzen: speel goed en de trainer haalt je naar het eerste.`);
   else if (u) w.push(`De selectiedagen zijn voorbij.${gem} Vandaag train je voor het eerst mee met de selectie van ${c}${club().t === 1 ? ', een club uit de hoogste league' : ''}.`);
   if (V.id === 'wonder'){
-    w.push('Je ouders zijn trots, maar je moeder zegt ook: "School gaat voor, jongen." Talent heb je genoeg. Nu moet je laten zien dat je de druk aankunt.');
-    krantMelding(`Wonderkind (15) tekent bij ${waar}: "Deze jongen gaat ver komen"`, `De scouts van ${c} zijn lyrisch over ${sp.naam}. "Zo'n talent zie je maar eens in de tien jaar."${karakterZin()}`, null, fotoVan('portret', `${sp.naam} (15) op zijn eerste dag bij ${c}.`));
+    w.push('Je ouders zijn trots, maar je moeder zegt ook: "School gaat voor, ' + ik.jongen + '." Talent heb je genoeg. Nu moet je laten zien dat je de druk aankunt.');
+    krantMelding(`Wonderkind (15) tekent bij ${waar}: "Deze ${ik.jongen} gaat ver komen"`, `De scouts van ${c} zijn lyrisch over ${sp.naam}. "Zo'n talent zie je maar eens in de tien jaar."${karakterZin()}`, null, fotoVan('portret', `${sp.naam} (15) op ${ik.zijn} eerste dag bij ${c}.`));
   } else if (V.id === 'normaal'){
     w.push('Niemand verwacht wonderen van je. Dat is ook wel lekker: je kunt rustig groeien. Speel goed, dan komen de grotere clubs vanzelf.');
-    krantMelding(`${sp.naam} (18) tekent bij ${waar}`, `De trainer: "Een harde werker. We gaan zien hoe ver hij kan komen."${karakterZin()}`, null, fotoVan('portret', `${sp.naam} (18) bij zijn eerste training bij ${c}.`));
+    krantMelding(`${sp.naam} (18) tekent bij ${waar}`, `De trainer: "Een harde werker. We gaan zien hoe ver ${ik.hij} kan komen."${karakterZin()}`, null, fotoVan('portret', `${sp.naam} (18) bij ${ik.zijn} eerste training bij ${c}.`));
   } else {
-    w.push('Je bent ouder dan de meeste jongens die hier binnenkomen. Je hebt minder tijd om te groeien, maar je weet wel hoe het werkt.');
-    krantMelding(`Laatste kans voor ${sp.naam} (23) bij ${waar}`, `Als tiener werd hij weggestuurd bij een profjeugd. Op de selectiedagen overtuigde hij ${c} alsnog.${karakterZin()}`, null, fotoVan('portret', `${sp.naam} (23) tekent bij ${c}.`));
+    w.push('Je bent ouder dan de meeste ' + team.jongens + ' die hier binnenkomen. Je hebt minder tijd om te groeien, maar je weet wel hoe het werkt.');
+    krantMelding(`Laatste kans voor ${sp.naam} (23) bij ${waar}`, `Als tiener werd ${ik.hij} weggestuurd bij een profjeugd. Op de selectiedagen overtuigde ${ik.hij} ${c} alsnog.${karakterZin()}`, null, fotoVan('portret', `${sp.naam} (23) tekent bij ${c}.`));
   }
 }

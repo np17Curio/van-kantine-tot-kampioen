@@ -6,6 +6,7 @@ import { iedereen, zetBand } from '../team/kleedkamer.js';
 import { ouders } from './familie.js';
 import { inBuitenland, thuis, vluchtPrijs } from './buitenland-leven.js';
 import { social, volgersTxt } from './social.js';
+import { ik, team } from '../../core/geslacht.js';
 
 /* ===================== Belevenissen buiten het voetbal ===================== */
 // Extra gebeurtenissen voor tussen de weken door. Zelfde vorm als in gebeurtenissen.js:
@@ -39,7 +40,7 @@ export function belevenissen({sp, n, jong, bekend, meid}){
     // 4 · eenmalig
     {soort:'prive', als: sp.leeftijd >= 18 && !gehad('tattoo'), tekst:'Een paar teamgenoten hebben net een nieuwe tattoo. Jij zit ook al een tijdje te twijfelen.', opts:[
       {l:'Een kleine op je onderarm', f(){ beleef('tattoo'); mod('moraal', 4); return 'Een klein voetballetje met de datum van je debuut. Je bent er blij mee.'; }},
-      {l:'Een grote op je hele rug', f(){ beleef('tattoo'); const b = betaal(900); mod('moraal', 6); band(-6); if (bekend) roddel(`${sp.naam} laat enorme tattoo zetten`, 'Op zijn hele rug prijkt nu een leeuw met een voetbal. Fans zijn verdeeld.');
+      {l:'Een grote op je hele rug', f(){ beleef('tattoo'); const b = betaal(900); mod('moraal', 6); band(-6); if (bekend) roddel(`${sp.naam} laat enorme tattoo zetten`, 'Op ' + ik.zijn + ' hele rug prijkt nu een leeuw met een voetbal. Fans zijn verdeeld.');
         return `${b ? geldTxt(b) + ' en ' : ''}zes uur pijn later heb je een leeuw met een voetbal op je rug. Je moeder schrikt zich rot als ze hem ziet.`; }},
       {l:'Toch maar niet', f(){ beleef('tattoo'); return 'Je bedenkt je in de wachtkamer. Misschien later.'; }}]},
     // 5 · eenmalig
@@ -47,7 +48,7 @@ export function belevenissen({sp, n, jong, bekend, meid}){
       {l:'Een week lang de speech oefenen', f(){ beleef('getuige'); mod('focus', -4); if (rnd() < .75){ mod('moraal', 12); return 'Je speech is grappig en ontroerend tegelijk. De bruid huilt, je vriend omhelst je. Een avond om nooit te vergeten.'; } mod('moraal', 4); return 'Je zenuwen spelen op, maar met je spiekbriefje kom je er goed doorheen.'; }},
       {l:'Improviseren, dat gaat wel goed', f(){ beleef('getuige'); if (rnd() < .4){ mod('moraal', 10); return 'Je praat recht uit je hart. De hele zaal lacht en klapt.'; } mod('moraal', -6); return 'Je vertelt per ongeluk het verhaal van zijn vorige vriendin. Het wordt heel stil. Je vriend lacht er later wel om. Bijna.'; }}]},
     // 6
-    {soort:'prive', tekst:`${n} heeft een escape room geregeld met een paar jongens uit de selectie.`, opts:[
+    {soort:'prive', tekst:`${n} heeft een escape room geregeld met een paar ${team.jongens} uit de selectie.`, opts:[
       {l:'De leiding nemen', f(){ if (rnd() < .6){ iedereen(2); mod('moraal', 5); return 'Jullie ontsnappen met nog twee minuten op de klok. Jij kraakte de laatste code. Op de training wordt er nog dagen over gepraat.'; } zetBand(n, -4); mod('moraal', -2); return `Je commandeert iedereen rond en jullie komen er niet uit. ${n} vindt dat je wel wat minder bazig mag zijn.`; }},
       {l:'Rustig meedenken', f(){ iedereen(1); mod('moraal', 3); return 'Het is een gezellige avond. De code vinden jullie net niet, maar het bier erna is lekker.'; }}]},
     // 7 · met vervolg
@@ -61,7 +62,7 @@ export function belevenissen({sp, n, jong, bekend, meid}){
     // 8
     {soort:'prive', tekst:'Je vrienden willen dat je gaat streamen terwijl jullie gamen. "Mensen willen zien hoe slecht jij bent met een controller."', opts:[
       {l:'Een avondje live', f(){ const s = social(), erbij = Math.round(30 + s.volgers * .04 + sp.rep * 5); s.volgers += erbij; mod('moraal', 5); mod('fit', -4); return `Je verliest elk potje, maar de chat gaat los. Je krijgt ${volgersTxt(erbij)} nieuwe volgers.`; }},
-      {l:'Nee, gewoon gamen zonder camera', f(){ mod('moraal', 3); return 'Een rustige avond met de jongens. Geen camera, wel chips.'; }}]},
+      {l:'Nee, gewoon gamen zonder camera', f(){ mod('moraal', 3); return 'Een rustige avond met de ' + team.jongens + '. Geen camera, wel chips.'; }}]},
     // 9 · eenmaal per seizoen
     {soort:'prive', als: sp.leeftijd >= 16 && !gehad('marathon-' + seizoenLabel()), tekst:'In je stad wordt een marathon gelopen voor het goede doel. Ze vragen of jij meedoet.', opts:[
       {l:'Meelopen, de hele 42 kilometer', f(){ beleef('marathon-' + seizoenLabel()); mod('fit', -25); mod('rep', 4); mod('moraal', 8); S.ss.goed = (S.ss.goed || 0) + 1; if (rnd() < .15){ sp.blessure = Math.max(sp.blessure || 0, 1); return 'Je haalt de finish, maar je kuit doet zeer. Een week rust. Het was het waard: de kas zit vol.'; } return 'Bij kilometer 35 wil je stoppen, maar het publiek scandeert je naam. Je haalt de finish!'; }},
@@ -76,7 +77,7 @@ export function belevenissen({sp, n, jong, bekend, meid}){
       {l:'Nee, geld en familie gaan niet samen', f(){ band(-4); return 'Op de volgende verjaardag is het een beetje ongemakkelijk tussen jullie.'; }}]},
     // 11
     {soort:'prive', als: bekend, tekst:'Een tv-zender vraagt of je meedoet aan een kookwedstrijd met bekende sporters. De winnaar krijgt geld voor een goed doel.', opts:[
-      {l:'Meedoen en je beste gerecht maken', f(){ mod('fit', -3); if (rnd() < .4){ mod('rep', 5); mod('moraal', 8); S.ss.goed = (S.ss.goed || 0) + 1; roddel(`${sp.naam} wint kookwedstrijd`, 'Met zijn pasta van oma verslaat hij een schaatser en een tennisster.'); return 'Je pasta van oma wint! Het geld gaat naar een voetbalclub voor kinderen in de buurt.'; }
+      {l:'Meedoen en je beste gerecht maken', f(){ mod('fit', -3); if (rnd() < .4){ mod('rep', 5); mod('moraal', 8); S.ss.goed = (S.ss.goed || 0) + 1; roddel(`${sp.naam} wint kookwedstrijd`, 'Met ' + ik.zijn + ' pasta van oma verslaat ' + ik.hij + ' een schaatser en een tennisster.'); return 'Je pasta van oma wint! Het geld gaat naar een voetbalclub voor kinderen in de buurt.'; }
         mod('rep', -1); return 'Je laat de saus aanbranden en het brandalarm gaat af. Het fragment gaat viraal. Je kunt er zelf om lachen.'; }},
       {l:'Afzeggen, ik kan alleen tosti\'s maken', f(){ return 'De zender vraagt in plaats van jou een keeper. Hij wint.'; }}]},
     // 12
@@ -90,7 +91,7 @@ export function belevenissen({sp, n, jong, bekend, meid}){
       {l:'Thuisblijven', f(){ mod('fit', 3); return 'Je kijkt een film op de bank. Ook prima.'; }}]},
     // 14
     {soort:'prive', als: sp.leeftijd >= 16, tekst:'Het is carnaval. Je vrienden willen dat je meegaat, en je moet verkleed.', opts:[
-      {l:'Verkleed als jezelf', f(){ mod('moraal', 9); mod('fit', -6); if (bekend) roddel(`${sp.naam} verkleed als... ${sp.naam}`, 'Op carnaval liep hij rond in zijn eigen shirt met een nep-snor. Niemand herkende hem.'); return 'Je loopt rond in je eigen shirt met een nep-snor. Drie mensen zeggen dat je goed op die voetballer lijkt.'; }},
+      {l:'Verkleed als jezelf', f(){ mod('moraal', 9); mod('fit', -6); if (bekend) roddel(`${sp.naam} verkleed als... ${sp.naam}`, 'Op carnaval liep ' + ik.hij + ' rond in ' + ik.zijn + ' eigen shirt met een nep-snor. Niemand herkende ' + ik.hem + '.'); return 'Je loopt rond in je eigen shirt met een nep-snor. Drie mensen zeggen dat je goed op die voetballer lijkt.'; }},
       {l:'Het hele weekend feesten', f(){ mod('moraal', 14); mod('fit', -22); mod('focus', -8); if (rnd() < .3) mod('vert', -5); return 'Drie dagen hossen, polonaise en veel te weinig slaap. Maandag op de training ben je een zombie.'; }},
       {l:'Eén avondje, dan naar huis', f(){ mod('moraal', 6); mod('fit', -4); return 'Een avond gek doen en om twaalf uur thuis. Verstandig én gezellig.'; }}]},
     // 15

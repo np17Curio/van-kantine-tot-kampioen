@@ -7,6 +7,7 @@ import { social, volgersTxt } from '../prive/social.js';
 import { isAanvoerder } from '../team/aanvoerder.js';
 import { rugnummer } from '../team/rugnummers.js';
 import { ck } from './buitenland.js';
+import { ik } from '../../core/geslacht.js';
 
 /* ===================== Afscheid van een club waar je veel betekende ===================== */
 // Bepaald in wissel() vóór alles op 0 gaat: seizoenen, aanvoerder, records, fans en legendestatus.
@@ -25,7 +26,7 @@ export function clubAfscheid(oudId, hoe){
   if (!sp.legendeHier && (punten >= 7 || (aanv && topscorer))){
     sp.legendeHier = true; A.ere = true; A.legende = true;
     S.car.prijzen.push(`Clublegende van ${c.n}`); S.car.hist.push(`${seizoenLabel()}: bij zijn afscheid benoemd tot clublegende van ${c.n}`);
-    krantMelding(`${c.n} benoemt ${sp.naam} tot clublegende`, `Bij zijn afscheid krijgt hij de hoogste eer van de club. "Zijn naam staat voor altijd in onze geschiedenis."`, KRANTEN[0], fotoVan('portret', `${sp.naam}, clublegende van ${c.n}.`));
+    krantMelding(`${c.n} benoemt ${sp.naam} tot clublegende`, `Bij ${ik.zijn} afscheid krijgt ${ik.hij} de hoogste eer van de club. "${ik.Zijn} naam staat voor altijd in onze geschiedenis."`, KRANTEN[0], fotoVan('portret', `${sp.naam}, clublegende van ${c.n}.`));
   }
   S.car.hist.push(`${seizoenLabel()}: afscheid van ${c.n}, met een ingelijst shirt${nr ? ` met nummer ${nr}` : ''} als cadeau`);
   S.wachtEv = afscheidEvent(A);

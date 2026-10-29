@@ -4,6 +4,7 @@ import { CLUBS, DIVS, divClubs } from '../../data/gegevens.js';
 import { metVoorletter } from '../../game/media/nieuws.js';
 import { netGekocht, netUitJeugd, rugTeam } from '../../game/team/rugnummers.js';
 import { clubLogo } from '../../data/logos.js';
+import { team } from '../../core/geslacht.js';
 
 /* ===================== Teamoverzicht: de klasse van elke speler ===================== */
 // Hoe sterk is je team, wie zijn de besten, en wie groeit of gaat achteruit (ten opzichte van vorig seizoen)
@@ -36,7 +37,7 @@ export function vSelectie(){
       <div><span class="label">Gemiddelde leeftijd</span><b>${gemLft.toFixed(1).replace('.', ',')}</b></div>
       <div><span class="label">Jij</span><b>${ik}</b> <span class="muted klein-tekst">${mijnRol}</span></div>
     </div>
-    <p class="muted klein-tekst">Elke zomer worden spelers een jaar ouder: jongens groeien, routiniers gaan achteruit en wie 34 is stopt. De beste spelers op elke positie staan in de basis. De pijlen laten zien hoe iemand veranderde sinds vorig seizoen. Een streepje betekent dat er nog geen vorig seizoen is om mee te vergelijken.</p>
+    <p class="muted klein-tekst">Elke zomer worden spelers een jaar ouder: ${team.jongens} groeien, routiniers gaan achteruit en wie 34 is stopt. De beste spelers op elke positie staan in de basis. De pijlen laten zien hoe iemand veranderde sinds vorig seizoen. Een streepje betekent dat er nog geen vorig seizoen is om mee te vergelijken.</p>
     ${sel.some(x => x.kVorig !== undefined) ? '' : '<p class="melding">De trends verschijnen na de eerste zomer, als je teamgenoten een seizoen ouder zijn.</p>'}
     <div class="tabelwrap"><table class="tabel selectietabel"><thead><tr><th>#</th><th>Speler</th><th class="col-lft">Lft</th><th>Klasse</th><th>Trend</th><th class="col-rol">Rol</th></tr></thead><tbody>${linies}</tbody></table></div></section>`;
 }

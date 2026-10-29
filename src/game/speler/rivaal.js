@@ -8,6 +8,7 @@ import { PERS } from './persoonlijkheid.js';
 import { statusPunten } from './status.js';
 import { social } from '../prive/social.js';
 import { fixture } from '../competitie/competitie.js';
+import { ik, team } from '../../core/geslacht.js';
 
 /* ===================== Je vaste rivaal ===================== */
 // Een speler van jouw leeftijd, op jouw positie en van ongeveer jouw niveau, bij een andere club.
@@ -15,10 +16,10 @@ import { fixture } from '../competitie/competitie.js';
 const POS_LINIE = {SPITS:'A', MID:'M', VERD:'V', KEEPER:'K'};
 const NAMEN = ['Van Rijswijk', 'Brandsma', 'De Haas', 'Kortenhoeven', 'Vermeulen', 'Okonkwo', 'Lindqvist', 'Van der Stroom', 'El Haddaoui', 'Moreau', 'Kuipers', 'Sanchez-Duin'];
 const VOORL = ['J', 'M', 'R', 'T', 'L', 'S', 'D', 'K'];
-const ACHTERGROND = [
+const ACHTERGROND = () => [
   'Jullie speelden al tegen elkaar in de jeugd en zijn sindsdien elkaars grootste concurrent.',
   'Jullie werden in hetzelfde jaar ontdekt. Sindsdien worden jullie altijd met elkaar vergeleken.',
-  'Hij nam jouw plek in bij een jeugdselectie. Dat ben je nooit vergeten.',
+  `${team.Hij} nam jouw plek in bij een jeugdselectie. Dat ben je nooit vergeten.`,
   'De media noemen jullie al jaren in één adem. Jullie kunnen elkaar niet uitstaan.',
 ];
 export const rivaal = () => { const R = S.sp && S.sp.rivaal; if (R && R.band === undefined){ R.band = -20; R.race = {}; } if (R && R.pot === undefined) R.pot = Math.max(R.k + 6, S.sp.pot + randInt(-4, 4)); return R; };
@@ -51,7 +52,7 @@ export function maakRivaal(){
   const t = club().t, id = kiesClub(t); if (id == null) return null;
   const persIds = Object.keys(PERS);
   sp.rivaal = {v:pick(VOORL), n:pick(NAMEN), lft:sp.leeftijd + randInt(-1, 1), k:clamp(ovr(sp) + randInt(-3, 3), 30, 95), club:id,
-    achtergrond:pick(ACHTERGROND), karakter:pick(persIds), onderling:{w:0, g:0, v:0}, hist:[], seizoen:null, band:-20, race:{}};
+    achtergrond:pick(ACHTERGROND()), karakter:pick(persIds), onderling:{w:0, g:0, v:0}, hist:[], seizoen:null, band:-20, race:{}};
   sp.rivaal.pot = Math.max(sp.rivaal.k + 4, clamp(sp.pot + randInt(-4, 4), 40, 95)); sp.rivaal.kVorig = sp.rivaal.k;
   plaats(id);
   return sp.rivaal;
@@ -71,8 +72,8 @@ export function naRivaalDuel(M){
   let inzet = '';
   const hijG = (M.doelen || []).filter(d => d.club === M.opp && d.s && d.s.n === R.n).length;
   if (R.uitgedaagd){ // je had hem uitgedaagd: dit duel telde dubbel
-    if (won){ mod('rep', 5); statusPunten(4); mod('moraal', 5); inzet = ' Je had hem uitgedaagd en je maakt je woorden waar. De pers is lyrisch.'; }
-    else if (!gel){ mod('rep', -4); mod('moraal', -8); inzet = ' Je had hem uitgedaagd... en je verliest. De pers lacht je uit.'; }
+    if (won){ mod('rep', 5); statusPunten(4); mod('moraal', 5); inzet = ' Je had ' + team.hem + ' uitgedaagd en je maakt je woorden waar. De pers is lyrisch.'; }
+    else if (!gel){ mod('rep', -4); mod('moraal', -8); inzet = ' Je had ' + team.hem + ' uitgedaagd... en je verliest. De pers lacht je uit.'; }
     else inzet = ' Na al die grote woorden: gelijk. Niemand is overtuigd.';
   }
   if (won) zetBand(-5);
@@ -82,17 +83,17 @@ export function naRivaalDuel(M){
   if (speelde){
     const hij = Math.round(clamp(6.2 + hijG * .9 + (M.them > M.us ? .3 : M.them < M.us ? -.3 : 0) + rnd() * 1.2 - .6, 4, 9.5) * 10) / 10, jij = M.cijfer, f = x => x.toFixed(1).replace('.', ',');
     const cd = R.cijferDuels = R.cijferDuels || {w:0, v:0};
-    if (jij > hij){ cd.w++; mod('moraal', 3); cijferRegel = ` Cijfers: jij ${f(jij)}, hij ${f(hij)}. Het duel is voor jou.`; }
-    else if (jij < hij){ cd.v++; mod('moraal', -3); cijferRegel = ` Cijfers: jij ${f(jij)}, hij ${f(hij)}. Hij was vandaag beter.`; }
+    if (jij > hij){ cd.w++; mod('moraal', 3); cijferRegel = ` Cijfers: jij ${f(jij)}, ${team.hij} ${f(hij)}. Het duel is voor jou.`; }
+    else if (jij < hij){ cd.v++; mod('moraal', -3); cijferRegel = ` Cijfers: jij ${f(jij)}, ${team.hij} ${f(hij)}. ${team.Hij} was vandaag beter.`; }
     else cijferRegel = ` Cijfers: allebei een ${f(jij)}.`;
     if (R.grootSpraak){ if (jij >= 7){ mod('rep', 2); cijferRegel += ' Je grote woorden in het interview maak je waar.'; } else { mod('rep', -2); cijferRegel += ' Na je grote woorden in het interview valt dit tegen.'; } }
-  } else if (hijG){ mod('moraal', -2); cijferRegel = ` Jij kon niets doen, en hij scoorde.`; }
+  } else if (hijG){ mod('moraal', -2); cijferRegel = ` Jij kon niets doen, en ${team.hij} scoorde.`; }
   R.grootSpraak = false; inzet += cijferRegel;
   R.uitgedaagd = false; R.voorbereid = false;
   const naam = rivaalNaam();
   if (M.goals || hijG) krantMelding(M.goals > hijG ? `${S.sp.naam} wint het duel met rivaal ${naam}` : hijG > M.goals ? `Rivaal ${naam} steelt de show tegen ${S.sp.naam}` : `${S.sp.naam} en ${naam} houden elkaar in evenwicht`,
     `${M.goals ? `${S.sp.naam} scoorde ${M.goals}x` : `${S.sp.naam} scoorde niet`}, ${hijG ? `${naam} ${hijG}x` : `${naam} niet`}. Onderling: ${R.onderling.w} zeges, ${R.onderling.g} gelijk, ${R.onderling.v} nederlagen.`);
-  return `Het duel met je rivaal ${naam}: ${won ? 'jij wint deze keer!' : gel ? 'gelijk, niemand wint.' : 'hij heeft deze keer gewonnen.'} Onderling: ${R.onderling.w}-${R.onderling.g}-${R.onderling.v}.${inzet}`;
+  return `Het duel met je rivaal ${naam}: ${won ? 'jij wint deze keer!' : gel ? 'gelijk, niemand wint.' : '' + team.hij + ' heeft deze keer gewonnen.'} Onderling: ${R.onderling.w}-${R.onderling.g}-${R.onderling.v}.${inzet}`;
 }
 // Einde seizoen: de race, en daarna wordt hij een jaar ouder en beter of slechter, net als jij
 export function rivaalSeizoen(){
@@ -100,8 +101,8 @@ export function rivaalSeizoen(){
   const st = rivaalStats(), sp = S.sp, jij = {g:S.ss.g || 0, a:S.ss.a || 0}, naam = rivaalNaam();
   const doel = sp.pos === 'SPITS' ? 'g' : 'a', woord = doel === 'g' ? 'goals' : 'assists';
   const winst = jij[doel] > st[doel] ? 'jij' : jij[doel] < st[doel] ? 'hij' : 'gelijk';
-  const tekst = `De race met je rivaal ${naam}: jij ${jij[doel]} ${woord}, hij ${st[doel]}. ${winst === 'jij' ? 'Dit seizoen ben jij de beste.' : winst === 'hij' ? 'Dit seizoen was hij beter. Volgend jaar pak je hem.' : 'Precies gelijk!'}`;
-  R.hist.push(`${S.jaar}: jij ${jij[doel]}, hij ${st[doel]} ${woord} · klasse ${R.k}`); if (R.hist.length > 12) R.hist.shift();
+  const tekst = `De race met je rivaal ${naam}: jij ${jij[doel]} ${woord}, ${team.hij} ${st[doel]}. ${winst === 'jij' ? 'Dit seizoen ben jij de beste.' : winst === 'hij' ? 'Dit seizoen was ' + team.hij + ' beter. Volgend jaar pak je ' + team.hem + '.' : 'Precies gelijk!'}`;
+  R.hist.push(`${S.jaar}: jij ${jij[doel]}, ${team.hij} ${st[doel]} ${woord} · klasse ${R.k}`); if (R.hist.length > 12) R.hist.shift();
   R.seizoen = {jij:jij[doel], hij:st[doel], woord, winst};
   R.race = {};
   let prijs = null;
@@ -120,14 +121,14 @@ export function rivaalOuder(groeiJij){
   if (r){ r.x.k = R.k; r.x.lft = R.lft; }
   // op zijn 37e stopt hij
   if (R.lft >= 37 && !R.gestopt){ R.gestopt = true; if (r){ const sel = selectie(r.id); sel.splice(sel.indexOf(r.x), 1); selectie(r.id); }
-    krantMelding(`Rivaal ${rivaalNaam()} stopt met voetballen`, `Na jaren strijd met ${S.sp.naam} hangt hij zijn schoenen aan de wilgen. "Hij maakte mij beter," zegt ${S.sp.naam}.`); }
+    krantMelding(`Rivaal ${rivaalNaam()} stopt met voetballen`, `Na jaren strijd met ${S.sp.naam} hangt ${team.hij} ${team.zijn} schoenen aan de wilgen. "${team.Hij} maakte mij beter," zegt ${S.sp.naam}.`); }
 }
 // In een transfervenster: volgt hij je omhoog, of wordt hij zelfs je teamgenoot?
 export function rivaalVenster(soort){
   const R = rivaal(); if (!R || R.gestopt) return null; let r = rivaalSpeler();
   if (!r){ const id = kiesClub(club().t); if (id != null) plaats(id); return null; }
   const t = club().t, hijT = CLUBS[r.id].t, naam = rivaalNaam();
-  if (hijT > t && rnd() < .6){ const id = kiesClub(t); if (id != null && CLUBS[id].t === t){ plaats(id); krantMelding(`Rivaal ${naam} volgt ${S.sp.naam} naar de top`, `${naam} tekent bij ${CLUBS[id].n}. "Ik wil laten zien dat ik net zo goed ben."`); return `Je rivaal ${naam} maakt ook de stap omhoog: hij tekent bij ${CLUBS[id].n}.`; } }
+  if (hijT > t && rnd() < .6){ const id = kiesClub(t); if (id != null && CLUBS[id].t === t){ plaats(id); krantMelding(`Rivaal ${naam} volgt ${S.sp.naam} naar de top`, `${naam} tekent bij ${CLUBS[id].n}. "Ik wil laten zien dat ik net zo goed ben."`); return `Je rivaal ${naam} maakt ook de stap omhoog: ${team.hij} tekent bij ${CLUBS[id].n}.`; } }
   if (r.id !== S.sp.club && rnd() < (R.band >= 60 ? .2 : R.band <= -60 ? 0 : .05)){ plaats(S.sp.club); krantMelding(`Opvallend: rivaal ${naam} tekent bij de club van ${S.sp.naam}`, `De twee rivalen zijn nu teamgenoten. "We hoeven geen vrienden te worden," zegt ${naam}.`); return `Wat?! Je rivaal ${naam} tekent bij jouw club. Jullie strijden nu om dezelfde plek.`; }
   return null;
 }
@@ -157,8 +158,8 @@ export function rivaalPrikkel(){
 }
 // Acties in de week (één per week, naast je gewone activiteit)
 export const RIVAAL_ACTIES = {
-  uitdagen:{n:'Uitdagen in de media', s:'"Ik ben beter dan hij." Reputatie +2 · het volgende duel telt dubbel · jullie band wordt slechter'},
-  analyse:{n:'Zijn wedstrijden analyseren', s:'Klaar voor het volgende duel: focus +8 bij de aftrap en meer kans in jullie duels · fitheid −2'},
+  uitdagen:{n:'Uitdagen in de media', get s(){ return `"Ik ben beter dan ${team.hij}." Reputatie +2 · het volgende duel telt dubbel · jullie band wordt slechter`; }},
+  analyse:{get n(){ return `${team.Zijn} wedstrijden analyseren`; }, s:'Klaar voor het volgende duel: focus +8 bij de aftrap en meer kans in jullie duels · fitheid −2'},
   contact:{n:'Contact zoeken', s:'Een berichtje of samen koffie. Jullie band wordt beter'},
 };
 export const kanRivaalActie = () => actiefRivaal() && !S.sp.clubloos && S.week && !S.week.rivaalActie;
@@ -170,14 +171,14 @@ export function doeRivaalActie(id){
     const gem = gemCijfer(), rs = raceStand();
     t = `Je zegt tegen een journalist: "${naam}? Ik ben gewoon beter." De krant zet het groot op de sportpagina. Het volgende duel telt dubbel.`;
     if ((gem !== null && gem < 6.3) || (rs && rs.verschil < 0)){ mod('rep', -2); t += ' Maar met jouw cijfers lachen de lezers je uit.'; }
-    krantMelding(`${sp.naam}: "Ik ben beter dan ${naam}"`, `De rivaliteit laait op. "Laat hem maar komen," zegt ${sp.naam}.`);
+    krantMelding(`${sp.naam}: "Ik ben beter dan ${naam}"`, `De rivaliteit laait op. "Laat ${team.hem} maar komen," zegt ${sp.naam}.`);
   } else if (id === 'analyse'){
     mod('fit', -2); R.voorbereid = true;
     const d = volgendDuel();
-    t = `Je bekijkt uren beelden van ${naam}: zijn favoriete actie, zijn zwakke been. ${d ? `In week ${d.ronde + 1} ben je er klaar voor.` : 'Als jullie elkaar weer treffen, ben je er klaar voor.'}`;
+    t = `Je bekijkt uren beelden van ${naam}: ${team.zijn} favoriete actie, ${team.zijn} zwakke been. ${d ? `In week ${d.ronde + 1} ben je er klaar voor.` : 'Als jullie elkaar weer treffen, ben je er klaar voor.'}`;
   } else if (id === 'contact'){
     zetBand(15); mod('moraal', 2);
-    t = R.band >= 60 ? `Je drinkt koffie met ${naam}. Jullie lachen om oude verhalen. Jullie zijn rivalen met respect.` : `Je stuurt ${naam} een berichtje. Hij stuurt een kort antwoord terug. Het ijs is een beetje gebroken.`;
+    t = R.band >= 60 ? `Je drinkt koffie met ${naam}. Jullie lachen om oude verhalen. Jullie zijn rivalen met respect.` : `Je stuurt ${naam} een berichtje. ${team.Hij} stuurt een kort antwoord terug. Het ijs is een beetje gebroken.`;
   }
   w.rivaalActie = id; w.tekst.push(t);
 }
@@ -185,27 +186,27 @@ export function doeRivaalActie(id){
 export function rivaalEvents(){
   if (!actiefRivaal() || S.sp.clubloos) return [];
   const R = rivaal(), sp = S.sp, naam = rivaalNaam(), rs = raceStand(), uit = [];
-  const kaats = {soort:'prive', tekst:`Je rivaal ${naam} reageert in de krant: "${sp.naam}? Die moet eerst maar eens laten zien wat hij kan. Praten is makkelijk."`, opts:[
+  const kaats = {soort:'prive', tekst:`Je rivaal ${naam} reageert in de krant: "${sp.naam}? Die moet eerst maar eens laten zien wat ${ik.hij} kan. Praten is makkelijk."`, opts:[
     {l:'Terugslaan in de media', f(){ zetBand(-10); mod('rep', 1); mod('focus', -3); if (rnd() < .3){ mod('vert', -4); return 'Je haalt hard uit. De trainer roept je bij zich: "Focus op het voetbal."'; } return 'Je haalt hard uit. De fans genieten van de oorlog in de krant.'; }},
     {l:'Negeren en doortrainen', f(){ mod('focus', 4); mod('vert', 2); return 'Je zegt niets. Op het veld praat je wel. De trainer waardeert je rust.'; }},
-    {l:'Met humor reageren', f(){ mod('rep', 2); zetBand(5); social().volgers = Math.round(social().volgers * 1.03 + 50); return `Je post een grappige foto van een praatpaal met "${naam}" erop. Iedereen lacht, zelfs hij.`; }}]};
+    {l:'Met humor reageren', f(){ mod('rep', 2); zetBand(5); social().volgers = Math.round(social().volgers * 1.03 + 50); return `Je post een grappige foto van een praatpaal met "${naam}" erop. Iedereen lacht, zelfs ${team.hij}.`; }}]};
   if (R.reactie){ R.reactie = false; return [kaats]; }
   if (R.band < -40) uit.push(kaats);
   if (rs && rs.verschil <= -2) uit.push({soort:'prive', tekst:`${naam} heeft al ${rs.hij} ${rs.woord}, jij ${rs.jij}. Op social media worden jullie vergeleken, en niet in jouw voordeel.`, opts:[
     {l:'Extra trainen', f(){ mod('fit', -8); const k = TRAINBAAR.slice().sort((a, b) => sp.a[a] - sp.a[b])[0]; if (rnd() < .4){ sp.a[k] = Math.min(99, sp.a[k] + 1); return `Je traint elke avond extra. Je ${attr(k).toLowerCase()} gaat omhoog naar ${sp.a[k]}.`; } return 'Je traint elke avond extra. Moe, maar gemotiveerd.'; }},
-    {l:'Hem feliciteren', f(){ zetBand(10); mod('rep', 1); return `Je feliciteert ${naam} met zijn goede seizoen. Sportief: dat valt op.`; }},
+    {l:'' + team.Hem + ' feliciteren', f(){ zetBand(10); mod('rep', 1); return `Je feliciteert ${naam} met ${team.zijn} goede seizoen. Sportief: dat valt op.`; }},
     {l:'Er niets mee doen', f(){ mod('moraal', -2); return 'Je doet alsof het je niets doet. Maar het knaagt.'; }}]});
   if (!R.blessure && rnd() < .3) uit.push({soort:'prive', tekst:`Slecht nieuws voor je rivaal: ${naam} is geblesseerd en is een paar weken uit de roulatie.`, opts:[
-    {l:'Beterschap wensen', f(){ blesseer(); zetBand(20); mod('rep', 2); return 'Je stuurt hem een berichtje: "Snel beter, ik wil je verslaan als je fit bent." Hij waardeert het.'; }},
+    {l:'Beterschap wensen', f(){ blesseer(); zetBand(20); mod('rep', 2); return 'Je stuurt ' + team.hem + ' een berichtje: "Snel beter, ik wil je verslaan als je fit bent." ' + team.Hij + ' waardeert het.'; }},
     {l:'Er een grap over maken', f(){ blesseer(); zetBand(-25); mod('rep', -4); social().volgers = Math.round(social().volgers * 1.04 + 80); return 'Je grap gaat viraal... maar veel mensen vinden het smakeloos.'; }},
     {l:'Niets zeggen', f(){ blesseer(); return 'Je houdt je mond. Dat is ook een keuze.'; }}]});
   uit.push({soort:'prive', tekst:`${naam} post een foto van zichzelf met de tekst: "Nummer 1 van de competitie 👑". Je vrienden sturen hem door.`, opts:[
-    {l:'Reageren met jouw cijfers', f(){ if (rs && rs.verschil > 0){ mod('rep', 3); zetBand(-5); return `Je reageert: "${rs.jij} ${rs.woord}. En jij?" Iedereen ziet wie er echt voor staat.`; } mod('rep', -3); return 'Je reageert met je cijfers... maar hij staat voor. Dat was geen goed idee.'; }},
+    {l:'Reageren met jouw cijfers', f(){ if (rs && rs.verschil > 0){ mod('rep', 3); zetBand(-5); return `Je reageert: "${rs.jij} ${rs.woord}. En jij?" Iedereen ziet wie er echt voor staat.`; } mod('rep', -3); return 'Je reageert met je cijfers... maar ' + team.hij + ' staat voor. Dat was geen goed idee.'; }},
     {l:'Negeren', f(){ return 'Je scrolt verder. Niet aan beginnen.'; }},
-    {l:'Een like geven', f(){ zetBand(5); return 'Je geeft hem een like. Hij is verbaasd, en een beetje blij.'; }}]});
+    {l:'Een like geven', f(){ zetBand(5); return 'Je geeft ' + team.hem + ' een like. ' + team.Hij + ' is verbaasd, en een beetje blij.'; }}]});
   uit.push({soort:'prive', tekst:`Een journalist vraagt je na de training: "Wie is beter, jij of ${naam}?"`, opts:[
     {l:'"Ik natuurlijk"', f(){ zetBand(-15); mod('rep', 2); R.uitgedaagd = true; return 'De kop van morgen staat al vast. Het volgende duel telt dubbel.'; }},
-    {l:'"Hij is een goede speler"', f(){ zetBand(8); mod('vert', 2); return 'Een volwassen antwoord. De trainer knikt.'; }},
+    {l:'"' + team.Hij + ' is een goede ' + team.speler + '"', f(){ zetBand(8); mod('vert', 2); return 'Een volwassen antwoord. De trainer knikt.'; }},
     {l:'"Daar ga ik niet over"', f(){ return 'Je laat je niet verleiden. De journalist zucht.'; }}]});
   if (R.band >= 60) uit.push({soort:'prive', tekst:`${naam} belt je: "Zin om deze week samen extra te trainen? Wie het hardst loopt, wint."`, opts:[
     {l:'Ja, samen trainen', f(){ mod('fit', -5); mod('focus', 5); zetBand(5); return 'Jullie jagen elkaar op. Een rivaal die je beter maakt.'; }},
@@ -228,8 +229,8 @@ export function raceWeek(eerste){
   if (!eerste && R.blessure > 0){ R.blessure--; if (R.blessure <= 0){ herstel(); S.week.tekst.push(`Je rivaal ${rivaalNaam()} is weer fit.`); } }
   if (eerste || S.sp.clubloos || !rivaalSpeler()) return;
   const rs = raceStand(), naam = rivaalNaam(), M = R.race = R.race || {};
-  if (rs.verschil <= -3 && !M.hijUit){ M.hijUit = true; krantMelding(`${naam} loopt uit in de race met ${S.sp.naam}`, `Met ${rs.hij} ${rs.woord} heeft hij er ${-rs.verschil} meer dan ${S.sp.naam}.`); S.week.tekst.push(`Je rivaal ${naam} loopt uit: ${rs.hij} tegen ${rs.jij} ${rs.woord}. Dat jaagt je op: je traint feller.`); }
-  if (rs.verschil > 0 && M.achter && !M.ingehaald){ M.ingehaald = true; mod('moraal', 3); krantMelding(`${S.sp.naam} haalt rivaal ${naam} in`, `Met ${rs.jij} ${rs.woord} staat hij nu voor in de race.`); S.week.tekst.push(`Je hebt je rivaal ingehaald: ${rs.jij} tegen ${rs.hij} ${rs.woord}!`); }
+  if (rs.verschil <= -3 && !M.hijUit){ M.hijUit = true; krantMelding(`${naam} loopt uit in de race met ${S.sp.naam}`, `Met ${rs.hij} ${rs.woord} heeft ${team.hij} er ${-rs.verschil} meer dan ${S.sp.naam}.`); S.week.tekst.push(`Je rivaal ${naam} loopt uit: ${rs.hij} tegen ${rs.jij} ${rs.woord}. Dat jaagt je op: je traint feller.`); }
+  if (rs.verschil > 0 && M.achter && !M.ingehaald){ M.ingehaald = true; mod('moraal', 3); krantMelding(`${S.sp.naam} haalt rivaal ${naam} in`, `Met ${rs.jij} ${rs.woord} staat ${ik.hij} nu voor in de race.`); S.week.tekst.push(`Je hebt je rivaal ingehaald: ${rs.jij} tegen ${rs.hij} ${rs.woord}!`); }
   if (rs.verschil >= 3 && !M.jijUit){ M.jijUit = true; mod('rep', 1); krantMelding(`${S.sp.naam} laat rivaal ${naam} achter zich`, `${rs.jij} tegen ${rs.hij} ${rs.woord}: de race lijkt beslist.`); }
   if (rs.verschil < 0) M.achter = true;
 }
@@ -238,9 +239,9 @@ export function raceWeek(eerste){
 // Bestaande momenten (die al animaties hebben), passend bij je positie
 export const RIVAAL_MOMENTEN = {SPITS:['eenOpEen', 'kopduel', 'volley'], MID:['counter', 'diepteBal', 'eenOpEen'], VERD:['tackle', 'verdedigen', 'kopduel'], KEEPER:['redding', 'eenOpEenKeeper', 'hogeBal']};
 const VOORZET = [
-  n => `Daar is hij: je rivaal ${n}. Dit is jullie duel.`,
+  n => `Daar is ${team.hij}: je rivaal ${n}. Dit is jullie duel.`,
   n => `${n} staat recht tegenover je. Het hele stadion weet wat dit betekent.`,
-  n => `Weer jij tegen ${n}. Hij grijnst: "Kom maar op."`,
+  n => `Weer jij tegen ${n}. ${team.Hij} grijnst: "Kom maar op."`,
   n => `${n} zet zich schrap. Dit is het moment om te laten zien wie de beste is.`,
 ];
 export function rivaalVoorzet(M, e){
@@ -254,13 +255,13 @@ export function rivaalVoorzet(M, e){
 export function voorDuelVraag(){
   const w = S.week; if (!w) return null; if (w.rivaalPers) return w.rivaalPers;
   const R = rivaal(), naam = rivaalNaam(), rs = raceStand(), o = R.onderling;
-  const vraag = rs && rs.verschil < 0 ? `Zondag tegen ${naam}. Hij heeft meer ${rs.woord} dan jij. Hoe ga je hem stoppen?`
+  const vraag = rs && rs.verschil < 0 ? `Zondag tegen ${naam}. ${team.Hij} heeft meer ${rs.woord} dan jij. Hoe ga je ${team.hem} stoppen?`
     : rs && rs.verschil > 0 ? `Zondag tegen ${naam}. Jij staat voor in de race. Voel je de druk?`
     : R.band <= -40 ? `Zondag tegen ${naam}. Jullie kunnen elkaar niet uitstaan, zeggen ze. Klopt dat?`
     : `Zondag tegen je rivaal ${naam}. Onderling staat het ${o.w}-${o.g}-${o.v}. Wat verwacht je?`;
   return w.rivaalPers = {vraag, klaar:false, opts:[
     {s:'b', l:'Respectvol', t:`"${naam} is een goede speler. Maar zondag wil ik winnen."`, e:'focus +4 · jullie band wordt beter'},
-    {s:'z', l:'Zelfverzekerd', t:'"Ik ben in vorm. Hij gaat het merken."', e:'moraal +3 · speel je goed (7 of hoger), dan reputatie +2; anders −2'},
+    {s:'z', l:'Zelfverzekerd', t:'"Ik ben in vorm. ' + team.Hij + ' gaat het merken."', e:'moraal +3 · speel je goed (7 of hoger), dan reputatie +2; anders −2'},
     {s:'u', l:'Uitdagend', t:'"Na zondag weet iedereen wie de beste is."', e:'het duel telt dubbel · reputatie, volgers · jullie band wordt slechter'}]};
 }
 export function voorDuelAntwoord(i){
@@ -270,8 +271,8 @@ export function voorDuelAntwoord(i){
   else if (o.s === 'z'){ mod('moraal', 3); R.grootSpraak = true; P.uit = 'Stoere woorden. Nu moet je het zondag wel waarmaken.'; }
   else {
     R.uitgedaagd = true; zetBand(-10); mod('rep', 2); social().volgers = Math.round(social().volgers * 1.03 + 60);
-    krantMelding(`${sp.naam}: "Na zondag weet iedereen wie de beste is"`, `Het duel met ${naam} wordt beladen. "Laat hem maar praten," zegt ${naam}.`);
-    R.persReactie = pick([`${naam} heeft het interview gelezen. Bij het warmlopen roept hij: "Praatjes vullen geen gaatjes!"`, `${naam} reageerde in de krant: "Laat hem maar praten. Op het veld zien we het wel."`]);
+    krantMelding(`${sp.naam}: "Na zondag weet iedereen wie de beste is"`, `Het duel met ${naam} wordt beladen. "Laat ${ik.hem} maar praten," zegt ${naam}.`);
+    R.persReactie = pick([`${naam} heeft het interview gelezen. Bij het warmlopen roept ${team.hij}: "Praatjes vullen geen gaatjes!"`, `${naam} reageerde in de krant: "Laat ${ik.hem} maar praten. Op het veld zien we het wel."`]);
     P.uit = 'De kop van morgen staat al vast. Het duel telt dubbel: winnen levert veel op, verliezen kost veel.';
   }
 }
@@ -291,6 +292,6 @@ export function rivaalWinter(){
   const G = groeiSeizoen(R), half = G > 0 ? Math.ceil(G / 2) : Math.trunc(G / 2), voor = R.k;
   groei(R, half); R.groeiRest = G - half;
   const naam = rivaalNaam();
-  if (R.k - voor >= 3){ krantMelding(`Rivaal ${naam} is flink beter geworden`, `Zijn klasse gaat van ${voor} naar ${R.k}. ${S.sp.naam} is gewaarschuwd.`); if (S.week) S.week.tekst.push(`Je rivaal ${naam} is flink beter geworden (${voor} → ${R.k}).`); }
+  if (R.k - voor >= 3){ krantMelding(`Rivaal ${naam} is flink beter geworden`, `${team.Zijn} klasse gaat van ${voor} naar ${R.k}. ${S.sp.naam} is gewaarschuwd.`); if (S.week) S.week.tekst.push(`Je rivaal ${naam} is flink beter geworden (${voor} → ${R.k}).`); }
   else if (R.k > voor && S.week) S.week.tekst.push(`Je rivaal ${naam} wordt beter: klasse ${voor} → ${R.k}.`);
 }

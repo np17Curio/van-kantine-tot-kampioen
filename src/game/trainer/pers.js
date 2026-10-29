@@ -5,11 +5,14 @@ import { ACHTERNAMEN } from '../competitie/spelers.js';
 import { stand } from '../competitie/spelers.js';
 import { rivaal } from '../wedstrijd/fans-pers.js';
 import { fans } from './drama.js';
+import { vrouwenWereld } from '../../core/geslacht.js';
 
 /* ===================== Trainer: pers, rivaliserende trainers en fans ===================== */
 const VOORNAMEN = ['Frank', 'Ronald', 'Peter', 'Erik', 'John', 'Dick', 'Louis', 'Arne', 'Pascal', 'Marcel', 'Henk', 'Fred', 'Guus', 'Jürgen', 'Pep', 'Carlo', 'José', 'Diego', 'Mikel', 'Xabi'];
 // Elke club heeft een vaste trainer (zolang jij daar niet zelf trainer bent)
-export function trainerVan(id){ let h = id * 7919 + 17; return `${VOORNAMEN[h % VOORNAMEN.length]} ${ACHTERNAMEN[(h * 31) % ACHTERNAMEN.length]}`; }
+// (in het vrouwenvoetbal is ongeveer de helft van de trainers een vrouw)
+const VOORNAMEN_V = ['Sarina', 'Emma', 'Andries', 'Vera', 'Mark', 'Jonas', 'Sonia', 'Martina', 'Hesterine', 'Corinne', 'Jill', 'Pia'];
+export function trainerVan(id){ let h = id * 7919 + 17; const L = vrouwenWereld() ? VOORNAMEN_V : VOORNAMEN; return `${L[h % L.length]} ${ACHTERNAMEN[(h * 31) % ACHTERNAMEN.length]}`; }
 export const rivaalClub = () => { const T0 = S.trainer; if (!T0 || T0.o23) return null; const r = rivaal(T0.club); return r != null && CLUBS[r] && CLUBS[r].t === CLUBS[T0.club].t ? r : null; };
 // Een duel tegen een trainer bijhouden (alleen de aartsrivaal krijgt een eigen regel in je prijzenkast)
 export function noteerDuel(opp, a, b){

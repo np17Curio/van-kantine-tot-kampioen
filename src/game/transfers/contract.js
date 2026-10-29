@@ -5,6 +5,7 @@ import { AGENT } from '../../data/gegevens.js';
 import { krantMelding } from '../media/roddel.js';
 import { statusNiveau, statusPunten } from '../speler/status.js';
 import { OH_SAL, OH_TEKEN, clausuleBedrag, ohLabel } from './onderhandelen.js';
+import { ik } from '../../core/geslacht.js';
 
 /* ===================== Contract openbreken midden in het seizoen ===================== */
 // Bij je eigen club om meer geld of een langer contract vragen. Hoe beter je speelt en hoe belangrijker je bent,
@@ -47,7 +48,7 @@ export function contractVoorstel(){
     mod('moraal', 6); statusPunten(1); S.ss.contractRond = true; tmp.contract = null;
     const tot = S.jaar + x.jaren;
     S.car.hist.push(`${seizoenLabel()}: nieuw contract bij ${c.n} tot ${tot} (${geldTxt(sal)} per jaar)`);
-    if (c.t <= 3) krantMelding(`${sp.naam} verlengt bij ${c.n} tot ${tot}`, `De club en de speler zijn het eens over een nieuw contract.${sal > b.salaris ? ' Hij gaat er flink op vooruit.' : ''}`);
+    if (c.t <= 3) krantMelding(`${sp.naam} verlengt bij ${c.n} tot ${tot}`, `De club en de speler zijn het eens over een nieuw contract.${sal > b.salaris ? ' ' + ik.Hij + ' gaat er flink op vooruit.' : ''}`);
     S.ss.contractMelding = {goed:true, t:`${c.n} gaat akkoord! Je nieuwe contract: ${geldTxt(sal)} per jaar, ${x.jaren} jaar${teken ? `, plus ${geldTxt(teken)} tekengeld` : ''}${sp.clausule ? `, met een afkoopclausule van ${geldTxt(sp.clausule.bedrag)}` : ''}.`};
     return;
   }

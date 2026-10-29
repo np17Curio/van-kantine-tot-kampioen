@@ -5,6 +5,7 @@ import { roddel } from '../media/roddel.js';
 import { band } from '../team/kleedkamer.js';
 import { focusBoost } from '../wedstrijd/momenten.js';
 import { verhoog } from '../week.js';
+import { ik } from '../../core/geslacht.js';
 
 /* ===================== Vakantie in de zomerstop ===================== */
 export function vakantieOpties(){
@@ -14,7 +15,7 @@ export function vakantieOpties(){
   const l = [
     {l:'Thuisblijven en uitrusten', prijs:0, d:'fitheid +3 · focus omhoog', f(){ mod('fit', 3); focusBoost(4); return 'Je blijft lekker thuis. Uitslapen, barbecueën en niks moeten.'; }},
     {l:`Kamperen in Frankrijk${met}`, prijs:500, d:'moraal +6', f(){ mod('moraal', 6); band(5); return 'Een tent, een meer en elke ochtend verse croissants. Heerlijk simpel.'; }},
-    {l:'Feestvakantie op Ibiza', prijs:1500, d:'moraal +12, maar focus −10 en fitheid −10', f(){ mod('moraal', 12); mod('focus', -10); mod('fit', -10); band(-8); roddel(`${sp.naam} gaat los op Ibiza`, 'Foto\'s van het strandfeest gaan rond. De club hoopt dat hij fit terugkomt.'); return 'Twee weken feesten. Fantastisch, maar je komt gesloopt terug.'; }},
+    {l:'Feestvakantie op Ibiza', prijs:1500, d:'moraal +12, maar focus −10 en fitheid −10', f(){ mod('moraal', 12); mod('focus', -10); mod('fit', -10); band(-8); roddel(`${sp.naam} gaat los op Ibiza`, 'Foto\'s van het strandfeest gaan rond. De club hoopt dat ' + ik.hij + ' fit terugkomt.'); return 'Twee weken feesten. Fantastisch, maar je komt gesloopt terug.'; }},
     {l:'Trainingskamp in de bergen', prijs:3000, d:'conditie +2 · fitheid +5', f(){ verhoog('cond', 2); mod('fit', 5); mod('moraal', 2); return 'Lopen op hoogte, vroeg naar bed. Je komt fitter terug dan ooit. Conditie +2.'; }},
     {l:`Luxe resort op de Malediven${met}`, prijs:20000, d:'moraal +10 · focus omhoog', f(){ mod('moraal', 10); focusBoost(10); band(12); roddel(`${sp.naam} geniet op de Malediven`, 'Wit zand, blauwe zee en een privévilla op het water.'); return 'Een villa op het water, snorkelen tussen de schildpadden. Je bent helemaal opgeladen.'; }}
   ];

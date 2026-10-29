@@ -8,6 +8,7 @@ import { kroegEvent, kroegKans } from '../speler/kalmte.js';
 import { statusPunten } from '../speler/status.js';
 import { TUCHT_LABEL, ergernis, tucht } from '../team/tucht.js';
 import { focusBoost, kans } from '../wedstrijd/momenten.js';
+import { ik } from '../../core/geslacht.js';
 
 /* ===================== Verleidingen: casino en feesten ===================== */
 // Een verborgen meter (0-100). Hoe vaker je gokt of feest, hoe hoger. Boven de 50 krijg je last van de drang, boven de 70 gaat het echt mis
@@ -44,7 +45,7 @@ export function hulpZoeken(){
   const sp = S.sp, w = S.week, v = verleiding(), prijs = HULP_PRIJS(); if (v.meter < 30 || v.hulp > 0 || sp.geld < prijs) return;
   sp.geld -= prijs; v.hulp = 6; v.meter = clamp(v.meter - 30, 0, 100); focusBoost(5); mod('moraal', 3);
   w.tekst.push(`Je zoekt hulp bij een verslavingscoach. Het eerste gesprek is moeilijk, maar het lucht op. De komende 6 weken ga je niet naar het casino en niet stappen.`);
-  if (isProf()){ mod('rep', 2); krantMelding(`${sp.naam} zoekt hulp: "Ik schaam me er niet voor"`, 'De speler laat weten dat hij hulp krijgt. Veel fans steunen hem op social media.'); }
+  if (isProf()){ mod('rep', 2); krantMelding(`${sp.naam} zoekt hulp: "Ik schaam me er niet voor"`, 'De ' + ik.speler + ' laat weten dat ' + ik.hij + ' hulp krijgt. Veel fans steunen ' + ik.hem + ' op social media.'); }
 }
 // Elke week: de meter zakt langzaam, en als hij hoog staat gebeurt er wat
 export function verlWeek(){
@@ -53,7 +54,7 @@ export function verlWeek(){
   v.meter = clamp(v.meter - 2, 0, 100);
   if (v.meter >= 70){
     if (sp.relatie) sp.relatie.band = clamp(sp.relatie.band - 3, 0, 100);
-    if (isProf() && rnd() < .2) roddel(`Zorgen om ${sp.naam}`, pick(['Vrienden maken zich zorgen over zijn gedrag buiten het veld.', 'Hij zou grote schulden hebben gemaakt in het casino.', 'Hij wordt steeds vaker laat in de nacht gezien.']));
+    if (isProf() && rnd() < .2) roddel(`Zorgen om ${sp.naam}`, pick(['Vrienden maken zich zorgen over ' + ik.zijn + ' gedrag buiten het veld.', '' + ik.Hij + ' zou grote schulden hebben gemaakt in het casino.', '' + ik.Hij + ' wordt steeds vaker laat in de nacht gezien.']));
     if ((S.weekNr || 0) - v.boeteWeek >= 8 && rnd() < .3){ v.boeteWeek = S.weekNr || 0; const boete = Math.max(100, Math.round(sp.salaris * .05 / 100) * 100); sp.geld = Math.max(0, sp.geld - boete); mod('vert', -8); statusPunten(-3);
       w.tekst.push(`De club roept je op het matje. "Het gaat zo niet langer." Je krijgt een boete van ${geldTxt(boete)} en de trainer vertrouwt je minder.`); }
   }

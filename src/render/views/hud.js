@@ -28,7 +28,7 @@ export function vHud(inSpel){
       <span class="chip">${seizoenLabel()} · <b>wk ${Math.min(S.ronde + 1, AANTAL_RONDES)}/${AANTAL_RONDES}</b></span>
       <span class="chip">${sp.clubloos ? '' : `${NIVEAU[c.t]} · `}<b>${status}</b></span>
       <span class="chip geld"><b>${geldTxt(sp.geld)}</b></span>
-      ${sp.blessure > 0 ? `<span class="chip alarm">Geblesseerd · ${sp.blessure} wk</span>` : ''}${sp.geschorst > 0 ? `<span class="chip alarm">Geschorst</span>` : ''}
+      ${sp.blessure > 0 ? `<span class="chip alarm">${sp.verlof ? 'Zwangerschapsverlof' : 'Geblesseerd'} · ${sp.blessure} wk</span>` : ''}${sp.geschorst > 0 ? `<span class="chip alarm">Geschorst</span>` : ''}
     </div>
     <div class="hudrechts">${hulp}</div>`;
 }

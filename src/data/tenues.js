@@ -15,7 +15,7 @@ const tenue = (shirt, accent, patroon, broek, sok) => ({shirt, accent, patroon, 
 // Elke club een vast tenue, op naam (dezelfde naam = hetzelfde tenue, ook na promotie of in een ander seizoen)
 export function clubTenue(id){
   const c = CLUBS[id]; if (!c) return tenue(K.wit, K.zwart, 'effen');
-  const naam = c.n.replace(/ O19$/, ''), h = hash('tenue|' + naam);
+  const naam = c.n.replace(/ O19$/, '').replace(/ Vrouwen$/, ''), h = hash('tenue|' + naam);
   const kleuren = (naam.toLowerCase().match(/[a-zë]+/g) || []).map(w => WOORDEN[w]).filter(Boolean);
   const pat = PATRONEN[(h >>> 5) % PATRONEN.length];
   if (kleuren.length >= 2) return tenue(K[kleuren[0]], K[kleuren[1]], pat === 'effen' ? 'strepen' : pat);

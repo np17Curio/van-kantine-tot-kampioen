@@ -9,6 +9,7 @@ import { roddel } from '../media/roddel.js';
 import { isProf } from '../prive/sponsors.js';
 import { nieuweIdentiteit } from '../competitie/europa.js';
 import { hervormEuropa } from '../transfers/buitenland.js';
+import { ik } from '../../core/geslacht.js';
 
 /* ===================== Kampioen, promotie en degradatie ===================== */
 // Kampioen zodra niemand je nog kan inhalen (of na de laatste speelronde bovenaan)
@@ -51,6 +52,6 @@ export function voerPromotieUit(wissels){
 export const FEEST = prof => [
   {l:'Met de open bus door de stad', f(){ mod('moraal', 8); mod('rep', 3); return 'Duizenden fans langs de route. Jij staat vooraan met de schaal boven je hoofd.'; }},
   {l:'De trainer natspuiten', f(){ mod('moraal', 6); mod('vert', 3); return 'Je spuit de trainer helemaal nat met champagne. Hij lacht en spuit terug.'; }},
-  {l:'Feesten tot de zon opkomt', f(){ mod('moraal', 12); if (prof) roddel(`${S.sp.naam} viert titel tot zonsopgang`, 'Foto\'s van het feest gaan rond. "Hij heeft het verdiend," zeggen de fans.'); return 'Wat een nacht. Je weet niet meer hoe je thuisgekomen bent.'; }},
+  {l:'Feesten tot de zon opkomt', f(){ mod('moraal', 12); if (prof) roddel(`${S.sp.naam} viert titel tot zonsopgang`, 'Foto\'s van het feest gaan rond. "' + ik.Hij + ' heeft het verdiend," zeggen de fans.'); return 'Wat een nacht. Je weet niet meer hoe je thuisgekomen bent.'; }},
   {l:'Rustig vieren met familie', f(){ mod('moraal', 5); mod('focus', 5); if (S.sp.relatie) S.sp.relatie.band = clamp(S.sp.relatie.band + 5, 0, 100); return 'Je viert het thuis met de mensen die het dichtst bij je staan. Je moeder huilt van trots.'; }}];
 export function kiesFeest(i){ const E = S.eind; if (!E || E.feest) return; E.feest = FEEST(isProf())[i].f(); }

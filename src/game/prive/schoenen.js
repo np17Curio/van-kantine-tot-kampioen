@@ -5,6 +5,7 @@ import { krantMelding } from '../media/roddel.js';
 import { social, volgersTxt } from './social.js';
 import { verhoog } from '../week.js';
 import { huurOuder } from '../speler/o23.js';
+import { ik } from '../../core/geslacht.js';
 
 /* ===================== Kapper en voetbalschoenen ===================== */
 // ---------- Je uiterlijk (zonder eigen keuze: hetzelfde als het 3D-model het met de dobbelsteen maakt) ----------
@@ -76,7 +77,7 @@ function teken(m, bedrag, jaren){
   for (const [k, n] of Object.entries(m.perk)) if (k === 'rep') mod('rep', n); else verhoog(k, n);
   const u = mijnUiterlijk(), i = SCHOENEN.indexOf(m.kleur); if (i >= 0) u.schoen = i;
   S.car.hist.push(`${seizoenLabel()}: schoenendeal met ${m.n}`);
-  if (MERKEN.indexOf(m) >= 3) krantMelding(`${sp.naam} tekent bij ${m.n}`, `Het schoenenmerk betaalt hem ${geldTxt(bedrag)} per jaar. ${m.n} werkt alleen met de beste spelers.`);
+  if (MERKEN.indexOf(m) >= 3) krantMelding(`${sp.naam} tekent bij ${m.n}`, `Het schoenenmerk betaalt ${ik.hem} ${geldTxt(bedrag)} per jaar. ${m.n} werkt alleen met de beste ${ik.spelers}.`);
   return `${oud ? `Je verruilt ${oud.merk} voor ${m.n}. ` : ''}Getekend! ${m.n} betaalt je ${geldTxt(bedrag)} per jaar, ${jaren} ${jaren === 1 ? 'seizoen' : 'seizoenen'} lang. Extra: ${m.perkTxt}. Je speelt voortaan op hun schoenen.`;
 }
 // Zelf aanvragen bij een merk

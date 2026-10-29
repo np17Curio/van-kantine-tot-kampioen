@@ -1,5 +1,5 @@
 import { S } from '../core/state.js';
-import { CLUBS, CLUBS_LAND, DIVS, ELITE_ID, ELITE_THUIS, LAAGSTE, NL_CLUBS } from './gegevens.js';
+import { CLUBS, CLUBS_LAND, DIVS, ELITE_ID, ELITE_THUIS, LAAGSTE, NL_CLUBS, WERELD, clubNaam } from './gegevens.js';
 import { BEKERS } from '../game/competitie/beker.js';
 import { KRANTEN } from '../game/media/nieuws.js';
 import { RODDELBLADEN } from '../game/media/roddel.js';
@@ -118,6 +118,14 @@ export const LAND_DATA = {
     kranten:{2:['Sportbote', 'Le Matin Foot', 'Fussballabend TV'], 1:['Sportbote', 'Le Matin Foot', 'Fussballabend TV']},
     roddel:['Klatsch Woche', 'Promi Schweiz', 'Sportbote']}
 };
+// De leagues in het vrouwenvoetbal (de beker heet hetzelfde, met "Vrouwen" erachter)
+export const DIVS_V = {Nederland:['Topdivisie Vrouwen', 'Eerste Divisie Vrouwen'], 'België':['Super League Vrouwen', 'Eerste Nationale Vrouwen'], Engeland:["Women's Super League", "Women's Championship"],
+  Duitsland:['Frauen-Bundesklasse', '2. Frauen-Klasse'], Frankrijk:['Première Ligue', 'Seconde Ligue'], Spanje:['Liga F', 'Primera Federación'], 'Italië':['Serie Prima Femminile', 'Serie Seconda Femminile'],
+  Portugal:['Liga Feminina', 'Segunda Divisão Feminina'], Turkije:['Kadınlar Süper Ligi', 'Kadınlar 1. Ligi'], 'Tsjechië':['První Liga Žen', 'Druhá Liga Žen'], Griekenland:['A Ethniki Gynaikon', 'B Ethniki Gynaikon'],
+  Polen:['Ekstraliga Kobiet', 'I Liga Kobiet'], Denemarken:['Kvindeligaen', 'Kvinde 1. Division'], Noorwegen:['Toppserien', '1. divisjon kvinner'], Zwitserland:['Super League Frauen', 'Nationalliga B Frauen']};
+// De naam van league t (1 of 2) in een land, in de wereld van deze carrière
+export const divNaam = (land, t) => WERELD === 'v' ? (DIVS_V[land] || DIVS_V.Nederland)[t - 1] : land === 'Nederland' ? (NL.divs || DIVS)[t] : (LAND_DATA[land] || {divs:[]}).divs[t - 1];
+export const bekerNaam = land => { const b = land === 'Nederland' || !LAND_DATA[land] ? 'Nationale Beker' : LAND_DATA[land].beker; return WERELD === 'v' ? b + ' Vrouwen' : b; };
 export const BEKER_NAMEN = ['Nationale Beker', ...Object.values(LAND_DATA).map(l => l.beker)];
 export const BEKER_ALT = BEKER_NAMEN.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
 // Nederlandse namen bewaren zodat je kunt terugschakelen
@@ -125,14 +133,14 @@ export const NL = {divs:null, clubs:null, kranten:null, roddel:null};
 export function zetLand(land){
   if (!NL.divs){ NL.divs = DIVS.slice(); NL.clubs = CLUBS.map(c => c.n); NL.kranten = JSON.parse(JSON.stringify(KRANTEN)); NL.roddel = RODDELBLADEN.slice(); }
   const L = LAND_DATA[land] || null;
-  for (let i = 1; i <= LAAGSTE; i++) DIVS[i] = L ? L.divs[i - 1] : NL.divs[i];
-  for (let i = 8; i < CLUBS_LAND; i++) CLUBS[i].n = (L ? L.clubs[i - 8] : NL_CLUBS[i - 8]) || 'Lege plaats';
-  if (ELITE_THUIS[land]) CLUBS[ELITE_ID].n = ELITE_THUIS[land].n; // de oude Elite-club van dit land
+  for (let i = 1; i <= LAAGSTE; i++) DIVS[i] = divNaam(L ? land : 'Nederland', i);
+  for (let i = 8; i < CLUBS_LAND; i++) CLUBS[i].n = clubNaam((L ? L.clubs[i - 8] : NL_CLUBS[i - 8]) || 'Lege plaats');
+  if (ELITE_THUIS[land] && WERELD !== 'v') CLUBS[ELITE_ID].n = ELITE_THUIS[land].n; // de oude Elite-club van dit land (alleen bij de mannen)
   for (let t = 1; t <= LAAGSTE; t++) KRANTEN[t] = (L ? L.kranten[t] : NL.kranten[t]).slice();
   // Internationale kranten, plus de grootste sportkrant van je eigen land
   KRANTEN[0] = NL.kranten[0].map(k => k === 'De Sportkrant' && L ? L.kranten[1][0] : k);
   RODDELBLADEN.splice(0, RODDELBLADEN.length, ...(L ? L.roddel : NL.roddel));
-  BEKERS.nat.naam = L ? L.beker : 'Nationale Beker';
+  BEKERS.nat.naam = bekerNaam(L ? land : 'Nederland');
 }
 export const thuisLand = () => (S && S.land) || 'Nederland';
 export const NL_VRAAG = /Nederland|Nederlandse|5 mei/;

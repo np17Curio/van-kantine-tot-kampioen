@@ -10,5 +10,5 @@ const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++){ h ^=
 export function shirtSponsor(club){
   if (!club || !club.n) return null;
   const l = club.t === 1 || club.t === -1 ? GROOT : LOKAAL;
-  return {naam:l[hash(club.n) % l.length]};
+  return {naam:l[hash(String(club.n).replace(/ Vrouwen$/, '')) % l.length]};
 }

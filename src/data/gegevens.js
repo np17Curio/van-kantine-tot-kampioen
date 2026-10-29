@@ -28,7 +28,34 @@ export const LIGA = {
   Noorwegen:{n:[16, 16], omlaag:2, omhoog:2, po:{soort:'barrage', boven:14, onder:3}},
   Zwitserland:{n:[12, 10], omlaag:1, omhoog:1, po:{soort:'barrage', boven:11, onder:2}},
 };
-export const ligaVan = land => LIGA[land] || LIGA.Nederland;
+// Het vrouwenvoetbal: dezelfde clubs (met " Vrouwen" achter de naam), met het echte aantal clubs per league (vereenvoudigd, 2026/27)
+export const LIGA_V = {
+  Nederland:{n:[12, 12], omlaag:1, omhoog:1, po:{soort:'barrage', boven:11, onder:2}},
+  'België': {n:[10, 12], omlaag:1, omhoog:1, po:{soort:'barrage', boven:9, onder:2}},
+  Engeland: {n:[14, 12], omlaag:1, omhoog:1, po:{soort:'barrage', boven:13, onder:2}},
+  Duitsland:{n:[14, 14], omlaag:2, omhoog:2, po:{soort:'barrage', boven:12, onder:3}},
+  Frankrijk:{n:[12, 12], omlaag:2, omhoog:2, po:{soort:'barrage', boven:10, onder:3}},
+  Spanje:   {n:[16, 16], omlaag:2, omhoog:2, po:{soort:'playoff', van:3, tot:6}},
+  'Italië': {n:[12, 14], omlaag:1, omhoog:1, po:{soort:'barrage', boven:11, onder:2}},
+  Portugal: {n:[12, 12], omlaag:2, omhoog:2, po:{soort:'barrage', boven:10, onder:3}},
+  Turkije:  {n:[14, 12], omlaag:2, omhoog:2, po:{soort:'barrage', boven:12, onder:3}},
+  'Tsjechië':{n:[10, 10], omlaag:1, omhoog:1, po:{soort:'barrage', boven:9, onder:2}},
+  Griekenland:{n:[10, 10], omlaag:1, omhoog:1, po:{soort:'barrage', boven:9, onder:2}},
+  Polen:    {n:[12, 12], omlaag:2, omhoog:2, po:{soort:'barrage', boven:10, onder:3}},
+  Denemarken:{n:[10, 10], omlaag:1, omhoog:1, po:{soort:'barrage', boven:9, onder:2}},
+  Noorwegen:{n:[10, 12], omlaag:1, omhoog:1, po:{soort:'barrage', boven:9, onder:2}},
+  Zwitserland:{n:[10, 10], omlaag:1, omhoog:1, po:{soort:'barrage', boven:9, onder:2}},
+};
+// De wereld van deze carrière ('m' of 'v'). Live: zetWereld (bij een nieuw spel en bij het laden, vóór zetClubs)
+export let WERELD = 'm';
+export function zetWereld(g){ WERELD = g === 'v' ? 'v' : 'm'; zetLandSterkteWereld(); }
+export const isVrouwenWereld = () => WERELD === 'v';
+// Geld in het vrouwenvoetbal: salarissen, transfersommen en budgetten zijn een stuk lager
+export const geldF = () => WERELD === 'v' ? .1 : 1;
+// De naam van een club in deze wereld: in het vrouwenvoetbal het vrouwenteam van die club
+export const clubNaam = n => WERELD === 'v' && n && n !== 'Lege plaats' && !/ Vrouwen$/.test(n) ? n + ' Vrouwen' : n;
+export const zonderVrouwen = n => String(n || '').replace(/ Vrouwen$/, '');
+export const ligaVan = land => (WERELD === 'v' ? LIGA_V[land] || LIGA_V.Nederland : LIGA[land] || LIGA.Nederland);
 export const MAX_LAND = Math.max(...Object.values(LIGA).map(l => l.n[0] + l.n[1])); // zoveel plaatsen voor de clubs van een land (Engeland: 44)
 export const clubsLand = land => 8 + ligaVan(land).n[0] + ligaVan(land).n[1]; // de clubs 8 tot hier spelen in de leagues van dat land
 // Nederlandse clubs, van sterk naar zwak (de andere landen staan in landen.js)
@@ -61,14 +88,21 @@ export const LAND_NIVEAU = {
   Turkije:{t1:[78, 60], t2:[58, 47]}, 'Tsjechië':{t1:[75, 58], t2:[56, 45]}, Griekenland:{t1:[75, 57], t2:[54, 44]}, Polen:{t1:[72, 58], t2:[56, 45]},
   Denemarken:{t1:[73, 57], t2:[55, 45]}, Noorwegen:{t1:[73, 55], t2:[53, 43]}, Zwitserland:{t1:[72, 56], t2:[53, 43]},
 };
-export const niveauVan = land => LAND_NIVEAU[land] || LAND_NIVEAU.Nederland;
+// Het vrouwenvoetbal, naar de UEFA-ranking voor vrouwen (Spanje, Engeland, Frankrijk en Duitsland bovenaan)
+export const LAND_NIVEAU_V = {
+  Spanje:{t1:[88, 62], t2:[60, 48]}, Engeland:{t1:[86, 64], t2:[62, 50]}, Frankrijk:{t1:[85, 60], t2:[58, 47]}, Duitsland:{t1:[84, 62], t2:[60, 48]},
+  Nederland:{t1:[76, 58], t2:[56, 46]}, 'Italië':{t1:[76, 58], t2:[56, 46]}, Noorwegen:{t1:[72, 55], t2:[54, 44]}, Portugal:{t1:[70, 55], t2:[53, 44]},
+  Denemarken:{t1:[70, 54], t2:[52, 43]}, 'België':{t1:[70, 54], t2:[52, 43]}, Zwitserland:{t1:[68, 53], t2:[51, 42]}, 'Tsjechië':{t1:[68, 52], t2:[50, 42]},
+  Polen:{t1:[64, 51], t2:[50, 41]}, Turkije:{t1:[62, 50], t2:[49, 40]}, Griekenland:{t1:[58, 48], t2:[47, 39]},
+};
+export const niveauVan = land => (WERELD === 'v' ? LAND_NIVEAU_V[land] || LAND_NIVEAU_V.Nederland : LAND_NIVEAU[land] || LAND_NIVEAU.Nederland);
 // Startniveau en -sterkte van elke club in een land (LAND_NIVEAU). Door promotie en degradatie verandert dat; de stand van zaken staat in S.clubs
 export function landBasis(land){
   const [n1, n2] = ligaVan(land).n, e = ELITE_THUIS[land], N = niveauVan(land);
   const b = CLUBS.map((c, i) => i < 8 ? [-1, [90, 88, 86, 85, 83, 82, 80, 79][i]] : i >= GAST_START ? [-1, 75] : [-2, 40]);
   for (let k = 0; k < n1; k++) b[8 + k] = [1, Math.round(N.t1[0] - k * (N.t1[0] - N.t1[1]) / (n1 - 1))];
   for (let k = 0; k < n2; k++) b[8 + n1 + k] = [2, Math.round(N.t2[0] - k * (N.t2[0] - N.t2[1]) / (n2 - 1))];
-  if (e) b[ELITE_ID] = [1, e.s];
+  if (e && WERELD !== 'v') b[ELITE_ID] = [1, e.s]; // (de oude Elite-club: alleen bij de mannen)
   return b;
 }
 export const CLUBS_BASIS = landBasis('Nederland');
@@ -108,6 +142,8 @@ export const MOMENT_POOL = {
 export const TEAMGENOTEN = ['De Vries','Bakker','El Amrani','Jansen','Mulder','Bosman','Kaya','Visser','Smit','Mendes','Van Dijkhuizen','Okafor','Hendriks','Yilmaz'];
 export const TEGENSTANDERS = ['Van Leeuwen','Hoekstra','Dekker','Brouwer','Peters','Willems','Koster','Postma','Lindqvist','Moreno','Rossi','Kowalski','Haddad','Fischer','Nkosi','Carvalho'];
 export const MEIDEN = ['Sanne','Lotte','Noa','Yara','Fleur','Mila','Lina','Emma','Sara','Imane','Julia','Zoë'];
+export const JONGENS_LIEF = ['Thomas','Jesse','Lars','Tim','Joris','Bas','Rick','Stijn','Koen','Youssef','Niels','Mats'];
+export const liefNamen = vrouw => vrouw ? MEIDEN : JONGENS_LIEF; // (namen voor een vriendin of een vriend)
 // Status bij je club: punten (0-100) uit prestaties, plus tijd bij de club
 export const STATUS = [
   {min:0,  n:'Nieuwkomer'},
@@ -133,6 +169,15 @@ export const LANDEN = [
   {n:'Kaapverdië',s:67},{n:'Curaçao',s:63},{n:'Suriname',s:61},{n:'Indonesië',s:59}
 ];
 export const LANDEN_LIJST = ['Nederland', ...LANDEN.map(l => l.n).filter(n => n !== 'Nederland').sort((a, b) => a.localeCompare(b, 'nl'))];
+// De nationale teams bij de vrouwen (de sterkte; landen die er niet in staan houden hun sterkte)
+export const LAND_S_V = {Nederland:84, 'België':77, Duitsland:88, Frankrijk:86, Spanje:90, Engeland:89, Portugal:76, 'Italië':80, 'Brazilië':84, 'Argentinië':72, 'Kroatië':66, Marokko:70,
+  Turkije:64, Senegal:60, Japan:85, Polen:72, Nigeria:74, Ghana:66, 'Kaapverdië':55, 'Curaçao':52, Suriname:50, 'Indonesië':50, Zwitserland:76, Denemarken:80, Noorwegen:80, 'Tsjechië':72, Griekenland:62,
+  Oostenrijk:76, Schotland:75, 'Servië':70, 'Oekraïne':70, Zweden:87, Wales:73, Hongarije:66, Uruguay:64, Colombia:76, Ecuador:62, Chili:70, Paraguay:66, Peru:58, Venezuela:66, Bolivia:54,
+  Egypte:58, Algerije:62, Ivoorkust:62, Kameroen:68, 'Tunesië':60, Mali:58, 'Zuid-Afrika':72, 'DR Congo':58, 'Zuid-Korea':76, Iran:62, 'Australië':82, 'Saoedi-Arabië':50, Qatar:50, Irak:50,
+  Oezbekistan:62, China:79, Vietnam:68, 'Verenigde Staten':90, Mexico:74, Canada:83, Panama:64, 'Costa Rica':68, Jamaica:70, Honduras:55, 'Haïti':64};
+export const nationS = (n, s) => WERELD === 'v' && LAND_S_V[n] != null ? LAND_S_V[n] : s;
+const LANDEN_M = LANDEN.map(l => l.s);
+function zetLandSterkteWereld(){ LANDEN.forEach((l, i) => { l.s = nationS(l.n, LANDEN_M[i]); }); }
 export const landInfo = n => LANDEN.find(l => l.n === n) || {n, s:70};
 export const AGENT = 'Rik Verbeek';
 export const WINKEL_GROEPEN = ['Training en gezondheid', 'Lifestyle', 'Groot geld'];

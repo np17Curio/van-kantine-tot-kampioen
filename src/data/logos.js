@@ -50,7 +50,7 @@ export function initialen(naam){
 }
 export function logoOnderdelen(id){
   const c = CLUBS[id]; if (!c) return null;
-  const naam = c.n.replace(/ O19$/, ''), h = hash('logo|' + naam), t = clubTenue(id);
+  const naam = c.n.replace(/ O19$/, '').replace(/ Vrouwen$/, ''), h = hash('logo|' + naam), t = clubTenue(id);
   const symbool = (WOORD_SYMBOOL.find(([r]) => r.test(naam)) || [null, ['ster', 'bal', 'ster', 'kroon', 'bliksem'][h % 5]])[1];
   return {naam, vorm:VORM_NAMEN[(h >>> 3) % VORM_NAMEN.length], symbool, ini:initialen(naam), jaar:1890 + (h >>> 9) % 116, t};
 }

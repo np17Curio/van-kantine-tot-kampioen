@@ -10,7 +10,8 @@ import { nieuweWeek, weekHerstel } from '../week.js';
 import { fmt1, gemiddelde } from './o23.js';
 import { startIntro } from './startverhaal.js';
 import { statusNiveau, startStatus } from './status.js';
-import { inVerhaal, openHoofdstuk, plaatsVriend, vriendNaam, vriendPos } from './journey.js';
+import { inVerhaal, openHoofdstuk, plaatsVriend, vriendApart, vriendNaam, vriendPos } from './journey.js';
+import { andereWereldClub, andereWereldIds } from '../transfers/buitenland.js';
 
 /* ===================== Selectiewedstrijden: waar begint je carrière? ===================== */
 // Een nieuwe carrière begint met 3 selectiewedstrijden tegen leeftijdsgenoten. Je gemiddelde cijfer bepaalt waar je tekent:
@@ -50,7 +51,7 @@ export function eindeSelectie(){
   ranglijstNa(M.vriendGoals || 0);
   const r = mijnPlek(), n = Sel.cijfers.length;
   M.selTekst = `Je cijfers tot nu toe: ${Sel.cijfers.map(fmt1).join(' · ')} (gemiddeld ${fmt1(gemiddelde(Sel.cijfers))}). Bij de ${r.meerv} sta je nu op plek ${r.plek} van ${r.van}${r.plek <= RANG_TOP ? `: in de top ${RANG_TOP}, daar kijken de grote clubs mee!` : '.'}`
-    + (S.sp.vriend ? ` ${vriendNaam()} staat bij de ${r.vriendMeerv} op plek ${r.vriendPlek} van ${r.vriendVan}.` : '') + (n < SELECTIE_WED ? ` Nog ${SELECTIE_WED - n} ${SELECTIE_WED - n === 1 ? 'wedstrijd' : 'wedstrijden'}.` : '');
+    + (S.sp.vriend && !vriendApart() ? ` ${vriendNaam()} staat bij de ${r.vriendMeerv} op plek ${r.vriendPlek} van ${r.vriendVan}.` : '') + (n < SELECTIE_WED ? ` Nog ${SELECTIE_WED - n} ${SELECTIE_WED - n === 1 ? 'wedstrijd' : 'wedstrijden'}.` : '');
   if (n >= SELECTIE_WED){ const gr = selectieGroei(); if (gr) M.selTekst += ' ' + gr; Sel.bods = maakSelectieBods(gemiddelde(Sel.cijfers)); } // (eerst je nieuwe klasse, dan de aanbiedingen)
   S.fase = 'matchEnd';
 }
@@ -71,10 +72,10 @@ const RANG_NAMEN = ['T. Dijkstra', 'K. Mensah', 'L. Peeters', 'J. Kramer', 'R. A
 const RANG_POS = ['KEEPER', 'KEEPER', 'KEEPER', 'VERD', 'VERD', 'VERD', 'VERD', 'VERD', 'MID', 'MID', 'MID', 'MID', 'MID', 'SPITS', 'SPITS', 'SPITS', 'SPITS', 'SPITS'];
 export const POS_MEERV = {SPITS:'spitsen', MID:'middenvelders', VERD:'verdedigers', KEEPER:'keepers'};
 export const RANG_TOP = 3; // de top 3 van je positie: daar kijken de grote clubs mee
-export const rangStart = () => RANG_POS.filter(p => p === S.sp.pos).length + (vriendPos() === S.sp.pos ? 1 : 0) + 1; // je begint onderaan je positie
+export const rangStart = () => RANG_POS.filter(p => p === S.sp.pos).length + (vriendPos() === S.sp.pos && !vriendApart() ? 1 : 0) + 1; // je begint onderaan je positie
 export const RANG_START = 15; // (oude naam, voor wie hem nog gebruikt)
 export function maakRanglijst(){
-  const v = S.sp.vriend;
+  const v = vriendApart() ? null : S.sp.vriend; // (een vriend(in) van het andere geslacht doet mee aan andere selectiedagen)
   return RANG_NAMEN.map((n, i) => ({n, pos:RANG_POS[i], cijfers:[], basis:6.2 + rnd() * .5})).concat(v ? [{n:`${v.v}. ${v.n}`, pos:vriendPos(), cijfers:[], basis:6.75 + (v.k - ovr(S.sp)) * .04, vriend:true}] : []);
 }
 // vriendGoals: de goals van je vriend uit jouw assists (elk +0,5 op zijn cijfer: zo help je hem in de top van zijn positie)
@@ -94,7 +95,7 @@ export function ranglijst(pos = S.sp.pos){
 // Jouw plek bij jouw positie, en die van je vriend bij de zijne
 export function mijnPlek(){
   const l = ranglijst(), n = POS_MEERV[S.sp.pos]; if (!l) return {plek:rangStart(), van:rangStart(), vriendPlek:null, meerv:n};
-  const lv = S.sp.vriend ? ranglijst(vriendPos()) : null;
+  const lv = S.sp.vriend && !vriendApart() ? ranglijst(vriendPos()) : null;
   return {plek:l.findIndex(x => x.jij) + 1, van:l.length, vriendPlek:lv ? lv.findIndex(x => x.vriend) + 1 || null : null, vriendVan:lv ? lv.length : null, meerv:n, vriendMeerv:POS_MEERV[vriendPos()]};
 }
 const vriendGem = () => { const x = (S.selectie.rang || []).find(y => y.vriend); return x && x.cijfers.length ? gemiddelde(x.cijfers) : null; };
@@ -130,7 +131,9 @@ export function maakSelectieBods(g){
   bods.forEach(x => { const c = CLUBS[x.club]; x.salaris = Math.round(salarisVoor(c.t, o, c.s) * (x.o23 ? .5 : 1) * jong * (.9 + rnd() * .25) / 100) * 100; x.jaren = x.o23 ? 2 : randInt(2, 3); x.quote = scoutQuote(x); });
   // Je vriend: op jouw niveau (of hoger) tekent hij vaak bij een van jouw clubs, anders bij een club van zijn eigen niveau
   const vg = vriendGem();
-  if (S.sp.vriend && vg != null){
+  // (een vriend(in) van het andere geslacht: een club van zijn/haar niveau in de andere wereld)
+  if (S.sp.vriend && vriendApart()){ const v = S.sp.vriend, l = [1, 2].flatMap(t => andereWereldIds(thuisLand(), t)).map(i => [i, andereWereldClub(thuisLand(), i).s]).sort((a, b) => Math.abs(a[1] - v.k - 4) - Math.abs(b[1] - v.k - 4)); if (l.length) S.selectie.vriendClub = {club:pick(l.slice(0, 3))[0], o23:false}; }
+  else if (S.sp.vriend && vg != null){
     const vb = band(vg);
     if (vb <= b && rnd() < .6){ const x = pick(bods); S.selectie.vriendClub = {club:x.club, o23:vb === 2 && x.o23}; }
     else { const l = vb === 0 ? top : twee; S.selectie.vriendClub = {club:l[clamp(Math.floor((vg - 4.5) / 4.5 * l.length), 0, l.length - 1)], o23:vb === 2}; }

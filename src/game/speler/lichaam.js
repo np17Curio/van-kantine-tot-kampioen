@@ -7,12 +7,19 @@ import { S } from '../../core/state.js';
 export const LENGTES = [165, 170, 175, 180, 185, 190, 195, 200];
 export const BOUW = [{id:'tenger', n:'Tenger', bmi:20}, {id:'normaal', n:'Normaal', bmi:22.5}, {id:'stevig', n:'Stevig', bmi:25}, {id:'zwaar', n:'Zwaar', bmi:27.5}];
 export const STANDAARD_LENGTE = {SPITS:182, MID:177, VERD:186, KEEPER:190};
+// Speelsters: andere lengtes, en de effecten gaan uit van 1,70 m in plaats van 1,80 m
+export const LENGTES_V = [155, 160, 165, 170, 175, 180, 185, 190];
+export const STANDAARD_LENGTE_V = {SPITS:170, MID:166, VERD:173, KEEPER:178};
+export const lengtesVoor = vrouw => vrouw ? LENGTES_V : LENGTES;
+export const standaardLengte = (pos, vrouw) => (vrouw ? STANDAARD_LENGTE_V : STANDAARD_LENGTE)[pos] || (vrouw ? 170 : 180);
+const refLengte = L => (L && L.vrouw !== undefined ? L.vrouw : S && S.wereld === 'v') ? 170 : 180;
 export const gewichtVan = (lengte, bmi) => Math.round(bmi * (lengte / 100) ** 2);
 export const lengteTxt = l => (l / 100).toFixed(2).replace('.', ',') + ' m';
 // Zonder keuze (oude opslag): 1,80 m en normaal, dus geen effect
-export function lichaam(sp = S && S.sp){ const u = sp && sp.uiterlijk; return {lengte:(u && u.lengte) || 180, bmi:(u && u.bmi) || 22.5}; }
+export function lichaam(sp = S && S.sp){ const u = sp && sp.uiterlijk, v = !!(sp && sp.vrouw); return {lengte:(u && u.lengte) || (v ? 170 : 180), bmi:(u && u.bmi) || 22.5, vrouw:v}; }
 export function lichaamEffecten(L = lichaam()){
-  return {kop:(L.lengte - 180) * .004, snel:(180 - L.lengte) * .002 + (22.5 - L.bmi) * .01, duel:(L.bmi - 22.5) * .012, stamina:(L.bmi - 22.5) * .015};
+  const r = refLengte(L);
+  return {kop:(L.lengte - r) * .004, snel:(r - L.lengte) * .002 + (22.5 - L.bmi) * .01, duel:(L.bmi - 22.5) * .012, stamina:(L.bmi - 22.5) * .015};
 }
 const KOP = ['kopduel', 'corner', 'verdCorner'], SNEL = ['counter', 'diepteBal', 'eenOpEen'], DUEL = ['tackle', 'verdedigen', 'opstootje'];
 // Plus of min op de slagingskans van een actie (type: het soort moment)

@@ -23,6 +23,7 @@ import { bandLabel } from '../../game/speler/rivaal.js';
 import { gewichtVan, lengteTxt, lichaam } from '../../game/speler/lichaam.js';
 import { vHistorie } from '../../game/seizoen/historie.js';
 import { OORDEEL, besteLeagues, mijnLeague } from '../../game/speler/niveau.js';
+import { vr } from '../../core/geslacht.js';
 
 export function balk(l, v, cls = ''){ return `<div class="balk ${cls}"><span>${l}</span><span class="b"><i style="width:${clamp(v, 0, 100)}%"></i></span><span class="v">${Math.round(v)}</span></div>`; }
 export function vStatus(){
@@ -133,7 +134,7 @@ function vVerhaal(){
     <div class="toonmeter" title="Kalme keuzes: de trainer vertrouwt je meer. Felle keuzes: de fans houden van je vuur."><span>🧊 Rustig</span><span class="b"><i style="left:${(t + 100) / 2}%"></i></span><span>Heethoofd 🔥</span></div>
     ${v ? (() => { const st = vriendStats(); return `<p class="muted klein-tekst">Jij ${S.ss.g || 0} G · ${S.ss.a || 0} A · klasse ${ovr(sp)} — ${esc(v.voornaam)} ${st.g} G · ${st.a} A · klasse ${vriendKlasse()}</p>`; })() : ''}
     ${(() => { const k = karakter(); return `<p class="klein-tekst karaktereffect" title="${esc(k.veld + ' ' + k.buiten)}">${k.i} <b>${k.n}</b>: ${esc(k.veld)} ${esc(k.buiten)}</p>`; })()}
-    <p class="muted klein-tekst">Karakter: <b>${toonLabel()}</b>${b !== null ? ` · ${v.weg ? 'ex-vriend' : 'jeugdvriend'} ${esc(v.voornaam)}: ${v.weg ? bandLabel(b).toLowerCase() : b >= 60 ? 'beste vrienden' : b >= 20 ? 'goede vrienden' : 'het schuurt'}${!v.weg && vriendClubNaam() ? (bijJou() ? ' (jouw club)' : ` (${esc(vriendClubNaam())})`) : ''}` : ''}</p></div>`;
+    <p class="muted klein-tekst">Karakter: <b>${toonLabel()}</b>${b !== null ? ` · ${v.weg ? 'ex-' + vr.vriend + '' : '' + vr.jeugdvriend + ''} ${esc(v.voornaam)}: ${v.weg ? bandLabel(b).toLowerCase() : b >= 60 ? 'beste vrienden' : b >= 20 ? 'goede vrienden' : 'het schuurt'}${!v.weg && vriendClubNaam() ? (bijJou() ? ' (jouw club)' : ` (${esc(vriendClubNaam())})`) : ''}` : ''}</p></div>`;
 }
 export function vZij(){
   const sp = S.sp, c = club(), gem = gemCijfer(), st = stand(c.t);
@@ -158,7 +159,7 @@ export function vZij(){
         <div><span class="label">Gem. cijfer</span><b>${gem === null ? '–' : gem.toFixed(1).replace('.', ',')}</b></div>
       </div>
       <div><span class="label">Privé</span><div>${prive}</div></div>
-      ${sp.blessure > 0 ? `<p style="color:var(--fout)">Geblesseerd: nog ${sp.blessure} ${sp.blessure === 1 ? 'week' : 'weken'}</p>` : ''}
+      ${sp.blessure > 0 ? `<p style="color:var(--fout)">${sp.verlof ? 'Zwangerschapsverlof' : 'Geblesseerd'}: nog ${sp.blessure} ${sp.blessure === 1 ? 'week' : 'weken'}</p>` : ''}
     </div>`;
   const leeg = t => `<div class="kaart"><p class="muted">${t}</p></div>`;
   const tabs = {

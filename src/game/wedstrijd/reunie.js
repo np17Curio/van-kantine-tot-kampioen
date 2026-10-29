@@ -13,6 +13,7 @@ import { ck } from '../transfers/buitenland.js';
 import { fans, modFans, zetFans } from './fans-pers.js';
 import { focusBoost } from './momenten.js';
 import { stand2 } from './wedstrijd.js';
+import { ik } from '../../core/geslacht.js';
 
 /* ===================== Weerzien met je oude club ===================== */
 // Bij een transfer onthoudt de game hoe je vertrok en je band met je teamgenoten daar
@@ -42,7 +43,7 @@ export function reuniePers(fel){
   const sp = S.sp, w = S.week, fx = fixture(S.ronde); if (!fx) return; const opp = fx.opp, R = reunieMet(opp); if (!R || w.reuniePers) return;
   w.reuniePers = fel ? 'fel' : 'rustig';
   if (fel){ modFans(-8, opp); social().volgers += Math.round(40 + social().volgers * .02);
-    if (club().t <= 3) krantMelding(`${sp.naam}: "Ik ga ${CLUBS[opp].n} laten zien wat ze missen"`, `Voor het weerzien met zijn oude club is ${sp.naam} strijdlustig. Bij ${CLUBS[opp].n} reageren ze verbaasd.`);
+    if (club().t <= 3) krantMelding(`${sp.naam}: "Ik ga ${CLUBS[opp].n} laten zien wat ze missen"`, `Voor het weerzien met ${ik.zijn} oude club is ${sp.naam} strijdlustig. Bij ${CLUBS[opp].n} reageren ze verbaasd.`);
     w.reunieTekst = `Je zegt het hardop in de krant. Je bent extra gemotiveerd, maar bij ${CLUBS[opp].n} zijn ze er niet blij mee (oude fans −8).`; }
   else { focusBoost(2); w.reunieTekst = '"Ik heb ze niks te bewijzen. Ik heb daar een mooie tijd gehad." Een rustig antwoord. Focus +2.'; }
 }
@@ -82,12 +83,12 @@ export function reunieNaWedstrijd(M, speelde){
   if (speelde) x.goals += M.goals;
   const naam = CLUBS[R.club].n, wij = club().n;
   let kop, tekst;
-  if (M.juich === 'ssst'){ kop = `Ssst! ${sp.naam} legt oude fans van ${naam} het zwijgen op`; tekst = `Na zijn doelpunt hield hij zijn vinger voor zijn mond, recht voor het vak van zijn oude club. Bij ${naam} zijn ze woedend.`; }
-  else if (M.juich === 'respect'){ kop = `Respect: ${sp.naam} juicht niet tegen ${naam}`; tekst = `Hij scoorde tegen zijn oude club, maar hief zijn handen verontschuldigend op. Het oude publiek gaf hem applaus.`; }
-  else if (M.juich === 'wild'){ kop = `${sp.naam} viert feest voor neus van oude club`; tekst = `Na zijn goal rende hij juichend naar het vak van ${naam}. De supporters daar konden het niet waarderen.`; }
-  else if (speelde && M.goals) { kop = `${sp.naam} scoort tegen zijn oude club`; tekst = `Het weerzien met ${naam} eindigde in ${stand2()}.`; }
-  else if (R.ontvangst === 'ovatie' || R.ontvangst === 'applaus'){ kop = `Warm weerzien voor ${sp.naam} bij ${naam}`; tekst = `Het publiek van zijn oude club ontving hem met applaus. Uitslag: ${stand2()}.`; }
-  else if (R.ontvangst === 'fluit'){ kop = `${sp.naam} uitgefloten bij weerzien met ${naam}`; tekst = `De supporters van zijn oude club zijn hem nog niet vergeten. Uitslag: ${stand2()}.`; }
+  if (M.juich === 'ssst'){ kop = `Ssst! ${sp.naam} legt oude fans van ${naam} het zwijgen op`; tekst = `Na ${ik.zijn} doelpunt hield ${ik.hij} ${ik.zijn} vinger voor ${ik.zijn} mond, recht voor het vak van ${ik.zijn} oude club. Bij ${naam} zijn ze woedend.`; }
+  else if (M.juich === 'respect'){ kop = `Respect: ${sp.naam} juicht niet tegen ${naam}`; tekst = `${ik.Hij} scoorde tegen ${ik.zijn} oude club, maar hief ${ik.zijn} handen verontschuldigend op. Het oude publiek gaf ${ik.hem} applaus.`; }
+  else if (M.juich === 'wild'){ kop = `${sp.naam} viert feest voor neus van oude club`; tekst = `Na ${ik.zijn} goal rende ${ik.hij} juichend naar het vak van ${naam}. De supporters daar konden het niet waarderen.`; }
+  else if (speelde && M.goals) { kop = `${sp.naam} scoort tegen ${ik.zijn} oude club`; tekst = `Het weerzien met ${naam} eindigde in ${stand2()}.`; }
+  else if (R.ontvangst === 'ovatie' || R.ontvangst === 'applaus'){ kop = `Warm weerzien voor ${sp.naam} bij ${naam}`; tekst = `Het publiek van ${ik.zijn} oude club ontving ${ik.hem} met applaus. Uitslag: ${stand2()}.`; }
+  else if (R.ontvangst === 'fluit'){ kop = `${sp.naam} uitgefloten bij weerzien met ${naam}`; tekst = `De supporters van ${ik.zijn} oude club zijn ${ik.hem} nog niet vergeten. Uitslag: ${stand2()}.`; }
   else { kop = `${wij} tegen ${naam}: weerzien voor ${sp.naam}`; tekst = `Uitslag: ${stand2()}.`; }
   M.reunieKop = {kop, tekst};
 }

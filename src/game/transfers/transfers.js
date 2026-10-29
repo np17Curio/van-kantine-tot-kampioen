@@ -23,6 +23,7 @@ import { partnerKans, startBuitenland, thuis as thuisStart } from '../prive/buit
 import { vriendBodVenster } from '../speler/journey.js';
 import { eersteSeizoen } from './vertrek.js';
 import { clubAfscheid } from './clubafscheid.js';
+import { ik } from '../../core/geslacht.js';
 
 /* ===================== Transfers ===================== */
 export function transferScore(){
@@ -180,17 +181,17 @@ export function wissel(o, hoe){
   const nieuw = CLUBS[o.club], terugNaar = (sp.oudeClubs || {})[ck(o.club)];
   sp.transferlijst = false;
   sp.club = o.club; sp.vert = sp.imago > 0 ? 35 : 45; mod('moraal', 10); sp.clausule = null;
-  if (sp.ontbonden){ sp.ontbonden = false; sp.naOntbinding = true; krantMelding(`Nieuwe kans voor ${sp.naam} bij ${nieuw.n}`, `Na de ontbinding bij ${oud.n} krijgt hij een tweede kans. "Hij weet dat dit zijn laatste kans is," zegt de trainer.`); }
+  if (sp.ontbonden){ sp.ontbonden = false; sp.naOntbinding = true; krantMelding(`Nieuwe kans voor ${sp.naam} bij ${nieuw.n}`, `Na de ontbinding bij ${oud.n} krijgt ${ik.hij} een tweede kans. "${ik.Hij} weet dat dit ${ik.zijn} laatste kans is," zegt de trainer.`); }
   sp.salaris = o.salaris; sp.contract = o.jaren; sp.sindsTransfer = 0; sp.huurTerug = false;
   if (landWissel && S.venster && S.venster.soort === 'winter') teksten.push(winterInhalen()); // midden in het seizoen naar een ander land
   S.car.clubs.push({club:o.club, van:S.jaar, land:thuisLand(), n:nieuw.n});
   if (landWissel){ S.car.hist.push(`${seizoenLabel()}: verhuisd van ${oudLand} naar ${o.land}`); teksten.push(`Je verhuist naar ${o.land}! Je speelt voortaan in de ${DIVS[nieuw.t]}.`);
     if (pers('heimwee')){ mod('moraal', -pers('heimwee')); teksten.push('Je mist je familie nu al. De eerste weken in een nieuw land zijn zwaar.'); }
-    if (o.land === (S.startLand || 'Nederland')) krantMelding(`${sp.naam} keert terug naar ${o.land}`, `Na zijn avontuur in ${oudLand} speelt hij weer in eigen land, bij ${nieuw.n}.`, KRANTEN[0]);
-    else krantMelding(`${sp.naam} kiest voor avontuur in ${o.land}`, `De speler van ${oud.n} tekent bij ${nieuw.n}. "Ik wil een nieuwe uitdaging," zegt hij.`, KRANTEN[0]);
+    if (o.land === (S.startLand || 'Nederland')) krantMelding(`${sp.naam} keert terug naar ${o.land}`, `Na ${ik.zijn} avontuur in ${oudLand} speelt ${ik.hij} weer in eigen land, bij ${nieuw.n}.`, KRANTEN[0]);
+    else krantMelding(`${sp.naam} kiest voor avontuur in ${o.land}`, `De ${ik.speler} van ${oud.n} tekent bij ${nieuw.n}. "Ik wil een nieuwe uitdaging," zegt ${ik.hij}.`, KRANTEN[0]);
     if (sp.agent && sp.agent.doel != null && !naarDoel) agentReset(`Je speelt nu in ${o.land}. Heb je hier een droomclub? Zeg het maar.`); }
   const prijs = o.som ? ` voor ${geldTxt(o.som)}` : '';
-  if (los) S.car.hist.push(`${seizoenLabel()}: na ${los.weken} ${los.weken === 1 ? 'week' : 'weken'} zonder club tekent hij bij ${nieuw.n}`);
+  if (los) S.car.hist.push(`${seizoenLabel()}: na ${los.weken} ${los.weken === 1 ? 'week' : 'weken'} zonder club tekent ${ik.hij} bij ${nieuw.n}`);
   else if (hoe === 'weg') S.car.hist.push(`${seizoenLabel()}: weggestuurd bij ${oud.n} → ${nieuw.n}`);
   else if (hoe === 'gekocht' || hoe === 'geforceerd') S.car.hist.push(`${seizoenLabel()}: gekocht door ${nieuw.n}${prijs} (van ${oud.n})`);
   else if (hoe === 'droom') S.car.hist.push(`${seizoenLabel()}: droomtransfer naar ${nieuw.n}${prijs}, geregeld door je zaakwaarnemer`);
@@ -202,11 +203,11 @@ export function wissel(o, hoe){
   sp.statusNiveau = statusNiveau();
   teksten.push(`Je bent nu speler van ${nieuw.n}.${o.som ? ` De transfersom is ${geldTxt(o.som)}.` : ''}`);
   if (sp.naOntbinding) sp.naOntbinding = false;
-  else if (los) krantMelding(`${sp.naam} heeft weer een club`, `Na ${los.weken} ${los.weken === 1 ? 'week' : 'weken'} zonder club tekent hij bij ${nieuw.n} (${DIVS[nieuw.t]}). "Ik heb elke dag alleen getraind. Nu wil ik laten zien dat ik er nog ben."`, KRANTEN[Math.min(nieuw.t, LAAGSTE)]);
+  else if (los) krantMelding(`${sp.naam} heeft weer een club`, `Na ${los.weken} ${los.weken === 1 ? 'week' : 'weken'} zonder club tekent ${ik.hij} bij ${nieuw.n} (${DIVS[nieuw.t]}). "Ik heb elke dag alleen getraind. Nu wil ik laten zien dat ik er nog ben."`, KRANTEN[Math.min(nieuw.t, LAAGSTE)]);
   else transferNieuws(hoe, oud, nieuw, o);
   if (terugNaar){ const f = fans(o.club);
-    if (f >= 55){ teksten.push(`Je keert terug bij ${nieuw.n}! De fans zijn dolblij.`); krantMelding(`De verloren zoon keert terug: ${sp.naam} weer bij ${nieuw.n}`, `De supporters hangen al een spandoek op: "Welkom thuis!"`); }
-    else { teksten.push(`Je keert terug bij ${nieuw.n}. Niet iedereen is daar blij mee.`); krantMelding(`Omstreden terugkeer van ${sp.naam} bij ${nieuw.n}`, `Een deel van de supporters is zijn vertrek nog niet vergeten.`); } }
+    if (f >= 55){ teksten.push(`Je keert terug bij ${nieuw.n}! De fans zijn dolblij.`); krantMelding(`De verloren ${ik.zoon} keert terug: ${sp.naam} weer bij ${nieuw.n}`, `De supporters hangen al een spandoek op: "Welkom thuis!"`); }
+    else { teksten.push(`Je keert terug bij ${nieuw.n}. Niet iedereen is daar blij mee.`); krantMelding(`Omstreden terugkeer van ${sp.naam} bij ${nieuw.n}`, `Een deel van de supporters is ${ik.zijn} vertrek nog niet vergeten.`); } }
   if (naarRivaal){ teksten.push(`Je stapt over naar de aartsrivaal! De fans van ${oud.n} verbranden je shirt. Bij ${nieuw.n} moeten ze je ook nog leren vertrouwen.`); krantMelding(`Verrader! ${sp.naam} kiest voor aartsrivaal ${nieuw.n}`, `Bij ${oud.n} zijn ze woedend. Supporters hingen een spandoek op: "Nooit meer welkom".`); }
   if (sp.statusNiveau >= 3) teksten.push('De fans kennen je al: je bent meteen een fanfavoriet!');
   else if (sp.statusNiveau === 2) teksten.push('De trainer ziet je meteen als vaste waarde.');
@@ -229,9 +230,9 @@ export function transferNieuws(hoe, oud, nieuw, o){
   let kop, tekst;
   if (hoe === 'geforceerd'){ kop = `${naam} forceert transfer naar ${nieuw.n}`; tekst = `${oud.n} gaf uiteindelijk toe${som ? ` voor ${som}` : ''}. De supporters van ${oud.n} zijn woedend.`; }
   else if (hoe === 'gekocht'){ kop = som ? `${nieuw.n} betaalt ${som} voor ${naam}` : `${nieuw.n} haalt ${naam} bij ${oud.n}`; tekst = `${naam} komt over van ${oud.n}${o.jaren ? ` en tekent voor ${jaren}` : ''}`; }
-  else if (hoe === 'droom'){ kop = `Droomtransfer: ${naam} tekent bij ${nieuw.n}`; tekst = `Zijn zaakwaarnemer ${AGENT} regelde de overstap van ${oud.n}${som ? ` voor ${som}` : ''}`; }
-  else if (hoe === 'weg'){ kop = `${oud.n} zet ${naam} op straat`; tekst = `Hij vindt een nieuwe club: ${nieuw.n} (${DIVS[nieuw.t]}).`; }
-  else { kop = `${naam} verruilt ${oud.n} voor ${nieuw.n}`; tekst = `${o.jaren ? `Hij tekent voor ${jaren}` : 'Hij tekent een contract'}${som ? `, de transfersom is ${som}` : ''}`; }
+  else if (hoe === 'droom'){ kop = `Droomtransfer: ${naam} tekent bij ${nieuw.n}`; tekst = `${ik.Zijn} zaakwaarnemer ${AGENT} regelde de overstap van ${oud.n}${som ? ` voor ${som}` : ''}`; }
+  else if (hoe === 'weg'){ kop = `${oud.n} zet ${naam} op straat`; tekst = `${ik.Hij} vindt een nieuwe club: ${nieuw.n} (${DIVS[nieuw.t]}).`; }
+  else { kop = `${naam} verruilt ${oud.n} voor ${nieuw.n}`; tekst = `${o.jaren ? `${ik.Hij} tekent voor ${jaren}` : '' + ik.Hij + ' tekent een contract'}${som ? `, de transfersom is ${som}` : ''}`; }
   krantMelding(kop, tekst, KRANTEN[Math.min(nieuw.t, oud.t)]);
 }
 export function teken(o){

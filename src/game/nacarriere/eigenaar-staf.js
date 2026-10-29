@@ -7,10 +7,11 @@ import { krantMelding } from '../media/roddel.js';
 import { herschik, noteerDeal } from '../transfers/markt.js';
 import { prijs } from '../trainer/transfers.js';
 import { BUDGET_REF } from './eigenaar.js';
+import { geldF } from '../../data/gegevens.js';
 
 /* ===================== Clubeigenaar: trainer, assistent, sponsors en transfers ===================== */
 const r1k = x => Math.round(x / 1000) * 1000;
-const E0 = () => S.eigenaar, mijnClub = () => CLUBS[S.eigenaar.club], ref = () => BUDGET_REF[mijnClub().t];
+const E0 = () => S.eigenaar, mijnClub = () => CLUBS[S.eigenaar.club], ref = () => BUDGET_REF[mijnClub().t] * geldF();
 
 // ---------- Trainers ----------
 // Hoe aantrekkelijk is je club voor een trainer: sterkte, de hoogste league, de fans en het stadion.

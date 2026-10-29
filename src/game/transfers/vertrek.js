@@ -8,6 +8,7 @@ import { statusNiveau, statusPunten } from '../speler/status.js';
 import { iedereen } from '../team/kleedkamer.js';
 import { modFans } from '../wedstrijd/fans-pers.js';
 import { kans } from '../wedstrijd/momenten.js';
+import { ik } from '../../core/geslacht.js';
 
 /* ===================== Vertrekverzoek midden in het seizoen ===================== */
 // Na 2 wedstrijden bij je club mag je zeggen dat je weg wilt. Gaat de club akkoord, dan sta je op de transferlijst
@@ -27,7 +28,7 @@ export function vraagVertrek(){
   if (rnd() < vertrekKans()){
     sp.transferlijst = true; sp.transferWens = true; mod('vert', -5); statusPunten(-3); modFans(-5);
     w.tekst.push(`Je loopt het kantoor van de technisch directeur binnen: "Ik wil weg." Hij zucht, maar gaat akkoord. Je staat op de transferlijst. Bij ${tijdTotVenster()} mag je vertrekken. Tot die tijd speel je gewoon voor ${c.n}.`);
-    if (c.t <= 3) krantMelding(`${sp.naam} op de transferlijst bij ${c.n}`, `De speler heeft aangegeven dat hij wil vertrekken. De club werkt mee. Clubs kunnen zich melden bij ${tijdTotVenster().replace(/ \(.*/, '')}.`);
+    if (c.t <= 3) krantMelding(`${sp.naam} op de transferlijst bij ${c.n}`, `De ${ik.speler} heeft aangegeven dat ${ik.hij} wil vertrekken. De club werkt mee. Clubs kunnen zich melden bij ${tijdTotVenster().replace(/ \(.*/, '')}.`);
     return;
   }
   S.ss.vertrekWacht = S.ronde + 3;

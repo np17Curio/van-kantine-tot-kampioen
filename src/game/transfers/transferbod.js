@@ -5,6 +5,7 @@ import { AANTAL_RONDES, AANV, CLUBS, DIVS, WINTER } from '../../data/gegevens.js
 import { rolBijClub, statusNiveau, statusPunten } from '../speler/status.js';
 import { kandidaatClubs, wissel } from './transfers.js';
 import { eersteSeizoen } from './vertrek.js';
+import { ik } from '../../core/geslacht.js';
 
 /* ===================== Transferbod tijdens het seizoen ===================== */
 export function maakBodEvent(){
@@ -44,7 +45,7 @@ export function maakBodEvent(){
         const N = sp.leeftijd >= 31 ? nu + 1 : Math.max(nu + 1, 3);
         S.volgEv = {soort:'transfer', tekst:`${oud} wil je niet kwijt en biedt een nieuw contract: ${geldTxt(nieuw)} per jaar voor ${N} jaar (tot ${S.jaar + N}). Je huidige contract loopt nog ${nu} ${nu === 1 ? 'jaar' : 'jaar'}. Wat doe je?`, opts:[
           {l:`Tekenen: ${N} jaar voor ${geldTxt(nieuw)} per jaar`, f(){ sp.salaris = nieuw; sp.contract = N; S.ss.contractRond = true; S.car.hist.push(`${seizoenLabel()}: nieuw contract bij ${oud} tot ${S.jaar + N} (${geldTxt(nieuw)} per jaar)`);
-            if (club().t <= 3) krantMelding(`${sp.naam} verlengt bij ${oud} tot ${S.jaar + N}`, `Na de interesse van ${c.n} houdt ${oud} hem graag binnen.`);
+            if (club().t <= 3) krantMelding(`${sp.naam} verlengt bij ${oud} tot ${S.jaar + N}`, `Na de interesse van ${c.n} houdt ${oud} ${ik.hem} graag binnen.`);
             return `Je tekent bij! Je contract loopt nu nog ${N} jaar (tot ${S.jaar + N}), voor ${geldTxt(nieuw)} per jaar.`; }},
           {l:`Alleen meer salaris, mijn contract blijft ${nu} jaar`, f(){ sp.salaris = Math.max(sp.salaris, klein); return `Je salaris gaat omhoog naar ${geldTxt(sp.salaris)} per jaar. Je contract loopt gewoon nog ${nu} jaar.`; }},
           {l:'Laat maar, alles blijft zoals het is', f(){ return 'Je bedankt de club. Je salaris en je contract blijven zoals ze zijn.'; }}]};

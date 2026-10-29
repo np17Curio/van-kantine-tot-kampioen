@@ -2,12 +2,13 @@ import { S, club, mod, seizoenLabel, statWaarde } from '../../core/state.js';
 import { clamp, geldTxt, pick, rnd, shuffle } from '../../core/utils.js';
 import { NL_VRAAG, nietNL } from '../../data/landen.js';
 import { roddel } from '../media/roddel.js';
+import { ik, pa } from '../../core/geslacht.js';
 
 /* ===================== Buiten het voetbal: rijbewijs, auto en wonen ===================== */
 export const WONINGEN = [
   {id:'ouders',      n:'Bij je ouders',             prijs:0,       moraal:0, d:'Gratis, en je moeder kookt.'},
   {id:'studio',      n:'Studio huren',              huur:80,       moraal:0, d:'€80 per week · je eigen plek'},
-  {id:'huurhuis',    n:'Huurhuis',                  huur:120,      moraal:1, d:'€120 per week · samen met je vriendin', verborgen:true},
+  {id:'huurhuis',    n:'Huurhuis',                  huur:120,      moraal:1, get d(){ return '€120 per week · samen met je ' + pa.vriend; }, verborgen:true},
   {id:'appartement', n:'Appartement kopen',         prijs:120000,  moraal:1, d:'+1 moraal per week'},
   {id:'penthouse',   n:'Penthouse in de stad',      prijs:350000,  moraal:1, d:'+1 moraal per week · +2 reputatie'},
   {id:'huis',        n:'Vrijstaand huis met tuin',  prijs:900000,  moraal:2, d:'+2 moraal per week · grote tuin'},
@@ -66,11 +67,11 @@ export function praktijkExamen(){
   if (rnd() < examenKans()){
     sp.rijbewijs = true; mod('moraal', 10); S.car.hist.push(`${seizoenLabel()}: rijbewijs gehaald`);
     w.tekst.push('GESLAAGD! De examinator geeft je een hand. Nooit meer op de fiets naar de training in de regen.');
-    roddel(`${S.sp.naam} haalt zijn rijbewijs`, `De ${sp.leeftijd}-jarige ${club().t <= 2 ? 'prof' : 'speler'} slaagde in één keer... of toch niet? Hij wil het niet zeggen.`);
+    roddel(`${S.sp.naam} haalt ${ik.zijn} rijbewijs`, `De ${sp.leeftijd}-jarige ${club().t <= 2 ? 'prof' : 'speler'} slaagde in één keer... of toch niet? ${ik.Hij} wil het niet zeggen.`);
   } else {
     mod('moraal', -6);
     w.tekst.push(pick(['Gezakt. Je vergat in je spiegel te kijken bij het afslaan.', 'Gezakt. Je reed bijna een eend aan.', 'Gezakt. Inparkeren ging helemaal mis.']) + ' Meer lessen helpen.');
-    roddel(`${S.sp.naam} zakt voor rijexamen`, 'Op het veld is hij snel, maar achter het stuur liep het mis. Een fan zag hem huilend uit de lesauto stappen.');
+    roddel(`${S.sp.naam} zakt voor rijexamen`, 'Op het veld is ' + ik.hij + ' snel, maar achter het stuur liep het mis. Een fan zag ' + ik.hem + ' huilend uit de lesauto stappen.');
   }
 }
 export function verhuis(id){
@@ -87,7 +88,7 @@ export function verhuis(id){
   S.week.tekst.push(id === 'ouders' ? 'Je trekt weer in bij je ouders. Je moeder heeft je kamer nog precies zo gelaten.'
     : id === 'studio' ? 'Je hebt je eigen studio! Klein, maar van jou. Je moeder komt wel elke week met een pan soep langs.'
     : `Je woont nu in je nieuwe ${nw.n.replace(/ (kopen|huren)$/, '').toLowerCase()}.${opbrengst ? ` Je oude woning is verkocht voor ${geldTxt(opbrengst)}.` : ''}`);
-  if ((nw.prijs || 0) >= 350000) roddel(`${sp.naam} koopt ${id === 'villa' ? 'villa' : id === 'huis' ? 'groot huis' : 'penthouse'} van ${geldTxt(nw.prijs)}`, id === 'villa' ? 'Met een eigen voetbalveldje in de tuin. De buren hopen dat hij niet te hard schiet.' : 'De kranten hebben foto\'s van de verhuiswagen. Volgens de buren is hij "heel aardig".');
+  if ((nw.prijs || 0) >= 350000) roddel(`${sp.naam} koopt ${id === 'villa' ? 'villa' : id === 'huis' ? 'groot huis' : 'penthouse'} van ${geldTxt(nw.prijs)}`, id === 'villa' ? 'Met een eigen voetbalveldje in de tuin. De buren hopen dat ' + ik.hij + ' niet te hard schiet.' : 'De kranten hebben foto\'s van de verhuiswagen. Volgens de buren is hij "heel aardig".');
 }
 export function koopAuto(id){
   const sp = S.sp, a = AUTOS.find(x => x.id === id); if (!a || !sp.rijbewijs || sp.auto === id) return;
@@ -98,5 +99,5 @@ export function koopAuto(id){
   if (id === 'nieuw') mod('moraal', 3);
   if (id === 'sport'){ mod('rep', 6); mod('vert', -5); }
   S.week.tekst.push(id === 'oud' ? 'Je koopt een tweedehands auto. Hij ruikt naar oude friet, maar hij is van jou.' : id === 'nieuw' ? 'Je rijdt je nieuwe auto de showroom uit. Hij ruikt nog naar nieuw.' : 'Je knalgele sportwagen staat voor de deur. Je trainer kijkt er met een frons naar.');
-  if (id === 'sport') roddel(`${sp.naam} rijdt in knalgele sportwagen`, 'Bij de training valt hij in ieder geval op. De trainer zou er "niet blij" mee zijn.');
+  if (id === 'sport') roddel(`${sp.naam} rijdt in knalgele sportwagen`, 'Bij de training valt ' + ik.hij + ' in ieder geval op. De trainer zou er "niet blij" mee zijn.');
 }

@@ -5,6 +5,7 @@ import { stand } from '../competitie/spelers.js';
 import { trainerVan } from '../trainer/pers.js';
 import { rivaal } from '../wedstrijd/fans-pers.js';
 import { KRANTEN, metVoorletter, ranglijst } from './nieuws.js';
+import { team } from '../../core/geslacht.js';
 
 /* ===================== Nieuws over de hele competitie ===================== */
 // Na elke speelronde 1 à 2 berichten over de andere clubs: een nieuwe koploper, een stunt, een grote overwinning, een derby,
@@ -43,7 +44,7 @@ function kandidaten(t, r){
   // topscorer: mijlpalen (10, 15, 20, 25, 30)
   const top = ranglijst(t, 'g').find(x => !x.jij && x.club !== ik);
   if (top){ const m = [30, 25, 20, 15, 10].find(k => top.g >= k), sl = 'top' + top.n + m;
-    if (m && !C.mijl[sl]){ l.push({p:7, sl, mijl:sl, kop:`${metVoorletter(top)} (${n(top.club)}) maakt zijn ${m}e goal`, tekst:`${metVoorletter(top)} is de topscorer van de ${DIVS[t]} met ${top.g} goals.${ranglijst(t, 'g')[1] ? ` Achtervolger: ${ranglijst(t, 'g')[1].jij ? 'jij' : metVoorletter(ranglijst(t, 'g')[1])} met ${ranglijst(t, 'g')[1].g}.` : ''}`}); } }
+    if (m && !C.mijl[sl]){ l.push({p:7, sl, mijl:sl, kop:`${metVoorletter(top)} (${n(top.club)}) maakt ${team.zijn} ${m}e goal`, tekst:`${metVoorletter(top)} is de topscorer van de ${DIVS[t]} met ${top.g} goals.${ranglijst(t, 'g')[1] ? ` Achtervolger: ${ranglijst(t, 'g')[1].jij ? 'jij' : metVoorletter(ranglijst(t, 'g')[1])} met ${ranglijst(t, 'g')[1].g}.` : ''}`}); } }
   // reeksen, crisis en ontslag
   for (const id of divClubs(t)){
     if (id === ik) continue; const rs = reeksVan(t, id), win = opRij(rs, x => x === 'W'), geen = opRij(rs, x => x !== 'W');

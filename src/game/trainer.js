@@ -20,6 +20,8 @@ import { BUDGET, maakMarkt } from './trainer/transfers.js';
 import { assistentKost, coach, heeftDiploma, pasAdviesToe, heeftStaf, magLeague, maakO23Sel, nieuweO23Tab, o23Groei, o23NieuwSeizoen, o23Ronde, o23Stand, stafKosten, trainerNiveau } from './trainer/loopbaan.js';
 import { gewogen } from './competitie/spelers.js';
 import { animPush, reeksStrafschoppen } from '../render/pitch.js';
+import { geldF } from '../data/gegevens.js';
+import { ik } from '../core/geslacht.js';
 
 /* ===================== Trainer worden ===================== */
 export const TACTIEK = {
@@ -84,7 +86,7 @@ export function seizoenStart(){
     for (const x of mijnSel()){ x.bT = 0; if (x.fit === undefined) x.fit = 100; x.kStart = x.k; }
     T0.opstelling = null; opst(); vulAan(); maakEisen(halverwege); T0.venster = null; maakPersVoor(volgendeWedstrijd()); return;
   }
-  const N = trainerNiveau(), basis = BUDGET[c.t] * (T0.bonus ? 1.25 : 1) * (halverwege ? .5 : 1) * N.budget;
+  const N = trainerNiveau(), basis = BUDGET[c.t] * geldF() * (T0.bonus ? 1.25 : 1) * (halverwege ? .5 : 1) * N.budget;
   T0.budget = Math.round(Math.max(0, basis + Math.max(0, T0.budget || 0) * .5 - stafKosten() * (T0.staf || []).length - (T0.assistent ? assistentKost(T0.assistent.q) : 0)) / 1000) * 1000; T0.bonus = false;
   for (const x of mijnSel()){ x.bT = 0; if (x.fit === undefined) x.fit = 100; }
   T0.opstelling = null; opst(); vulAan();
@@ -98,7 +100,7 @@ export function zorgVoorTrainer(){
   if (!S.coach) S.coach = {diplomas:['B', 'A', 'Pro'], cursus:null, gezakt:{}, o23Sz:0, hoofdSz:Math.max(1, T0.seizoenen || 0)}; // oude opslag: al trainer, dus al gediplomeerd
   if (!T0.staf) T0.staf = [];
   if (!T0.sz) T0.sz = nieuwSeizoenTeller();
-  if (T0.budget === undefined) T0.budget = Math.round(BUDGET[CLUBS[T0.club].t] * .5 / 1000) * 1000;
+  if (T0.budget === undefined) T0.budget = Math.round(BUDGET[CLUBS[T0.club].t] * geldF() * .5 / 1000) * 1000;
   opst();
   if (!T0.eisen || T0.eisen.jaar !== S.jaar) maakEisen(S.ronde > 0);
 }
@@ -110,7 +112,7 @@ export function kiesTrainerClub(id){
   if (S.ronde >= AANTAL_RONDES || !vorig){ S.jaar++; S.ronde = 0; S.tab = nieuweTabellen(); S.ss = {wed:0, g:0, a:0, c:[], bods:0}; }
   if (o23){ S.trainer.o23Sel = maakO23Sel(id); nieuweO23Tab(); } else coach().wasHoofd = true;
   S.trainer.hist.push(`${seizoenLabel()}: ${o23 ? 'trainer van de O23 van' : 'trainer van'} ${CLUBS[id].n} (${DIVS[CLUBS[id].t]})`);
-  if (o23) krantMelding(`${S.sp.naam} gaat de O23 van ${CLUBS[id].n} trainen`, 'De oud-speler begint zijn trainersloopbaan bij de jeugd. "Hier leer ik het vak."', KRANTEN[CLUBS[id].t]);
+  if (o23) krantMelding(`${S.sp.naam} gaat de O23 van ${CLUBS[id].n} trainen`, 'De oud-' + ik.speler + ' begint ' + ik.zijn + ' trainersloopbaan bij de jeugd. "Hier leer ik het vak."', KRANTEN[CLUBS[id].t]);
   else krantMelding(`${S.sp.naam} nieuwe trainer van ${CLUBS[id].n}`, coach().hoofdSz ? 'Een nieuwe uitdaging voor de trainer.' : 'De oud-speler staat voor het eerst langs de lijn als hoofdtrainer.', KRANTEN[CLUBS[id].t]);
   seizoenStart();
   S.fase = 'trainer';

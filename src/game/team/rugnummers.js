@@ -9,6 +9,7 @@ import { statusNaam, statusNiveau } from '../speler/status.js';
 import { band, zetBand } from './kleedkamer.js';
 import { ck } from '../transfers/buitenland.js';
 import { kans } from '../wedstrijd/momenten.js';
+import { ik, team } from '../../core/geslacht.js';
 
 /* ===================== Rugnummers ===================== */
 // Elke teamgenoot heeft een rugnummer en een status in de groep. Nummer 1 is altijd van de keeper
@@ -64,24 +65,24 @@ export function rugVraag(nr){
   w.rug = true;
   const s = statusNiveau(), eig = rugTeam(sp.club).find(x => x.nr === nr);
   let ok = false, t;
-  if (nr === 1){ t = '"Nummer 1? Dat is voor de keeper, jongen." De trainer moet erom lachen.'; }
+  if (nr === 1){ t = '"Nummer 1? Dat is voor de keeper, ' + ik.jongen + '." De trainer moet erom lachen.'; }
   else if (!eig){
     ok = rnd() < [.3, .7, 1, 1, 1, 1][s];
     t = ok ? `De trainer knikt: "Nummer ${nr} is vrij. Hij is van jou."` : `"Eerst maar eens laten zien wat je kan," zegt de trainer. "Dan praten we verder over een ander nummer."`;
   } else if (s > eig.st){
     ok = rnd() < .9; const naam = eig.n;
-    if (ok){ const d = band(naam) >= 70 ? -6 : -12; eig.nr = vrijNummer(teamNummers(sp.club), 12, 40); zetBand(naam, d); t = `De trainer kiest voor jou: jij krijgt nummer ${nr}. ${naam} (${stNaam(eig.st).toLowerCase()}) moet naar nummer ${eig.nr}. Hij is er niet blij mee. Band met ${naam} −${-d}.`; }
+    if (ok){ const d = band(naam) >= 70 ? -6 : -12; eig.nr = vrijNummer(teamNummers(sp.club), 12, 40); zetBand(naam, d); t = `De trainer kiest voor jou: jij krijgt nummer ${nr}. ${naam} (${stNaam(eig.st).toLowerCase()}) moet naar nummer ${eig.nr}. ${team.Hij} is er niet blij mee. Band met ${naam} −${-d}.`; }
     else t = `De trainer twijfelt: "Ik wil geen gedoe in de groep." Nummer ${nr} blijft van ${naam}.`;
   } else if (s === eig.st){
     ok = rnd() < .35; const naam = eig.n;
     if (ok){ eig.nr = vrijNummer(teamNummers(sp.club), 12, 40); zetBand(naam, -15); t = `Jij en ${naam} zijn allebei ${stNaam(s).toLowerCase()}. De trainer kiest toch voor jou: nummer ${nr} is van jou. ${naam} is woedend. Band met ${naam} −15.`; }
-    else { zetBand(naam, -4); mod('vert', -2); t = `"${naam} is net zo belangrijk als jij, en hij had het nummer eerst," zegt de trainer. Nee dus. ${naam} hoort ervan (band −4).`; }
+    else { zetBand(naam, -4); mod('vert', -2); t = `"${naam} is net zo belangrijk als jij, en ${team.hij} had het nummer eerst," zegt de trainer. Nee dus. ${naam} hoort ervan (band −4).`; }
   } else {
     const naam = eig.n; zetBand(naam, -5); mod('vert', -3);
     t = `De trainer schudt zijn hoofd: "Nummer ${nr} is van ${naam}, onze ${stNaam(eig.st).toLowerCase()}. Daar begin ik niet aan." ${naam} hoort het (band −5).`;
   }
   w.rugTekst = t;
-  if (ok){ zetRug(nr); mod('moraal', 5); S.car.hist.push(`${seizoenLabel()}: rugnummer ${nr} bij ${club().n}`); if (isProf()) krantMelding(`${sp.naam} krijgt rugnummer ${nr}`, `Bij ${club().n} speelt ${sp.naam} voortaan met nummer ${nr}${nr === sp.wensNr ? ', zijn favoriete nummer' : ''}. Het nieuwe shirt is meteen uitverkocht in de fanshop.`); }
+  if (ok){ zetRug(nr); mod('moraal', 5); S.car.hist.push(`${seizoenLabel()}: rugnummer ${nr} bij ${club().n}`); if (isProf()) krantMelding(`${sp.naam} krijgt rugnummer ${nr}`, `Bij ${club().n} speelt ${sp.naam} voortaan met nummer ${nr}${nr === sp.wensNr ? ', ' + ik.zijn + ' favoriete nummer' : ''}. Het nieuwe shirt is meteen uitverkocht in de fanshop.`); }
   w.tekst.push(t);
 }
 // Zelf aan een teamgenoot vragen of hij wil ruilen: hangt af van jullie band
@@ -90,7 +91,7 @@ export function rugRuil(naam){
   w.rug = true; const mijn = rugnummer(), b = band(naam), s = statusNiveau();
   const kans = clamp((b - 30) / 60, 0, .95) * (s >= eig.st ? 1 : .6);
   if (rnd() < kans){ const zijn = eig.nr; eig.nr = mijn; zetRug(zijn); zetBand(naam, 2); mod('moraal', 5); S.car.hist.push(`${seizoenLabel()}: rugnummer ${zijn} bij ${club().n}`);
-    w.tekst.push(w.rugTekst = `Je vraagt ${naam} of hij wil ruilen. "Voor jou? Prima, maatje." Jij krijgt nummer ${zijn}, hij neemt jouw ${mijn}.`); }
+    w.tekst.push(w.rugTekst = `Je vraagt ${naam} of ${team.hij} wil ruilen. "Voor jou? Prima, maatje." Jij krijgt nummer ${zijn}, ${team.hij} neemt jouw ${mijn}.`); }
   else { zetBand(naam, -4); w.tekst.push(w.rugTekst = b < 40 ? `${naam} kijkt je aan alsof je gek bent: "Mijn nummer? Echt niet." Band −4.` : `${naam} twijfelt, maar zegt toch nee: "Ik speel al jaren met dit nummer." Band −4.`); }
 }
 export function vRugnummer(){

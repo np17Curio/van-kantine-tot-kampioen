@@ -7,6 +7,8 @@ import { metVoorletter } from '../media/nieuws.js';
 import { krantMelding } from '../media/roddel.js';
 import { herschik } from '../transfers/markt.js';
 import { FORMATIES, LINIE, eff, elfKracht, fit, kan, mijnSel, opst, pasToe, refKracht } from './ploeg.js';
+import { geldF } from '../../data/gegevens.js';
+import { ik, team } from '../../core/geslacht.js';
 
 /* ===================== De loopbaan van een trainer ===================== */
 // Eerst een diploma (UEFA B), dan de O23 van een club, en wie het daar goed doet wordt hoofdtrainer.
@@ -72,7 +74,7 @@ export function cursusAntwoord(j){
   if (K.geslaagd){ c.diplomas.push(K.d); delete c.gezakt[K.d];
     (S.car && S.car.hist || []).push(`${seizoenLabel()}: trainersdiploma ${DIPLOMAS[K.d].n} gehaald`);
     if (S.trainer) S.trainer.hist.push(`${seizoenLabel()}: diploma ${DIPLOMAS[K.d].n} gehaald`);
-    krantMelding(`${S.sp.naam} haalt zijn ${DIPLOMAS[K.d].n}-diploma`, `${K.goed} van de 3 vragen goed. ${DIPLOMAS[K.d].d}`); }
+    krantMelding(`${S.sp.naam} haalt ${ik.zijn} ${DIPLOMAS[K.d].n}-diploma`, `${K.goed} van de 3 vragen goed. ${DIPLOMAS[K.d].d}`); }
   else { c.gezakt[K.d] = true; c.wachtTot = {jaar:S.jaar, ronde:S.ronde + 1}; }
 }
 export const sluitCursus = () => { coach().cursus = null; };
@@ -97,7 +99,7 @@ export const STAF = {
 };
 const BASIS_BUDGET = [40e6, 6e6, 1.2e6, 250e3, 25e3, 5e3];
 export const heeftStaf = k => !!(S.trainer && (S.trainer.staf || []).includes(k));
-export const stafKosten = () => S.trainer && S.trainer.o23 ? 0 : Math.round(BASIS_BUDGET[CLUBS[S.trainer.club].t] * .05 / 1000) * 1000;
+export const stafKosten = () => S.trainer && S.trainer.o23 ? 0 : Math.round(BASIS_BUDGET[CLUBS[S.trainer.club].t] * geldF() * .05 / 1000) * 1000;
 export function vraagStaf(k){
   const T0 = S.trainer, N = trainerNiveau(), V = volgendNiveau(), l = T0.staf = T0.staf || [];
   if (l.includes(k)) return `Je hebt al een ${STAF[k].n.toLowerCase()}.`;
@@ -151,7 +153,7 @@ export function doorstroom(naam){
   sel.splice(sel.indexOf(x), 1); opst().ids = opst().ids.filter(n => n !== naam);
   const eerste = selectie(T0.club); eerste.push({v:x.v, n:x.n, pos:x.pos, k:x.k, lft:x.lft, basis:false, g:0, a:0, jeugd:true, sindsWeek:S.weekNr || 0}); herschik(eerste);
   T0.sz.door = (T0.sz.door || 0) + 1; vulO23Aan();
-  krantMelding(`${metVoorletter(x)} naar het eerste van ${CLUBS[T0.club].n}`, `De ${x.lft}-jarige (klasse ${x.k}) maakt de stap uit de O23. Trainer ${S.sp.naam}: "Hij heeft het verdiend."`);
+  krantMelding(`${metVoorletter(x)} naar het eerste van ${CLUBS[T0.club].n}`, `De ${x.lft}-jarige (klasse ${x.k}) maakt de stap uit de O23. Trainer ${S.sp.naam}: "${team.Hij} heeft het verdiend."`);
   return `${metVoorletter(x)} gaat naar het eerste elftal! Een nieuw talent uit de jeugd neemt zijn plek in.`;
 }
 // Einde van een O23-seizoen: iedereen een jaar ouder, wie 22 wordt vertrekt (of stroomt alsnog door), nieuwe jeugd erbij
@@ -172,7 +174,7 @@ export const ASSISTENTEN = [
 ];
 const ASS_NAMEN = ['Ruud', 'Henk', 'Marco', 'Erik', 'Dennis', 'Jaap', 'Sjoerd', 'Patrick', 'Kees', 'Arjen', 'Mehmet', 'Youssef'];
 export const assistent = () => (S.trainer && S.trainer.assistent) || null;
-export const assistentKost = q => S.trainer && S.trainer.o23 ? 0 : Math.round(BASIS_BUDGET[CLUBS[S.trainer.club].t] * ASSISTENTEN[q - 1].kost / 1000) * 1000;
+export const assistentKost = q => S.trainer && S.trainer.o23 ? 0 : Math.round(BASIS_BUDGET[CLUBS[S.trainer.club].t] * geldF() * ASSISTENTEN[q - 1].kost / 1000) * 1000;
 export function neemAssistent(q){
   const T0 = S.trainer, A = ASSISTENTEN[q - 1], N = trainerNiveau();
   if (T0.rep < A.min) return `Een ${A.n.toLowerCase()} wil alleen werken met een trainer vanaf reputatie ${A.min}. Jij zit op ${Math.round(T0.rep)} (${N.n.toLowerCase()}).`;
@@ -214,14 +216,14 @@ export function assistentAdvies(){
   const mijnFit = o.ids.map(n => sel.find(x => x.n === n)).filter(Boolean), mf = mijnFit.length ? mijnFit.reduce((a, x) => a + fit(x), 0) / mijnFit.length : 100, moe = mijnFit.filter(x => fit(x) < 65);
   if (eruit.length > 3) regels.push(`En nog ${eruit.length - 3 === 1 ? 'één andere wissel' : `${eruit.length - 3} andere wissels`}.`);
   if (best.f !== o.formatie) regels.push(`Tegen ${opp.n} zou ik ${best.f} spelen${tactiek ? `, ${TACTIEK_NAAM[tactiek]}` : ''}.`);
-  else if (tactiek) regels.push(`Speel ${TACTIEK_NAAM[tactiek]}: ${tactiek === 'verdedig' ? `${opp.n} is sterker, loer op de counter` : tactiek === 'aanval' ? `${opp.n} is zwakker, ga ervoor` : tactiek === 'rotatie' ? 'de jongens zijn moe' : 'een gelijkwaardige tegenstander'}.`);
+  else if (tactiek) regels.push(`Speel ${TACTIEK_NAAM[tactiek]}: ${tactiek === 'verdedig' ? `${opp.n} is sterker, loer op de counter` : tactiek === 'aanval' ? `${opp.n} is zwakker, ga ervoor` : tactiek === 'rotatie' ? 'de ' + team.jongens + ' zijn moe' : 'een gelijkwaardige tegenstander'}.`);
   if (Math.round(best.fit) !== Math.round(mf)) regels.push(`Gemiddelde fitheid van mijn elf: ${Math.round(best.fit)} (jouw elf: ${Math.round(mf)}).`);
   if (moe.length && eruit.length) regels.push(`Let op: ${moe.length === 1 ? `${metVoorletter(moe[0])} staat` : `${moe.length} spelers staan`} nu met een fitheid onder de 65 in je elf.`);
   if (training && training !== T0.training) regels.push(training === 'rust' ? 'De groep is moe: geef deze week rust op de training.' : 'Iedereen is fit: train op tactiek.');
   const winst = best.kracht - nu;
   if (!regels.length) regels.push('Je opstelling is precies goed. Daar zou ik niets aan veranderen.');
   else if (winst > .05) regels.push(`Met mijn opstelling sta je ${winst.toFixed(1).replace('.', ',')} sterker.`);
-  else if (winst < -.05) regels.push('Vandaag iets minder sterk, maar zo houden we de jongens heel voor de rest van het seizoen.');
+  else if (winst < -.05) regels.push('Vandaag iets minder sterk, maar zo houden we de ' + team.jongens + ' heel voor de rest van het seizoen.');
   return {...best, tactiek, training, nu, winst, regels, zelfde:!eruit.length && best.f === o.formatie && (!tactiek || tactiek === T0.tactiek) && (!training || training === T0.training)};
 }
 export function pasAdviesToe(){

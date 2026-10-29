@@ -9,6 +9,7 @@ import { stand2 } from '../wedstrijd/wedstrijd.js';
 import { clubLogo } from '../../data/logos.js';
 import { vormBolletjes } from '../competitie/vorm.js';
 import { historieKnop } from '../seizoen/historie.js';
+import { ik } from '../../core/geslacht.js';
 
 /* ===================== Het nieuws ===================== */
 // Na elke clubwedstrijd verschijnen krantenkoppen over je ploeg en over jou, op basis van wat er echt gebeurde
@@ -33,35 +34,35 @@ export function maakNieuws(M, speelde){
 
   // --- Over jou ---
   if (speelde){
-    if (M.goals >= 3) voeg(10, won ? `Hattrick! ${naam} schiet ${wij} naar de zege` : `Hattrick van ${naam} niet genoeg voor ${wij}`, `${M.goals} goals in ${uit}. Hij krijgt de wedstrijdbal mee naar huis.`, 'hattrick' + nr, fotoVan('hattrick', `${naam} met de wedstrijdbal na zijn hattrick tegen ${zij}.`));
+    if (M.goals >= 3) voeg(10, won ? `Hattrick! ${naam} schiet ${wij} naar de zege` : `Hattrick van ${naam} niet genoeg voor ${wij}`, `${M.goals} goals in ${uit}. ${ik.Hij} krijgt de wedstrijdbal mee naar huis.`, 'hattrick' + nr, fotoVan('hattrick', `${naam} met de wedstrijdbal na ${ik.zijn} hattrick tegen ${zij}.`));
     if (M.rood) voeg(9, verl ? `Rood voor ${naam}: ${wij} verliest met tien man` : `Rood voor ${naam}, maar ${wij} houdt stand`, `${M.roodSoort === 'direct' ? 'Een directe rode kaart' : 'Twee keer geel'} tegen ${zij}. ${naam} is ${M.roodSoort === 'direct' ? '2 wedstrijden' : '1 wedstrijd'} geschorst.`);
     if (M.cijfer >= 8.5 && !M.rood){
       // Man of the Match: met een foto (bij een hattrick staat die foto er al)
-      const motm = M.goals >= 3 ? null : fotoVan('motm', `Man of the Match ${naam} met zijn trofee na ${uit}.`), ms = motm ? 'motm' + nr : null;
-      if (lft >= 31) voeg(9, `${naam} (${lft}) laat zien dat hij het nog steeds kan`, `Een ${cijfer} tegen ${zij}. "Ouder worden? Daar doet hij niet aan," grapt de trainer.`, ms, motm);
+      const motm = M.goals >= 3 ? null : fotoVan('motm', `${ik.Speler} van de Wedstrijd ${naam} met ${ik.zijn} trofee na ${uit}.`), ms = motm ? 'motm' + nr : null;
+      if (lft >= 31) voeg(9, `${naam} (${lft}) laat zien dat ${ik.hij} het nog steeds kan`, `Een ${cijfer} tegen ${zij}. "Ouder worden? Daar doet ${ik.hij} niet aan," grapt de trainer.`, ms, motm);
       else if (t === 1 && CLUBS[sp.club].s >= 80) voeg(9, `Wereldklasse van ${naam} tegen ${zij}`, `Een ${cijfer}. Op social media gaan de beelden de hele wereld over.`, ms, motm);
-      else voeg(9, pick([`"Deze jongen gaat de top halen"`, `"Zo'n talent zie je maar eens in de tien jaar"`, `${naam} speelt ${zij} helemaal zoek`]), `${pick(['De trainer', 'Een teamgenoot', 'De voorzitter'])} na de wedstrijd tegen ${zij}: "${naam} is te goed voor dit niveau." Hij kreeg een ${cijfer}.`, ms || 'topwedstrijd', motm);
+      else voeg(9, pick([`"Deze ${ik.jongen} gaat de top halen"`, `"Zo'n talent zie je maar eens in de tien jaar"`, `${naam} speelt ${zij} helemaal zoek`]), `${pick(['De trainer', 'Een teamgenoot', 'De voorzitter'])} na de wedstrijd tegen ${zij}: "${naam} is te goed voor dit niveau." ${ik.Hij} kreeg een ${cijfer}.`, ms || 'topwedstrijd', motm);
     }
     const r3 = v.c.slice(-3), g3 = r3.length === 3 ? gemiddelde(r3) : null;
     if (g3 !== null && g3 >= 7.5 && M.cijfer >= 7){
-      if (hoger) voeg(8, `Scouts van ${hoger} gespot bij ${wij}`, `Ze kwamen kijken naar ${naam}, die al weken uitblinkt (gemiddeld ${fmt1(g3)} in zijn laatste 3 wedstrijden).`, 'scouts');
-      else voeg(8, `${naam} op weg naar de Gouden Bal?`, `Gemiddeld een ${fmt1(g3)} in zijn laatste 3 wedstrijden. Europa praat over niemand anders.`, 'goudenbal');
+      if (hoger) voeg(8, `Scouts van ${hoger} gespot bij ${wij}`, `Ze kwamen kijken naar ${naam}, die al weken uitblinkt (gemiddeld ${fmt1(g3)} in ${ik.zijn} laatste 3 wedstrijden).`, 'scouts');
+      else voeg(8, `${naam} op weg naar de Gouden Bal?`, `Gemiddeld een ${fmt1(g3)} in ${ik.zijn} laatste 3 wedstrijden. Europa praat over niemand anders.`, 'goudenbal');
     }
     if (g3 !== null && g3 < 5.5) voeg(7, `Waar is de vorm van ${naam}?`, `Drie matige wedstrijden op rij (gemiddeld ${fmt1(g3)}). Op de tribune wordt gemopperd.`);
-    else if (M.cijfer <= 4.5 && !M.rood) voeg(6, `Zwarte dag voor ${naam}`, `Een ${cijfer} tegen ${zij}. Hij zal deze wedstrijd snel willen vergeten.`);
+    else if (M.cijfer <= 4.5 && !M.rood) voeg(6, `Zwarte dag voor ${naam}`, `Een ${cijfer} tegen ${zij}. ${ik.Hij} zal deze wedstrijd snel willen vergeten.`);
     const gr = reeks(v.g, x => x > 0);
-    if (gr >= 3 && M.goals > 0) voeg(8, `${naam} blijft maar scoren: ${gr} wedstrijden op rij raak`, `Ook tegen ${zij} was het weer raak. Wie houdt hem tegen?`);
-    if (M.rol === 'invaller' && M.goals > 0 && won && M.goals >= M.us - M.them) voeg(8, `Gouden wissel: invaller ${naam} beslist het duel`, `Hij kwam in de tweede helft in het veld en maakte het verschil tegen ${zij}.`);
-    if (sp.clubWed === 1) voeg(7, `Debuut voor ${lft < 18 ? `de ${lft}-jarige ` : ''}${naam} bij ${wij}`, M.goals ? `En hij scoorde meteen! Wat een begin.` : `Hij kreeg een ${cijfer} voor zijn eerste wedstrijd.`);
+    if (gr >= 3 && M.goals > 0) voeg(8, `${naam} blijft maar scoren: ${gr} wedstrijden op rij raak`, `Ook tegen ${zij} was het weer raak. Wie houdt ${ik.hem} tegen?`);
+    if (M.rol === 'invaller' && M.goals > 0 && won && M.goals >= M.us - M.them) voeg(8, `Gouden wissel: invaller ${naam} beslist het duel`, `${ik.Hij} kwam in de tweede helft in het veld en maakte het verschil tegen ${zij}.`);
+    if (sp.clubWed === 1) voeg(7, `Debuut voor ${lft < 18 ? `de ${lft}-jarige ` : ''}${naam} bij ${wij}`, M.goals ? `En ${ik.hij} scoorde meteen! Wat een begin.` : `${ik.Hij} kreeg een ${cijfer} voor ${ik.zijn} eerste wedstrijd.`);
     const mg = MIJLPAAL_G.find(x => S.car.g >= x && S.car.g - M.goals < x);
     if (mg) voeg(9, `Mijlpaal: doelpunt nummer ${mg} voor ${naam}`, `Het publiek gaat staan voor een applaus.`);
     const mw = MIJLPAAL_W.find(x => S.car.wed === x);
-    if (mw) voeg(7, `${naam} speelt zijn ${mw}e wedstrijd`, `Een mooie mijlpaal in de carrière van ${naam}. Het bestuur heeft bloemen klaargezet.`);
+    if (mw) voeg(7, `${naam} speelt ${ik.zijn} ${mw}e wedstrijd`, `Een mooie mijlpaal in de carrière van ${naam}. Het bestuur heeft bloemen klaargezet.`);
   } else {
     if (M.rol === 'geschorst') voeg(6, won ? `${wij} wint ook zonder geschorste ${naam}` : `${wij} mist geschorste ${naam}`, `${naam} zat op de tribune. Uitslag: ${uit}.`);
     else if (M.rol === 'blessure' && sp.statusNiveau >= 2) voeg(4, `${wij} moet het zonder ${naam} doen`, `${naam} is nog geblesseerd. Uitslag: ${uit}.`);
-    else if (M.rol === 'tribune' && sp.statusNiveau >= 2) voeg(6, `${naam} op de tribune: is de trainer klaar met hem?`, `Opvallend: ${naam} zat niet eens bij de selectie tegen ${zij}.`);
-    else if (M.rol === 'ouders') voeg(5, `${naam} mist wedstrijd: "Eerst school"`, `Zijn ouders hielden hem thuis tot zijn cijfers beter zijn.`);
+    else if (M.rol === 'tribune' && sp.statusNiveau >= 2) voeg(6, `${naam} op de tribune: is de trainer klaar met ${ik.hem}?`, `Opvallend: ${naam} zat niet eens bij de selectie tegen ${zij}.`);
+    else if (M.rol === 'ouders') voeg(5, `${naam} mist wedstrijd: "Eerst school"`, `${ik.Zijn} ouders hielden ${ik.hem} thuis tot ${ik.zijn} cijfers beter zijn.`);
   }
 
   // --- Derby ---
@@ -100,7 +101,7 @@ export function maakNieuws(M, speelde){
   return items;
 }
 // Een foto bij een artikel: jouw speler met de prijs (de foto zelf wordt na de weergave gemaakt, zie render/krantfoto.js)
-export const FOTO_ALT = {hattrick:'met de wedstrijdbal', motm:'met de Man of the Match-trofee', svs:'met de bokaal voor Speler van het Seizoen', topscorer:'met de Gouden Schoen'};
+export const FOTO_ALT = {hattrick:'met de wedstrijdbal', get motm(){ return `met de ${ik.Speler} van de Wedstrijd-trofee`; }, svs:'met de bokaal voor Speler van het Seizoen', topscorer:'met de Gouden Schoen'};
 export const fotoVan = (soort, onder) => ({soort, onder});
 function vFoto(f){
   const door = 'Studio Doorbraak';

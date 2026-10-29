@@ -1,9 +1,9 @@
 import { S, club, gemCijfer, mod, ovr, salarisVoor, waarde } from '../../core/state.js';
 import { pick, randInt, rnd } from '../../core/utils.js';
-import { CLUBS, CLUBS_LAND, DIVS, ELITE_ID, ELITE_THUIS, GAST_START, MIN, NL_CLUBS, WINTER, clubsLand, divClubs, landBasis, zetClubs } from '../../data/gegevens.js';
+import { CLUBS, CLUBS_LAND, DIVS, ELITE_ID, ELITE_THUIS, GAST_START, MIN, NL_CLUBS, WERELD, WINTER, clubNaam, clubsLand, divClubs, landBasis, zetClubs, zetWereld } from '../../data/gegevens.js';
 import { speelRonde, stand } from '../competitie/spelers.js';
 import { bekerSchema, nieuweBekers, speelBekerRonde } from '../competitie/beker.js';
-import { LAND_DATA, NL, SPEEL_LANDEN, thuisLand, zetLand } from '../../data/landen.js';
+import { LAND_DATA, SPEEL_LANDEN, divNaam, thuisLand, zetLand } from '../../data/landen.js';
 import { nl } from '../prive/school.js';
 import { nieuweTabellen } from '../speler/status.js';
 import { transferScore } from './transfers.js';
@@ -17,8 +17,8 @@ export const ck = id => (id < 8 || thuisLand() === 'Nederland') ? id : thuisLand
 // Een club uit een ander land (voor biedingen uit het buitenland): naam, niveau en sterkte uit de opgeslagen stand van dat land
 export function vreemdeClub(land, id){
   const st = (S.landen && S.landen[land] && S.landen[land].clubs ? hervormStand(S.landen[land].clubs, land) : landBasis(land))[id] || [-1, 50], L = LAND_DATA[land];
-  const n = id === ELITE_ID && ELITE_THUIS[land] ? ELITE_THUIS[land].n : (land === 'Nederland' ? NL_CLUBS[id - 8] : L.clubs[id - 8]) || 'Lege plaats';
-  return {n, t:st[0], s:st[1], land, div: st[0] < 1 ? '' : land === 'Nederland' ? NL.divs[st[0]] : L.divs[st[0] - 1]};
+  const n = id === ELITE_ID && ELITE_THUIS[land] && WERELD !== 'v' ? ELITE_THUIS[land].n : clubNaam((land === 'Nederland' ? NL_CLUBS[id - 8] : L.clubs[id - 8]) || 'Lege plaats');
+  return {n, t:st[0], s:st[1], land, div: st[0] < 1 ? '' : divNaam(land, st[0])};
 }
 export const isBuitenland = o => !!(o && o.land && o.land !== thuisLand());
 export const clubInfo = o => isBuitenland(o) ? vreemdeClub(o.land, o.club) : CLUBS[o.club];
@@ -49,6 +49,16 @@ function bodVan(land, id, gescout){
   return {club:id, land, ...(gescout ? {gescout:true} : {}), salaris:Math.round(salarisVoor(c.t, o, c.s) * (1 + rnd() * .3) / 100) * 100, jaren: sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4),
       som: sp.contract > 0 && eigen.t <= 2 ? Math.round(Math.max(waarde(sp), 50000) * (.9 + rnd() * .4) / 10000) * 10000 : 0};
 }
+// Een club in de andere wereld (het mannen- of vrouwenvoetbal) van dat land: voor je jeugdvriend(in) van het andere geslacht.
+// Altijd de startstand van die wereld (die competities spelen we niet)
+export function andereWereldClub(land, id){
+  const g = WERELD; zetWereld(g === 'v' ? 'm' : 'v');
+  try { const st = landBasis(land)[id] || [-1, 50], L = LAND_DATA[land]; const n = clubNaam((land === 'Nederland' ? NL_CLUBS[id - 8] : L.clubs[id - 8]) || 'Lege plaats');
+    return {n, t:st[0], s:st[1], land, div: st[0] < 1 ? '' : divNaam(land, st[0])}; }
+  finally { zetWereld(g); }
+}
+// De club-ids van league t (1 of 2) in de andere wereld
+export function andereWereldIds(land, t){ const g = WERELD; zetWereld(g === 'v' ? 'm' : 'v'); try { return landBasis(land).map((x, i) => i >= 8 && i < GAST_START && x[0] === t ? i : null).filter(i => i != null); } finally { zetWereld(g); } }
 // De oude Europese Elite (niveau 0) omzetten: alle clubs van een land (8-39) opnieuw over niveau 1-4 (8 per niveau),
 // wie in de Elite zat bovenaan; de plaatsen 0-7 doen nergens meer mee. Een stand in de nieuwe vorm blijft hetzelfde.
 // De oude Elite-club van het land (Real Montclaro in Spanje, …) komt op plaats ELITE_ID in de hoogste competitie.

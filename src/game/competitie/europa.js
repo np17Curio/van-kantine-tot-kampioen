@@ -3,6 +3,7 @@ import { clamp, pick, randInt, rnd } from '../../core/utils.js';
 import { CLUBS, DIVS, ELITE_LAND, ELITE_NAAM, divClubs } from '../../data/gegevens.js';
 import { NIEUWE_CLUBS, SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
 import { simGoals } from './competitie.js';
+import { clubNaam } from '../../data/gegevens.js';
 
 /* ===================== De Europese Elite: één competitie met clubs uit heel Europa ===================== */
 // De Elite heeft 8 vaste plaatsen (club-id 0-7). Elke plaats heeft een identiteit (naam en land) die kan wisselen:
@@ -19,7 +20,7 @@ const gereserveerd = new Set();
 function vrijeNaam(land){
   const bezet = new Set(CLUBS.map(c => c.n).concat(slots().map(x => x.n), [...gereserveerd]));
   const l = (NIEUWE_CLUBS[land] || []).filter(n => !bezet.has(n));
-  const n = l.length ? pick(l) : `${land === thuisLand() ? 'FC' : 'Club'} ${land} ${randInt(2, 99)}`;
+  const n = clubNaam(l.length ? pick(l) : `${land === thuisLand() ? 'FC' : 'Club'} ${land} ${randInt(2, 99)}`);
   gereserveerd.add(n); return n;
 }
 const beschermd = () => new Set([S.sp && S.sp.club, S.trainer && S.trainer.club].filter(x => x != null));

@@ -9,12 +9,13 @@ import { schoenEvent } from './schoenen.js';
 import { isSuperster } from './merken.js';
 import { krantMelding } from '../media/roddel.js';
 import { plafond, verhoog } from '../week.js';
+import { geldF } from '../../data/gegevens.js';
 
 /* ===================== Sponsors ===================== */
 export const isProf = () => (S.sp.huur ? huurOuder().t : club().t) <= 2;
 export function sponsorBedrag(cat){
   const sp = S.sp, t = sp.huur ? huurOuder().t : club().t;
-  return Math.round((5000 + sp.rep * sp.rep * 15) * ([5, 2.5, 1][t] || 1) * SPONSOR_CAT[cat].f * (.85 + rnd() * .3) / 1000) * 1000;
+  return Math.round((5000 + sp.rep * sp.rep * 15) * ([5, 2.5, 1][t] || 1) * SPONSOR_CAT[cat].f * (.85 + rnd() * .3) * Math.max(geldF(), .25) / 1000) * 1000;
 }
 export function sponsorPerk(cat){
   if (cat === 'schoenen'){ verhoog('afw', 1); verhoog('drib', 1); }

@@ -1,3 +1,4 @@
+import { vriendApart, vriendClubInfo } from '../../game/speler/journey.js';
 import { S, ovr, salarisLabel } from '../../core/state.js';
 import { knop } from '../../core/ui.js';
 import { esc, geldTxt } from '../../core/utils.js';
@@ -9,6 +10,7 @@ import { startVoor } from '../../game/speler/startverhaal.js';
 import { rolBijClub } from '../../game/speler/status.js';
 import { TACTIEKEN, clubTactiek } from '../../game/team/tactiek.js';
 import { vFit, vLog, scorebord, statRegel } from './match.js';
+import { vr } from '../../core/geslacht.js';
 
 // De scoutingranglijst: top 10 gemarkeerd, jij en je vriend uitgelicht
 function vRanglijst(){
@@ -51,10 +53,10 @@ export function vSelectieKeuze(){
       <p class="quote">${esc(o.quote)}</p>
       <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>${salarisLabel(c.t)}</dt><dd>${geldTxt(o.salaris)}</dd><dt>Contract</dt><dd>${o.jaren} jaar</dd><dt>Speelstijl</dt><dd>${esc(stijl ? stijl.n : '–')}</dd></dl>
       <div class="rol"><span class="label">Jouw rol daar</span>${o.o23 ? '<b>Bij de O23</b><span class="risico r-gem">Bewijs je, dan haalt de trainer je naar het eerste</span>' : `<b>${r.status}</b><span class="risico ${r.plek[1]}">${r.plek[0]}</span>`}</div>
-      ${vc && vc.club === o.club && vn ? `<p class="goedtxt klein-tekst">🤝 ${esc(vn)} tekent hier ook${vc.o23 ? ' (bij de O23)' : ''}.</p>` : ''}
+      ${vc && vc.club === o.club && vn && !vriendApart() ? `<p class="goedtxt klein-tekst">🤝 ${esc(vn)} tekent hier ook${vc.o23 ? ' (bij de O23)' : ''}.</p>` : ''}
       <div class="rij">${knop('Hier tekenen', () => tekenSelectie(i), 'hoofd', 'style="font-size:1.05rem;padding:10px 16px"')}</div></div>`;
   };
-  const vElders = vc && vn && !Sel.bods.some(o => o.club === vc.club) ? `<p class="muted">${esc(vn)} heeft al gekozen: hij tekent bij ${esc(CLUBS[vc.club].n)}${vc.o23 ? ' (O23)' : ''}.</p>` : '';
+  const vElders = vc && vn && (vriendApart() || !Sel.bods.some(o => o.club === vc.club)) ? `<p class="muted">${esc(vn)} heeft al gekozen: ${vr.hij} tekent bij ${esc(vriendClubInfo(vc.club).n)}${vc.o23 ? ' (O23)' : ''}.</p>` : '';
   return `<div class="verhaal"><span class="label">Selectiedagen · de aanbiedingen</span><h2>Welke club past bij jou?</h2>
     <p>Gemiddeld een <b>${fmt1(selGemiddelde())}</b>, plek <b>${mijnPlek().plek}</b> van de ${POS_MEERV[S.sp.pos]}. Deze clubs willen je hebben. Let op je rol: bij een sterke club leer je veel, maar speel je minder.</p>${vElders}</div>
     <div class="aanbod">${Sel.bods.map(kaart).join('')}</div>`;

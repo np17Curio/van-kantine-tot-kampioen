@@ -3,14 +3,17 @@ import { pick, randInt, rnd } from '../../core/utils.js';
 import { AANTAL_RONDES, CLUBS, DIVS, divClubs, GAST_START, GASTEN } from '../../data/gegevens.js';
 import { ACHTERNAMEN, stand } from '../competitie/spelers.js';
 import { metVoornaam } from '../media/nieuws.js';
+import { vrouwenWereld } from '../../core/geslacht.js';
 
 /* ===================== Gouden Bal ===================== */
 // De beste speler van de wereld. Je strijdt tegen verzonnen wereldsterren die ook ouder worden
+// (in het vrouwenvoetbal: speelsters)
+export const STER_VOOR_V = ['Aitana', 'Lauren', 'Alexia', 'Sam', 'Lina', 'Vivianne', 'Caroline', 'Ada', 'Giulia', 'Salma', 'Khadija', 'Marie-Antoinette', 'Esther', 'Patri', 'Mapi', 'Lea'];
 export const STER_VOOR = ['Mateo', 'Lucas', 'Kai', 'Rafael', 'Theo', 'Jamal', 'Enzo', 'Viktor', 'Yusuf', 'Leon', 'Andrés', 'Ousmane', 'Marco', 'Dani', 'Ilyas', 'Nico'];
 // Topclubs: de Champions League-gasten van dit seizoen en de top 3 van de hoogste competitie van jouw land
 export const topClubs = () => { const l = divClubs(1).sort((a, b) => CLUBS[b].s - CLUBS[a].s).slice(0, 3); for (let i = GAST_START; i < GAST_START + GASTEN; i++) if (CLUBS[i].gast) l.push(i); return l; };
 const isTopClub = id => topClubs().includes(id);
-export function nieuweSter(jong){ return {v:pick(STER_VOOR), n:pick(ACHTERNAMEN), club:pick(topClubs()), basis:jong ? randInt(58, 70) : randInt(62, 80), lft:jong ? randInt(19, 21) : randInt(20, 31)}; }
+export function nieuweSter(jong){ return {v:pick(vrouwenWereld() ? STER_VOOR_V : STER_VOOR), n:pick(ACHTERNAMEN), club:pick(topClubs()), basis:jong ? randInt(58, 70) : randInt(62, 80), lft:jong ? randInt(19, 21) : randInt(20, 31)}; }
 export const wereldSterren = () => S.sterren || (S.sterren = Array.from({length:12}, () => nieuweSter(false)));
 // Hoeveel je seizoen telt: de hoogste competitie (Topdivisie) helemaal, daaronder steeds minder
 export const GB_NIVEAU = {1:1, 2:.5};

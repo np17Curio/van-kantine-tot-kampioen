@@ -5,13 +5,14 @@ import { buitenWeek } from '../prive/buiten-week.js';
 import { familieWeek } from '../prive/familie.js';
 import { relatieWeek } from '../prive/gezin.js';
 import { woning, woningMoraal } from '../prive/wonen-auto.js';
+import { geldF } from '../../data/gegevens.js';
 
 /* ===================== Trainer: je privéleven gaat gewoon door ===================== */
 // Je salaris als trainer: hangt af van de league en je naam. Bij een O23 een bescheiden jeugdtrainerssalaris
 const BASIS = [40e6, 6e6, 1.2e6, 250e3, 25e3, 5e3];
 export function trainerSalaris(){
-  const T0 = S.trainer; if (T0.o23) return 60000;
-  return Math.round(BASIS[CLUBS[T0.club].t] * .06 * (.7 + (T0.rep || 0) / 100) / 1000) * 1000;
+  const T0 = S.trainer; if (T0.o23) return Math.round(60000 * geldF());
+  return Math.round(BASIS[CLUBS[T0.club].t] * geldF() * .06 * (.7 + (T0.rep || 0) / 100) / 1000) * 1000;
 }
 // Elke week: salaris, huur, je relatie, familie, dieren, aandelen, je zaak en je merken (net als toen je speelde)
 export function trainerPriveWeek(){

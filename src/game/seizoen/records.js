@@ -5,6 +5,7 @@ import { krantMelding } from '../media/roddel.js';
 import { ck } from '../transfers/buitenland.js';
 import { modFans } from '../wedstrijd/fans-pers.js';
 import { clubRecordVan, historie, recordWedVan } from './historie.js';
+import { ik } from '../../core/geslacht.js';
 
 /* ===================== Records ===================== */
 // Competitierecords per divisie (meeste goals in één seizoen) en een clubrecord (meeste goals ooit voor de club)
@@ -30,11 +31,11 @@ export function recordsNaWedstrijd(M){
   const cg = R.clubG[ky] = (R.clubG[ky] || 0) + M.goals, cr = R.clubRec[ky];
   const oudHouder = historie(sp.club).top.n;
   if (M.goals && cg > cr && cg - M.goals <= cr){ const p = `Clubtopscorer aller tijden van ${c.n} (${cg} goals)`; R.gebroken.push(p); S.car.prijzen.push(p); S.car.hist.push(`${seizoenLabel()}: clubtopscorer aller tijden van ${c.n}`); mod('rep', 4); modFans(10);
-    uit.push(`CLUBRECORD! Met ${cg} goals ben jij de topscorer aller tijden van ${c.n}. Je passeert clublegende ${oudHouder} (${cr}).`); krantMelding(`${naam} is de topscorer aller tijden van ${c.n}`, `Met ${cg} doelpunten breekt hij het clubrecord van ${oudHouder}, dat op ${cr} goals stond. Het stadion gaat staan.`); }
+    uit.push(`CLUBRECORD! Met ${cg} goals ben jij de topscorer aller tijden van ${c.n}. Je passeert clublegende ${oudHouder} (${cr}).`); krantMelding(`${naam} is de topscorer aller tijden van ${c.n}`, `Met ${cg} doelpunten breekt ${ik.hij} het clubrecord van ${oudHouder}, dat op ${cr} goals stond. Het stadion gaat staan.`); }
   // Recordspeler: meeste wedstrijden ooit voor deze club (oude opslag: begint bij je wedstrijden nu)
   const cw = (R.clubW = R.clubW || {})[ky] = (R.clubW[ky] ?? Math.max(0, (sp.clubWed || 1) - 1)) + 1, rw = recordWedVan(sp.club);
   if (cw === rw + 1){ const h = historie(sp.club).recW.n, p = `Recordspeler van ${c.n} (${cw} wedstrijden)`; R.gebroken.push(p); S.car.prijzen.push(p); S.car.hist.push(`${seizoenLabel()}: recordspeler van ${c.n}`); mod('rep', 3); modFans(8);
-    uit.push(`CLUBRECORD! Wedstrijd nummer ${cw}: niemand speelde ooit vaker voor ${c.n}. Je passeert ${h} (${rw}).`); krantMelding(`${naam} is de recordspeler van ${c.n}`, `Met ${cw} wedstrijden passeert hij ${h}. Voor de aftrap krijgt hij bloemen en een ingelijst shirt.`); }
+    uit.push(`CLUBRECORD! Wedstrijd nummer ${cw}: niemand speelde ooit vaker voor ${c.n}. Je passeert ${h} (${rw}).`); krantMelding(`${naam} is de recordspeler van ${c.n}`, `Met ${cw} wedstrijden passeert ${ik.hij} ${h}. Voor de aftrap krijgt ${ik.hij} bloemen en een ingelijst shirt.`); }
   // Competitierecord: meeste goals in één seizoen in deze divisie (alleen competitie)
   if (!M.beker && S.ss.g > DIV_RECORD[t] && S.ss.g - M.goals <= DIV_RECORD[t] && !S.ss.recDiv){ S.ss.recDiv = true; const p = `Competitierecord ${DIVS[t]} ${seizoenLabel()} (${S.ss.g} goals)`; R.gebroken.push(p); S.car.prijzen.push(p); mod('rep', 5);
     uit.push(`COMPETITIERECORD! ${S.ss.g} goals in één seizoen: nooit eerder scoorde iemand zo vaak in de ${DIVS[t]}.`); krantMelding(`Historisch: ${naam} breekt het record van de ${DIVS[t]}`, `Doelpunt nummer ${S.ss.g} dit seizoen. Het oude record (${DIV_RECORD[t]}) stond al jaren.`); }

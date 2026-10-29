@@ -7,6 +7,7 @@ import { isProf } from './sponsors.js';
 import { statusPunten } from '../speler/status.js';
 import { modFans } from '../wedstrijd/fans-pers.js';
 import { pers } from '../speler/persoonlijkheid.js';
+import { ik } from '../../core/geslacht.js';
 
 /* ===================== Social media ===================== */
 export function volgersTxt(n){ n = Math.round(n); if (n < 1000) return String(n); if (n < 1e6) return (n / 1000).toFixed(n < 1e4 ? 1 : 0).replace('.', ',').replace(',0', '') + 'k'; return (n / 1e6).toFixed(1).replace('.', ',').replace(',0', '') + ' mln'; }
@@ -18,7 +19,7 @@ export function volgerMijlpaal(){
   const nieuw = grenzen.filter(g => so.volgers >= g).length;
   if (nieuw > (so.mijl || 0)){ so.mijl = nieuw; const g = grenzen[nieuw - 1];
     const tekst = `Je hebt ${volgersTxt(g)} volgers! ${g >= 10000 ? 'Merken betalen je nu voor posts.' : 'Je account groeit hard.'}`;
-    if (g >= 10000) krantMelding(`${S.sp.naam} heeft ${volgersTxt(g)} volgers`, g >= 1000000 ? 'Een van de populairste voetballers online.' : 'Zijn video\'s worden steeds vaker gedeeld.', g >= 100000 ? RODDELBLADEN : KRANTEN[club().t]);
+    if (g >= 10000) krantMelding(`${S.sp.naam} heeft ${volgersTxt(g)} volgers`, g >= 1000000 ? 'Een van de populairste voetballers online.' : '' + ik.Zijn + ' video\'s worden steeds vaker gedeeld.', g >= 100000 ? RODDELBLADEN : KRANTEN[club().t]);
     return tekst; }
   return null;
 }
@@ -31,7 +32,7 @@ export const POSTS = [
   {id:'hater', l:'Reageren op een hater', d:'Riskant', f(){
     if (rnd() < .5){ const n = postGroei(1.5); social().volgers += n; mod('rep', 1); return `Je reageert met humor. Iedereen staat aan jouw kant. +${volgersTxt(n)} volgers.`; }
     mod('rep', -3); mod('focus', -4); social().volgers = Math.round(social().volgers * .98);
-    roddel(`Ophef om bericht van ${S.sp.naam}`, 'Zijn felle reactie op een criticus zorgt voor veel boze reacties.'); return 'Je reactie valt verkeerd. Ophef! Je verliest volgers en je hoofd zit vol.'; }}
+    roddel(`Ophef om bericht van ${S.sp.naam}`, '' + ik.Zijn + ' felle reactie op een criticus zorgt voor veel boze reacties.'); return 'Je reactie valt verkeerd. Ophef! Je verliest volgers en je hoofd zit vol.'; }}
 ];
 export function post(id){ const w = S.week, x = POSTS.find(p => p.id === id); if (!x || w.post) return; w.post = id; social().posts++; w.tekst.push(x.f()); const m = volgerMijlpaal(); if (m) w.tekst.push(m); }
 // Na een wedstrijd: goed spelen en scoren levert volgers op
@@ -61,13 +62,13 @@ export function volgActie(id){
     S.ev = {soort:'sponsor', tekst:`Drie merken willen een betaalde post met jou (${volgersTxt(so.volgers)} volgers). Welke kies je?`, opts:[
       {l:`Sportdrank FitFuel · ${geldTxt(basis)}`, f(){ sp.geld += basis; return `Je post een foto met een fles FitFuel. ${geldTxt(basis)} verdiend.`; }},
       {l:`Gamingstoel Throne · ${geldTxt(Math.round(basis * 1.3))}`, f(){ sp.geld += Math.round(basis * 1.3); mod('moraal', 2); return `Je speelt een avond FIFA live op je nieuwe stoel. ${geldTxt(Math.round(basis * 1.3))} verdiend.`; }},
-      {l:`Gokbedrijf BetKing · ${geldTxt(basis * 3)}`, f(){ sp.geld += basis * 3; mod('rep', -6); roddel(`Ophef: ${sp.naam} maakt reclame voor gokbedrijf`, 'Ouders van jonge fans zijn boos. "Hij is een voorbeeld voor kinderen."'); return `Veel geld (${geldTxt(basis * 3)}), maar veel fans zijn boos. Je reputatie daalt.`; }},
+      {l:`Gokbedrijf BetKing · ${geldTxt(basis * 3)}`, f(){ sp.geld += basis * 3; mod('rep', -6); roddel(`Ophef: ${sp.naam} maakt reclame voor gokbedrijf`, 'Ouders van jonge fans zijn boos. "' + ik.Hij + ' is een voorbeeld voor kinderen."'); return `Veel geld (${geldTxt(basis * 3)}), maar veel fans zijn boos. Je reputatie daalt.`; }},
       {l:'Geen enkele, ik blijf echt', f(){ mod('rep', 1); return 'Je zegt alle drie nee. Je fans waarderen dat.'; }}]};
     S.fase = 'event'; }
   else if (id === 'inzamel'){ const b = Math.round(so.volgers * .02); mod('rep', 3); mod('moraal', 5); S.ss.goed = (S.ss.goed || 0) + 1; S.car.goed = (S.car.goed || 0) + 1;
     w.tekst.push(`Je vraagt je volgers om te doneren voor zieke kinderen. Samen halen jullie ${geldTxt(b)} op!`); krantMelding(`Volgers van ${sp.naam} zamelen ${geldTxt(b)} in`, 'De actie van de voetballer gaat als een lopend vuurtje over social media.', isProf() ? RODDELBLADEN : KRANTEN[club().t]); }
   else if (id === 'kleding'){ if (sp.merk || sp.geld < 20000) return; sp.geld -= 20000; sp.merk = {start:S.jaar, totaal:0}; S.car.hist.push(`${seizoenLabel()}: eigen kledinglijn gelanceerd`);
-    w.tekst.push(`Je lanceert je eigen kledinglijn! De eerste hoodies zijn binnen een uur uitverkocht.`); krantMelding(`${sp.naam} lanceert eigen kledinglijn`, 'De hoodies met zijn rugnummer zijn binnen een uur uitverkocht.', RODDELBLADEN); }
+    w.tekst.push(`Je lanceert je eigen kledinglijn! De eerste hoodies zijn binnen een uur uitverkocht.`); krantMelding(`${sp.naam} lanceert eigen kledinglijn`, 'De hoodies met ' + ik.zijn + ' rugnummer zijn binnen een uur uitverkocht.', RODDELBLADEN); }
   w.volg = id;
 }
 export const influencerPerWeek = () => S.sp.leeftijd >= 16 && social().volgers >= 10000 ? Math.round(social().volgers * .002) : 0;

@@ -4,13 +4,14 @@ import { S, club } from '../core/state.js';
 import { ploegen } from './pitch.js';
 import { HAAR, HUID } from '../data/uiterlijk.js';
 import { STANDAARD, clubTenue } from '../data/tenues.js';
+import { vrouwenWereld } from '../core/geslacht.js';
 
 /* ===================== Foto's in de krant ===================== */
 // Een artikel met foto heeft <img data-foto="soort">. Na elke weergave wordt de foto gemaakt (3D, in de fotostudio)
 // of uit het geheugen gehaald. Zonder WebGL komt er een getekende foto.
 export const FOTO_SOORTEN = {
   hattrick:{alt:'met de wedstrijdbal na zijn hattrick', prijs:'de wedstrijdbal'},
-  motm:{alt:'met de Man of the Match-trofee', prijs:'de Man of the Match-trofee'},
+  get motm(){ const t = vrouwenWereld() ? 'de Speelster van de Wedstrijd-trofee' : 'de Man of the Match-trofee'; return {alt:'met ' + t, prijs:t}; },
   svs:{alt:'met de bokaal voor Speler van het Seizoen', prijs:'de bokaal'},
   topscorer:{alt:'met de Gouden Schoen voor de topscorer', prijs:'de Gouden Schoen'},
   portret:{alt:'op de persfoto', prijs:null},
@@ -20,7 +21,7 @@ const KLAAR = new Map(); let STUDIO = null;
 const MUREN = [['#0f1a33', '#c6f432'], ['#1a1030', '#f3c44f'], ['#0d2a22', '#ffffff'], ['#2a0f14', '#f3c44f']];
 // Wie staat er op de foto? img.dataset.uit = 'huid,haar,kapsel' (op het startscherm, nog zonder carrière), anders jouw speler
 function fotoCtx(img){
-  if (img && img.dataset.uit){ const [huid, haar, kapsel, lengte, bmi] = img.dataset.uit.split(','); return {sleutel:img.dataset.sleutel || 'nieuw', uiterlijk:{huid:+huid, haar:+haar, kapsel, ...(lengte ? {lengte:+lengte, bmi:+bmi} : {})}, club:'', muur:'#0f1a33', accent:'#c6f432', tenue:STANDAARD, ...(img.dataset.draai !== undefined ? {draai:+img.dataset.draai} : {})}; }
+  if (img && img.dataset.uit){ const [huid, haar, kapsel, lengte, bmi, vrouw] = img.dataset.uit.split(','); return {sleutel:img.dataset.sleutel || 'nieuw', uiterlijk:{huid:+huid, haar:+haar, kapsel, ...(lengte ? {lengte:+lengte, bmi:+bmi} : {}), ...(vrouw !== undefined ? {vrouw:vrouw === '1'} : {})}, club:'', muur:'#0f1a33', accent:'#c6f432', tenue:STANDAARD, ...(img.dataset.draai !== undefined ? {draai:+img.dataset.draai} : {})}; }
   const c = club(), [muur, accent] = MUREN[(S.sp.club || 0) % MUREN.length];
   const pl = ploegen(); return {sleutel:pl.jij, uiterlijk:S.sp.uiterlijk || null, club:c ? c.n : '', muur, accent, tenue:clubTenue(S.sp.club), clubId:S.sp.club, band:!!pl.band, sponsor:S.sp.clubloos || S.sp.o23 ? null : shirtSponsor(c)}; // (de shirtsponsor van je club)
 }

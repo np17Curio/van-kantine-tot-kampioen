@@ -7,6 +7,7 @@ import { krantMelding } from '../media/roddel.js';
 import { herschik, noteerDeal } from '../transfers/markt.js';
 import { mijnSel, opst, pasToe, refKracht } from './ploeg.js';
 import { herbereken, prijs } from './transfers.js';
+import { team } from '../../core/geslacht.js';
 
 /* ===================== Trainer: drama in de kleedkamer ===================== */
 // Elke week een kans op een voorval met spelers uit je selectie. Het staat als data in S.trainer.drama (soort + namen),
@@ -39,7 +40,7 @@ export const DRAMA = {
       {l:'Allebei een boete', toon:'bal', f(){ moraal(-1); bestuur(1); return 'Allebei een boete. Niemand is blij, maar het is wel duidelijk.'; }},
       {l:D => `Partij kiezen voor ${naam(D.a)}`, toon:'fel', f(D){ ontevreden(D.b, 5); tevreden(D.a); return `${naam(D.a)} voelt zich gesteund. ${naam(D.b)} praat al weken niet meer met je.`; }}]},
   bod:{
-    tekst:D => `${CLUBS[D.club].n} biedt ${Math.round(D.som / 1000).toLocaleString('nl-NL')}k euro voor ${naam(D.a)}, je beste speler. Hij wil zelf graag.`,
+    tekst:D => `${CLUBS[D.club].n} biedt ${Math.round(D.som / 1000).toLocaleString('nl-NL')}k euro voor ${naam(D.a)}, je beste ${team.speler}. ${team.Hij} wil zelf graag.`,
     opts:[
       {l:'Verkopen', toon:'bal', f(D){ return verkoop(D); }},
       {l:'Weigeren: hij is niet te koop', toon:'fel', f(D){ ontevreden(D.a, 6); fans(4); return `${naam(D.a)} is woedend: "Dit was mijn droomtransfer." De fans zijn blij dat hij blijft.`; }},

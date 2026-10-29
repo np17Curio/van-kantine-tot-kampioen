@@ -10,4 +10,6 @@ export const KAPSELS = ['model', 'model', 'kort', 'kuif', 'krul', 'staart', 'lan
 export const KROES_KAPSELS = ['afro', 'kroes', 'cornrows', 'vlechten'];
 // Wat je zelf kunt kiezen bij het aanmaken van je speler
 export const KAPSEL_KEUZE = [['model', 'Halflang'], ['kort', 'Kort'], ['kuif', 'Kuif'], ['krul', 'Krullen'], ['staart', 'Staartje'], ['lang', 'Lang'], ['kaal', 'Kaal'], ['afro', 'Afro'], ['kroes', 'Kort kroeshaar'], ['cornrows', 'Cornrows'], ['vlechten', 'Lange vlechten']];
-export const willekeurigUiterlijk = () => ({huid:Math.floor(Math.random() * HUID.length), haar:Math.floor(Math.random() * HAAR.length), kapsel:KAPSEL_KEUZE[Math.floor(Math.random() * KAPSEL_KEUZE.length)][0]});
+// (een meisje: meestal lang haar, een staart of vlechten)
+export const KAPSELS_V = ['staart', 'staart', 'lang', 'lang', 'vlechten', 'model', 'krul', 'kort', 'afro', 'cornrows'];
+export const willekeurigUiterlijk = vrouw => ({huid:Math.floor(Math.random() * HUID.length), haar:Math.floor(Math.random() * HAAR.length), kapsel:vrouw ? KAPSELS_V[Math.floor(Math.random() * KAPSELS_V.length)] : KAPSEL_KEUZE[Math.floor(Math.random() * KAPSEL_KEUZE.length)][0]});

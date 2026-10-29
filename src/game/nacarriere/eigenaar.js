@@ -7,6 +7,7 @@ import { krantMelding } from '../media/roddel.js';
 import { bepaalPromotie, voerPromotieUit } from '../seizoen/kampioen.js';
 import { nieuweTabellen } from '../speler/status.js';
 import { EIS, assistentKandidaten, heeftAss, maakBod, maakMarkt, sponsorAanbod, sponsorInkomsten, trainerKandidaten, trainerKoopt, trainerModus, transferBudget } from './eigenaar-staf.js';
+import { geldF } from '../../data/gegevens.js';
 
 /* ===================== Na je carrière: clubeigenaar ===================== */
 // Je koopt een club met je spaargeld en bepaalt elk seizoen het beleid: spelersbudget, stadion, jeugd, ticketprijs en trainer.
@@ -16,9 +17,9 @@ const TV = [12e6, 3e6, 600e3, 120e3, 5e3];       // tv-geld per seizoen
 export const BUDGET_REF = [8e6, 2.5e6, 500e3, 100e3, 10e3]; // een "normaal" spelersbudget per seizoen
 export const TICKET = {laag:{n:'Laag', d:'Volle tribunes, de fans zijn blij.', inkomst:.75, fans:4}, normaal:{n:'Normaal', d:'Gewone prijzen.', inkomst:1, fans:0}, hoog:{n:'Hoog', d:'Meer inkomsten, maar de fans morren.', inkomst:1.35, fans:-5}};
 const r1k = x => Math.round(x / 1000) * 1000;
-export function clubWaarde(id){ const c = CLUBS[id], l = divClubs(c.t), gem = l.reduce((a, i) => a + CLUBS[i].s, 0) / l.length; return r1k(PRIJS[c.t] * (c.s / gem) ** 3); }
+export function clubWaarde(id){ const c = CLUBS[id], l = divClubs(c.t), gem = l.reduce((a, i) => a + CLUBS[i].s, 0) / l.length; return r1k(PRIJS[c.t] * geldF() * (c.s / gem) ** 3); }
 // Wat kost het goedkoopste seizoen (half spelersbudget en de goedkoopste trainer)? Zoveel moet je na de koop nog hebben
-export const minSeizoen = t => r1k(BUDGET_REF[t] * (.5 + .11));
+export const minSeizoen = t => r1k(BUDGET_REF[t] * geldF() * (.5 + .11));
 // Welke clubs kun je kopen (je eerste club met 20% korting)? Alleen als je daarna nog een seizoen kunt betalen
 export function koopbaar(){
   const eerste = S.car.clubs && S.car.clubs[0] ? S.car.clubs[0].club : null;
@@ -47,7 +48,7 @@ export const startEigenaar = () => { S.fase = 'eigenaarAanbod'; };
 // (de financieel directeur drukt alle kosten met 10%; transfers betaal je apart, op het moment van kopen)
 export function kosten(){
   const E = S.eigenaar, t = CLUBS[E.club].t, b = E.beleid, f = heeftAss('financieel') ? .9 : 1, tr = E.trainer && !E.trainer.verlopen ? E.trainer : null;
-  return {spelers:r1k(BUDGET_REF[t] * b.budget * f), trainer:tr ? r1k(tr.salaris * f) : 0, assistent:E.assistent ? E.assistent.salaris : 0, stadion:b.stadion ? r1k(BUDGET_REF[t] * (.6 + E.stadion * .3) * f) : 0, jeugd:b.jeugd ? r1k(BUDGET_REF[t] * (.3 + E.jeugd * .15) * f) : 0};
+  return {spelers:r1k(BUDGET_REF[t] * geldF() * b.budget * f), trainer:tr ? r1k(tr.salaris * f) : 0, assistent:E.assistent ? E.assistent.salaris : 0, stadion:b.stadion ? r1k(BUDGET_REF[t] * geldF() * (.6 + E.stadion * .3) * f) : 0, jeugd:b.jeugd ? r1k(BUDGET_REF[t] * geldF() * (.3 + E.jeugd * .15) * f) : 0};
 }
 // Nieuwe velden (en oude opslag): trainer met contract, assistent, sponsors en transfers
 export function zorgEigenaar(){
@@ -85,7 +86,7 @@ export function speelSeizoen(){
   S.ronde = 14;
   const st = stand(t), plek = st.indexOf(E.club) + 1, tab = S.tab[E.club];
   // inkomsten: tickets (fans, stadion, prijs), tv, prijzengeld
-  const ticket = r1k(BUDGET_REF[t] * .5 * (E.fans / 55) * (1 + E.stadion * .15) * TICKET[b.ticket].inkomst), tv = TV[t], prijs = r1k(BUDGET_REF[t] * Math.max(0, (9 - plek) / 8) * .4);
+  const ticket = r1k(BUDGET_REF[t] * geldF() * .5 * (E.fans / 55) * (1 + E.stadion * .15) * TICKET[b.ticket].inkomst), tv = TV[t] * geldF(), prijs = r1k(BUDGET_REF[t] * geldF() * Math.max(0, (9 - plek) / 8) * .4);
   const wissels = bepaalPromotie(), mijn = wissels.find(w => w.id === E.club), sp0 = sponsorInkomsten(plek, !!(mijn && mijn.naar > mijn.van), b.ticket);
   const inkomsten = ticket + tv + prijs + sp0.tot; S.sp.geld += inkomsten;
   E.fans = clamp(E.fans + TICKET[b.ticket].fans + (plek <= 2 ? 8 : plek >= 7 ? -8 : 0) + (b.budget >= 1.5 ? 3 : b.budget < 1 ? -4 : 0), 5, 100);

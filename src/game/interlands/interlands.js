@@ -9,6 +9,7 @@ import { nieuweWeek } from '../week.js';
 import { staminaNaWedstrijd } from '../wedstrijd/stamina.js';
 import { krantMelding } from '../media/roddel.js';
 import { vriendInterland, vriendNaInterland } from '../speler/journey.js';
+import { ik, vr } from '../../core/geslacht.js';
 
 /* ===================== Interlands ===================== */
 export const magInterland = () => club().t <= 2 && S.sp.leeftijd >= 17 && !S.sp.o23 && !S.sp.clubloos && !S.sp.interStop;
@@ -60,7 +61,7 @@ export function startInterland(naam){
   S.M = M;
   // je jeugdvriend in de selectie? (journey.js)
   M.vriendMee = vriendInterland(naam);
-  if (M.vriendMee) M.log.push({m:'', t:`Je jeugdvriend ${S.sp.vriend.voornaam} zit ook in de selectie${M.vriendMee.basis ? ', in de basis' : ', op de bank'}. Samen het volkslied zingen, net als vroeger in de achtertuin.`, k:'info'});
+  if (M.vriendMee) M.log.push({m:'', t:`Je ${vr.jeugdvriend} ${S.sp.vriend.voornaam} zit ook in de selectie${M.vriendMee.basis ? ', in de basis' : ', op de bank'}. Samen het volkslied zingen, net als vroeger in de achtertuin.`, k:'info'});
   planWedstrijd(M, T, Opp);
   M.log.push({m:"1'", t:`${O.type}. Het volkslied klinkt. ${rol === 'basis' ? 'Je staat in de basis.' : st && st.caps ? 'Je begint op de bank.' : 'Je zit op de bank en hoopt op je debuut.'}`, k:''});
   S.fase = 'match';
@@ -112,8 +113,8 @@ export function stopInternational(){
   sp.interStop = {jaar:S.jaar, land, caps:st.caps, g:st.g};
   sp.bonds[land] = clamp((sp.bonds[land] ?? 40) - 10, 0, 100);
   S.car.hist.push(`${seizoenLabel()}: ${st.caps ? `stopt als international (${st.caps} interlands, ${st.g} goals voor ${land})` : `zegt nee tegen het nationale team van ${land}`}`);
-  if (st.caps) krantMelding(`${sp.naam} stopt als international`, `Na ${st.caps} interlands en ${st.g} goals voor ${land} houdt hij ermee op.${st.caps >= 50 ? ' De bond bedankt hem voor jaren trouwe dienst.' : ' Hij wil zich richten op zijn club.'}`);
-  else krantMelding(`${sp.naam} zegt nee tegen het nationale team`, `De bondscoach van ${land} hoeft hem niet meer te bellen. "Ik kies voor mijn club," zegt hij.`);
+  if (st.caps) krantMelding(`${sp.naam} stopt als international`, `Na ${st.caps} interlands en ${st.g} goals voor ${land} houdt ${ik.hij} ermee op.${st.caps >= 50 ? ' De bond bedankt ' + ik.hem + ' voor jaren trouwe dienst.' : ' ' + ik.Hij + ' wil zich richten op ' + ik.zijn + ' club.'}`);
+  else krantMelding(`${sp.naam} zegt nee tegen het nationale team`, `De bondscoach van ${land} hoeft ${ik.hem} niet meer te bellen. "Ik kies voor mijn club," zegt ${ik.hij}.`);
   return st.caps ? `Je stopt als international. ${st.caps} interlands en ${st.g} goals voor ${land}: daar mag je trots op zijn.` : `Je laat de bond van ${land} weten dat je niet beschikbaar bent voor het nationale team.`;
 }
 // Een comeback: vanaf het volgende seizoen, één poging per seizoen
@@ -124,7 +125,7 @@ export function terugInternational(){
   if (interScore(X.land) - interDrempel(X.land) >= -2){
     sp.interStop = null; sp.bonds[X.land] = clamp((sp.bonds[X.land] ?? 40) + 5, 0, 100);
     S.car.hist.push(`${seizoenLabel()}: terug in het nationale team van ${X.land}`);
-    krantMelding(`${sp.naam} keert terug in het nationale team`, `De bondscoach van ${X.land} is blij: "Met hem zijn we sterker."`);
+    krantMelding(`${sp.naam} keert terug in het nationale team`, `De bondscoach van ${X.land} is blij: "Met ${ik.hem} zijn we sterker."`);
     return `De bondscoach van ${X.land} is blij: je bent weer welkom in het nationale team.`;
   }
   return `De bondscoach van ${X.land} ziet het (nog) niet zitten. Speel beter, en probeer het volgend seizoen opnieuw.`;

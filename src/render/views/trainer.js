@@ -14,6 +14,7 @@ import { ASSISTENTEN, DIPLOMAS, NIVEAUS, STAF, assistent, assistentAdvies, assis
 import { startLive, startTrainer, trainerVrij, volgendeWedstrijd } from '../../game/trainer.js';
 import { dramaOpen, vKleedkamerPaneel, vPersPaneel, vPrijzenkast, vPriveTab } from './trainer-extra.js';
 import { vPitch } from '../pitch.js';
+import { team } from '../../core/geslacht.js';
 
 export function vTrainerAanbod(){
   const l = S.trainerAanbod || [], o23 = !!S.trainerAanbodO23, E = S.trainerEind, ontsl = S.trainer && S.trainer.ontslagen;
@@ -91,7 +92,7 @@ function vTalentenTab(){
   const T0 = S.trainer, sel = mijnSel(), grens = zwaksteBasis(T0.club) - 3, m = tmp.trMelding ? `<p class="melding">${esc(tmp.trMelding)}</p>` : '';
   const pot = x => { const d = (x.pot || x.k) - x.k; return d >= 9 ? ['groot talent', 'goedtxt'] : d >= 4 ? ['kan nog groeien', ''] : ['bijna op zijn top', 'muted']; };
   return `<div class="paneel"><span class="label">Talenten · ${T0.sz.door || 0} doorgestroomd dit seizoen</span>${m}
-    <p class="klein-tekst">Een talent mag naar het eerste elftal van ${esc(CLUBS[T0.club].n)} als hij minstens klasse <b>${grens}</b> is (de zwakste basisspeler daar min 3) en ${DOOR_WED} keer in de basis stond bij de O23. Training "Jeugd ontwikkelen" en een jeugdtrainer laten ze sneller groeien.</p>
+    <p class="klein-tekst">Een talent mag naar het eerste elftal van ${esc(CLUBS[T0.club].n)} als ${team.hij} minstens klasse <b>${grens}</b> is (de zwakste basisspeler daar min 3) en ${DOOR_WED} keer in de basis stond bij de O23. Training "Jeugd ontwikkelen" en een jeugdtrainer laten ze sneller groeien.</p>
     <table class="tabel trsel"><thead><tr><th>Speler</th><th>Lft</th><th>Klasse</th><th>Groei</th><th>Talent</th><th></th></tr></thead><tbody>${sel.slice().sort((a, b) => b.k - a.k).map(x => { const [pl, pc] = pot(x), g = x.k - (x.kStart ?? x.k);
       return `<tr class="${x.basis ? 'mij' : ''}"><td>${esc(metVoorletter(x))} <span class="muted klein-tekst">${POS_NAAM[x.pos].toLowerCase()}</span></td><td>${x.lft}</td><td><b>${x.k}</b></td><td class="${g >= 3 ? 'goedtxt' : ''}">${g > 0 ? '+' + g : '0'}</td><td class="klein-tekst ${pc}">${pl}</td><td>${kanDoorstromen(x) ? knop('Naar het eerste', () => { tmp.trMelding = doorstroom(x.n); }, 'klein', 'data-blijf') : ''}</td></tr>`; }).join('')}</tbody></table></div>`;
 }

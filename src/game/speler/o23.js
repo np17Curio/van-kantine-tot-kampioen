@@ -18,6 +18,7 @@ import { verhoog } from '../week.js';
 import { staminaNaWedstrijd } from '../wedstrijd/stamina.js';
 import { talentNaWedstrijd } from './talent.js';
 import { teamKracht } from '../team/kleedkamer.js';
+import { ik } from '../../core/geslacht.js';
 
 /* ===================== O23 en verhuur ===================== */
 export const gemiddelde = l => l.reduce((a, b) => a + b, 0) / l.length;
@@ -47,7 +48,7 @@ export function naarO23(){
   sp.statusNiveau = statusNiveau();
   mod('moraal', -10);
   S.car.hist.push(`${seizoenLabel()}: teruggezet naar de O23 van ${club().n}`);
-  krantMelding(`${sp.naam} teruggezet naar de O23`, `De trainer van ${club().n} is niet tevreden over zijn vorm. Bij de O23 moet hij zich opnieuw bewijzen.`);
+  krantMelding(`${sp.naam} teruggezet naar de O23`, `De trainer van ${club().n} is niet tevreden over ${ik.zijn} vorm. Bij de O23 moet ${ik.hij} zich opnieuw bewijzen.`);
   return `De trainer is klaar met je slechte wedstrijden: je gaat terug naar de O23 van ${club().n}. Laat je daar zien, dan haalt hij je terug.`;
 }
 export const O23_EIS = 'Haal over 3 wedstrijden gemiddeld een 7,0 (of twee keer op rij gemiddeld 7,6) en de trainer haalt je terug.';
@@ -147,7 +148,7 @@ export function gaHuren(x){
   mod('moraal', 5);
   S.car.clubs.push({club:o.club, van:S.jaar, huur:true, land:thuisLand(), n:naam});
   S.car.hist.push(`${seizoenLabel()}: verhuurd door ${ouder.n} aan ${naam}${bl ? ` (${o.land})` : ''}`);
-  krantMelding(`${ouder.n} verhuurt ${sp.naam} aan ${naam}${bl ? ` uit ${o.land}` : ''}`, `Bij ${naam} moet hij speeltijd krijgen. In de zomer keert hij terug.`, krant);
+  krantMelding(`${ouder.n} verhuurt ${sp.naam} aan ${naam}${bl ? ` uit ${o.land}` : ''}`, `Bij ${naam} moet ${ik.hij} speeltijd krijgen. In de zomer keert ${ik.hij} terug.`, krant);
   let tekst = `Je bent verhuurd aan ${naam}${waar} tot het einde van het seizoen. Hier krijg je speeltijd. Laat zien wat je kan!`;
   if (bl){ const t = startBuitenland(o.land); if (t) tekst += ' ' + t; if (V.soort === 'winter') tekst += ' ' + winterInhalen(); }
   S.verhuisTekst = tekst;

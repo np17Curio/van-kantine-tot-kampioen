@@ -8,6 +8,7 @@ import { stoppen } from '../seizoen/seizoen.js';
 import { wilJou, wissel } from '../transfers/transfers.js';
 import { bewaarVertrek } from '../wedstrijd/reunie.js';
 import { plafond, trainKans, trainVoortgang, verhoog } from '../week.js';
+import { ik } from '../../core/geslacht.js';
 
 /* ===================== Zonder club ===================== */
 // Je contract liep af (of je werd weggestuurd) en geen club wilde je hebben. Je traint alleen, de competities gaan
@@ -22,7 +23,7 @@ export function wordClubloos(hoe){
   sp.o23 = null; sp.huur = null;
   sp.clubWed = 0; sp.clubSz = 0; sp.legendeHier = false; sp.status = 0; sp.statusNiveau = 0;
   S.car.hist.push(`${seizoenLabel()}: zonder club (${hoe === 'weg' ? 'weggestuurd' : 'contract niet verlengd'} bij ${CLUBS[oud].n})`);
-  if (CLUBS[oud].t <= 3) krantMelding(`${sp.naam} zit zonder club`, `Na zijn vertrek bij ${CLUBS[oud].n} heeft zich nog geen enkele club gemeld.`);
+  if (CLUBS[oud].t <= 3) krantMelding(`${sp.naam} zit zonder club`, `Na ${ik.zijn} vertrek bij ${CLUBS[oud].n} heeft zich nog geen enkele club gemeld.`);
   S.verhuisTekst = `Je zit zonder club. Je traint voortaan alleen en wacht tot er een club belt. Houd je fit: een club wil geen speler die uit vorm is.`;
 }
 // Clubs die je nu een contract zouden geven: van het niveau van je vorige club of lager, en die je goed genoeg vinden

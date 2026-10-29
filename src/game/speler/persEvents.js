@@ -10,6 +10,7 @@ import { modFans } from '../wedstrijd/fans-pers.js';
 import { onrust } from './kalmte.js';
 import { mijnPers } from './persoonlijkheid.js';
 import { statusPunten } from './status.js';
+import { ik, team } from '../../core/geslacht.js';
 
 /* ===================== Gebeurtenissen die bij je persoonlijkheid horen ===================== */
 // Twee per persoonlijkheid. Een gebeurtenis komt niet terug zolang hij bij de laatste 8 hoort die je zag.
@@ -20,12 +21,12 @@ const EV = {
       {l:'Alles kijken en aantekeningen maken', f(){ mod('fit', -6); mod('focus', 5); return 'Om 1 uur lig je in bed, je hoofd vol loopacties en patronen. Moe, maar je hebt veel geleerd.'; }},
       {l:'Toch maar slapen', f(){ mod('fit', 4); return 'Met pijn in je hart doe je de tv uit. Je kijkt de samenvatting bij het ontbijt.'; }}]},
     {id:'vg-pleintje', get tekst(){ return `Op je vrije middag zie je kinderen voetballen op een pleintje. ${S.sp.rep >= 25 ? 'Ze herkennen je.' : 'Ze vragen of je meedoet.'}`; }, opts:[
-      {l:'Meedoen tot het donker is', f(){ mod('moraal', 6); mod('fit', -4); modFans(3); return 'Je speelt drie uur mee. Een vader filmt het en de clip gaat rond. "Hij leeft voor voetbal."'; }},
+      {l:'Meedoen tot het donker is', f(){ mod('moraal', 6); mod('fit', -4); modFans(3); return 'Je speelt drie uur mee. Een vader filmt het en de clip gaat rond. "' + ik.Hij + ' leeft voor voetbal."'; }},
       {l:'Een paar handtekeningen en door', f(){ mod('moraal', 2); return 'De kinderen zijn er blij mee. Thuis kijk je nog een uur voetbal.'; }}]},
   ],
   rebel:[
     {id:'rb-kapsel', tekst:'Je komt met een opvallend nieuw kapsel naar de training. De trainer zegt dat het "niet bij de club past".', opts:[
-      {l:'Het kapsel blijft', f(){ mod('vert', -5); modFans(4); mod('rep', 2); roddel(`${S.sp.naam} weigert kapsel aan te passen`, 'De trainer is er niet blij mee, de fans vinden het geweldig.'); return 'De trainer zucht. Op de tribune zie je bij de volgende wedstrijd jongens met hetzelfde kapsel.'; }},
+      {l:'Het kapsel blijft', f(){ mod('vert', -5); modFans(4); mod('rep', 2); roddel(`${S.sp.naam} weigert kapsel aan te passen`, 'De trainer is er niet blij mee, de fans vinden het geweldig.'); return 'De trainer zucht. Op de tribune zie je bij de volgende wedstrijd ' + team.jongens + ' met hetzelfde kapsel.'; }},
       {l:'Laat hem maar praten, je past het aan', f(){ mod('vert', 3); mod('moraal', -3); return 'Je gaat naar de kapper. Het voelt een beetje als verliezen.'; }}]},
     {id:'rb-scheids', tekst:'Na de wedstrijd vraagt een journalist wat je van de scheidsrechter vond.', opts:[
       {l:'Zeggen wat je echt denkt', f(){ mod('rep', 3); mod('vert', -3); onrust(4, 'Ophef in de media'); krantMelding(`${S.sp.naam} haalt uit naar de scheidsrechter`, '"Die man had geen idee waar hij mee bezig was." De bond kijkt ernaar.'); return 'Je woorden staan de volgende dag op de voorpagina. De fans zijn het met je eens, de club minder.'; }},

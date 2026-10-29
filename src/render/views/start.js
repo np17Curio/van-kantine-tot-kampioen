@@ -1,15 +1,15 @@
 import { herstel } from '../../core/migratie.js';
 import { SLOTS, laad, saves, setS, tmp, vrijeSlot, wis } from '../../core/state.js';
-import { VOORNAMEN } from '../../game/speler/journey.js';
+import { voornamenVoor } from '../../game/speler/journey.js';
 import { act, knop } from '../../core/ui.js';
 import { esc } from '../../core/utils.js';
-import { DIVS, LANDEN_LIJST, NIVEAU, POS } from '../../data/gegevens.js';
+import { DIVS, LANDEN_LIJST, NIVEAU, POS, zetWereld } from '../../data/gegevens.js';
 import { SPEEL_LANDEN, zetLand } from '../../data/landen.js';
 import { nieuwSpel } from '../../game/speler/status.js';
 import { LEEFTIJDEN, START } from '../../game/speler/startverhaal.js';
 import { HAAR, HAAR_NAAM, HUID, KAPSEL_KEUZE, willekeurigUiterlijk } from '../../data/uiterlijk.js';
 import { MAX_PERS, PERS, kanErBij, willekeurigePers, wisselPers } from '../../game/speler/persoonlijkheid.js';
-import { BOUW, LENGTES, STANDAARD_LENGTE, gewichtVan, lengteTxt, lichaamSamenvatting } from '../../game/speler/lichaam.js';
+import { BOUW, gewichtVan, lengteTxt, lengtesVoor, lichaamSamenvatting, standaardLengte } from '../../game/speler/lichaam.js';
 
 export const HERKOMST_IDS = ['geboren', 'vader', 'moeder'];
 // Opslag downloaden en laden (de afhandeling zit in main.js)
@@ -27,20 +27,26 @@ export const opgroeiKeuze = () => tmp.opgroei || (SPEEL_LANDEN.includes(tmp.gebo
 // Je speler aanmaken: huidskleur, haarkleur en kapsel, met een portret in 3D (gemaakt in de fotostudio)
 function vUiterlijk(){
   const u = tmp.uiterlijk || (tmp.uiterlijk = willekeurigUiterlijk());
-  if (!u.lengte) u.lengte = STANDAARD_LENGTE[tmp.pos] || 180; if (!u.bmi) u.bmi = 22.5; // lengte en bouw (lichaam.js)
+  if (!u.lengte) u.lengte = standaardLengte(tmp.pos, tmp.vrouw); if (!u.bmi) u.bmi = 22.5; // lengte en bouw (lichaam.js)
+  const LENGTES = lengtesVoor(tmp.vrouw);
+  // Jongen of meisje: een meisje speelt in het vrouwenvoetbal (andere competities, met de vrouwenteams van dezelfde clubs)
+  const zetG = v => () => { if (!!tmp.vrouw === v) return; tmp.vrouw = v; u.lengte = standaardLengte(tmp.pos, v); u.kapsel = v ? 'staart' : 'model'; if (tmp.valtOp === undefined) tmp.valtOp = v ? 'm' : 'v'; else tmp.valtOp = tmp.valtOp === 'v' ? 'm' : 'v'; tmp.uitSleutel = Math.random().toString(36).slice(2, 10); };
+  const geslacht = `<div><span class="label">Jongen of meisje?</span><div class="kapsels" role="group" aria-label="Jongen of meisje">${knop('👦 Jongen', zetG(false), 'klein' + (!tmp.vrouw ? ' aan' : ''), `data-blijf aria-pressed="${!tmp.vrouw}"`)}${knop('👧 Meisje', zetG(true), 'klein' + (tmp.vrouw ? ' aan' : ''), `data-blijf aria-pressed="${!!tmp.vrouw}"`)}</div>
+        <p class="muted klein-tekst">${tmp.vrouw ? 'Je speelt in het vrouwenvoetbal: de vrouwenteams van dezelfde clubs, met hun eigen competities, toernooien en nationale teams.' : 'Je speelt in het mannenvoetbal.'}</p></div>`;
   if (!tmp.uitSleutel) tmp.uitSleutel = Math.random().toString(36).slice(2, 10);
   const vlak = (lijst, k, label, namen) => `<div class="kleurvlakken" role="group" aria-label="${label}">${lijst.map((kl, i) => `<button class="kleurvlak ${u[k] === i ? 'aan' : ''}" style="--kl:${kl}" aria-pressed="${u[k] === i}" aria-label="${label} ${namen ? namen[i] : `${i + 1} van ${lijst.length}`}" title="${namen ? namen[i] : ''}" data-i="${act(() => { u[k] = i; })}" data-blijf></button>`).join('')}</div>`;
   return `<div class="aanmaken">
-    <figure class="portretfoto"><img data-foto="portret" data-uit="${u.huid},${u.haar},${u.kapsel},${u.lengte},${u.bmi}" data-sleutel="${tmp.uitSleutel}" alt="Jouw speler"><span class="ontwikkel">Foto laden…</span></figure>
+    <figure class="portretfoto"><img data-foto="portret" data-uit="${u.huid},${u.haar},${u.kapsel},${u.lengte},${u.bmi},${tmp.vrouw ? 1 : 0}" data-sleutel="${tmp.uitSleutel}" alt="Jouw speler"><span class="ontwikkel">Foto laden…</span></figure>
     <div class="aanmaakkeuzes">
-      <div class="invoer"><label class="label" for="naam">Naam van je speler</label><input id="naam" maxlength="24" placeholder="bijv. Daan de Kanon" value="${esc(tmp.naam)}"></div>
+      ${geslacht}
+      <div class="invoer"><label class="label" for="naam">Naam van je ${tmp.vrouw ? 'speelster' : 'speler'}</label><input id="naam" maxlength="24" placeholder="bijv. ${tmp.vrouw ? 'Lieke de Raket' : 'Daan de Kanon'}" value="${esc(tmp.naam)}"></div>
       <div><span class="label">Huidskleur</span>${vlak(HUID, 'huid', 'Huidskleur')}</div>
       <div><span class="label">Haarkleur</span>${vlak(HAAR, 'haar', 'Haarkleur', HAAR_NAAM)}</div>
       <div><span class="label">Kapsel</span><div class="kapsels" role="group" aria-label="Kapsel">${KAPSEL_KEUZE.map(([k, l]) => knop(l, () => { u.kapsel = k; }, 'klein' + (u.kapsel === k ? ' aan' : ''), `data-blijf aria-pressed="${u.kapsel === k}"`)).join('')}</div></div>
       <div><span class="label">Lengte · ${lengteTxt(u.lengte)}</span><div class="kapsels" role="group" aria-label="Lengte">${LENGTES.map(l => knop(lengteTxt(l), () => { u.lengte = l; }, 'klein' + (u.lengte === l ? ' aan' : ''), `data-blijf aria-pressed="${u.lengte === l}"`)).join('')}</div></div>
       <div><span class="label">Bouw · ${gewichtVan(u.lengte, u.bmi)} kg</span><div class="kapsels" role="group" aria-label="Bouw">${BOUW.map(b => knop(b.n, () => { u.bmi = b.bmi; }, 'klein' + (u.bmi === b.bmi ? ' aan' : ''), `data-blijf aria-pressed="${u.bmi === b.bmi}"`)).join('')}</div>
-        <p class="muted klein-tekst">${lichaamSamenvatting(u)}. Lang = sterk in de lucht, klein en tenger = snel, zwaar = sterk in duels maar sneller moe.</p></div>
-      <div>${knop('🎲 Verras me', () => { tmp.uiterlijk = {...willekeurigUiterlijk(), lengte:LENGTES[Math.floor(Math.random() * LENGTES.length)], bmi:BOUW[Math.floor(Math.random() * BOUW.length)].bmi}; tmp.uitSleutel = Math.random().toString(36).slice(2, 10); }, 'klein', 'data-blijf')}</div>
+        <p class="muted klein-tekst">${lichaamSamenvatting({...u, vrouw:!!tmp.vrouw})}. Lang = sterk in de lucht, klein en tenger = snel, zwaar = sterk in duels maar sneller moe.</p></div>
+      <div>${knop('🎲 Verras me', () => { tmp.uiterlijk = {...willekeurigUiterlijk(tmp.vrouw), lengte:LENGTES[Math.floor(Math.random() * LENGTES.length)], bmi:BOUW[Math.floor(Math.random() * BOUW.length)].bmi}; tmp.uitSleutel = Math.random().toString(36).slice(2, 10); }, 'klein', 'data-blijf')}</div>
     </div></div>`;
 }
 // Wie ben je? Maximaal 3 persoonlijkheden, die bepalen hoe je bent in en buiten het veld
@@ -70,16 +76,20 @@ function vSlotKeuze(){
   return `<div class="paneel"><span class="label">Alle ${SLOTS} plekken zijn vol. Welke carrière mag weg?</span><div class="rij" style="gap:6px;flex-wrap:wrap">${saves().map(x => knop(`${x.slot}. ${esc(x.naam || '')}`, () => { tmp.slot = x.slot; }, 'klein' + (tmp.slot === x.slot ? ' aan' : ''), 'data-blijf')).join('')}</div></div>`;
 }
 const POS_UITLEG = {SPITS:'Goals maken, schieten, dribbelen', MID:'Passen, counters, vrije trappen', VERD:'Tackles, kopduels, opbouwen', KEEPER:'Reddingen, uittrappen, de baas in de zestien'};
-// Je beste vriend: zijn naam en positie (hij groeit samen met jou op)
+// Je beste vriend(in): naam, positie en of het een jongen of een meisje is (groeit samen met jou op).
+// Is het iemand van het andere geslacht, dan speelt die in de andere competitie: nooit met of tegen jou
 function vVriend(){
-  if (!tmp.vriendVoorbeeld) tmp.vriendVoorbeeld = VOORNAMEN[Math.floor(Math.random() * VOORNAMEN.length)];
-  const vp = tmp.vriendPos || tmp.pos;
-  return `<div><span class="label">Je beste vriend</span><div class="invoer"><label class="label" for="vriendNaam">Naam (voornaam en eventueel achternaam)</label><input id="vriendNaam" maxlength="24" placeholder="bijv. ${esc(tmp.vriendVoorbeeld)}" value="${esc(tmp.vriendNaam || '')}"></div>
-    <div class="rij" style="gap:6px;flex-wrap:wrap;margin-top:6px"><span class="muted klein-tekst">Zijn positie:</span>${Object.keys(POS).map(k => knop(POS[k].n, () => { tmp.vriendPos = k; }, 'klein' + (vp === k ? ' aan' : ''), 'data-blijf')).join('')}${knop('🎲', () => { tmp.vriendNaam = VOORNAMEN[Math.floor(Math.random() * VOORNAMEN.length)]; }, 'klein', 'data-blijf title="Willekeurige naam"')}</div>
-    <p class="muted klein-tekst">Jullie groeiden samen op en droomden van dezelfde carrière. Speelt hij op een andere plek dan jij, dan zitten jullie elkaar niet in de weg als jullie bij dezelfde club spelen.</p></div>`;
+  const vv = tmp.vriendVrouw === undefined ? !!tmp.vrouw : tmp.vriendVrouw, NAMEN = voornamenVoor(vv);
+  if (!tmp.vriendVoorbeeld || !NAMEN.includes(tmp.vriendVoorbeeld)) tmp.vriendVoorbeeld = NAMEN[Math.floor(Math.random() * NAMEN.length)];
+  const vp = tmp.vriendPos || tmp.pos, wie = vv ? 'vriendin' : 'vriend';
+  return `<div><span class="label">Je beste ${wie}</span><div class="kapsels" role="group" aria-label="Vriend of vriendin" style="margin-bottom:6px">${knop('Vriend', () => { tmp.vriendVrouw = false; }, 'klein' + (!vv ? ' aan' : ''), 'data-blijf')}${knop('Vriendin', () => { tmp.vriendVrouw = true; }, 'klein' + (vv ? ' aan' : ''), 'data-blijf')}</div><div class="invoer"><label class="label" for="vriendNaam">Naam (voornaam en eventueel achternaam)</label><input id="vriendNaam" maxlength="24" placeholder="bijv. ${esc(tmp.vriendVoorbeeld)}" value="${esc(tmp.vriendNaam || '')}"></div>
+    <div class="rij" style="gap:6px;flex-wrap:wrap;margin-top:6px"><span class="muted klein-tekst">Positie:</span>${Object.keys(POS).map(k => knop(POS[k].n, () => { tmp.vriendPos = k; }, 'klein' + (vp === k ? ' aan' : ''), 'data-blijf')).join('')}${knop('🎲', () => { tmp.vriendNaam = NAMEN[Math.floor(Math.random() * NAMEN.length)]; }, 'klein', 'data-blijf title="Willekeurige naam"')}</div>
+    <p class="muted klein-tekst">Jullie groeiden samen op en droomden van dezelfde carrière. ${vv === !!tmp.vrouw ? 'Speel je op een andere plek, dan zitten jullie elkaar niet in de weg als jullie bij dezelfde club spelen.' : `Je ${wie} speelt in het ${vv ? 'vrouwen' : 'mannen'}voetbal: jullie spelen nooit samen of tegen elkaar, maar volgen elkaars carrière van dichtbij.`}</p></div>
+    <div><span class="label">De liefde: je valt op</span><div class="kapsels" role="group" aria-label="Je valt op">${knop('Jongens', () => { tmp.valtOp = 'm'; }, 'klein' + (valtOp() === 'm' ? ' aan' : ''), 'data-blijf')}${knop('Meisjes', () => { tmp.valtOp = 'v'; }, 'klein' + (valtOp() === 'v' ? ' aan' : ''), 'data-blijf')}</div></div>`;
 }
+const valtOp = () => tmp.valtOp || (tmp.vrouw ? 'm' : 'v');
 export function vStart(){
-  zetLand(opgroeiKeuze());
+  zetWereld(tmp.vrouw ? 'v' : 'm'); zetLand(opgroeiKeuze());
   const posKnop = k => `<button class="keuze ${tmp.pos === k ? 'aan' : ''}" data-i="${act(() => { tmp.pos = k; })}"><span class="t">${POS[k].n}</span><span class="s">${POS_UITLEG[k]}</span></button>`;
   const slot = nieuweSlot(), bezet = slot && saves().find(x => x.slot === slot && !x.leeg);
   return `<div class="verhaal">
@@ -100,7 +110,7 @@ export function vStart(){
     <div style="display:grid;gap:8px"><label class="label" for="opgroei">Waar groei je op?</label><select id="opgroei">${SPEEL_LANDEN.map(n => `<option ${opgroeiKeuze() === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
       <p class="muted klein-tekst">Hier begin je je carrière. Elk land heeft zijn eigen competitie, clubs en kranten. De nummers 1 en 2 van elke hoogste competitie spelen de Champions League.</p></div>
     ${vSlotKeuze()}
-    ${slot ? knop('Start carrière', () => { nieuwSpel((tmp.naam || '').trim() || 'Daan de Kanon', tmp.pos, herkomstUitTmp(), opgroeiKeuze(), {leeftijd:tmp.leeftijd || 15, uiterlijk:tmp.uiterlijk, sleutel:tmp.uitSleutel, pers:tmp.pers || [], slot, vriend:{naam:(tmp.vriendNaam || '').trim(), pos:tmp.vriendPos || tmp.pos}}); }, 'hoofd', bezet ? `data-bevestig="De carrière van ${esc(bezet.naam)} wordt overschreven." data-ja="Ja, overschrijven"` : '') : '<p class="muted">Kies eerst welke carrière mag worden overschreven.</p>'}`;
+    ${slot ? knop('Start carrière', () => { nieuwSpel((tmp.naam || '').trim() || (tmp.vrouw ? 'Lieke de Raket' : 'Daan de Kanon'), tmp.pos, herkomstUitTmp(), opgroeiKeuze(), {leeftijd:tmp.leeftijd || 15, uiterlijk:tmp.uiterlijk, sleutel:tmp.uitSleutel, pers:tmp.pers || [], slot, vrouw:!!tmp.vrouw, valtOp:valtOp(), vriend:{naam:(tmp.vriendNaam || '').trim(), pos:tmp.vriendPos || tmp.pos, vrouw:tmp.vriendVrouw === undefined ? !!tmp.vrouw : tmp.vriendVrouw}}); }, 'hoofd', bezet ? `data-bevestig="De carrière van ${esc(bezet.naam)} wordt overschreven." data-ja="Ja, overschrijven"` : '') : '<p class="muted">Kies eerst welke carrière mag worden overschreven.</p>'}`;
 }
 // Spelregels in het kort: op het startscherm en in het hulpvenster (?)
 const UITLEG = [

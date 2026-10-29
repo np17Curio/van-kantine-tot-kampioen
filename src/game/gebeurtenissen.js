@@ -1,6 +1,6 @@
 import { S, club, mod, seizoenLabel } from '../core/state.js';
 import { clamp, geldTxt, pick, randInt, rnd } from '../core/utils.js';
-import { MEIDEN } from '../data/gegevens.js';
+import { liefNamen } from '../data/gegevens.js';
 import { selectie } from './competitie/spelers.js';
 import { roddel } from './media/roddel.js';
 import { belevenissen } from './prive/belevenissen.js';
@@ -16,6 +16,7 @@ import { rivaal, rivaalEvents } from './speler/rivaal.js';
 import { scoutEvent } from './transfers/buitenland.js';
 import { toonEffect, toonEvents, vriendEvents } from './speler/journey.js';
 import { buitenlandEvents, buitenlandKans, inBuitenland, thuis, vluchtPrijs } from './prive/buitenland-leven.js';
+import { ik, pa, partnerVrouw, team } from '../core/geslacht.js';
 
 /* ===================== Gebeurtenissen ===================== */
 export function eindRelatie(tekst){
@@ -46,7 +47,7 @@ export function maakEvent(){
   if (rnd() < .1){ const sc = scoutEvent(); if (sc) return sc; }
   // Je rivaal: hij reageert op jouw uitdaging, of er gebeurt iets tussen jullie
   { const R = rivaal(); if (R && (R.reactie || rnd() < .12)){ const r = rivaalEvents(); if (r.length) return pick(r); } }
-  const sp = S.sp, n = pick(selectie(S.sp.club)).n, t = club().t, jong = sp.leeftijd < 18, bekend = t <= 2, meid = pick(MEIDEN);
+  const sp = S.sp, n = pick(selectie(S.sp.club)).n, t = club().t, jong = sp.leeftijd < 18, bekend = t <= 2, meid = pick(liefNamen(partnerVrouw()).filter(x => x !== sp.naam));
   const lief = sp.relatie ? sp.relatie.naam : '';
   // Woon je in het buitenland, dan wonen je ouders en vrienden niet om de hoek: bellen, laten bezorgen of naar huis vliegen
   const ver = inBuitenland(), vlieg = () => { const p = vluchtPrijs(); sp.geld = Math.max(0, sp.geld - p); return p; };
@@ -69,7 +70,7 @@ export function maakEvent(){
         {l:'Langsgaan met taart', f(){ o.band = clamp(o.band + 8, 0, 100); mod('fit', -2); return 'Je vader blaast de kaarsjes uit en vertelt voor de honderdste keer hoe hij je eerste goal zag.'; }},
         {l:'Een berichtje sturen', f(){ o.band = clamp(o.band - 3, 0, 100); return 'Hij stuurt een duimpje terug. Je moeder belt later: "Hij had je graag gezien."'; }}]},
       {soort:'prive', tekst:'Je moeder heeft griep en ligt in bed.', opts:[
-        {l:'Soep brengen en boodschappen doen', f(){ o.band = clamp(o.band + 9, 0, 100); mod('fit', -4); return 'Je moeder is je heel dankbaar. "Je bent een goede jongen."'; }},
+        {l:'Soep brengen en boodschappen doen', f(){ o.band = clamp(o.band + 9, 0, 100); mod('fit', -4); return 'Je moeder is je heel dankbaar. "Je bent een goede ' + ik.jongen + '."'; }},
         {l:'Beterschap wensen via de app', f(){ o.band = clamp(o.band - 2, 0, 100); return 'Ze stuurt een hartje terug.'; }}]},
       {soort:'prive', tekst:'Je ouders hebben ruzie gehad en willen allebei met jou praten.', opts:[
         {l:'Rustig met allebei praten', f(){ o.band = clamp(o.band + 6, 0, 100); mod('focus', -4); return 'Het kost je een avond, maar het is weer goed tussen ze.'; }},
@@ -100,15 +101,15 @@ export function maakEvent(){
   if (sp.relatie && sp.leeftijd >= 18 && rnd() < .35){
     const r = sp.relatie;
     const rel = [
-      {soort:'prive', tekst:`${lief} wil dat je zaterdagavond meegaat naar de bruiloft van haar zus. Zondag moet je spelen.`, opts:[
+      {soort:'prive', tekst:`${lief} wil dat je zaterdagavond meegaat naar de bruiloft van ${pa.haar} zus. Zondag moet je spelen.`, opts:[
         {l:'Meegaan, op tijd naar huis', f(){ r.band = clamp(r.band + 10, 0, 100); mod('fit', -5); return `${lief} is blij dat je er was. Om 23 uur lig je in bed.`; }},
         {l:'Dansen tot 3 uur', f(){ r.band = clamp(r.band + 15, 0, 100); mod('moraal', 10); mod('fit', -15); return 'Je bent de ster van de dansvloer. Je benen zijn morgen wel van lood.'; }},
         {l:'Afzeggen voor de wedstrijd', f(){ r.band = clamp(r.band - 15, 0, 100); mod('vert', 3); return `${lief} begrijpt het, maar is wel teleurgesteld.`; }}]},
       {soort:'prive', tekst:`${lief} staat bij je wedstrijd langs de lijn met een zelfgemaakt bord met jouw naam.`, opts:[
-        {l:'Naar haar zwaaien', f(){ mod('moraal', 8); sp.vorm = clamp(sp.vorm + .5, -3, 3); r.band = clamp(r.band + 5, 0, 100); return 'Je voelt je onoverwinnelijk.'; }},
+        {l:'Naar ' + pa.haar + ' zwaaien', f(){ mod('moraal', 8); sp.vorm = clamp(sp.vorm + .5, -3, 3); r.band = clamp(r.band + 5, 0, 100); return 'Je voelt je onoverwinnelijk.'; }},
         {l:'Gefocust blijven', f(){ mod('vert', 2); return 'Je knikt even en focust op de warming-up.'; }}]},
       {soort:'prive', tekst:`Jullie krijgen ruzie. ${lief} vindt dat je alleen nog maar met voetbal bezig bent.`, opts:[
-        {l:'Een weekend vrij voor haar', f(){ r.band = clamp(r.band + 15, 0, 100); mod('fit', 10); mod('vert', -3); return 'Jullie gaan een weekend naar de kust. De ruzie is vergeten.'; }},
+        {l:'Een weekend vrij voor ' + pa.haar + '', f(){ r.band = clamp(r.band + 15, 0, 100); mod('fit', 10); mod('vert', -3); return 'Jullie gaan een weekend naar de kust. De ruzie is vergeten.'; }},
         {l:'"Voetbal gaat voor"', f(){ r.band -= 30; if (r.band <= 0) return eindRelatie(`${lief} maakt het uit.`); mod('moraal', -5); mod('focus', -8); return 'Het blijft een tijdje ijzig stil thuis. Je kunt je slecht concentreren.'; }},
         {l:'Bloemen en sorry zeggen', f(){ r.band = clamp(r.band + 8, 0, 100); sp.geld = Math.max(0, sp.geld - 40); return 'Rozen werken altijd. Bijna altijd.'; }}]}
     ];
@@ -133,23 +134,23 @@ export function maakEvent(){
         {l:'Zeggen dat ze overdrijft', f(){ r.band = clamp(r.band - 12, 0, 100); mod('focus', -6); mod('moraal', -4); return 'Dat valt verkeerd. Jullie hebben de hele avond ruzie.'; }}]});
     if (bekend) rel.push({soort:'prive', tekst:`Een roddelblad heeft een foto van jou en ${lief} op een terras gemaakt.`, opts:[
       {l:'Lachen en zwaaien', f(){ mod('rep', 3); return 'Jullie staan op de cover als "het leukste stel van het voetbal".'; }},
-      {l:'Boos op de fotograaf', f(){ mod('rep', -4); r.band = clamp(r.band - 5, 0, 100); roddel(`${sp.naam} valt uit tegen fotograaf`, `Op een terras met ${lief} verloor hij zijn geduld. Het filmpje gaat viraal.`); return 'Iemand filmt hoe je uitvalt. Het filmpje gaat viraal.'; }}]});
+      {l:'Boos op de fotograaf', f(){ mod('rep', -4); r.band = clamp(r.band - 5, 0, 100); roddel(`${sp.naam} valt uit tegen fotograaf`, `Op een terras met ${lief} verloor ${ik.hij} ${ik.zijn} geduld. Het filmpje gaat viraal.`); return 'Iemand filmt hoe je uitvalt. Het filmpje gaat viraal.'; }}]});
     // Ruzie: hoe slechter het gaat, hoe vaker
     if (r.band < 70) rel.push({soort:'prive', tekst:`${lief} vindt dat je veel te weinig tijd voor haar hebt. "Het is altijd maar voetbal!"`, opts:[
       {l:'Sorry zeggen en een avond vrij nemen', f(){ r.band = clamp(r.band + 8, 0, 100); mod('vert', -2); return 'Jullie praten het uit. Je slaat een extra training over, maar thuis is het weer goed.'; }},
-      {l:'Bloemen kopen', f(){ sp.geld = Math.max(0, sp.geld - 50); if (rnd() < .6){ r.band = clamp(r.band + 6, 0, 100); return 'Ze glimlacht weer. Voor nu is het goed.'; } r.band = clamp(r.band - 3, 0, 100); return '"Denk je dat bloemen alles oplossen?" Blijkbaar niet.'; }},
-      {l:'Zeggen dat voetbal nu even voorgaat', f(){ r.band = clamp(r.band - 12, 0, 100); mod('focus', 3); return 'Ze slaat de deur dicht. Je hebt wel rust om je op voetbal te richten.'; }},
+      {l:'Bloemen kopen', f(){ sp.geld = Math.max(0, sp.geld - 50); if (rnd() < .6){ r.band = clamp(r.band + 6, 0, 100); return '' + pa.Ze + ' glimlacht weer. Voor nu is het goed.'; } r.band = clamp(r.band - 3, 0, 100); return '"Denk je dat bloemen alles oplossen?" Blijkbaar niet.'; }},
+      {l:'Zeggen dat voetbal nu even voorgaat', f(){ r.band = clamp(r.band - 12, 0, 100); mod('focus', 3); return '' + pa.Ze + ' slaat de deur dicht. Je hebt wel rust om je op voetbal te richten.'; }},
       {l:'Boos weglopen', f(){ r.band = clamp(r.band - 18, 0, 100); mod('moraal', -5); mod('focus', -5); return 'Je slaapt die nacht op de bank. Of bij een teamgenoot.'; }}]});
     if (r.samen && r.band < 65) rel.push({soort:'prive', tekst:`${lief} vindt dat je te veel geld uitgeeft aan onzin.`, opts:[
-      {l:'Beloven dat je zuiniger wordt', f(){ r.band = clamp(r.band + 5, 0, 100); return 'Ze is gerustgesteld. Die nieuwe gameconsole moet maar even wachten.'; }},
+      {l:'Beloven dat je zuiniger wordt', f(){ r.band = clamp(r.band + 5, 0, 100); return '' + pa.Ze + ' is gerustgesteld. Die nieuwe gameconsole moet maar even wachten.'; }},
       {l:'"Het is mijn geld"', f(){ r.band = clamp(r.band - 15, 0, 100); mod('moraal', -4); return 'Dat was niet slim. Het blijft dagen ijzig stil in huis.'; }}]});
-    // Zij gaat vreemd: alleen als het al slecht gaat
-    if (r.band < 45 && r.weken > 8) rel.push({soort:'prive', tekst:`Je ziet een berichtje op de telefoon van ${lief}. Van een andere man, met een hartje erbij.`, opts:[
-      {l:'Haar ermee confronteren', f(){
+    // Je partner gaat vreemd: alleen als het al slecht gaat
+    if (r.band < 45 && r.weken > 8) rel.push({soort:'prive', tekst:`Je ziet een berichtje op de telefoon van ${lief}. Van een andere ${pa.vriend === 'vriend' ? 'vrouw' : 'man'}, met een hartje erbij.`, opts:[
+      {l:'' + pa.Haar + ' ermee confronteren', f(){
         if (rnd() < .6){ mod('moraal', -12); mod('focus', -12);
           roddel(`${lief} gaat vreemd achter de rug van ${sp.naam}`, 'Een roddelblad heeft foto\'s. Het stel zou in een crisis zitten.');
-          S.volgEv = {soort:'prive', tekst:`${lief} geeft het toe. Ze huilt en zegt dat het een vergissing was. Wat doe je?`, opts:[
-            {l:'Haar nog één kans geven', f(){ r.band = 30; mod('moraal', -5); return 'Je vergeeft het haar. Het vertrouwen moet langzaam terugkomen.'; }},
+          S.volgEv = {soort:'prive', tekst:`${lief} geeft het toe. ${pa.Ze} huilt en zegt dat het een vergissing was. Wat doe je?`, opts:[
+            {l:'' + pa.Haar + ' nog één kans geven', f(){ r.band = 30; mod('moraal', -5); return 'Je vergeeft het ' + pa.haar + '. Het vertrouwen moet langzaam terugkomen.'; }},
             {l:r.getrouwd ? 'Scheiden' : 'Het uitmaken', f(){ return eindRelatie(`Je pakt je spullen. Met ${lief} ben je klaar.`); }}]};
           return `${lief} wordt eerst boos, maar dan wordt het stil.`; }
         r.band = clamp(r.band - 6, 0, 100); return 'Het blijkt een collega met een rare humor te zijn. Je voelt je een beetje dom.'; }},
@@ -157,7 +158,7 @@ export function maakEvent(){
       {l:'Meteen uitmaken', f(){ return eindRelatie(`Je wil niks meer horen. Het is over met ${lief}.`); }}]});
     if (r.zwanger > 0) rel.push({soort:'prive', tekst:`${lief} is zwanger en wil dat je meegaat naar de echo. Het is op de ochtend van een belangrijke training.`, opts:[
       {l:'Natuurlijk ga je mee', f(){ r.band = clamp(r.band + 10, 0, 100); mod('vert', -3); mod('moraal', 8); return 'Je ziet een klein hartje kloppen op het scherm. De training kan je even niks schelen.'; }},
-      {l:'Toch naar de training', f(){ r.band = clamp(r.band - 12, 0, 100); mod('vert', 2); return `${lief} gaat alleen. Ze stuurt je een foto van de echo, zonder tekst.`; }}]});
+      {l:'Toch naar de training', f(){ r.band = clamp(r.band - 12, 0, 100); mod('vert', 2); return `${lief} gaat alleen. ${pa.Ze} stuurt je een foto van de echo, zonder tekst.`; }}]});
     return pick(rel);
   }
 
@@ -167,7 +168,7 @@ export function maakEvent(){
       {l:'"Ik verdien meer minuten"', f(){ if (rnd() < .5){ mod('vert', -8); return 'De trainer leest het in de krant en is er niet blij mee.'; } mod('vert', 4); mod('rep', 2); return 'De trainer waardeert je honger. Fans ook.'; }},
       {l:'"Ik doe wat de trainer vraagt"', f(){ mod('vert', 4); return 'Braaf antwoord. De trainer knikt tevreden.'; }}]},
     {soort:'club', tekst:`${n} daagt je uit voor een vrije-trappenwedstrijd na de training. Verliezer haalt een week lang koffie.`, opts:[
-      {l:'Uitdaging aannemen', f(){ if (rnd() < clamp(.3 + (sp.a.afw - 40) / 60, .15, .85)){ mod('moraal', 6); return `Je schiet ${n} helemaal weg. Hij haalt een week lang je koffie.`; } mod('moraal', -3); return `${n} wint. Jij loopt een week lang met koffiebekertjes.`; }},
+      {l:'Uitdaging aannemen', f(){ if (rnd() < clamp(.3 + (sp.a.afw - 40) / 60, .15, .85)){ mod('moraal', 6); return `Je schiet ${n} helemaal weg. ${team.Hij} haalt een week lang je koffie.`; } mod('moraal', -3); return `${n} wint. Jij loopt een week lang met koffiebekertjes.`; }},
       {l:'Laat maar', f(){ return 'Je gaat douchen. Saai, maar veilig.'; }}]},
     {soort:'club', tekst:'Je zaakwaarnemer belt: "Zal ik andere clubs laten weten dat je openstaat voor een transfer?"', als: !jong, opts:[
       {l:'Ja, maak me bekend', f(){ sp.transferWens = true; mod('vert', -5); statusPunten(-5); return 'Je naam gaat rond bij scouts. Je trainer hoort het ook...'; }},
@@ -175,7 +176,7 @@ export function maakEvent(){
     {soort:'club', tekst:'Een scout van een grotere club staat bij jullie training. Iedereen doet ineens extra z\'n best.', opts:[
       {l:'Laten zien wat je kan', f(){ if (rnd() < .5){ sp.transferWens = true; mod('rep', 3); return 'De scout schrijft iets op en kijkt naar jou. Je naam staat op een lijstje.'; } mod('fit', -6); return 'Je doet zo je best dat je over de bal struikelt. De scout grinnikt.'; }},
       {l:'Gewoon je eigen spel', f(){ mod('vert', 3); return 'Je speelt rustig je eigen spelletje. De trainer vindt het volwassen.'; }}]},
-    {soort:'club', tekst:'Een jonge speler uit de jeugd vraagt of je hem wat tips wilt geven.', als: sp.leeftijd >= 27, opts:[
+    {soort:'club', tekst:'Een jonge ' + team.speler + ' uit de jeugd vraagt of je ' + team.hem + ' wat tips wilt geven.', als: sp.leeftijd >= 27, opts:[
       {l:'Neem hem onder je hoede', f(){ mod('vert', 5); mod('moraal', 4); return 'Je bent nu officieel de "grote broer" van de kleedkamer.'; }},
       {l:'Geen tijd', f(){ return 'Hij druipt teleurgesteld af.'; }}]},
     {soort:'club', tekst:'Tijdens de training voel je iets trekken in je hamstring.', als: sp.fit < 40, opts:[
@@ -187,7 +188,7 @@ export function maakEvent(){
       {l:'Thuisblijven en leren', f(){ mod('vert', -3); mod('moraal', 4); const x = schoolCijfer('Wiskunde', 8.2); return 'Je haalt een 8,2 voor wiskunde! Je moeder hangt hem op de koelkast.' + (x ? ' ' + x : ''); }},
       {l:'Naar de training', f(){ mod('vert', 5); mod('moraal', -4); const x = schoolCijfer('Wiskunde', 3.4); return 'Je haalt een 3,4 voor wiskunde. Je moeder is niet blij, de trainer wel.' + (x ? ' ' + x : ''); }},
       {l:'Spiekbriefje maken', f(){ if (rnd() < .5){ mod('vert', 3); const x = schoolCijfer('Wiskunde', 7); return 'Je komt ermee weg, haalt een 7,0 en gaat ook naar de training. Spannend.' + (x ? ' ' + x : ''); } mod('moraal', -8); mod('rep', -2); const x = schoolCijfer('Wiskunde', 1); return 'Betrapt. Je krijgt een 1,0, moet nablijven en mist de training. Het hele dorp weet het.' + (x ? ' ' + x : ''); }}]},
-    {soort:'prive', als: jong, tekst:`${n} houdt een gamenacht bij hem thuis. Iedereen blijft slapen.`, opts:[
+    {soort:'prive', als: jong, tekst:`${n} houdt een gamenacht bij ${team.hem} thuis. Iedereen blijft slapen.`, opts:[
       {l:'Gamen tot het licht wordt', f(){ mod('moraal', 8); mod('fit', -12); mod('focus', -6); return 'Om half vijf win je eindelijk het toernooi. Op de training ben je een zombie.'; }},
       {l:'Om 12 uur gaan slapen', f(){ mod('moraal', 4); return 'Gezellig, en je bent nog redelijk fris.'; }},
       {l:'Niet gaan', f(){ mod('focus', 3); mod('moraal', -2); return 'Je mist de grappen, maar je slaapt goed.'; }}]},
@@ -224,16 +225,16 @@ export function maakEvent(){
       {l:'Blijven tot het einde', f(){ mod('moraal', 9); mod('fit', -8); mod('focus', -3); return 'Je danst met je oma op een oud liedje. Laat, maar onvergetelijk.'; }},
       {l:'Afzeggen voor de wedstrijd', f(){ mod('moraal', -4); mod('focus', 3); return 'Oma begrijpt het. Je moeder iets minder.'; }}]},
     {soort:'prive', als: sp.leeftijd >= 18, tekst:'Je vrienden hebben kaarten voor een festival dit weekend. Ze willen dat je meegaat.', opts:[
-      {l:'Mee, het hele weekend', f(){ mod('moraal', 14); mod('fit', -20); mod('focus', -8); if (bekend && rnd() < .4){ mod('rep', -3); roddel(`${sp.naam} crowdsurft op festival`, 'Een paar dagen voor de wedstrijd ging hij helemaal los. De trainer zou "niet blij" zijn.'); return 'Fantastisch weekend! Maar een filmpje van jou op de schouders van een vriend gaat rond. De trainer zucht.'; } return 'Fantastisch weekend. Maandag ben je gesloopt.'; }},
+      {l:'Mee, het hele weekend', f(){ mod('moraal', 14); mod('fit', -20); mod('focus', -8); if (bekend && rnd() < .4){ mod('rep', -3); roddel(`${sp.naam} crowdsurft op festival`, 'Een paar dagen voor de wedstrijd ging ' + ik.hij + ' helemaal los. De trainer zou "niet blij" zijn.'); return 'Fantastisch weekend! Maar een filmpje van jou op de schouders van een vriend gaat rond. De trainer zucht.'; } return 'Fantastisch weekend. Maandag ben je gesloopt.'; }},
       {l:'Alleen op zaterdag', f(){ mod('moraal', 6); mod('fit', -8); return 'Een mooie dag, en zondag rust je uit.'; }},
       {l:'Niet gaan', f(){ mod('focus', 3); mod('moraal', -2); return 'Je bekijkt de foto\'s op je telefoon.'; }}]},
     {soort:'prive', als: sp.leeftijd >= 18, tekst:'Na de wedstrijd wil de hele selectie nog de kroeg in.', opts:[
       {l:'Tot sluitingstijd', f(){ mod('moraal', 8); mod('fit', -10); mod('focus', -4); if (rnd() < .3){ mod('vert', -5); return 'Het wordt heel laat. Je verslaapt je voor de hersteltraining en de trainer is woest.'; } return 'Wat een avond. De band in de selectie is sterker dan ooit.'; }},
       {l:'Eén drankje, dan naar huis', f(){ mod('moraal', 4); return 'Gezellig en verstandig.'; }},
       {l:'Direct naar huis', f(){ mod('focus', 2); return 'Je ligt om tien uur in bed.'; }}]},
-    {soort:'prive', als: sp.leeftijd >= 18 && !sp.relatie, tekst:`Je hebt een paar keer afgesproken met ${meid}. Na een etentje vraagt ze: "Wil je mijn vriend zijn?"`, opts:[
-      {l:'Ja!', f(){ sp.relatie = {naam:meid, band:55, weken:0}; mod('moraal', 12); return `Je hebt een vriendin! ${meid} en jij zijn officieel samen.`; }},
-      {l:'Ja, maar voetbal gaat wel voor', f(){ sp.relatie = {naam:meid, band:40, weken:0}; mod('moraal', 8); return `${meid} zegt ja, al vindt ze die laatste zin niet zo romantisch.`; }},
+    {soort:'prive', als: sp.leeftijd >= 18 && !sp.relatie, tekst:`Je hebt een paar keer afgesproken met ${meid}. Na een etentje vraagt ${pa.ze}: "Wil je mijn ${ik.vriend} zijn?"`, opts:[
+      {l:'Ja!', f(){ sp.relatie = {naam:meid, band:55, weken:0}; mod('moraal', 12); return `Je hebt een ${pa.vriend}! ${meid} en jij zijn officieel samen.`; }},
+      {l:'Ja, maar voetbal gaat wel voor', f(){ sp.relatie = {naam:meid, band:40, weken:0}; mod('moraal', 8); return `${meid} zegt ja, al vindt ${pa.ze} die laatste zin niet zo romantisch.`; }},
       {l:'Nee, ik wil me op voetbal richten', f(){ mod('focus', 5); mod('moraal', -3); return `${meid} is teleurgesteld, maar snapt het.`; }}]},
     {soort:'prive', als: jong, tekst:'Er is een schoolfeest. Je vrienden willen dat je meegaat, maar morgen is er een wedstrijd.', opts:[
       {l:'Gaan, om 23 uur naar huis', f(){ mod('moraal', 6); return 'Gezellig en toch op tijd in bed. Perfect.'; }},
@@ -250,13 +251,13 @@ export function maakEvent(){
       {l:'Gewoon normaal spelen', f(){ mod('moraal', 3); return 'Opa is sowieso trots.'; }}]},
 
     // Buiten het veld: volwassen
-    {soort:'prive', als: sp.leeftijd >= 18 && !sp.relatie && rnd() < .45, tekst:`Op het verjaardagsfeest van ${n} raak je aan de praat met ${meid}. Ze heeft geen idee wie je bent.`, opts:[
-      {l:'Vragen of ze koffie wil drinken', f(){ const naam = this._naam; if (rnd() < .5 + (sp.moraal - 50) / 200 + sp.rep / 400){ sp.relatie = {naam, band:50, weken:0}; mod('moraal', 10); return `${naam} zegt ja! Een week later zijn jullie samen.`; } mod('moraal', -2); return `${naam} heeft al een vriend. Jammer!`; }},
+    {soort:'prive', als: sp.leeftijd >= 18 && !sp.relatie && rnd() < .45, tekst:`Op het verjaardagsfeest van ${n} raak je aan de praat met ${meid}. ${pa.Ze} heeft geen idee wie je bent.`, opts:[
+      {l:'Vragen of ' + pa.ze + ' koffie wil drinken', f(){ const naam = this._naam; if (rnd() < .5 + (sp.moraal - 50) / 200 + sp.rep / 400){ sp.relatie = {naam, band:50, weken:0}; mod('moraal', 10); return `${naam} zegt ja! Een week later zijn jullie samen.`; } mod('moraal', -2); return `${naam} heeft al een ${partnerVrouw() ? 'vriend' : 'vriendin'}. Jammer!`; }},
       {l:'Opscheppen over je carrière', f(){ const naam = this._naam; if (rnd() < .2 + sp.rep / 300){ sp.relatie = {naam, band:40, weken:0}; mod('moraal', 8); return `Het werkt tegen alle verwachtingen in. Jij en ${naam} zijn samen.`; } mod('rep', -1); return `${naam} vindt je een opschepper en loopt weg. ${n} heeft het gezien en lacht je uit.`; }},
       {l:'Gewoon dansen met je vrienden', f(){ mod('moraal', 5); return 'Je hebt een topavond met je vrienden.'; }}]},
     {soort:'prive', als: sp.auto === 'oud', tekst:'Je oude auto wil niet starten. Over een half uur begint de training.', opts:[
       {l:'Fietsen, heel hard', f(){ mod('fit', -6); mod('vert', 1); return 'Je komt bezweet maar net op tijd binnen. De trainer grinnikt.'; }},
-      {l:'Een teamgenoot bellen', f(){ return `${n} haalt je op. In de auto zingt hij de hele weg vals mee met de radio.`; }},
+      {l:'Een teamgenoot bellen', f(){ return `${n} haalt je op. In de auto zingt ${team.hij} de hele weg vals mee met de radio.`; }},
       {l:'Thuisblijven en de garage bellen', f(){ mod('vert', -5); sp.geld = Math.max(0, sp.geld - 250); return 'De garage rekent €250. De trainer rekent je afwezigheid.'; }}]},
     {soort:'prive', als: sp.rijbewijs && !!sp.auto, tekst:'Op de snelweg rijdt iemand achterop je auto. Niemand is gewond, maar je nek is stijf.', opts:[
       {l:'Rustig gegevens uitwisselen', f(){ mod('fit', -10); mod('rep', 1); return 'Netjes afgehandeld. De andere bestuurder vraagt nog om een handtekening.'; }},
@@ -266,14 +267,14 @@ export function maakEvent(){
       {l:'Rustig revalideren', f(){ sp.blessure = randInt(2, 4); return `Gekneusde enkel. Je ligt ${sp.blessure} weken uit, maar je herstelt goed.`; }},
       {l:'Zo snel mogelijk terug', f(){ if (rnd() < .5){ sp.blessure = 1; mod('vert', 4); return 'Na een week sta je alweer op het veld. De trainer is onder de indruk.'; } sp.blessure = randInt(4, 6); return `Te vroeg begonnen. De enkel schiet weer uit: ${sp.blessure} weken aan de kant.`; }}]},
     {soort:'prive', als: sp.leeftijd >= 18, tekst:'Je teamgenoten geven een feest op een boot. Er is muziek, en er zijn ook journalisten.', opts:[
-      {l:'Feesten tot de zon opkomt', f(){ mod('moraal', 12); mod('fit', -15); if (rnd() < .35 + (bekend ? .2 : 0)){ mod('rep', -5); mod('vert', -6); roddel(`${sp.naam} feest tot zonsopgang op boot`, 'Met zonnebril en feesthoed, en dat in het seizoen. "Hij moet zich afvragen of hij prof wil zijn," zegt een oud-speler.'); return 'Een foto van jou met een zonnebril op je hoofd en een feesthoed staat de volgende dag in de krant. Oeps.'; } return 'Wat een feest. Niemand heeft foto\'s gemaakt. Denk je.'; }},
+      {l:'Feesten tot de zon opkomt', f(){ mod('moraal', 12); mod('fit', -15); if (rnd() < .35 + (bekend ? .2 : 0)){ mod('rep', -5); mod('vert', -6); roddel(`${sp.naam} feest tot zonsopgang op boot`, 'Met zonnebril en feesthoed, en dat in het seizoen. "' + ik.Hij + ' moet zich afvragen of ' + ik.hij + ' prof wil zijn," zegt een oud-speler.'); return 'Een foto van jou met een zonnebril op je hoofd en een feesthoed staat de volgende dag in de krant. Oeps.'; } return 'Wat een feest. Niemand heeft foto\'s gemaakt. Denk je.'; }},
       {l:'Even gezellig, dan naar huis', f(){ mod('moraal', 5); return 'Je laat je gezicht zien en gaat op tijd.'; }},
       {l:'Niet gaan', f(){ mod('fit', 5); mod('vert', 2); return 'Je ligt op tijd in bed.'; }}]},
     {soort:'prive', als: sp.geld > 20000, tekst:'Een oude klasgenoot wil dat je investeert in zijn shoarmazaak.', opts:[
       {l:`Investeer ${geldTxt(Math.round(sp.geld * .25))}`, f(){ const inz = Math.round(sp.geld * .25); sp.geld -= inz; if (rnd() < .45){ sp.geld += inz * 2.2; return `De zaak loopt als een trein! Je krijgt ${geldTxt(inz * 2.2)} terug.`; } return 'De zaak gaat na drie maanden failliet. Je geld is weg.'; }},
       {l:'Nee bedankt', f(){ return 'Je eet er wel een keer, maar investeren doe je niet.'; }}]},
     {soort:'prive', tekst:'Iemand zet een gemeen filmpje online van een misser van jou.', opts:[
-      {l:'Fel reageren', f(){ mod('rep', -3); mod('moraal', -3); roddel(`${sp.naam} haalt uit naar critici`, 'Zijn boze berichten op social media zorgen voor nog meer ophef.'); return 'Je reactie maakt het alleen maar groter. Nu praat iedereen erover.'; }},
+      {l:'Fel reageren', f(){ mod('rep', -3); mod('moraal', -3); roddel(`${sp.naam} haalt uit naar critici`, '' + ik.Zijn + ' boze berichten op social media zorgen voor nog meer ophef.'); return 'Je reactie maakt het alleen maar groter. Nu praat iedereen erover.'; }},
       {l:'Er zelf grappig op reageren', f(){ if (rnd() < .6){ mod('rep', 4); return 'Je reactie gaat viraal. Iedereen vindt je ineens heel sympathiek.'; } mod('rep', -1); return 'Je grap komt niet goed over. Ach.'; }},
       {l:'Negeren', f(){ return 'Na twee dagen is iedereen het vergeten.'; }}]},
     {soort:'prive', tekst:'Je moet naar de kapper. De kapper stelt iets nieuws voor.', opts:[

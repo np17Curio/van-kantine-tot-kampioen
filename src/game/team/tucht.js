@@ -8,6 +8,7 @@ import { kalmte, onrust } from '../speler/kalmte.js';
 import { statusPunten } from '../speler/status.js';
 import { ck } from '../transfers/buitenland.js';
 import { modFans } from '../wedstrijd/fans-pers.js';
+import { ik } from '../../core/geslacht.js';
 
 /* ===================== De trainer en je gedrag buiten het veld ===================== */
 // Uitgaan, feesten en gokken ergeren de trainer. Eerst een gesprek, dan een laatste waarschuwing, en daarna wordt je contract ontbonden
@@ -44,10 +45,10 @@ export function ontbinding(){
   const sp = S.sp, oud = club();
   // Bij huur of in de jeugd kan de club je niet zomaar wegsturen: dan een zware straf
   if (sp.huur || sp.o23) return {soort:'prive', tekst:'De club is woedend over je gedrag. Je wordt voor straf een paar weken uit de selectie gezet.', opts:[{l:'Balen...', f(){ sp.geschorst = (sp.geschorst || 0) + 2; mod('vert', -15); tucht().p = 50; return 'Twee wedstrijden op de tribune. Je hebt het aan jezelf te danken.'; }}]};
-  return {soort:'prive', tekst:`Het is genoeg geweest. ${oud.n} ontbindt je contract, met directe ingang. "Zijn gedrag buiten het veld past niet bij onze club." Je moet je kluisje leegruimen.`, opts:[
+  return {soort:'prive', tekst:`Het is genoeg geweest. ${oud.n} ontbindt je contract, met directe ingang. "${ik.Zijn} gedrag buiten het veld past niet bij onze club." Je moet je kluisje leegruimen.`, opts:[
     {l:'Je spullen pakken', f(){
       S.car.hist.push(`${seizoenLabel()}: contract ontbonden door ${oud.n} wegens gedrag buiten het veld`);
-      krantMelding(`${oud.n} zet ${sp.naam} op straat`, `Na een laatste waarschuwing is de maat vol: het contract van ${sp.naam} is ontbonden. Clubs zullen wel twee keer nadenken voordat ze hem halen.`, KRANTEN[Math.min(oud.t, 3)]);
+      krantMelding(`${oud.n} zet ${sp.naam} op straat`, `Na een laatste waarschuwing is de maat vol: het contract van ${sp.naam} is ontbonden. Clubs zullen wel twee keer nadenken voordat ze ${ik.hem} halen.`, KRANTEN[Math.min(oud.t, 3)]);
       sp.ontbonden = true; sp.imago = 40; sp.contract = 0; sp.salaris = Math.round(sp.salaris * .1); mod('moraal', -15); mod('rep', -12); modFans(-25);
       S.naVenster = true;
       return `Je loopt voor het laatst door de spelersingang van ${oud.n}. Je zaakwaarnemer belt rond, maar veel clubs willen je niet meer hebben.`; }}]};

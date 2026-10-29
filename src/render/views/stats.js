@@ -6,6 +6,7 @@ import { BEKER_ALT, PRIJS_CLUB, PRIJS_IND, PRIJS_LAND } from '../../data/landen.
 import { vRecords } from '../../game/seizoen/records.js';
 import { fmt1 } from '../../game/speler/o23.js';
 import { vTegenOud } from '../../game/wedstrijd/reunie.js';
+import { vrouwenWereld } from '../../core/geslacht.js';
 
 export function vStats(){
   const sp = S.sp, C = S.car, sz = C.seizoenen || [];
@@ -19,7 +20,7 @@ export function vStats(){
   return `<div class="verhaal"><span class="label">Mijn carrière</span><h2>${esc(sp.naam)}</h2><p class="muted">${POS[sp.pos].n} · ${sp.leeftijd} jaar · ${esc(CLUBS[sp.club].n)}</p></div>
     <div class="tegels">
       ${tegel('Wedstrijden', C.wed)}${tegel('Goals', C.g)}${tegel('Assists', C.a)}${tegel('Gem. cijfer', gem)}
-      ${tegel('Man of the Match', C.motm || 0)}${tegel('Kampioen', tel(/^Kampioen/))}${tegel('Bekers', tel(new RegExp(`^(${BEKER_ALT}|Champions League|Europa Cup|Jeugdbeker)`)))}${tegel('Gouden Bal', tel(/^Gouden Bal/))}
+      ${tegel(vrouwenWereld() ? 'Speelster van de Wedstrijd' : 'Man of the Match', C.motm || 0)}${tegel('Kampioen', tel(/^Kampioen/))}${tegel('Bekers', tel(new RegExp(`^(${BEKER_ALT}|Champions League|Europa Cup|Jeugdbeker)`)))}${tegel('Gouden Bal', tel(/^Gouden Bal/))}
       ${tegel('Gele kaarten', C.geel || 0)}${tegel('Rode kaarten', C.rood || 0)}${tegel('Hoogste klasse', C.maxOvr)}${tegel('Clubs', new Set(C.clubs.map(x => (x.land || 'Nederland') + x.club)).size)}
     </div>
     ${int.length ? `<div class="paneel"><span class="label">Interlands</span>${int.map(([n, x]) => `<p><b>${esc(n)}</b>: ${x.caps} interlands · ${x.g} goals · ${x.a} assists</p>`).join('')}</div>` : ''}
@@ -27,7 +28,7 @@ export function vStats(){
     ${land.length || toern.length ? `<div class="paneel"><span class="label">Met je land</span>${kast(land, 'Nog geen toernooi gewonnen.')}${toern.map(x => `<p class="muted klein-tekst">${esc(x)}</p>`).join('')}</div>` : ''}
     ${vRecords()}
     ${vTegenOud()}
-    <div class="paneel"><span class="label">Persoonlijke prijzen</span>${kast(ind, 'Nog geen persoonlijke prijzen.')}<p class="muted klein-tekst">Man of the Match (een 8,5 of hoger): ${C.motm || 0} keer.</p></div>
+    <div class="paneel"><span class="label">Persoonlijke prijzen</span>${kast(ind, 'Nog geen persoonlijke prijzen.')}<p class="muted klein-tekst">${vrouwenWereld() ? 'Speelster van de Wedstrijd' : 'Man of the Match'} (een 8,5 of hoger): ${C.motm || 0} keer.</p></div>
     ${overig.length ? `<div class="paneel"><span class="label">Buiten het veld</span>${kast(overig, '')}</div>` : ''}
     <div class="paneel"><span class="label">Seizoen voor seizoen</span>${sz.length ? `<div class="tabelwrap"><table class="tabel seizoenen"><thead><tr><th>Seizoen</th><th>Club</th><th>Wed</th><th>G</th><th>A</th><th>Gem</th></tr></thead><tbody>
       ${sz.map(x => `<tr><td>${x.s}</td><td><span class="rnaam">${esc(x.club)}</span><span class="rclub">${esc(x.div)} · ${x.plek}e${x.beker ? ` · beker: ${esc(x.beker)}` : ''}</span></td><td>${x.wed}</td><td>${x.g}</td><td>${x.a}</td><td>${x.gem === null ? '–' : fmt1(x.gem)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Na je eerste seizoen zie je hier elk seizoen terug.</p>'}</div>

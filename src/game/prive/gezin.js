@@ -1,10 +1,11 @@
-import { S, mod, seizoenLabel } from '../../core/state.js';
+import { S, club, mod, seizoenLabel } from '../../core/state.js';
 import { clamp, geldTxt, pick, rnd, shuffle } from '../../core/utils.js';
 import { AANTAL_RONDES } from '../../data/gegevens.js';
 import { eindRelatie } from '../gebeurtenissen.js';
 import { roddel } from '../media/roddel.js';
 import { woning } from './wonen-auto.js';
 import { kans } from '../wedstrijd/momenten.js';
+import { ik, isVrouw, pa, partnerVrouw } from '../../core/geslacht.js';
 
 /* ===================== Samen verder: samenwonen, verloven, trouwen, kinderen ===================== */
 export const JONGENS = ['Sem', 'Noah', 'Liam', 'Luuk', 'Finn', 'Milan', 'Levi', 'Adam', 'Mees', 'Jesse', 'Bram', 'Ayoub'];
@@ -19,7 +20,7 @@ export function relatieEisen(){
     samen: r.samen ? null : r.weken < 10 ? `Samenwonen kan als jullie 10 weken samen zijn (nu ${r.weken}).` : r.band < 50 ? 'Samenwonen: het moet eerst beter gaan tussen jullie.' : '',
     aanzoek: r.verloofd || r.getrouwd ? null : r.weken < 20 ? `Een aanzoek kan na 20 weken samen (nu ${r.weken}).` : r.band < 60 ? 'Aanzoek: het moet eerst nog beter gaan tussen jullie.' : '',
     trouwen: !r.verloofd || r.getrouwd ? null : r.weken - (r.verloofdOp || 0) < 6 ? `Een bruiloft regel je niet zomaar: nog ${6 - (r.weken - (r.verloofdOp || 0))} weken voorbereiden.` : '',
-    kind: r.zwanger ? null : kinderen().length >= 4 ? null : !r.samen ? 'Kinderen: eerst samenwonen.' : sp.leeftijd < 21 ? 'Kinderen: daar zijn jullie nog wat jong voor (vanaf 21).' : r.band < 55 ? 'Kinderen: het moet eerst beter gaan tussen jullie.' : r.babyRust > 0 ? 'Jullie willen eerst even genieten van de kleine.' : '',
+    kind: r.zwanger || r.adoptie || sp.zwanger ? null : kinderen().length >= 4 ? null : !r.samen ? 'Kinderen: eerst samenwonen.' : sp.leeftijd < 21 ? 'Kinderen: daar zijn jullie nog wat jong voor (vanaf 21).' : r.band < 55 ? 'Kinderen: het moet eerst beter gaan tussen jullie.' : r.babyRust > 0 ? 'Jullie willen eerst even genieten van de kleine.' : '',
     eigen
   };
 }
@@ -27,7 +28,7 @@ export function samenwonen(){
   const sp = S.sp, r = sp.relatie, e = relatieEisen(); if (!r || e.samen !== '') return;
   r.samen = true; r.band = clamp(r.band + 10, 0, 100); mod('moraal', 8);
   let t;
-  if (e.eigen) t = `${r.naam} trekt bij je in. Haar spullen staan binnen een dag overal.`;
+  if (e.eigen) t = `${r.naam} trekt bij je in. ${pa.Haar} spullen staan binnen een dag overal.`;
   else { sp.woning = 'huurhuis'; t = `Jij en ${r.naam} huren samen een huis (€120 per week). Eindelijk een eigen plek voor jullie twee.`; }
   S.week.tekst.push(t); S.car.hist.push(`${seizoenLabel()}: samenwonen met ${r.naam}`);
   roddel(`${sp.naam} en ${r.naam} gaan samenwonen`, 'Het stel is gespot bij een woonwinkel. "Ze zijn heel verliefd," zegt een verkoper.');
@@ -48,7 +49,7 @@ export function aanzoek(){
     {l:'Op één knie op het voetbalveld', f: uitkomst(.05, 'Na de training, in de middencirkel. Je teamgenoten kijken stiekem vanaf de tribune.')},
     {l:'Tijdens een romantisch diner', f: uitkomst(.05, 'Bij het toetje zak je door je knieën. Het hele restaurant valt stil.')},
     {l:'Op het strand bij zonsondergang', f: uitkomst(.1, 'De zon gaat onder, de golven ruisen. Perfect.')},
-    {l:'De ring in haar ijsje verstoppen', f: uitkomst(-.1, 'Ze slikt hem bijna in, maar vindt hem net op tijd.')}]};
+    {get l(){ return `De ring in ${pa.zijn} ijsje verstoppen`; }, f: uitkomst(-.1, `${pa.Ze} slikt hem bijna in, maar vindt hem net op tijd.`)}]};
   S.fase = 'event';
 }
 export function trouwen(){
@@ -68,8 +69,12 @@ export function trouwen(){
 export function overKinderen(){
   const sp = S.sp, r = sp.relatie, e = relatieEisen(); if (!r || e.kind !== '') return;
   S.ev = {soort:'prive', tekst:`Op een avond op de bank begint ${r.naam} erover: "Zouden wij niet een kindje willen?"`, opts:[
-    {l:'Ja, dat willen we!', f(){ if (rnd() < clamp(.55 + (r.band - 55) / 80, .3, .9)){ r.zwanger = AANTAL_RONDES; mod('moraal', 10); return `Een paar weken later laat ${r.naam} je een test zien: ze is zwanger! Over ongeveer ${AANTAL_RONDES} weken is het zover.`; } return 'Jullie willen het allebei. Het lukt alleen nog niet meteen. Volgende keer misschien.'; }},
-    {l:'Liever nog even wachten', f(){ r.band = clamp(r.band - 4, 0, 100); return `${r.naam} snapt het, maar je ziet dat ze het jammer vindt.`; }}]};
+    {l:'Ja, dat willen we!', f(){ if (rnd() < clamp(.55 + (r.band - 55) / 80, .3, .9)){ mod('moraal', 10);
+      // Wie draagt het kindje? Een speelster met een vriend: zij zelf (met zwangerschapsverlof). Twee mannen: adoptie
+      if (isVrouw() && !partnerVrouw()){ sp.zwanger = AANTAL_RONDES; return `Een paar weken later doe je een test: je bent zwanger! Over ongeveer ${AANTAL_RONDES} weken is het zover. In de laatste maanden ga je met zwangerschapsverlof.`; }
+      if (!isVrouw() && !partnerVrouw()){ r.adoptie = 20; return `Jullie melden je aan voor adoptie. Over ongeveer 20 weken komt jullie kindje thuis.`; }
+      r.zwanger = AANTAL_RONDES; return `Een paar weken later laat ${r.naam} je een test zien: ${pa.ze} is zwanger! Over ongeveer ${AANTAL_RONDES} weken is het zover.`; } return 'Jullie willen het allebei. Het lukt alleen nog niet meteen. Volgende keer misschien.'; }},
+    {l:'Liever nog even wachten', f(){ r.band = clamp(r.band - 4, 0, 100); return `${r.naam} snapt het, maar je ziet dat ${pa.ze} het jammer vindt.`; }}]};
   S.fase = 'event';
 }
 export function geefNaam(naam){
@@ -78,8 +83,8 @@ export function geefNaam(naam){
   if (sp.relatie){ sp.relatie.babyRust = 10; sp.relatie.band = clamp(sp.relatie.band + 10, 0, 100); }
   sp.slaap = 6; mod('moraal', 20); mod('rep', 2);
   S.car.hist.push(`${seizoenLabel()}: ${g.jongen ? 'zoon' : 'dochter'} ${naam} geboren`);
-  S.week.tekst.push(`Welkom op de wereld, ${naam}! Je bent ${kinderen().length === 1 ? 'vader' : 'weer vader'}. Een paar weken slaap je wat minder, maar je bent de gelukkigste man van de wereld.`);
-  roddel(`${sp.naam} ${kinderen().length === 1 ? 'voor het eerst ' : 'weer '}vader`, `Een ${g.jongen ? 'zoon' : 'dochter'}, ${naam}. "Misschien wordt ${g.jongen ? 'hij' : 'zij'} ook voetballer," grapt de trotse vader.`);
+  S.week.tekst.push(`Welkom op de wereld, ${naam}! Je bent ${kinderen().length === 1 ? ik.vader : 'weer ' + ik.vader}. Een paar weken slaap je wat minder, maar je bent de gelukkigste ${ik.man} van de wereld.`);
+  roddel(`${sp.naam} ${kinderen().length === 1 ? 'voor het eerst ' : 'weer '}${ik.vader}`, `Een ${g.jongen ? 'zoon' : 'dochter'}, ${naam}. "Misschien wordt ${g.jongen ? 'hij' : 'zij'} ook voetballer," grapt de trotse ${ik.vader}.`);
 }
 // Elke week: band zakt langzaam als je niks samen doet, zwangerschap telt af, baby houdt je wakker
 export function relatieWeek(eerste){
@@ -87,15 +92,21 @@ export function relatieWeek(eerste){
   if (sp.slaap > 0 && !eerste){ sp.slaap--; mod('fit', -4); if (rnd() < .4) S.week.tekst.push(pick(['De baby heeft de hele nacht gehuild. Je gaapt op de training.', 'Om 4 uur een fles geven, om 7 uur naar de training. Zwaar, maar mooi.'])); }
   // Zwanger van je ex: het kindje komt gewoon
   if (sp.exZw && !eerste){ sp.exZw.weken--; if (sp.exZw.weken <= 0){ const jongen = rnd() < .5; sp.geboorte = {jongen, opties:shuffle((jongen ? JONGENS : MEISJES).filter(n => n !== sp.naam && n !== sp.exZw.naam && !kinderen().some(k => k.naam === n))).slice(0, 4)}; S.week.tekst.push(`${sp.exZw.naam} is bevallen van een gezonde ${jongen ? 'zoon' : 'dochter'}. Je bent erbij.`); sp.exZw = null; } }
+  // Je bent zelf zwanger: de laatste 8 weken en de eerste 8 weken na de geboorte zwangerschapsverlof (net als een blessure: je speelt niet)
+  if (sp.zwanger > 0 && !eerste){ sp.zwanger--;
+    if (sp.zwanger === 8){ sp.verlof = true; sp.blessure = Math.max(sp.blessure || 0, 16); S.week.tekst.push('Je gaat met zwangerschapsverlof. De komende maanden speel je niet. Je ploeggenoten sturen een enorme bos bloemen.'); roddel(`${sp.naam} met zwangerschapsverlof`, `De club wenst ${ik.hem} alle geluk. "Over een paar maanden staat ${ik.hij} weer op het veld."`); }
+    if (sp.zwanger === 0){ const jongen = rnd() < .5; sp.geboorte = {jongen, opties:shuffle((jongen ? JONGENS : MEISJES).filter(n => n !== sp.naam && !kinderen().some(k => k.naam === n))).slice(0, 4)}; S.week.tekst.push(`Het is zover! Je bevalt van een gezonde ${jongen ? 'zoon' : 'dochter'}.`); } }
+  if (sp.verlof && !(sp.blessure > 0) && !eerste){ sp.verlof = false; S.week.tekst.push('Je zwangerschapsverlof zit erop. Je bent terug op het trainingsveld! Het duurt even voor je weer op je oude niveau bent.'); roddel(`Comeback van ${sp.naam}`, `Na ${ik.zijn} zwangerschapsverlof traint ${ik.hij} weer mee bij ${club().n}.`); }
   if (!r || eerste) return;
   if (r.babyRust > 0) r.babyRust--;
+  if (r.adoptie > 0){ r.adoptie--; if (r.adoptie === 0){ const jongen = rnd() < .5; sp.geboorte = {jongen, adoptie:true, opties:shuffle((jongen ? JONGENS : MEISJES).filter(n => n !== sp.naam && n !== r.naam && !kinderen().some(k => k.naam === n))).slice(0, 4)}; S.week.tekst.push(`Het is zover! Jullie adoptiekindje komt thuis: een ${jongen ? 'zoontje' : 'dochtertje'}.`); } }
   if (r.weken > 0 && r.weken % 52 === 0 && !eerste){ const jaar = r.weken / 52; S.ev = {soort:'prive', tekst:`Jij en ${r.naam} zijn vandaag ${jaar} ${jaar === 1 ? 'jaar' : 'jaar'} samen! Hoe vier je het?`, opts:[
     {l:'Een romantisch diner (€150)', f(){ sp.geld = Math.max(0, sp.geld - 150); r.band = clamp(r.band + 12, 0, 100); mod('moraal', 5); return 'Kaarslicht, een goed glas en jullie praten over het eerste jaar. Wat een avond.'; }},
-    {l:'Een zelfgemaakt fotoboek geven', f(){ r.band = clamp(r.band + 10, 0, 100); return `${r.naam} krijgt tranen in haar ogen als ze de foto's ziet.`; }},
+    {l:'Een zelfgemaakt fotoboek geven', f(){ r.band = clamp(r.band + 10, 0, 100); return `${r.naam} krijgt tranen in ${pa.haar} ogen als ${pa.ze} de foto's ziet.`; }},
     {l:'Vergeten...', f(){ r.band = clamp(r.band - 20, 0, 100); mod('moraal', -5); return `Je bent het vergeten. ${r.naam} niet. Het blijft de hele avond stil.`; }}]}; S.wachtEv = S.ev; S.ev = null; }
   r.band = clamp(r.band - (r.weken > 4 ? 1 : 0), 0, 100);
   if (r.zwanger > 0){ r.zwanger--; if (r.zwanger === 0){ const jongen = rnd() < .5; sp.geboorte = {jongen, opties:shuffle((jongen ? JONGENS : MEISJES).filter(n => n !== sp.naam && n !== r.naam && !kinderen().some(k => k.naam === n))).slice(0, 4)}; S.week.tekst.push(`Het is zover! ${r.naam} bevalt van een gezonde ${jongen ? 'zoon' : 'dochter'}.`); } }
-  if (r.band <= 0){ S.week.tekst.push(eindRelatie(`${r.naam} is er klaar mee. Ze maakt het uit.`)); }
+  if (r.band <= 0){ S.week.tekst.push(eindRelatie(`${r.naam} is er klaar mee. ${pa.Ze} maakt het uit.`)); }
 }
-// Uit elkaar: getrouwd betekent scheiden (ze krijgt de helft van je spaargeld)
+// Uit elkaar: getrouwd betekent scheiden (je ex krijgt de helft van je spaargeld)
 export function scheidingKosten(){ const sp = S.sp; if (!sp.relatie || !sp.relatie.getrouwd) return 0; return Math.round(sp.geld * .5); }

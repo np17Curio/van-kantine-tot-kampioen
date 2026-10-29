@@ -1,6 +1,6 @@
 import { S, club, ovr } from '../../core/state.js';
 import { CLUBS, DIVS, divClubs, landBasis } from '../../data/gegevens.js';
-import { LAND_DATA, NL, SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
+import { SPEEL_LANDEN, divNaam, thuisLand } from '../../data/landen.js';
 import { hervormStand } from '../transfers/buitenland.js';
 
 /* ===================== Welke competitie past bij jou? ===================== */
@@ -10,7 +10,7 @@ export function leagueInfo(land, t){
   let sterktes;
   if (land === thuisLand()) sterktes = divClubs(t).map(i => CLUBS[i].s);
   else { const L = S.landen && S.landen[land] && S.landen[land].clubs ? hervormStand(S.landen[land].clubs, land) : landBasis(land); sterktes = L.filter((x, i) => i >= 8 && x && x[0] === t).map(x => x[1]); }
-  const naam = land === thuisLand() ? DIVS[t] : land === 'Nederland' ? (NL.divs || DIVS)[t] : (LAND_DATA[land] || {divs:[]}).divs[t - 1] || `${t}e league`;
+  const naam = land === thuisLand() ? DIVS[t] : divNaam(land, t) || `${t}e league`;
   if (!sterktes.length) return null;
   return {land, t, naam, top:Math.max(...sterktes), bodem:Math.min(...sterktes), gem:Math.round(sterktes.reduce((a, b) => a + b, 0) / sterktes.length)};
 }

@@ -9,6 +9,9 @@ import { onrust } from '../speler/kalmte.js';
 import { statusPunten } from '../speler/status.js';
 import { isAanvoerder, teamUitjePrijs } from '../team/aanvoerder.js';
 import { band, kleedkamer, zetBand } from '../team/kleedkamer.js';
+import { geldF } from '../../data/gegevens.js';
+import { clubNaam } from '../../data/gegevens.js';
+import { team } from '../../core/geslacht.js';
 
 /* ===================== De transfermarkt van de andere clubs ===================== */
 // In elke transferperiode kopen en verkopen de clubs uit jouw competitie spelers. Een koper wordt sterker, een verkoper
@@ -132,11 +135,11 @@ const LAND_NAMEN = {
 function vanClub(land, ster){
   if (VER_LANDEN.includes(land)) return null;
   const lijst = land === 'Nederland' ? NL_CLUBS : (LAND_DATA[land] || {}).clubs || [], n1 = ligaVan(land).n[0];
-  const l = lijst.slice(0, ster ? Math.min(6, n1) : n1); return l.length ? pick(l) : null;
+  const l = lijst.slice(0, ster ? Math.min(6, n1) : n1); return l.length ? clubNaam(pick(l)) : null;
 }
 function transferSom(k, ster){
   const [lo, hi] = ster ? [1e7, 3e7] : k >= 85 ? [5e6, 15e6] : k >= 75 ? [2e6, 6e6] : k >= 65 ? [6e5, 2e6] : [1e5, 6e5];
-  return Math.round((lo + rnd() * (hi - lo)) / (lo >= 1e6 ? 1e5 : 1e4)) * (lo >= 1e6 ? 1e5 : 1e4);
+  return Math.round((lo + rnd() * (hi - lo)) * geldF() / 1e4) * 1e4;
 }
 export function buitenlandAankopen(comp, soort, mijn, zonderMijn, delta = {}){
   const deals = [], hier = thuisLand(), landen = SPEEL_LANDEN.filter(l => l !== hier).concat(VER_LANDEN);
@@ -259,7 +262,7 @@ function markNieuws(deals, t, mijn, jeugd, opgekomen = [], gestopt = [], inhaal 
     krantMelding(`${cn(c.id)} slaat toe op de transfermarkt: ${l.length} ${l.length === 1 ? 'versterking' : 'versterkingen'}`, `${cn(c.id)} wil niet achterblijven in de ${DIVS[t]} en haalt ${l.map(d => `${naam(d)} (${POS_NAAM[d.pos].toLowerCase()}, ${herkomst(d)})`).join(', ')}. Geen grote namen, wel spelers die het team beter maken.`); }
   for (const d of erin.filter(d => !d.inhaal && !d.buitenland).slice(0, 2)) krantMelding(`${cn(mijn)} haalt ${naam(d)} bij ${cn(d.van)}`, `De ${POS_NAAM[d.pos].toLowerCase()} komt over${prijs(d)}. Een versterking voor de selectie.`);
   // aankopen in het buitenland: jouw club altijd, een ster bij een andere club ook
-  for (const d of erin.filter(d => d.buitenland)) krantMelding(d.ster ? `Grote naam voor ${cn(mijn)}: ${naam(d)}!` : `${cn(mijn)} haalt ${naam(d)} uit ${d.land}`, `De ${POS_NAAM[d.pos].toLowerCase()} komt${prijs(d)} over van ${buitenlandBron(d)}.${d.ster ? ' Een echte topspeler: de concurrentie op zijn plek wordt moordend.' : ' Een versterking voor de selectie.'}`);
+  for (const d of erin.filter(d => d.buitenland)) krantMelding(d.ster ? `Grote naam voor ${cn(mijn)}: ${naam(d)}!` : `${cn(mijn)} haalt ${naam(d)} uit ${d.land}`, `De ${POS_NAAM[d.pos].toLowerCase()} komt${prijs(d)} over van ${buitenlandBron(d)}.${d.ster ? ` Een echte top${team.speler}: de concurrentie op ${team.zijn} plek wordt moordend.` : ' Een versterking voor de selectie.'}`);
   for (const d of deals.filter(d => d.buitenland && d.ster && d.naar !== mijn).slice(0, 2)) krantMelding(`${cn(d.naar)} haalt ster ${naam(d)} uit ${d.land}`, `${cn(d.naar)} betaalt${prijs(d)} voor de ${POS_NAAM[d.pos].toLowerCase()} van ${buitenlandBron(d)}. Een signaal aan de rest van de ${DIVS[t]}.`);
   for (const d of eruit.slice(0, 2)) krantMelding(`${cn(mijn)} verkoopt ${naam(d)} aan ${cn(d.naar)}`, `De ${POS_NAAM[d.pos].toLowerCase()} vertrekt${prijs(d)}. Een gat in de selectie.`);
   if (rest.length) krantMelding(`Transfers in de ${DIVS[t]}`, rest.slice(0, 5).map(d => `${kortClub(d.naar)} haalt ${naam(d)} (${d.buitenland ? d.land : kortClub(d.van)})`).join(' · ') + '.');
@@ -278,7 +281,7 @@ function markNieuws(deals, t, mijn, jeugd, opgekomen = [], gestopt = [], inhaal 
     const lijst = opgekomen.map(x => `${metVoorletter(x)} (${POS_NAAM[x.pos].toLowerCase()})`).join(', ');
     if (opgekomen.length === 1) krantMelding(`Jeugdspeler ${metVoorletter(opgekomen[0])} naar de selectie van ${cn(mijn)}`, `De ${POS_NAAM[opgekomen[0].pos].toLowerCase()} uit de eigen jeugd mag aansluiten bij het eerste elftal.`);
     else krantMelding(`${cn(mijn)} laat ${opgekomen.length} talenten doorstromen uit de eigen jeugd`, `Naar de selectie: ${lijst}.`);
-    tekst.push(jeugd ? `Bij het eerste elftal van je club komen jongens uit de jeugd: ${lijst}.` : `Uit de eigen jeugd naar de selectie: ${lijst}.`);
+    tekst.push(jeugd ? `Bij het eerste elftal van je club komen ${team.jongens} uit de jeugd: ${lijst}.` : `Uit de eigen jeugd naar de selectie: ${lijst}.`);
   }
   S.markt = {club:sp.club, tekst, nieuw:jeugd ? [] : erin.map(d => ({v:d.v, n:d.n})), jeugd:jeugd ? [] : opgekomen.map(x => ({v:x.v, n:x.n})), welkom:!jeugd && (erin.length > 0 || opgekomen.length > 0)};
 }
@@ -296,12 +299,12 @@ export function welkomEvent(namen, jeugd = []){
   // Alleen jongens uit de jeugd: zij kijken tegen je op
   if (!namen.length) return {soort:'club', tekst:`Uit de eigen jeugd komen ${en(jeugd)} bij de selectie van ${c}. Ze kijken een beetje schuchter rond in de kleedkamer. Als aanvoerder ben jij de eerste die ze begroet. Hoe ontvang je ze?`, opts:[
     {l:'Ze onder je hoede nemen', f(){ band(jeugd, 15); mod('moraal', 3); mod('vert', 2); return `Je laat ze zien hoe het werkt, waar ze moeten zitten en wie ze moeten kennen. "Vraag maar alles." De trainer ziet het en knikt tevreden.`; }},
-    {l:'Een onschuldige ontgroening: zingen in de kantine', f(){ band(jeugd, 6); mod('moraal', 4); if (rnd() < .2){ onrust(3, 'Een ontgroening die uit de hand liep'); return 'Ze moeten op een stoel een lied zingen. Iemand gaat er net te ver in en een van de jongens vindt het niet leuk meer. Het blijft even ongemakkelijk.'; } return 'Ze moeten op een stoel het clublied zingen. Vals, maar met overgave. De hele kleedkamer ligt dubbel: ze horen er meteen bij.'; }},
-    {l:'Ze laten merken dat ze nog niks zijn', f(){ band(jeugd, -10); statusPunten(1); return '"Eerst maar laten zien dat je hier hoort." De jongens knikken zenuwachtig. De oudere spelers grijnzen.'; }}]};
+    {l:'Een onschuldige ontgroening: zingen in de kantine', f(){ band(jeugd, 6); mod('moraal', 4); if (rnd() < .2){ onrust(3, 'Een ontgroening die uit de hand liep'); return 'Ze moeten op een stoel een lied zingen. Iemand gaat er net te ver in en een van de ' + team.jongens + ' vindt het niet leuk meer. Het blijft even ongemakkelijk.'; } return 'Ze moeten op een stoel het clublied zingen. Vals, maar met overgave. De hele kleedkamer ligt dubbel: ze horen er meteen bij.'; }},
+    {l:'Ze laten merken dat ze nog niks zijn', f(){ band(jeugd, -10); statusPunten(1); return '"Eerst maar laten zien dat je hier hoort." De ' + team.jongens + ' knikken zenuwachtig. De oudere spelers grijnzen.'; }}]};
   const wie = en(namen) + (jeugd.length ? `, en uit de eigen jeugd ${en(jeugd)}` : '');
   return {soort:'club', tekst:`Nieuw bij ${c}: ${wie}. Als aanvoerder ben jij de eerste die ze ontmoet. Hoe verwelkom je ze?`, opts:[
     {l:`Rondleiding en samen uit eten (${geldTxt(prijs)})`, f(){ const b = Math.min(sp.geld, prijs); sp.geld -= b; band(namen, 20); band(jeugd, 15); mod('moraal', 3); return `Je laat ze de club zien, van de kantine tot de wasruimte, en trakteert daarna op een etentje. Iedereen voelt zich meteen thuis.`; }},
-    {l: jeugd.length ? 'De nieuwe jongens een stevige hand, de jeugd onder je hoede' : 'Een stevige hand en de regels uitleggen', f(){ band(namen, 8); band(jeugd, 12); mod('vert', 2); return '"Op tijd komen, hard werken, en we doen het samen." De nieuwe spelers knikken, en de jongens uit de jeugd lopen de hele week achter je aan.'; }},
+    {l: jeugd.length ? 'De nieuwe ' + team.jongens + ' een stevige hand, de jeugd onder je hoede' : 'Een stevige hand en de regels uitleggen', f(){ band(namen, 8); band(jeugd, 12); mod('vert', 2); return '"Op tijd komen, hard werken, en we doen het samen." De nieuwe spelers knikken, en de ' + team.jongens + ' uit de jeugd lopen de hele week achter je aan.'; }},
     {l:'Laten zien wie hier de baas is', f(){ band(namen, -10); band(jeugd, -8); onrust(4, 'Gedoe met de nieuwe spelers'); statusPunten(2); return 'Je zegt dat ze eerst maar moeten laten zien wat ze kunnen. De oude garde grijnst, de nieuwelingen kijken je koel aan.'; }}]};
 }
 // Voor het transferscherm: wat er in deze periode in jouw competitie gebeurde

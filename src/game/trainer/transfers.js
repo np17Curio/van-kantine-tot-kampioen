@@ -7,6 +7,7 @@ import { krantMelding } from '../media/roddel.js';
 import { herschik, noteerDeal } from '../transfers/markt.js';
 import { mijnSel, opst, pasToe, refKracht } from './ploeg.js';
 import { trainerNiveau } from './loopbaan.js';
+import { geldF } from '../../data/gegevens.js';
 
 /* ===================== Trainer: kopen en verkopen ===================== */
 export const BUDGET = [40e6, 6e6, 1.2e6, 250e3, 25e3, 5e3]; // per seizoen, per niveau
@@ -14,7 +15,7 @@ export const MAX_SEL = 25, MIN_KEEPERS = 2;
 // Wat is een speler waard? Klasse en leeftijd
 export function prijs(x){
   const lft = x.lft || 25, f = lft < 23 ? 1.3 : lft < 28 ? 1 : lft < 31 ? .7 : .4;
-  return Math.max(1000, Math.round(Math.pow(1.16, x.k - 50) * 50000 * f / 1000) * 1000);
+  return Math.max(1000, Math.round(Math.pow(1.16, x.k - 50) * 50000 * f * geldF() / 1000) * 1000);
 }
 export const vensterOpen = () => !!(S.trainer && S.trainer.venster);
 // De clubsterkte schuift mee met de beste elf die je kunt opstellen

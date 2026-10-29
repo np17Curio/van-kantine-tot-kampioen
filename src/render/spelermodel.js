@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as kloonSkelet } from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { HAAR, HUID, KAPSELS, SCHOENEN, KROES_KAPSELS } from '../data/uiterlijk.js';
+import { HAAR, HUID, KAPSELS, KAPSELS_V, KROES_KAPSELS, SCHOENEN } from '../data/uiterlijk.js';
 import { STANDAARD } from '../data/tenues.js';
+import { vrouwenWereld } from '../core/geslacht.js';
 
 /* ===================== Spelersmodel (GLB) ===================== */
 // 3D-model: "pallone da calcio+giocatore" door rosaliarenda (Sketchfab), CC-BY-4.0.
@@ -109,11 +110,15 @@ export function uiterlijkVoor(sleutel, eigen){
   let h = hashGetal(sleutel); const d = n => { h = Math.imul(h ^ (h >>> 15), 2246822519) >>> 0; return h % n; };
   const huid = d(HUID.length);
   // (een donkere huid: vaker kroeshaar-kapsels, zoals een afro, cornrows of vlechten)
-  const u = {huid, haar: huid >= 4 && d(3) ? 0 : d(HAAR.length), kapsel:huid >= 3 && d(5) < 3 ? KROES_KAPSELS[d(KROES_KAPSELS.length)] : d(25) === 0 ? 'vlechten' : GEWOON[d(GEWOON.length)], lengte:.93 + d(15) / 100, bouw:.9 + d(21) / 100, schoen:d(SCHOENEN.length),
+  // (in het vrouwenvoetbal: vaker lang haar of een staart, iets kleiner en slanker)
+  const v = vrouwenWereld(), kroes = huid >= 3 && d(5) < 3;
+  const u = {huid, haar: huid >= 4 && d(3) ? 0 : d(HAAR.length), kapsel:kroes ? KROES_KAPSELS[d(KROES_KAPSELS.length)] : v ? KAPSELS_V[d(KAPSELS_V.length)] : d(25) === 0 ? 'vlechten' : GEWOON[d(GEWOON.length)], lengte:(v ? .89 : .93) + d(15) / 100, bouw:(v ? .85 : .9) + d(21) / 100, schoen:d(SCHOENEN.length),
     stijl:{arm:.8 + d(41) / 100, pas:.9 + d(26) / 100, houding:d(11) / 100, veer:.85 + d(31) / 100}};
   if (eigen){ if (HUID[eigen.huid]) u.huid = eigen.huid; if (HAAR[eigen.haar]) u.haar = eigen.haar; if (KAPSELS.includes(eigen.kapsel)) u.kapsel = eigen.kapsel; if (SCHOENEN[eigen.schoen]) u.schoen = eigen.schoen;
     // gekozen lengte (165-200 cm) en bouw (bmi 20-27,5)
-    if (eigen.lengte) u.lengte = .93 + Math.max(0, Math.min(35, eigen.lengte - 165)) / 35 * .14; if (eigen.bmi) u.bouw = .9 + Math.max(0, Math.min(7.5, eigen.bmi - 20)) / 7.5 * .2; }
+    // (een speelster: 155-190 cm en iets slanker)
+    const ev = eigen.vrouw ?? v, l0 = ev ? 155 : 165, b0 = ev ? .85 : .9;
+    if (eigen.lengte) u.lengte = (ev ? .89 : .93) + Math.max(0, Math.min(35, eigen.lengte - l0)) / 35 * .14; if (eigen.bmi) u.bouw = b0 + Math.max(0, Math.min(7.5, eigen.bmi - 20)) / 7.5 * .2; }
   return u;
 }
 // Tenue voor een rol in de wedstrijd: uit de tenues van deze wedstrijd (data/tenues.js), anders een vaste kleur per rol

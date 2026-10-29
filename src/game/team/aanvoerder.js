@@ -4,6 +4,7 @@ import { AANV } from '../../data/gegevens.js';
 import { selectie } from '../competitie/spelers.js';
 import { statusNiveau } from '../speler/status.js';
 import { band, iedereen, zetBand } from './kleedkamer.js';
+import { team } from '../../core/geslacht.js';
 
 /* ===================== Aanvoerder ===================== */
 export const isAanvoerder = () => statusNiveau() >= AANV && !S.sp.o23;
@@ -18,7 +19,7 @@ export function kleedPersonen(){
 }
 export function aanvoerderActie(id){
   const sp = S.sp, w = S.week; if (w.aanv || !isAanvoerder()) return; kleedPersonen(); let t;
-  if (id === 'oppeppen'){ w.boost = (w.boost || 0) + 1.5; iedereen(2); mod('moraal', 3); t = 'Je roept iedereen bij elkaar in de kleedkamer: "Dit is ONZE week!" De jongens gaan met kippenvel de training op. Het team is opgepept voor de wedstrijd.'; }
+  if (id === 'oppeppen'){ w.boost = (w.boost || 0) + 1.5; iedereen(2); mod('moraal', 3); t = 'Je roept iedereen bij elkaar in de kleedkamer: "Dit is ONZE week!" De ' + team.jongens + ' gaan met kippenvel de training op. Het team is opgepept voor de wedstrijd.'; }
   else if (id === 'bank'){ const x = w.slecht;
     if (rnd() < .65 + (sp.vert - 60) / 200){ w.boost = (w.boost || 0) + 1; mod('vert', 2); zetBand(x, -20); iedereen(-1); t = `Je zegt tegen de trainer dat ${x} al weken slecht traint. De trainer luistert en zet ${x} op de bank. ${x} is woest op je. Band met ${x} −20.`; }
     else { mod('vert', -4); zetBand(x, -8); t = `Je vraagt de trainer om ${x} op de bank te zetten. "Ik maak de opstelling, niet jij," zegt hij. En ${x} heeft het ook gehoord. Band met ${x} −8.`; } }

@@ -15,6 +15,7 @@ import { balk } from '../../render/views/zijbalk.js';
 import { pers } from '../speler/persoonlijkheid.js';
 import { rivaal as rivaalObj, rivaalNaam, zetBand } from '../speler/rivaal.js';
 import { toonMeter } from '../speler/journey.js';
+import { ik, team } from '../../core/geslacht.js';
 
 /* ===================== Derby's, fans en persconferenties ===================== */
 // Elke club heeft een vaste aartsrivaal (de buurclub in de lijst). Spelen ze niet meer in dezelfde divisie, dan krijgt de club een rivaal uit de eigen divisie
@@ -57,8 +58,8 @@ export function fansNaWedstrijd(M, speelde){
   }
   if (speelde && sp.grootSpraak){
     const naam = sp.naam;
-    if (M.cijfer >= 7.5){ modFans(4); mod('rep', 2); M.grootTekst = 'Je maakte je grote woorden waar. Respect van de fans!'; krantMelding(`${naam} maakt zijn woorden waar`, `Vorige week had hij een grote mond, nu liet hij het zien: een ${fmt1(M.cijfer)} tegen ${zij}.`); }
-    else if (M.cijfer <= 6){ modFans(-4); mod('rep', -2); M.grootTekst = 'Na je grote woorden in de pers viel je tegen. De krant smult ervan.'; krantMelding(`Grote woorden, weinig daden van ${naam}`, `Vorige week was hij nog zo zeker van zichzelf. Tegen ${zij} kreeg hij een ${fmt1(M.cijfer)}.`); }
+    if (M.cijfer >= 7.5){ modFans(4); mod('rep', 2); M.grootTekst = 'Je maakte je grote woorden waar. Respect van de fans!'; krantMelding(`${naam} maakt ${ik.zijn} woorden waar`, `Vorige week had ${ik.hij} een grote mond, nu liet ${ik.hij} het zien: een ${fmt1(M.cijfer)} tegen ${zij}.`); }
+    else if (M.cijfer <= 6){ modFans(-4); mod('rep', -2); M.grootTekst = 'Na je grote woorden in de pers viel je tegen. De krant smult ervan.'; krantMelding(`Grote woorden, weinig daden van ${naam}`, `Vorige week was ${ik.hij} nog zo zeker van zichzelf. Tegen ${zij} kreeg ${ik.hij} een ${fmt1(M.cijfer)}.`); }
     sp.grootSpraak = false;
   }
   const na = Math.round(fans());
@@ -114,9 +115,9 @@ export function maakPers(M, soort){
     : won ? [
       {id:'verschil', vraag:`Mooie overwinning op ${zij}. Wat was het verschil?`, b:'"Het hele team heeft hard gewerkt. Dit doen we samen."', z:'"Wij zijn gewoon beter. Zo simpel is het."', u:`"${zij} was echt slecht vandaag. Het was te makkelijk."`, doel:'tegenstander'},
       {id:'stand', vraag:'Wat betekent deze zege voor de stand?', b:'"We kijken van week tot week. Dit is mooi, meer niet."', z:'"We gaan hoog eindigen, dat weet ik zeker."', u:'"Iedereen boven ons mag zich zorgen maken."', doel:'tegenstander'},
-      {id:'sfeer', vraag:'Hoe is de sfeer in de kleedkamer na zo\'n overwinning?', b:'"Goed, maar we blijven met beide benen op de grond."', z:'"Geweldig. Dit is een hechte groep."', u:'"Prima, nu sommige jongens eindelijk ook hun best doen."', doel:'team'}]
+      {id:'sfeer', vraag:'Hoe is de sfeer in de kleedkamer na zo\'n overwinning?', b:'"Goed, maar we blijven met beide benen op de grond."', z:'"Geweldig. Dit is een hechte groep."', u:'"Prima, nu sommige ' + team.jongens + ' eindelijk ook hun best doen."', doel:'team'}]
     : verl ? [
-      {id:'hoeKan', vraag:`Verloren van ${zij}. Hoe kan dat?`, b:'"Ze waren beter. We moeten kritisch naar onszelf kijken."', z:'"Een slechte dag. Dit gebeurt ons niet nog een keer."', u:'"Sommige jongens werkten gewoon niet hard genoeg. Ik noem geen namen."', doel:'team'},
+      {id:'hoeKan', vraag:`Verloren van ${zij}. Hoe kan dat?`, b:'"Ze waren beter. We moeten kritisch naar onszelf kijken."', z:'"Een slechte dag. Dit gebeurt ons niet nog een keer."', u:'"Sommige ' + team.jongens + ' werkten gewoon niet hard genoeg. Ik noem geen namen."', doel:'team'},
       {id:'scheidsVerlies', vraag:'Waren er momenten waarop het anders had kunnen lopen?', b:'"Dat kan altijd. We moeten onze kansen beter benutten."', z:'"We hadden minstens een punt verdiend."', u:'"Die penalty was nooit. De scheids heeft het verpest."', doel:'scheids'},
       {id:'tactiek', vraag:'Klopte het plan van de trainer vandaag?', b:'"Het plan was goed, wij voerden het slecht uit."', z:'"We moeten dit samen oplossen. Volgende week beter."', u:'"Daar mag je de trainer naar vragen, niet mij."', doel:'trainer'}]
     : [
@@ -144,10 +145,10 @@ export function persAntwoord(i){
     const n = Math.round(60 + so.volgers * .05); so.volgers += n;
     const kop = `${naam}: "${citaat.length > 70 ? citaat.slice(0, 67) + '...' : citaat}"`;
     let uit = `Boem. Dit gaat viral: +${volgersTxt(n)} volgers. `;
-    if (P.doel === 'rivaalSpeler'){ zetBand(-10); const R = rivaalObj(); if (R) R.reactie = true; uit += `Je rivaal leest het ook. Hij gaat reageren, dat weet je zeker.`; krantMelding(kop, `Na het duel haalt ${naam} uit naar zijn rivaal ${rivaalNaam()}.`); }
+    if (P.doel === 'rivaalSpeler'){ zetBand(-10); const R = rivaalObj(); if (R) R.reactie = true; uit += `Je rivaal leest het ook. Hij gaat reageren, dat weet je zeker.`; krantMelding(kop, `Na het duel haalt ${naam} uit naar ${ik.zijn} rivaal ${rivaalNaam()}.`); }
     else if (P.doel === 'rivaal'){ modFans(4); S.ss.rivaalFel = true; uit += `De fans smullen ervan (fans +4), maar bij ${P.zij} zijn ze woedend. De volgende derby wordt extra fel: meer kans op kaarten en opstootjes.`; krantMelding(kop, `Na de derby gooide ${naam} olie op het vuur. Bij ${P.zij} hangen ze het artikel op in de kleedkamer.`); }
     else if (P.doel === 'trainer'){ onrust(3, 'Gedoe met de trainer'); mod('vert', -8); statusPunten(-2); uit += 'De trainer leest het de volgende ochtend in de krant. Hij is er niet blij mee. Vertrouwen −8.'; krantMelding(kop, `${naam} wijst na een slechte wedstrijd naar de trainer. "Dit lossen we intern op," zegt de club.`); }
-    else if (P.doel === 'team'){ iedereen(-4); mod('vert', -3); uit += 'Je teamgenoten zijn er niet blij mee. Band met iedereen −4, vertrouwen −3.'; krantMelding(kop, `Onrust bij ${club().n}: ${naam} haalt uit naar zijn eigen teamgenoten.`); }
+    else if (P.doel === 'team'){ iedereen(-4); mod('vert', -3); uit += 'Je teamgenoten zijn er niet blij mee. Band met iedereen −4, vertrouwen −3.'; krantMelding(kop, `Onrust bij ${club().n}: ${naam} haalt uit naar ${ik.zijn} eigen teamgenoten.`); }
     else if (P.doel === 'club'){ modFans(-10); mod('rep', 2); uit += 'Grote clubs horen het wel, maar de fans van je eigen club zijn beledigd. Fans −10, reputatie +2.'; krantMelding(kop, `Opvallende woorden van ${naam}. De supporters van ${club().n} reageren boos op social media.`); }
     else if (P.doel === 'scheids'){ const boete = Math.max(100, Math.min(25000, Math.round(sp.salaris * .01 / 50) * 50)); sp.geld = Math.max(0, sp.geld - boete); modFans(2); uit += `De bond geeft je een boete van ${geldTxt(boete)}. De fans vinden het wel stoer (fans +2).`; krantMelding(kop, `${naam} krijgt een boete van ${geldTxt(boete)} voor zijn uitspraken over de scheidsrechter.`); }
     else { mod('rep', -1); modFans(2); uit += `Bij ${P.zij} vinden ze het respectloos. Reputatie −1, maar je eigen fans lachen erom (fans +2).`; krantMelding(kop, `${naam} steekt na afloop de draak met ${P.zij}.`); }

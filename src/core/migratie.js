@@ -1,9 +1,12 @@
-import { CLUBS, ELITE_NAAM, GAST_START, herschaalLand, landBasis, zetClubs } from '../data/gegevens.js';
+import { CLUBS, ELITE_NAAM, GAST_START, herschaalLand, landBasis, zetClubs, zetWereld } from '../data/gegevens.js';
 import { zetLand } from '../data/landen.js';
 import { maakSchoolvraag } from '../game/prive/school.js';
 
 // Na herladen bestaan functies in opgeslagen gebeurtenissen niet meer: zet het spel terug naar een veilige stap
 export function herstel(st){
+  // Het mannen- of vrouwenvoetbal (oude opslag: mannen). Eerst, want de leagues en clubnamen hangen ervan af
+  if (st) st.wereld = st.wereld || 'm';
+  zetWereld(st && st.wereld);
   // Elk land een eigen niveau (UEFA-ranking): oude opslag eenmalig omrekenen
   if (st && !st.niveauV2){ st.niveauV2 = true; if (st.clubs) st.clubs = herschaalLand(st.clubs, st.land || 'Nederland');
     if (st.landen) for (const l in st.landen) if (st.landen[l] && st.landen[l].clubs) st.landen[l].clubs = herschaalLand(st.landen[l].clubs, l); }

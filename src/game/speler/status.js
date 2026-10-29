@@ -10,6 +10,8 @@ import { maakJourney, openHoofdstuk } from './journey.js';
 import { fotoVan } from '../media/nieuws.js';
 import { krantMelding } from '../media/roddel.js';
 import { MAX_PERS, PERS, pers } from './persoonlijkheid.js';
+import { zetWereld } from '../../data/gegevens.js';
+import { ik } from '../../core/geslacht.js';
 
 /* ===================== Status bij de club ===================== */
 // Startstatus bij een nieuwe club: hoe beter je bent dan de club en hoe bekender je bent, hoe hoger
@@ -58,12 +60,12 @@ export function statusKrant(oud, n){
   const sp = S.sp, c = club().n, naam = sp.naam;
   let sleutel = null, kop, tekst, foto = null;
   if (n > oud){
-    if (n === 2){ sleutel = 'basis'; kop = `${naam} verovert een basisplaats bij ${c}`; tekst = 'De trainer rekent elke week op hem. "Hij heeft het verdiend."'; }
-    else if (n === 3){ sleutel = 'fans'; kop = `Fanfavoriet: ${c} zingt de naam van ${naam}`; tekst = 'Op de tribune hangt al een spandoek met zijn naam. De fans hebben een nieuwe held.'; }
-    else if (n === AANV){ sleutel = 'aanv'; kop = `${naam} is de nieuwe aanvoerder van ${c}`; tekst = `De trainer geeft hem de band. "Hij gaat voorop in de strijd, op en naast het veld."`; foto = fotoVan('portret', `${naam}, de nieuwe aanvoerder van ${c}.`); }
-    else if (n === LEGENDE){ sleutel = 'legende'; kop = `${naam} is een clublegende van ${c}`; tekst = 'Na jaren trouwe dienst krijgt hij een plek in de eregalerij van de club.'; foto = fotoVan('portret', `Clublegende ${naam}.`); }
+    if (n === 2){ sleutel = 'basis'; kop = `${naam} verovert een basisplaats bij ${c}`; tekst = 'De trainer rekent elke week op ' + ik.hem + '. "' + ik.Hij + ' heeft het verdiend."'; }
+    else if (n === 3){ sleutel = 'fans'; kop = `Fanfavoriet: ${c} zingt de naam van ${naam}`; tekst = 'Op de tribune hangt al een spandoek met ' + ik.zijn + ' naam. De fans hebben een nieuwe ' + ik.held + '.'; }
+    else if (n === AANV){ sleutel = 'aanv'; kop = `${naam} is de nieuwe aanvoerder van ${c}`; tekst = `De trainer geeft ${ik.hem} de band. "${ik.Hij} gaat voorop in de strijd, op en naast het veld."`; foto = fotoVan('portret', `${naam}, de nieuwe aanvoerder van ${c}.`); }
+    else if (n === LEGENDE){ sleutel = 'legende'; kop = `${naam} is een clublegende van ${c}`; tekst = 'Na jaren trouwe dienst krijgt ' + ik.hij + ' een plek in de eregalerij van de club.'; foto = fotoVan('portret', `Clublegende ${naam}.`); }
   } else if (oud >= AANV && n < AANV && n > 1){ sleutel = 'bandWeg'; kop = `${naam} raakt de aanvoerdersband kwijt`; tekst = `Na een reeks mindere wedstrijden geeft de trainer de band aan een ander. ${naam} moet het vertrouwen terugwinnen.`; }
-  else if (oud >= 2 && n === 1){ sleutel = 'bank'; kop = `${naam} kwijt zijn basisplaats bij ${c}`; tekst = 'Na een paar mindere wedstrijden begint hij weer op de bank. Hij moet zich terugknokken.'; }
+  else if (oud >= 2 && n === 1){ sleutel = 'bank'; kop = `${naam} kwijt zijn basisplaats bij ${c}`; tekst = 'Na een paar mindere wedstrijden begint ' + ik.hij + ' weer op de bank. ' + ik.Hij + ' moet zich terugknokken.'; }
   if (!sleutel) return null;
   const l = sp.statusKrant || {}, nu = S.jaar * 100 + S.ronde;
   if (l[sleutel] !== undefined && nu - l[sleutel] < STATUS_KRANT_PAUZE) return null;
@@ -103,6 +105,7 @@ export function nieuweTabellen(){ const tab = {}; CLUBS.forEach((c, i) => tab[i]
 // Zonder opties: een 15-jarige met een toevallig uiterlijk
 export function nieuwSpel(naam, pos, herkomst, land, opties = {}){
   land = SPEEL_LANDEN.includes(land) ? land : 'Nederland';
+  const wereld = opties.vrouw ? 'v' : 'm'; zetWereld(wereld); // het mannen- of vrouwenvoetbal (vóór de clubs en de namen)
   zetClubs(landBasis(land)); // de startstand van dat land (met zijn topclub uit de oude Elite)
   zetLand(land);
   for (let i = 0; i < 8; i++) CLUBS[i].n = ELITE_NAAM[i]; // nieuwe carrière: de oorspronkelijke Europese Elite
@@ -120,7 +123,9 @@ export function nieuwSpel(naam, pos, herkomst, land, opties = {}){
     focus:65, school:{cijfers:[], gehad:[]}, ouders:{boos:false, trots:false},
     herkomst: herkomst || {geboren:'Nederland', vader:'Nederland', moeder:'Nederland'}, land:null, bonds:{}, agent:{doel:null, antwoord:null, gehaald:false, sugg:null},
     pers:Array.isArray(opties.pers) ? opties.pers.filter(p => PERS[p]).slice(0, MAX_PERS) : [], startVerhaal:V.id, ...(opties.uiterlijk ? {uiterlijk:{...opties.uiterlijk}} : {}), ...(opties.sleutel ? {uitSleutel:opties.sleutel} : {})};
-  setS({v:VERSIE, mig4:true, mig5:true, mig6:true, niveauV2:true, land, startLand:land, sp, jaar:2026, ronde:0, tab:nieuweTabellen(), ss:{wed:0,g:0,a:0,c:[],bods:0}, vorigGem:6.5,
+  if (opties.vrouw) sp.vrouw = true;
+  sp.valtOp = opties.valtOp === 'm' || opties.valtOp === 'v' ? opties.valtOp : opties.vrouw ? 'm' : 'v'; // je partner: een vriend ('m') of een vriendin ('v')
+  setS({v:VERSIE, mig4:true, mig5:true, mig6:true, niveauV2:true, wereld, land, startLand:land, sp, jaar:2026, ronde:0, tab:nieuweTabellen(), ss:{wed:0,g:0,a:0,c:[],bods:0}, vorigGem:6.5,
     car:{wed:0,g:0,a:0,clubs:[{club:sp.club, van:2026, land}], prijzen:[], hist:[], maxOvr:ovr(sp), maxWaarde:0, int:{}},
     fase:'week', week:null, ev:null, M:null, venster:null, eind:null});
   S.ss.bekers = nieuweBekers();
