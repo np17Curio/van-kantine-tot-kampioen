@@ -13,6 +13,23 @@ export const STANDAARD_LENGTE_V = {SPITS:170, MID:166, VERD:173, KEEPER:178};
 export const lengtesVoor = vrouw => vrouw ? LENGTES_V : LENGTES;
 export const standaardLengte = (pos, vrouw) => (vrouw ? STANDAARD_LENGTE_V : STANDAARD_LENGTE)[pos] || (vrouw ? 170 : 180);
 const refLengte = L => (L && L.vrouw !== undefined ? L.vrouw : S && S.wereld === 'v') ? 170 : 180;
+// Je groeit nog tot je 23e: hoeveel cm je gemiddeld nog groeit op een leeftijd (jongens en meisjes)
+const GROEI_REST = {m:{15:9, 16:6.5, 17:4.5, 18:3, 19:2, 20:1.2, 21:.7, 22:.3}, v:{15:3, 16:2, 17:1.3, 18:.8, 19:.5, 20:.3, 21:.2, 22:.1}};
+export const groeiRest = (lft, vrouw) => lft >= 23 ? 0 : GROEI_REST[vrouw ? 'v' : 'm'][Math.max(15, Math.round(lft))] || 0;
+// De eindlengte: je lengte nu plus wat je nog groeit (met wat toeval). Het spel kiest die bij het begin
+export const eindLengte = (lengte, lft, vrouw, f = .6 + Math.random() * .8) => Math.round(lengte + groeiRest(lft, vrouw) * f);
+// Eén jaar ouder: een deel van wat er nog over is (sp.leeftijd is al opgehoogd). Geeft een tekst als je gegroeid bent
+export function groeiJaar(sp){
+  const u = sp && sp.uiterlijk; if (!u || !u.lengte) return null;
+  if (u.eind == null) u.eind = eindLengte(u.lengte, sp.leeftijd - 1, sp.vrouw, 1); // (oude opslag)
+  const rest = u.eind - u.lengte; if (rest <= 0) return null;
+  const voor = groeiRest(sp.leeftijd - 1, sp.vrouw), na = groeiRest(sp.leeftijd, sp.vrouw);
+  const nieuw = sp.leeftijd >= 23 || voor <= 0 ? u.eind : Math.min(u.eind, Math.round(u.lengte + rest * (voor - na) / voor));
+  if (nieuw <= u.lengte) return null;
+  const oud = u.lengte, kopVoor = lichaamEffecten(lichaam(sp)).kop; u.lengte = nieuw;
+  const meer = lichaamEffecten(lichaam(sp)).kop - kopVoor >= .005 ? ' Je bent sterker in de lucht.' : '';
+  return `Je bent gegroeid: ${lengteTxt(oud)} → ${lengteTxt(nieuw)}.${meer}${sp.leeftijd >= 23 || nieuw >= u.eind ? ' Je bent nu uitgegroeid.' : ''}`;
+}
 export const gewichtVan = (lengte, bmi) => Math.round(bmi * (lengte / 100) ** 2);
 export const lengteTxt = l => (l / 100).toFixed(2).replace('.', ',') + ' m';
 // Zonder keuze (oude opslag): 1,80 m en normaal, dus geen effect

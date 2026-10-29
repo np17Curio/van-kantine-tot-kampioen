@@ -9,7 +9,7 @@ import { nieuwSpel } from '../../game/speler/status.js';
 import { LEEFTIJDEN, START } from '../../game/speler/startverhaal.js';
 import { HAAR, HAAR_NAAM, HUID, KAPSEL_KEUZE, willekeurigUiterlijk } from '../../data/uiterlijk.js';
 import { MAX_PERS, PERS, kanErBij, willekeurigePers, wisselPers } from '../../game/speler/persoonlijkheid.js';
-import { BOUW, gewichtVan, lengteTxt, lengtesVoor, lichaamSamenvatting, standaardLengte } from '../../game/speler/lichaam.js';
+import { BOUW, gewichtVan, groeiRest, lengteTxt, lengtesVoor, lichaamSamenvatting, standaardLengte } from '../../game/speler/lichaam.js';
 
 export const HERKOMST_IDS = ['geboren', 'vader', 'moeder'];
 // Opslag downloaden en laden (de afhandeling zit in main.js)
@@ -43,7 +43,7 @@ function vUiterlijk(){
       <div><span class="label">Huidskleur</span>${vlak(HUID, 'huid', 'Huidskleur')}</div>
       <div><span class="label">Haarkleur</span>${vlak(HAAR, 'haar', 'Haarkleur', HAAR_NAAM)}</div>
       <div><span class="label">Kapsel</span><div class="kapsels" role="group" aria-label="Kapsel">${KAPSEL_KEUZE.map(([k, l]) => knop(l, () => { u.kapsel = k; }, 'klein' + (u.kapsel === k ? ' aan' : ''), `data-blijf aria-pressed="${u.kapsel === k}"`)).join('')}</div></div>
-      <div><span class="label">Lengte · ${lengteTxt(u.lengte)}</span><div class="kapsels" role="group" aria-label="Lengte">${LENGTES.map(l => knop(lengteTxt(l), () => { u.lengte = l; }, 'klein' + (u.lengte === l ? ' aan' : ''), `data-blijf aria-pressed="${u.lengte === l}"`)).join('')}</div></div>
+      <div><span class="label">${(tmp.leeftijd || 15) < 23 ? 'Lengte nu' : 'Lengte'} · ${lengteTxt(u.lengte)}</span><div class="kapsels" role="group" aria-label="Lengte">${LENGTES.map(l => knop(lengteTxt(l), () => { u.lengte = l; }, 'klein' + (u.lengte === l ? ' aan' : ''), `data-blijf aria-pressed="${u.lengte === l}"`)).join('')}</div>${(() => { const r = groeiRest(tmp.leeftijd || 15, !!tmp.vrouw); return r >= 1 ? `<p class="muted klein-tekst">Je bent nog in de groei: je wordt waarschijnlijk ongeveer ${lengteTxt(Math.round(u.lengte + r * .6))}–${lengteTxt(Math.round(u.lengte + r * 1.4))} (tot je 23e).</p>` : ''; })()}</div>
       <div><span class="label">Bouw · ${gewichtVan(u.lengte, u.bmi)} kg</span><div class="kapsels" role="group" aria-label="Bouw">${BOUW.map(b => knop(b.n, () => { u.bmi = b.bmi; }, 'klein' + (u.bmi === b.bmi ? ' aan' : ''), `data-blijf aria-pressed="${u.bmi === b.bmi}"`)).join('')}</div>
         <p class="muted klein-tekst">${lichaamSamenvatting({...u, vrouw:!!tmp.vrouw})}. Lang = sterk in de lucht, klein en tenger = snel, zwaar = sterk in duels maar sneller moe.</p></div>
       <div>${knop('🎲 Verras me', () => { tmp.uiterlijk = {...willekeurigUiterlijk(tmp.vrouw), lengte:LENGTES[Math.floor(Math.random() * LENGTES.length)], bmi:BOUW[Math.floor(Math.random() * BOUW.length)].bmi}; tmp.uitSleutel = Math.random().toString(36).slice(2, 10); }, 'klein', 'data-blijf')}</div>

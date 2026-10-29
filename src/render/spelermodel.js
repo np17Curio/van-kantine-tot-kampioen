@@ -203,6 +203,7 @@ function haarMaten(g){
   // s: ongeveer het midden van de schedel; huid: de afstand waarop de binnenste plukjes op de hoofdhuid liggen
   return {geo:g, c, h, s, huid:d[Math.floor(d.length * .15)]};
 }
+const AFRO_R = 1.85; // (hoe groot de afro is, ten opzichte van de hoofdhuid)
 const glad = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 function haarGeo(kapsel){
   const H = BASIS.haar; if (!H || kapsel === 'model' || kapsel === 'kaal') return H ? H.geo : null;
@@ -233,14 +234,19 @@ function haarGeo(kapsel){
       p.z -= lager * h.z * 2.2 * achter; p.y += lager * h.y * .25 * achter;
       p.x += Math.sign(u) * lager * h.x * .12 * achter;
     } else if (kapsel === 'afro'){
-      // een ronde bol rondom het hoofd; boven de ogen en bij het gezicht minder, zodat het gezicht vrij blijft
-      kort(p, w, v); kort(p, w, v); // eerst de lengte eraf (geen pony, geen nek): dan wordt het een ronde bol
-      // opbollen vanuit een punt hoog in het hoofd; aan de voorkant (voorhoofd) en onderaan (oren, nek) blijft het kort
-      const voor = glad(-.15, -.75, v), onder = glad(-.05, -.55, w), groei = (1 - .85 * voor * glad(.5, -.2, w)) * (1 - .85 * onder);
-      const top = s.clone(); top.z += h.z * .45;
-      const q = p.clone().sub(top), d = q.length(), golf = Math.sin(p.x / h.x * 23) * Math.sin(p.y / h.y * 21) * Math.sin(p.z / h.z * 25);
-      const rond = huid * (1.78 + .06 * golf) + (d - huid) * .25, nd = d + (Math.max(d, rond) - d) * groei;
-      p.copy(top).add(q.multiplyScalar(nd / d)); p.z += voor * h.z * .15; p.y += voor * h.y * .1; // de haarlijn iets omhoog en naar achteren
+      // een ronde bol rondom het hoofd. De haarlijn boven het voorhoofd blijft waar die is (anders krijg je een groot voorhoofd);
+      // het volume groeit naar boven, opzij en naar achteren, tot op de hoogte van de oren
+      if (w < -.45) p.z += (-.45 - w) * h.z * .35; // (geen lange plukken in de nek)
+      const voor = glad(-.25, -.85, v) * glad(.4, -.2, w), onder = glad(-.4, -.85, w);
+      const groei = (1 - .55 * voor) * (1 - .8 * onder);
+      const q = p.clone().sub(s), d = q.length(), golf = Math.sin(p.x / h.x * 23) * Math.sin(p.y / h.y * 21) * Math.sin(p.z / h.z * 25);
+      // de pony van het model hangt over het voorhoofd: die plukken tegen de hoofdhuid aan (kort), zonder de haarlijn op te schuiven
+      const pony = glad(-.3, -.9, v) * glad(.1, -.45, w), d0 = d > huid ? huid + (d - huid) * (1 - .8 * pony) : d;
+      // onderaan minder breed (een ronde bol, geen paddenstoel)
+      const rond = huid * (AFRO_R + .06 * golf) * (.78 + .22 * glad(-.55, .25, w)), nd = d0 + (Math.max(d0, rond) - d0) * groei;
+      p.copy(s).add(q.multiplyScalar(nd / d));
+      // aan de zijkanten (boven de oren) iets verder naar beneden, zodat daar geen kale plek is
+      const zij = glad(.45, .9, Math.abs(u)) * glad(0, -.5, w) * (1 - voor); p.z -= zij * h.z * .22;
     } else if (kapsel === 'kroes'){
       // kort, met wat meer volume en een fijne kroesstructuur
       kort(p, w, v); const q = p.clone().sub(s), golf = Math.sin(p.x / h.x * 27) * Math.sin(p.y / h.y * 25) * Math.sin(p.z / h.z * 29);

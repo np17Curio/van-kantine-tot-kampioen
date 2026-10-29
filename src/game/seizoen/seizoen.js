@@ -23,6 +23,7 @@ import { magAfscheid, maakAfscheid } from './afscheidswedstrijd.js';
 import { verhaalEpiloog, vriendOuder, vriendSeizoen } from '../speler/journey.js';
 import { galaReacties, goudenBalWinst } from './gouden-bal-winst.js';
 import { historieSeizoen } from './historie.js';
+import { groeiJaar } from '../speler/lichaam.js';
 
 /* ===================== Seizoen ===================== */
 export function ontwikkel(){
@@ -94,6 +95,7 @@ export function naSeizoen(){
   S.eind.ontw = ontwikkel();
   rivaalOuder(ovr(sp) - sp.ovrVorig); // je rivaal groeit (of zakt) net als jij
   const vg = vriendOuder(); if (vg) S.eind.ontw.push(vg); // en je jeugdvriend ook
+  const gr = groeiJaar(sp); if (gr) S.eind.ontw.push(gr); // je groeit nog, tot je 23e
   if (tal) S.eind.ontw.unshift(tal);
   sp.potSz = 0;
   S.eind.ontw.push(...seizoenGeld());

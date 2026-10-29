@@ -12,6 +12,7 @@ import { krantMelding } from '../media/roddel.js';
 import { MAX_PERS, PERS, pers } from './persoonlijkheid.js';
 import { zetWereld } from '../../data/gegevens.js';
 import { ik } from '../../core/geslacht.js';
+import { eindLengte } from './lichaam.js';
 
 /* ===================== Status bij de club ===================== */
 // Startstatus bij een nieuwe club: hoe beter je bent dan de club en hoe bekender je bent, hoe hoger
@@ -124,6 +125,7 @@ export function nieuwSpel(naam, pos, herkomst, land, opties = {}){
     herkomst: herkomst || {geboren:'Nederland', vader:'Nederland', moeder:'Nederland'}, land:null, bonds:{}, agent:{doel:null, antwoord:null, gehaald:false, sugg:null},
     pers:Array.isArray(opties.pers) ? opties.pers.filter(p => PERS[p]).slice(0, MAX_PERS) : [], startVerhaal:V.id, ...(opties.uiterlijk ? {uiterlijk:{...opties.uiterlijk}} : {}), ...(opties.sleutel ? {uitSleutel:opties.sleutel} : {})};
   if (opties.vrouw) sp.vrouw = true;
+  if (sp.uiterlijk && sp.uiterlijk.lengte) sp.uiterlijk.eind = eindLengte(sp.uiterlijk.lengte, lft, !!opties.vrouw); // (je groeit nog tot je 23e)
   sp.valtOp = opties.valtOp === 'm' || opties.valtOp === 'v' ? opties.valtOp : opties.vrouw ? 'm' : 'v'; // je partner: een vriend ('m') of een vriendin ('v')
   setS({v:VERSIE, mig4:true, mig5:true, mig6:true, niveauV2:true, wereld, land, startLand:land, sp, jaar:2026, ronde:0, tab:nieuweTabellen(), ss:{wed:0,g:0,a:0,c:[],bods:0}, vorigGem:6.5,
     car:{wed:0,g:0,a:0,clubs:[{club:sp.club, van:2026, land}], prijzen:[], hist:[], maxOvr:ovr(sp), maxWaarde:0, int:{}},
