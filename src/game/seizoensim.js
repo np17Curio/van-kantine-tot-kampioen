@@ -14,7 +14,8 @@ import { rustWeek, simuleer, startWedstrijd } from './wedstrijd/wedstrijd.js';
 
 /* ===================== Het seizoen simuleren ===================== */
 // Speelt week na week door, en stopt bij de grote momenten: de transferperiode, een verhaalhoofdstuk, een interland,
-// een eindtoernooi, een derby, een transferbod en het einde van het seizoen. Kleine keuzes maakt het spel zelf.
+// een eindtoernooi, een derby, een transferbod en het einde van het seizoen. Kleine keuzes maakt het spel zelf, zoals een gewone
+// speler: niet elke week de perfecte training en niet altijd de veiligste optie in de wedstrijd (anders groei je sneller dan als je zelf speelt).
 const STOP = {venster:'de transferperiode is open', hoofdstuk:'een nieuw hoofdstuk in je verhaal', oproep:'de bondscoach roept je op', toernooi:'het eindtoernooi begint', seizoenEinde:'het seizoen zit erop'};
 function weekKeuzes(){
   const sp = S.sp, w = S.week;
@@ -23,7 +24,9 @@ function weekKeuzes(){
   if (!w.gedaan){
     if (sp.blessure > 0) doeActiviteit('revalidatie');
     else if (sp.fit < 55) doeActiviteit('rust');
-    else { const k = TRAINBAAR.filter(x => sp.a[x] < plafond()).sort((a, b) => sp.a[a] - sp.a[b])[0]; if (k) doeActiviteit('train', k); else doeActiviteit('rust'); }
+    // zoals een gewone speler: meestal trainen (niet altijd je zwakste punt), soms rust, video of mentale training
+    else { const r = rnd(), l = TRAINBAAR.filter(x => sp.a[x] < plafond()).sort((a, b) => sp.a[a] - sp.a[b]).slice(0, 3), k = l.length ? l[Math.floor(rnd() * l.length)] : null;
+      if (r < .6 && k) doeActiviteit('train', k); else if (r < .75) doeActiviteit('video'); else if (r < .85) doeActiviteit('mentaal'); else doeActiviteit('rust'); }
   }
 }
 // Halve finales en finales van een beker speel je zelf (als je meedoet)
@@ -45,9 +48,9 @@ export function simuleerSeizoen(){
       const fx = sp.clubloos ? null : fixture(S.ronde);
       if (!fx){ rustWeek(); continue; }
       if (!sp.o23 && isDerby(fx.opp)){ reden = `de derby tegen ${CLUBS[fx.opp].n} speel je zelf`; break; }
-      startWedstrijd(); if (S.fase === 'match'){ if ((reden = grootBeker())) break; simuleer(); } continue;
+      startWedstrijd(); if (S.fase === 'match'){ if ((reden = grootBeker())) break; simuleer(true); } continue;
     }
-    if (f === 'match'){ if (S.M && S.M.derby){ reden = `de derby tegen ${S.M.zij} speel je zelf`; break; } if ((reden = grootBeker())) break; simuleer(); continue; }
+    if (f === 'match'){ if (S.M && S.M.derby){ reden = `de derby tegen ${S.M.zij} speel je zelf`; break; } if ((reden = grootBeker())) break; simuleer(true); continue; }
     if (f === 'matchEnd'){ telWed(S.M); naEind(S.M); continue; }
     if (f === 'event'){
       if (S.ev && S.ev.soort === 'transfer'){ reden = 'er ligt een bod op je'; break; }

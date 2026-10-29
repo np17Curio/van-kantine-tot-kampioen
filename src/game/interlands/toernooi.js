@@ -1,5 +1,5 @@
 import { S, mod, ovr, seizoenLabel } from '../../core/state.js';
-import { knop } from '../../core/ui.js';
+import { keuzeKnop, knop } from '../../core/ui.js';
 import { clamp, esc, pick, randInt, rnd } from '../../core/utils.js';
 import { LANDEN } from '../../data/gegevens.js';
 import { simGoals } from '../competitie/competitie.js';
@@ -9,7 +9,7 @@ import { krantMelding } from '../media/roddel.js';
 import { social } from '../prive/social.js';
 import { naSeizoen } from '../seizoen/seizoen.js';
 import { fmt1, gemiddelde } from '../speler/o23.js';
-import { MOMENTS, kans } from '../wedstrijd/momenten.js';
+import { MOMENTS, focusBoost, kans } from '../wedstrijd/momenten.js';
 import { planWedstrijd, verderSpelen } from '../wedstrijd/wedstrijd.js';
 import { animPush, reeksStrafschoppen } from '../../render/pitch.js';
 import { nationS } from '../../data/gegevens.js';
@@ -99,7 +99,7 @@ export function toernooiWedstrijd(){
     // Geschorst: je kijkt vanaf de tribune, de uitslag wordt gesimuleerd
     let [a, b] = simGoals(T, O, false), pens = null;
     if (tw.fase === 'ko' && a === b){ const w = rnd() < clamp(.5 + (T - O) / 60, .2, .8); pens = w ? '5-4' : '4-5'; }
-    tw.geschorst = false;
+    tw.geschorst = false; tw.actie = null; tw.actieTekst = null;
     const M = {inter:{land:tw.land, type:`${tw.titel} · ${ronde}`, toernooi:true, ko:tw.fase === 'ko'}, wij:tw.land, zij:oppN, thuis:true, us:a, them:b, pens, pensWin: pens ? pens === '5-4' : null, cijfer:null, goals:0, assists:0, rood:false, geschorstGemist:true};
     S.M = M; toernooiNaWedstrijd(M);
     tw.melding = `Je was geschorst en zag vanaf de tribune: ${tw.land} - ${oppN} ${a}-${b}${pens ? ` (strafschoppen ${pens})` : ''}. ${M.twTekst}`;
@@ -169,7 +169,25 @@ export function eindeToernooi(){
   sp.tGB = Math.min(30, Math.round(fase + Math.max(0, (gem ?? 6.5) - 6.5) * 4 + tw.goals * 1.5));
   sp.fit = clamp(sp.fit, 0, 100);
 }
-export function naToernooiWedstrijd(){ S.M = null; mod('fit', 15); S.fase = S.tw.klaar ? 'toernooiEinde' : 'toernooi'; }
+export function naToernooiWedstrijd(){ S.M = null; mod('fit', 8); S.tw.actie = null; S.tw.actieTekst = null; S.fase = S.tw.klaar ? 'toernooiEinde' : 'toernooi'; }
+// Tussen twee toernooiwedstrijden: één keuze, net als in een gewone week (je zit in het trainingskamp van het nationale team)
+export const TW_ACTIES = {
+  rust:{n:'Rusten en herstellen', s:'Fitheid +18 · focus +2'},
+  training:{n:'Extra trainen bij de bondscoach', s:'Bondscoach vertrouwen +5 (meer kans op de basis) · fitheid −6'},
+  analyse:{n:'De tegenstander bestuderen', s:'Focus +8 voor de volgende wedstrijd'},
+  groep:{n:'Ontspannen met de groep', s:'Moraal +6 · fitheid +6'},
+  thuis:{n:'Naar huis bellen', s:'Moraal +4 · focus +3'},
+};
+export function twActie(id){
+  const tw = S.tw, sp = S.sp; if (!tw || tw.actie || !TW_ACTIES[id]) return;
+  tw.actie = id; let t;
+  if (id === 'rust'){ mod('fit', 18); focusBoost(2); t = pick(['Een rustige dag in het hotel: ijsbad, massage en vroeg naar bed.', 'Je slaapt uit, zwemt een paar baantjes en laat je benen behandelen door de fysio.']); }
+  else if (id === 'training'){ sp.bonds[tw.land] = clamp((sp.bonds[tw.land] ?? 40) + 5, 0, 100); mod('fit', -6); t = 'Je blijft na de training nog een uur hangen. De bondscoach ziet het en knikt.'; }
+  else if (id === 'analyse'){ const n = focusBoost(8); t = `Je bekijkt beelden van ${tw.fase === 'groep' ? tw.groep[TW_PAREN[tw.speeldag][0][1]] : tw.koTegen}: hun sterke punten en waar ze kwetsbaar zijn. Focus +${n}.`; }
+  else if (id === 'groep'){ mod('moraal', 6); mod('fit', 6); t = pick(['Een avond spelletjes met de groep. Er wordt veel gelachen.', 'Samen naar de stad, een ijsje en terug naar het hotel. De sfeer is goed.']); }
+  else if (id === 'thuis'){ mod('moraal', 4); focusBoost(3); t = 'Je belt met je familie. Thuis hangt de vlag al uit.'; }
+  tw.actieTekst = t;
+}
 export function naToernooi(){ S.eind.toernooiKlaar = true; S.tw = null; naSeizoen(); }
 export function vTwTabel(){
   const tw = S.tw;
@@ -188,8 +206,16 @@ export function vToernooi(){
     <p>Volgende wedstrijd: <b>${esc(tw.land)} - ${esc(opp)}</b> <span class="muted">(${esc(ronde.toLowerCase())}, sterkte ${tLand(opp).s})</span>${tw.geschorst ? ' <span class="fouttxt">· je bent geschorst</span>' : ''}</p>
     ${tw.goals || tw.assists ? `<p class="muted">Jij op dit toernooi: ${tw.goals} ${tw.goals === 1 ? 'goal' : 'goals'}, ${tw.assists} ${tw.assists === 1 ? 'assist' : 'assists'}.</p>` : ''}</div>
     ${tw.fase === 'groep' ? `<div class="paneel"><span class="label">Poule</span>${vTwTabel()}</div>` : ''}
+    ${vTwActies()}
     ${vTwGespeeld()}
     ${knop(tw.geschorst ? 'Wedstrijd bekijken vanaf de tribune' : `Speel: ${esc(tw.land)} - ${esc(opp)}`, toernooiWedstrijd)}`;
+}
+// Je keuze voor de volgende wedstrijd, met je fitheid, focus en moraal erbij
+function vTwActies(){
+  const tw = S.tw, sp = S.sp;
+  const stand = `<p class="muted klein-tekst">Fitheid <b>${Math.round(sp.fit)}</b> · focus <b>${Math.round(sp.focus ?? 65)}</b> · moraal <b>${Math.round(sp.moraal)}</b> · vertrouwen bondscoach <b>${Math.round(sp.bonds[tw.land] ?? 40)}</b></p>`;
+  if (tw.actie) return `<div class="paneel"><span class="label">Voor de wedstrijd</span>${stand}<p class="melding">${esc(tw.actieTekst || '')}</p></div>`;
+  return `<section class="activiteiten"><h3 class="sectiekop">Wat doe je voor de wedstrijd?</h3>${stand}<div class="keuzes">${Object.entries(TW_ACTIES).map(([id, a]) => keuzeKnop(a.n, a.s, () => twActie(id))).join('')}</div></section>`;
 }
 export function vToernooiEinde(){
   const tw = S.tw, c = tw.cijfers.filter(x => x !== null), gem = c.length ? fmt1(gemiddelde(c)) : '–';

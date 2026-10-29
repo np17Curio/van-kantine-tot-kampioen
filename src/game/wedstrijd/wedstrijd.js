@@ -309,7 +309,8 @@ function wisselUit(M){
 export function aftrap(){ if (S.M && S.M.intro) verderSpelen(); }
 // Simuleren: je speler kiest zelf, steeds de actie met de hoogste kans van slagen (bij gelijke kans: zonder kaartrisico,
 // en bij een moment met een toon de gebalanceerde). VAR: rustig afwachten. Alles telt verder net als bij zelf spelen.
-export function simuleer(){
+// gewoon: kies zoals een gewone speler (niet altijd de veiligste optie: vaker een goede, soms een gok). Anders de optie met de meeste kans
+export function simuleer(gewoon = false){
   const M = S.M; if (!M || S.fase !== 'match') return;
   M.gesimuleerd = true;
   for (let n = 0; n < 500 && S.fase === 'match' && S.M === M; n++){
@@ -318,6 +319,7 @@ export function simuleer(){
     if (M.pending){
       const opts = pOpts(M.pending), score = o => kans(o) - (o.kaart ? .02 : 0) + (o.toon === 'bal' ? .01 : 0);
       let best = 0; opts.forEach((o, i) => { if (score(o) > score(opts[best])) best = i; });
+      if (gewoon){ const w = opts.map(o => Math.max(.01, score(o)) ** 2), som = w.reduce((a, b) => a + b, 0); let r = rnd() * som; best = w.findIndex(x => (r -= x) <= 0); if (best < 0) best = 0; }
       kies(best); continue;
     }
     verderSpelen();
