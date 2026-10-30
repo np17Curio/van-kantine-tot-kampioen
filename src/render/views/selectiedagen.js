@@ -1,4 +1,5 @@
 import { vriendApart, vriendClubInfo } from '../../game/speler/journey.js';
+import { clubPlek } from '../../game/transfers/buitenland.js';
 import { S, ovr, salarisLabel } from '../../core/state.js';
 import { knop } from '../../core/ui.js';
 import { esc, geldTxt } from '../../core/utils.js';
@@ -16,10 +17,10 @@ import { vr } from '../../core/geslacht.js';
 function vRanglijst(){
   const l = ranglijst(), mv = POS_MEERV[S.sp.pos];
   if (!l) return `<p class="muted">Scoutingranglijst van de ${mv}: je begint onderaan, op plek <b>${rangStart()}</b>. Eindig zo hoog mogelijk: bij de top ${RANG_TOP} van de ${mv} kijken de grote clubs mee.</p>`;
-  const kort = pos => { const k = ranglijst(pos) || []; return `<p class="klein-tekst"><b>${POS_MEERV[pos][0].toUpperCase() + POS_MEERV[pos].slice(1)}</b>: ${k.map((x, i) => `${i + 1}. ${esc(x.n)}${x.vriend ? ' 🤝' : ''} (${fmt1(x.gem)})`).join(' · ')}</p>`; };
+  const kort = pos => { const k = ranglijst(pos) || []; return `<p class="klein-tekst"><b>${POS_MEERV[pos][0].toUpperCase() + POS_MEERV[pos].slice(1)}</b>: ${k.map((x, i) => `${i + 1}. ${esc(x.n)}${x.vriend ? ' 🤝' : ''}${x.rivaal ? ' ⚔️' : ''} (${fmt1(x.gem)})`).join(' · ')}</p>`; };
   const anderen = Object.keys(POS_MEERV).filter(p => p !== S.sp.pos);
-  return `<div class="paneel"><span class="label">Scoutingranglijst · ${mv[0].toUpperCase() + mv.slice(1)}</span><ol class="ranglijst">${l.map((x, i) => `<li class="${x.jij ? 'mij' : ''}${i === RANG_TOP - 1 ? ' grens' : ''}"><span>${x.jij ? '<b>' + esc(x.n) + ' (jij)</b>' : x.vriend ? esc(x.n) + ' 🤝' : esc(x.n)}</span><b>${fmt1(x.gem)}</b></li>`).join('')}</ol>
-    <p class="muted klein-tekst">Boven de streep: de top ${RANG_TOP} van de ${mv}. 🤝 = je jeugdvriend.</p>
+  return `<div class="paneel"><span class="label">Scoutingranglijst · ${mv[0].toUpperCase() + mv.slice(1)}</span><ol class="ranglijst">${l.map((x, i) => `<li class="${x.jij ? 'mij' : ''}${i === RANG_TOP - 1 ? ' grens' : ''}"><span>${x.jij ? '<b>' + esc(x.n) + ' (jij)</b>' : x.vriend ? esc(x.n) + ' 🤝' : x.rivaal ? esc(x.n) + ' ⚔️' : esc(x.n)}</span><b>${fmt1(x.gem)}</b></li>`).join('')}</ol>
+    <p class="muted klein-tekst">Boven de streep: de top ${RANG_TOP} van de ${mv}. 🤝 = je jeugd${vr.vriend}${l.some(x => x.rivaal) ? `, ⚔️ = je rivaal (${esc(l.find(x => x.rivaal).n)})` : ''}.</p>
     <details><summary class="label" style="cursor:pointer">Andere posities</summary>${anderen.map(kort).join('')}</details></div>`;
 }
 // Voor de eerste week: de 3 selectiewedstrijden die bepalen waar je carrière begint
@@ -51,7 +52,7 @@ export function vSelectieKeuze(){
     return `<div class="bod ${o.soort === 'ambitie' ? 'door' : ''}"><span class="label">${SOORT[o.soort]} · ${o.o23 ? 'O23' : NIVEAU[c.t]} · ${esc(DIVS[c.t])}</span>
       <div class="club">${clubLogo(o.club, 40)}<span>${esc(c.n)}${o.o23 ? ' O23' : ''}</span></div>
       <p class="quote">${esc(o.quote)}</p>
-      <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>${salarisLabel(c.t)}</dt><dd>${geldTxt(o.salaris)}</dd><dt>Contract</dt><dd>${o.jaren} jaar</dd><dt>Speelstijl</dt><dd>${esc(stijl ? stijl.n : '–')}</dd></dl>
+      <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>Stand</dt><dd>${esc(clubPlek({club:o.club}))}</dd><dt>${salarisLabel(c.t)}</dt><dd>${geldTxt(o.salaris)}</dd><dt>Contract</dt><dd>${o.jaren} jaar</dd><dt>Speelstijl</dt><dd>${esc(stijl ? stijl.n : '–')}</dd></dl>
       <div class="rol"><span class="label">Jouw rol daar</span>${o.o23 ? '<b>Bij de O23</b><span class="risico r-gem">Bewijs je, dan haalt de trainer je naar het eerste</span>' : `<b>${r.status}</b><span class="risico ${r.plek[1]}">${r.plek[0]}</span>`}</div>
       ${vc && vc.club === o.club && vn && !vriendApart() ? `<p class="goedtxt klein-tekst">🤝 ${esc(vn)} tekent hier ook${vc.o23 ? ' (bij de O23)' : ''}.</p>` : ''}
       <div class="rij">${knop('Hier tekenen', () => tekenSelectie(i), 'hoofd', 'style="font-size:1.05rem;padding:10px 16px"')}</div></div>`;

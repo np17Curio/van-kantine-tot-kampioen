@@ -2,7 +2,7 @@ import { S, club, mod, ovr, salarisVoor, seizoenLabel, waarde } from '../../core
 import { clamp, pick, randInt, rnd } from '../../core/utils.js';
 import { AANTAL_RONDES, CLUBS, DIVS, LAAGSTE, liefNamen, clubsLand, divClubs, WINTER, rondeInWeek, weekFactor, LINIE_VAN, POS } from '../../data/gegevens.js';
 import { thuisLand } from '../../data/landen.js';
-import { andereWereldClub, andereWereldIds, vreemdeClub } from '../transfers/buitenland.js';
+import { andereWereldClub, andereWereldIds, clubPlek, vreemdeClub } from '../transfers/buitenland.js';
 import { interDrempel, landenVoor } from '../interlands/interlands.js';
 import { OPBOUW, selectie, startElf } from '../competitie/spelers.js';
 import { herschik } from '../transfers/markt.js';
@@ -151,7 +151,7 @@ export function hoofdstukInhoud(){
           o('"Geld is niet alles. Maar doe maar wat je wilt."', 'fel', () => { breukUitkomst('rivaal'); modFans(1); return `${vn} tekent toch bij ${naarN}. Jullie spreken elkaar daarna een tijdje een stuk minder.`; })]}; }
       // Spelen jullie bij dezelfde club? (bij het openen vastgelegd; oudere opslag: nu bepalen, hij is nog niet vertrokken)
       const zelfde = d.zelfde ?? v.club === sp.club, zijn = CLUBS[v.club] ? CLUBS[v.club].n : '' + vr.zijn + ' club';
-      const naar = CLUBS[d.naar].n, waar = `${naar}${d.derby ? `, de aartsrivaal van ${club().n}` : ''}`, opa4 = `"Zaakwaarnemers als die ${MAKELAAR.split(' ')[1]} heb ik ook gekend. Ze beloven je de wereld en vergeten je naam zodra je geblesseerd bent."`;
+      const naar = CLUBS[d.naar].n, waar = `${naar}${d.derby ? `, de aartsrivaal van ${d.mijnNaam || club().n}` : ''}`, opa4 = `"Zaakwaarnemers als die ${MAKELAAR.split(' ')[1]} heb ik ook gekend. Ze beloven je de wereld en vergeten je naam zodra je geblesseerd bent."`;
       // Hecht: hij belt jou eerst en jouw antwoord beslist
       if (d.band >= 60) return {
         tekst:[`Midden in de winterstop belt ${vn} je, laat op de avond. Een zaakwaarnemer, ${MAKELAAR}, wil ${vr.hem} ${zelfde ? '' : `van ${zijn} `}naar ${waar} halen. "Ze bieden me twee keer zoveel. Maar ik wil eerst weten wat jij ervan vindt. Wat moet ik doen?"`,
@@ -247,26 +247,42 @@ export function plaatsVriend(id, o23){
   const bank = sel.filter(y => y.pos === linie && !y.basis).sort((a, b) => a.k - b.k)[0]; if (bank) sel.splice(sel.indexOf(bank), 1);
   sel.push({v:v.v, n:v.n, pos:linie, basis:!o23, g:linie === 'A' ? 4 : linie === 'M' ? 2.2 : linie === 'K' ? 0 : 1, a:linie === 'M' ? 2.6 : linie === 'K' ? .1 : 1.4, k:v.k, lft:v.lft, vriend:true});
 }
-// De breuk: hij vertrekt naar een club in jouw league (het liefst je aartsrivaal) en wordt je vaste rivaal
+// Je eigen club: die van je contract (op huur in eigen land: je eigen club, niet de huurclub)
+const mijnVasteClub = () => { const sp = S.sp; return sp.huur && (!sp.huur.ouderLand || sp.huur.ouderLand === thuisLand()) ? sp.huur.ouder : sp.club; };
+// Speelt je vriend(in) niet in de competitie waar jij nu zit? (een ander land, de andere wereld, of jij bent in het buitenland op huur)
+const opAfstand = () => { const sp = S.sp; return vriendApart() || !vriendHier() || !!(sp.huur && sp.huur.ouderLand && sp.huur.ouderLand !== thuisLand()); };
+// Alle clubs in de competitie van je vriend(in)
+function vriendIds(){
+  const land = vriendLand();
+  if (vriendApart()) return [1, 2].flatMap(t => andereWereldIds(land, t));
+  if (!vriendHier()) return Array.from({length:clubsLand(land) - 8}, (_, i) => 8 + i).filter(i => vreemdeClub(land, i).t >= 1);
+  return [1, LAAGSTE].flatMap(t => divClubs(t));
+}
+// De breuk: hij/zij vertrekt naar een club in de league van je eigen club (het liefst je aartsrivaal) en wordt je vaste rivaal.
+// Op afstand (een andere competitie): een grotere club daar, en geen rivalen
 export function breukDoel(){
-  if (vriendApart()){ const v = S.sp.vriend, land = vriendLand(), cur = vriendClubInfo(v.club), l = [1, 2].flatMap(t => andereWereldIds(land, t)).filter(i => i !== v.club && andereWereldClub(land, i).s > cur.s).sort((a, b) => andereWereldClub(land, a).s - andereWereldClub(land, b).s);
+  const sp = S.sp, v = sp.vriend;
+  if (opAfstand()){ const cur = vriendClubInfo(v.club), l = vriendIds().filter(i => i !== v.club && !(vriendHier() && i === sp.club)).map(i => [i, vriendClubInfo(i)]).filter(([, c]) => c && c.t >= 1 && cur && c.s > cur.s).sort((a, b) => a[1].s - b[1].s).map(x => x[0]);
     return {naar:l.length ? l[Math.min(l.length - 1, randInt(0, 2))] : null, derby:false, zelfde:false, apart:true}; }
-  const sp = S.sp, t = club().t, derby = derbyVan(sp.club), zijn = sp.vriend ? sp.vriend.club : null, zelfde = zijn === sp.club;
-  if (derby != null && CLUBS[derby].t === t && derby !== sp.club && derby !== zijn) return {naar:derby, derby:true, zelfde};
-  const l = divClubs(t).filter(i => i !== sp.club && i !== zijn).sort((a, b) => CLUBS[b].s - CLUBS[a].s);
-  return {naar:l.length ? l[randInt(0, Math.min(2, l.length - 1))] : null, derby:false, zelfde};
+  const mijn = mijnVasteClub(), t = CLUBS[mijn].t, huur = sp.huur ? sp.club : null, derby = derbyVan(mijn), zijn = v ? v.club : null, zelfde = zijn === mijn;
+  const mag = i => i !== mijn && i !== zijn && i !== huur, mijnNaam = CLUBS[mijn].n;
+  if (derby != null && CLUBS[derby].t === t && mag(derby)) return {naar:derby, derby:true, zelfde, mijnNaam};
+  const l = divClubs(t).filter(mag).sort((a, b) => CLUBS[b].s - CLUBS[a].s);
+  return {naar:l.length ? l[randInt(0, Math.min(2, l.length - 1))] : null, derby:false, zelfde, mijnNaam};
 }
 // Wat er gebeurt na het gesprek: 'blijft' (hij zegt nee tegen de zaakwaarnemer), 'vriend' (hij vertrekt, jullie blijven vrienden)
 // of 'rivaal' (hij vertrekt en wordt je rivaal)
 export function breukUitkomst(soort, band, naar = S.hoofdstuk && S.hoofdstuk.data.naar){
   const sp = S.sp, v = sp.vriend, J = sp.journey;
-  if (vriendApart() && soort === 'rivaal'){ soort = 'vriend'; zetBand(-20); } // (in de andere wereld: jullie groeien uit elkaar, maar worden geen rivalen)
+  if (opAfstand() && soort === 'rivaal'){ soort = 'vriend'; zetBand(-20); } // (in een andere competitie: jullie groeien uit elkaar, maar worden geen rivalen)
   if (J) J.route = soort === 'rivaal' ? 'rivaal' : 'vriend';
   if (soort === 'blijft'){ S.car.hist.push(`${seizoenLabel()}: jeugdvriend ${v.voornaam} ${v.n} zegt nee tegen ${MAKELAAR}`); return; }
   if (soort === 'vriend'){
     if (naar == null) return;
-    const oud = v.club != null ? selectie(v.club) : null; if (oud){ const x = oud.find(y => y.vriend); if (x) oud.splice(oud.indexOf(x), 1); }
-    plaatsVriend(naar, false); v.weg = false;
+    if (vriendHier()){ const oud = v.club != null ? selectie(v.club) : null; if (oud){ const x = oud.find(y => y.vriend); if (x) oud.splice(oud.indexOf(x), 1); }
+      plaatsVriend(naar, false); }
+    else v.club = naar; // (in een ander land of de andere wereld: alleen een andere club, het land blijft)
+    v.weg = false;
     const nn = vriendClubInfo(naar).n;
     S.car.hist.push(`${seizoenLabel()}: jeugd${vr.vriend} ${v.voornaam} ${v.n} vertrekt naar ${nn}, jullie blijven vrienden`);
     krantMelding(`${v.voornaam} ${v.n} kiest voor ${nn}`, `De ${vr.jeugdvriend} van ${sp.naam} tekende op de laatste dag van de transferperiode. "We blijven beste vrienden," zegt ${vr.hij}.`);
@@ -275,7 +291,7 @@ export function breukUitkomst(soort, band, naar = S.hoofdstuk && S.hoofdstuk.dat
   vriendWordtRivaal(band, naar);
 }
 export function vriendWordtRivaal(band, naar = S.hoofdstuk && S.hoofdstuk.data.naar){
-  const sp = S.sp, v = sp.vriend; if (naar == null || vriendApart()) return;
+  const sp = S.sp, v = sp.vriend; if (naar == null || opAfstand()) return;
   // Had je al een (andere) rivaal, dan neemt je ex-vriend die plaats in
   if (sp.rivaal && !sp.rivaal.exVriend){ const r = sp.rivaal, sel = CLUBS[r.club] ? selectie(r.club) : null; if (sel){ const x = sel.find(y => y.n === r.n && y.v === r.v); if (x) x.rivaal = false; } sp.rivaal = null; }
   if (sp.rivaal) return;
@@ -583,7 +599,7 @@ function vriendLokt(){
   const sp = S.sp, v = sp.vriend, vn = v.voornaam, c = zijnClubInfo(), rol = rolBijHem(), bl = !vriendHier(), stap = c.s - club().s;
   const K = {club:v.club, land:vriendLand()};
   const tekst = `${vn} belt je, helemaal enthousiast. "Onze trainer zoekt nog ${{SPITS:'een spits', MID:'een middenvelder', VERD:'een verdediger', KEEPER:'een keeper'}[sp.pos] || 'een speler'}. Ik heb jouw naam genoemd! ${rol === 'basis' ? 'Bij ons sta je meteen in de basis.' : 'Je moet knokken voor je plek, maar je hoort er echt bij.'} Kom je naar ${c.n}?"`
-    + (bl ? ` Dan moet je wel verhuizen naar ${vriendLand()}.` : '') + (stap >= 5 ? ' Het zou een stap omhoog zijn.' : stap <= -5 ? ` ${c.n} is wel kleiner dan ${club().n}.` : '');
+    + ` (${c.n}: ${clubPlek(bl ? K : {club:K.club})}.)` + (bl ? ` Dan moet je wel verhuizen naar ${vriendLand()}.` : '') + (stap >= 5 ? ' Het zou een stap omhoog zijn.' : stap <= -5 ? ` ${c.n} is wel kleiner dan ${club().n}.` : '');
   const wanneer = () => bl || S.ronde >= WINTER ? 'zomer' : 'winterstop';
   return {soort:'prive', tekst, opts:[
     {l:'"Ja, laten we het doen!"', toon:'bal', f(){ sp.vriendBod = K; zetBand(5); return `${vn} juicht door de telefoon. "Ik ga meteen naar de trainer!" In de ${wanneer()} doet ${c.n} een bod.`; }},
@@ -701,7 +717,7 @@ export function vriendWeek(eerste){
 }
 // De zaakwaarnemer probeert het opnieuw (jullie band is laag)
 function vosOpnieuw(){
-  const v = S.sp.vriend, d = breukDoel(), vn = v.voornaam; if (d.naar == null || d.naar === v.club || vriendApart()) return null;
+  const v = S.sp.vriend, d = breukDoel(), vn = v.voornaam; if (d.naar == null || d.naar === v.club || opAfstand()) return null;
   return {soort:'prive', tekst:`${MAKELAAR} belt ${vn} weer. Jullie spreken elkaar bijna niet meer, en ${CLUBS[d.naar].n} wil ${vr.hem} hebben.`, opts:[
     {l:bijJou() ? '' + vr.Hem + ' bellen: "Blijf, ik heb je nodig."' : `${vr.Hem} bellen: "Blijf bij ${vriendClubNaam() || 'je club'}, en laten we elkaar weer vaker zien."`, toon:'kalm', f(){ zetBand(20); return `${vn} is verrast dat je belt. ${vr.Hij} blijft. "Dank je, ${ik.knul}."`; }},
     {l:'Het aan hem laten', toon:'bal', f(){ if (v.band >= 15){ breukUitkomst('vriend', 0, d.naar); return `${vn} vertrekt naar ${CLUBS[d.naar].n}, maar zegt: "Vrienden blijven, toch?"`; } breukUitkomst('rivaal', -10, d.naar); return `${vn} vertrekt naar ${CLUBS[d.naar].n}. Jullie worden rivalen.`; }},

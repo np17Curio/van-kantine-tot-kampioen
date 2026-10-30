@@ -5,6 +5,7 @@ import { AANTAL_RONDES, AANV, CLUBS, DIVS, WINTER } from '../../data/gegevens.js
 import { rolBijClub, statusNiveau, statusPunten } from '../speler/status.js';
 import { kandidaatClubs, wissel } from './transfers.js';
 import { eersteSeizoen } from './vertrek.js';
+import { clubPlek } from './buitenland.js';
 import { ik } from '../../core/geslacht.js';
 
 /* ===================== Transferbod tijdens het seizoen ===================== */
@@ -25,7 +26,7 @@ export function maakBodEvent(){
   // Kans dat je club het bod accepteert: hoger bod = makkelijker, aanvoerder/legende = moeilijker
   const akkoord = betaalt ? 1 : clamp(.4 + (som / w - 1) * 1.2 + (eigen.t - c.t) * .15 - Math.max(0, lvl - 1) * .08, .05, .95);
   const rol = rolBijClub(id);
-  return {soort:'transfer', tekst:`${betaalt ? `${c.n} (${DIVS[c.t]}) betaalt je afkoopclausule van ${geldTxt(som)}! ${oud} kan niks doen: als jij wilt, mag je gaan.` : `${c.n} (${DIVS[c.t]}) biedt ${geldTxt(som)} voor jou.`} Jij zou daar ${geldTxt(bod.salaris)} per jaar verdienen, met een contract van ${bod.jaren} jaar. Daar ben je eerst ${rol.status.toLowerCase()}: ${rol.plek[0].toLowerCase()}. Wat wil je?`, opts:[
+  return {soort:'transfer', tekst:`${betaalt ? `${c.n} (${DIVS[c.t]}, ${clubPlek({club:id}, true)}) betaalt je afkoopclausule van ${geldTxt(som)}! ${oud} kan niks doen: als jij wilt, mag je gaan.` : `${c.n} (${DIVS[c.t]}, ${clubPlek({club:id}, true)}) biedt ${geldTxt(som)} voor jou.`} Jij zou daar ${geldTxt(bod.salaris)} per jaar verdienen, met een contract van ${bod.jaren} jaar. Daar ben je eerst ${rol.status.toLowerCase()}: ${rol.plek[0].toLowerCase()}. Wat wil je?`, opts:[
     {l:`Ik wil naar ${c.n}`, f(){
       if (betaalt) return `De afkoopclausule is betaald. ${oud} moet je laten gaan. ` + wissel(bod, 'gekocht');
       if (rnd() < akkoord) return `${oud} gaat akkoord met het bod. ` + wissel(bod, 'gekocht');

@@ -47,12 +47,13 @@ function kiesClub(t){
   for (const n of niv){ const l = divClubs(n).filter(i => i !== mijn); if (l.length) return pick(l); }
   return null;
 }
-export function maakRivaal(){
+// o (optioneel): {v, n, k, t, achtergrond} van de selectiedagen; zonder: een toevallige rivaal op jouw niveau
+export function maakRivaal(o = {}){
   const sp = S.sp; if (sp.rivaal) return sp.rivaal;
-  const t = club().t, id = kiesClub(t); if (id == null) return null;
+  const t = o.t || club().t, id = kiesClub(t); if (id == null) return null;
   const persIds = Object.keys(PERS);
-  sp.rivaal = {v:pick(VOORL), n:pick(NAMEN), lft:sp.leeftijd + randInt(-1, 1), k:clamp(ovr(sp) + randInt(-3, 3), 30, 95), club:id,
-    achtergrond:pick(ACHTERGROND()), karakter:pick(persIds), onderling:{w:0, g:0, v:0}, hist:[], seizoen:null, band:-20, race:{}};
+  sp.rivaal = {v:o.v || pick(VOORL), n:o.n || pick(NAMEN), lft:sp.leeftijd + randInt(-1, 1), k:clamp(o.k ?? ovr(sp) + randInt(-3, 3), 30, 95), club:id,
+    achtergrond:o.achtergrond || pick(ACHTERGROND()), karakter:pick(persIds), onderling:{w:0, g:0, v:0}, hist:[], seizoen:null, band:-20, race:{}};
   sp.rivaal.pot = Math.max(sp.rivaal.k + 4, clamp(sp.pot + randInt(-4, 4), 40, 95)); sp.rivaal.kVorig = sp.rivaal.k;
   plaats(id);
   return sp.rivaal;

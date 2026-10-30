@@ -22,6 +22,20 @@ export function vreemdeClub(land, id){
 }
 export const isBuitenland = o => !!(o && o.land && o.land !== thuisLand());
 export const clubInfo = o => isBuitenland(o) ? vreemdeClub(o.land, o.club) : CLUBS[o.club];
+// Op welke plek staat een club in zijn competitie? o: {club, land?}. kort: "nu 3e" / "vorig seizoen 3e" / "3e op sterkte".
+// Tijdens het seizoen de huidige stand, in de zomer de eindstand van vorig seizoen, anders (een land dat we niet spelen) de plek op clubsterkte
+export function clubPlek(o, kort = false){
+  const bl = isBuitenland(o), c = clubInfo(o); if (!c || !(c.t >= 1)) return '';
+  const lg = bl ? c.div : DIVS[c.t], div = t => bl ? divNaam(o.land, t) : DIVS[t];
+  if (!bl && S.tab && S.tab[o.club] && S.tab[o.club].g > 0){ const l = stand(c.t), p = l.indexOf(o.club) + 1; return kort ? `nu ${p}e` : `${p}e van ${l.length} in de ${lg}`; }
+  const vorig = bl ? S.landen && S.landen[o.land] && S.landen[o.land].vorig : S.vorig, v = vorig && vorig[o.club];
+  if (v && v.plek){ const wissel = v.t > c.t ? ' · gepromoveerd' : v.t < c.t ? ' · gedegradeerd' : '';
+    return kort ? `vorig seizoen ${v.plek}e${wissel}` : `vorig seizoen ${v.plek}e in de ${div(v.t)}${wissel}`; }
+  // op sterkte: hoe staat de club ervoor tussen de clubs van zijn league
+  const ids = bl ? Array.from({length:clubsLand(o.land) - 8}, (_, i) => 8 + i).filter(i => vreemdeClub(o.land, i).t === c.t) : divClubs(c.t);
+  const sterk = id => (bl ? vreemdeClub(o.land, id) : CLUBS[id]).s, p = ids.filter(i => sterk(i) > c.s).length + 1;
+  return kort ? `${p}e op sterkte` : `op sterkte ${p}e van ${ids.length} in de ${lg}`;
+}
 export const okey = o => (isBuitenland(o) ? o.land + '|' : '') + o.club;
 // In de transferperiode melden zich soms clubs uit een ander land (vanaf je 18e); in de winter minder vaak en hooguit één
 export function buitenlandseBods(modus, winter){
