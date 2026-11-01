@@ -26,8 +26,8 @@ export function recordsSeizoenEinde(){
   const t0 = club().t, uit = [];
   for (let t = 1; t <= LAAGSTE; t++){
     const top = ranglijst(t, 'g')[0], r = compRecord(t); if (!top || top.jij || top.g <= r.g) continue;
-    const oud = oudRecord(r); Object.assign(r, {g:top.g, n:metVoorletter(top), club:CLUBS[top.club].n, s:seizoenLabel()});
-    if (t === t0) uit.push({kop:`${r.n} schrijft geschiedenis in de ${DIVS[t]}`, tekst:`Met ${r.g} goals breekt de ${r.club}-${team.spits} het competitierecord (${oud}).`});
+    const oud = oudRecord(r); Object.assign(r, {g:top.g, n:metVoorletter(top), club:CLUBS[top.club].n, s:seizoenLabel(), jij:false});
+    if (t === t0) uit.push({kop:`${r.n} schrijft geschiedenis in de ${DIVS[t]}`, tekst:`Met ${r.g} goals breekt de ${team.speler} van ${r.club} het competitierecord (${oud}).`});
   }
   for (const k of uit) krantMelding(k.kop, k.tekst);
 }
@@ -75,8 +75,8 @@ export function recordsNaWedstrijd(M){
   // Competitierecord: meeste goals in één seizoen in deze divisie (alleen competitie)
   // (alleen je goals in deze competitie: na een overstap in de winter tellen je goals in een andere league niet mee)
   const cG = competitieGoals(t);
-  const cr = compRecord(t);
-  if (!M.beker && cG > cr.g && cG - M.goals <= cr.g && !S.ss.recDiv){ S.ss.recDiv = true; const oud = oudRecord(cr); Object.assign(cr, {g:cG, n:naam, club:c.n, s:seizoenLabel(), jij:true}); const p = `Competitierecord ${DIVS[t]} ${seizoenLabel()} (${cG} goals)`; R.gebroken.push(p); S.car.prijzen.push(p); mod('rep', 5);
+  const lr = compRecord(t);
+  if (!M.beker && cG > lr.g && cG - M.goals <= lr.g && !S.ss.recDiv){ S.ss.recDiv = true; const oud = oudRecord(lr); Object.assign(lr, {g:cG, n:naam, club:c.n, s:seizoenLabel(), jij:true}); const p = `Competitierecord ${DIVS[t]} ${seizoenLabel()} (${cG} goals)`; R.gebroken.push(p); S.car.prijzen.push(p); mod('rep', 5);
     uit.push(`COMPETITIERECORD! ${cG} goals in één seizoen: nooit eerder scoorde iemand zo vaak in de ${DIVS[t]}.`); krantMelding(`Historisch: ${naam} breekt het record van de ${DIVS[t]}`, `Doelpunt nummer ${cG} in de ${DIVS[t]} dit seizoen. Het oude record (${oud}) is gebroken.`); }
   M.recordTekst = uit.length ? uit : null;
 }

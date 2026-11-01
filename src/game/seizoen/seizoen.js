@@ -28,6 +28,7 @@ import { thuisLand } from '../../data/landen.js';
 import { ik } from '../../core/geslacht.js';
 import { eersteClubBod } from '../transfers/transfers.js';
 import { clubInfo } from '../transfers/buitenland.js';
+import { herstelRecords, recordsSeizoenEinde } from './records.js';
 
 /* ===================== Seizoen ===================== */
 export function ontwikkel(){
@@ -60,6 +61,7 @@ function seizoenDelen(huidig, div = DIVS[club().t]){
 // Oude opslag: een overstap in de winter van vóór seizoenDeel. Zolang het seizoen nog in het geheugen staat (tot het nieuwe seizoen begint),
 // wordt het achteraf gesplitst: je wedstrijden na de winterstop zijn van je nieuwe club, je goals daar staan in de topscorerslijst
 export function herstelSeizoenDelen(){
+  herstelRecords(); // (en een competitierecord uit het oude, vaste record dat niet klopte)
   const sp = S && S.sp, cl = S && S.car && S.car.clubs; if (!sp || !S.ss || S.ss.delen || S.ss.delenOk || !cl || cl.length < 2) return;
   S.ss.delenOk = true;
   const nieuw = cl[cl.length - 1], oud = cl[cl.length - 2]; if (nieuw.van !== S.jaar || sp.club !== nieuw.club || !(S.ronde >= WINTER)) return;
@@ -89,6 +91,7 @@ export function seizoenEinde(){
   const ika = ra.find(x => x.jij);
   if (ika && ika.a > 0 && ika.a >= ra[0].a) prijzen.push(`Assistkoning ${DIVS[t]} ${seizoenLabel()} (${ika.a} assists)`);
   const kop = rs[0];
+  recordsSeizoenEinde(); // (een topscorer met meer goals dan het record: die is nu de recordhouder)
   S.ss.topscorer = kop && !kop.jij ? `${metVoorletter(kop)} (${CLUBS[kop.club].n}) met ${kop.g} goals` : null;
   // Speler van het Seizoen: een verkiezing onder alle spelers van de competitie (niet alleen een drempel op je cijfer)
   const svs = spelerVanHetSeizoen(t, gem);
