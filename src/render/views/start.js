@@ -1,4 +1,5 @@
 import { herstel } from '../../core/migratie.js';
+import { herstelSeizoenDelen } from '../../game/seizoen/seizoen.js';
 import { SLOTS, laad, saves, setS, tmp, vrijeSlot, wis } from '../../core/state.js';
 import { voornamenVoor } from '../../game/speler/journey.js';
 import { act, knop } from '../../core/ui.js';
@@ -65,7 +66,7 @@ function vLeeftijd(){
 // Je carrières: verder spelen of verwijderen (5 opslagplekken)
 function vSaves(){
   const l = saves().filter(x => !x.leeg); if (!l.length) return '';
-  const verder = slot => () => { const d = laad(slot); if (!d) return; const st = herstel(d); st.slot = slot; setS(st); };
+  const verder = slot => () => { const d = laad(slot); if (!d) return; const st = herstel(d); st.slot = slot; setS(st); herstelSeizoenDelen(); };
   return `<div class="paneel"><span class="label">Jouw carrières · ${l.length} van ${SLOTS}</span>${l.map(x => `<div class="eisrij"><span><b>${esc(x.naam)}</b> <span class="muted klein-tekst">${esc([x.rol, x.club, x.leeftijd ? `${x.leeftijd} jaar` : '', x.seizoen, x.einde ? 'carrière voorbij' : ''].filter(Boolean).join(' · '))}</span></span>
     ${knop('Verder', verder(x.slot), 'klein')}${knop('🗑', () => { wis(x.slot); if (tmp.slot === x.slot) tmp.slot = null; }, 'klein', `data-blijf title="Verwijderen" data-bevestig="De carrière van ${esc(x.naam)} wordt verwijderd. Dit kun je niet ongedaan maken." data-ja="Ja, verwijderen"`)}</div>`).join('')}</div>`;
 }
@@ -122,7 +123,7 @@ const UITLEG = [
   ['O23 en verhuur', 'Speel je een reeks slechte wedstrijden, dan zet de trainer je terug naar de O23. Als prof kun je dan ook verhuurd worden.'],
   ['Focus', 'Focus is belangrijk: hoe hoger, hoe meer er lukt. Vanaf 80 zit je in de flow, onder de 35 gaat het snel mis. Een 6 of lager kost focus, een 7,5 of hoger geeft focus. Je focus opkrikken kan met rust, mentale training, videoanalyse, elke week een extra ontspanningskeuze en spullen uit de winkel.'],
   ['Kaarten en schorsingen', 'Tackelen en opstootjes kunnen een gele of rode kaart opleveren. Vijf keer geel of een rode kaart betekent een schorsing.'],
-  ['Uitblinken en sponsors', 'Haal je een 9 of hoger, dan krijg je +3 bij een willekeurige eigenschap. Als prof kloppen er ook sponsors bij je aan.'],
+  ['Uitblinken en sponsors', 'Haal je een 9 of hoger, dan maak je kans op +1 bij een willekeurige eigenschap. Als prof kloppen er ook sponsors bij je aan.'],
   ['School en privé', 'Tot je 18e ga je naar school: elke week een vraag. Slechte cijfers geven ruzie met je ouders. Feesten, ruzie en de liefde kosten focus.'],
 ];
 export const hulpInhoud = () => `<dl class="uitleg">${UITLEG.map(([k, t]) => `<dt>${k}</dt><dd>${t}</dd>`).join('')}</dl>`;

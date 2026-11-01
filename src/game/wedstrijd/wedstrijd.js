@@ -30,7 +30,7 @@ import { FLOW, MOMENTS, SLECHTE_FOCUS, bouwMoment, focusBoost, kans, kiesMomentT
 import { gebruik, staminaNaWedstrijd, staminaStart, wisselCheck } from './stamina.js';
 import { eindeNacompetitie, nacompetitie } from '../competitie/nacompetitie.js';
 import { ontvangst, reunieAftrap, reunieMet, reunieNaWedstrijd } from './reunie.js';
-import { nieuweWeek, verhoog } from '../week.js';
+import { leeftijdGroei, nieuweWeek, verhoog } from '../week.js';
 import { animAnderen, animPush, animSoort, animVariant } from '../../render/pitch.js';
 import { talentNaWedstrijd } from '../speler/talent.js';
 import { reeksTekst, vormBonus } from '../competitie/vorm.js';
@@ -523,7 +523,7 @@ export function eindeWedstrijd(){
     S.car.wed++; S.car.g += M.goals; S.car.a += M.assists; carCijfer(M.cijfer);
     M.bonus = topBonus(M);
     M.groei = null;
-    if (M.cijfer >= 7 && rnd() < .4 * weekFactor()){
+    if (M.cijfer >= 7 && rnd() < .25 * weekFactor() * leeftijdGroei()){
       const w = POS[sp.pos].w, keys = Object.keys(w); let r = rnd(), k = keys[0];
       for (const kk of keys){ r -= w[kk]; if (r <= 0){ k = kk; break; } }
       if (ovr(sp) < sp.pot + 3){ verhoog(k, 1); M.groei = k; }

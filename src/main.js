@@ -2,6 +2,7 @@ import './styles/index.css';
 import { bevestig, momentopname, openModal, sneltoetsen, toonVerschil } from './core/feedback.js';
 import { S, SLOTS, bewaar, exporteer, importeer, resetTmp, setS, tmp } from './core/state.js';
 import { herstel } from './core/migratie.js';
+import { herstelSeizoenDelen } from './game/seizoen/seizoen.js';
 import { ACTS, render } from './core/ui.js';
 import { instel } from './render/pitch.js';
 import { suggHtml } from './render/views/agent.js';
@@ -47,7 +48,7 @@ document.addEventListener('change', async e => {
   if (S && !(await bevestig('Je huidige carrière wordt vervangen door die uit het bestand.', 'Ja, laden'))) return;
   const r = importeer(tekst); if (r.fout){ alert(r.fout); return; }
   const m = document.getElementById('modal'); if (m && m.open) m.close();
-  const st = herstel(r.d); st.slot = r.slot; setS(st); render();
+  const st = herstel(r.d); st.slot = r.slot; setS(st); herstelSeizoenDelen(); render();
 });
 document.addEventListener('toggle', e => { if (e.target.id === 'clubLijstPanel') tmp.clubLijstOpen = e.target.open; if (e.target.id === 'hulpPanel') tmp.hulpOpen = e.target.open; if (e.target.id === 'programmaPanel') tmp.programmaOpen = e.target.open; if (e.target.id === 'focusPanel' && tmp.focusOpen !== e.target.open){ tmp.focusOpen = e.target.open; render(); } }, true);
 window.addEventListener('resize', () => { const h = document.getElementById('hud'); if (h) document.documentElement.style.setProperty('--hud-h', h.offsetHeight + 'px'); });

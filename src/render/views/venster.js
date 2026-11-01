@@ -2,7 +2,7 @@ import { S, club, salarisLabel, tmp } from '../../core/state.js';
 import { knop } from '../../core/ui.js';
 import { esc, geldTxt } from '../../core/utils.js';
 import { DIVS, NIVEAU } from '../../data/gegevens.js';
-import { stoppen } from '../../game/seizoen/seizoen.js';
+import { kondigAfscheidAan } from '../../game/seizoen/seizoen.js';
 import { gaHuren } from '../../game/speler/o23.js';
 import { rolBijClub } from '../../game/speler/status.js';
 import { clubInfo, clubPlek, isBuitenland, okey } from '../../game/transfers/buitenland.js';
@@ -25,9 +25,10 @@ export function rolRij(id, cObj){
 function partnerWaarschuwing(o){ const r = S.sp.relatie, k = kinderen(); return `${r.naam} wil niet mee naar ${o.land}. Ga je toch, dan gaan jullie uit elkaar${r.getrouwd ? `: jullie scheiden en ${r.naam} krijgt de helft van je spaargeld` : ''}${k.length ? `, en ${k.length === 1 ? k[0].naam + ' blijft' : 'je kinderen blijven'} bij ${r.naam} in ${thuisLand()}` : ''}. Toch gaan?`; }
 export function bodKaart(o, label){
   const c = clubInfo(o), V = S.venster, bl = isBuitenland(o);
-  const kanVragen = V.modus === 'normaal' && !o.gevraagd && (o.verlenging || c.t <= 3);
-  return `<div class="bod ${o.club === S.sp.club && !bl ? 'huidig' : ''} ${o.viaAgent || o.viaVriend ? 'door' : ''}"><span class="label">${o.huurKoop ? 'Je huurclub wil je definitief overnemen' : o.viaVriend ? `Via je jeugdvriend ${esc(vriendNaam())}${bl ? ` · 🌍 ${esc(o.land)}` : ''}` : o.viaAgent ? 'Droomclub · geregeld door je zaakwaarnemer' : o.doorstroom ? '1e elftal van je eigen club' : o.verlenging ? 'Je huidige club · nieuw contract' : bl ? `🌍 ${esc(o.land)} · ${NIVEAU[c.t]} · ${esc(c.div)}` : `${NIVEAU[c.t]} · ${DIVS[c.t]}`}</span><div class="club">${bl ? '' : clubLogo(o.club, 40)}<span>${esc(c.n)}</span></div>
+  const kanVragen = V.modus === 'normaal' && !o.gevraagd && !o.laatsteDans && (o.verlenging || c.t <= 3);
+  return `<div class="bod ${o.club === S.sp.club && !bl ? 'huidig' : ''} ${o.viaAgent || o.viaVriend ? 'door' : ''}"><span class="label">${o.laatsteDans ? `Je eerste club · je laatste seizoen${bl ? ` · 🌍 ${esc(o.land)}` : ''}` : o.huurKoop ? 'Je huurclub wil je definitief overnemen' : o.viaVriend ? `Via je jeugdvriend ${esc(vriendNaam())}${bl ? ` · 🌍 ${esc(o.land)}` : ''}` : o.viaAgent ? 'Droomclub · geregeld door je zaakwaarnemer' : o.doorstroom ? '1e elftal van je eigen club' : o.verlenging ? 'Je huidige club · nieuw contract' : bl ? `🌍 ${esc(o.land)} · ${NIVEAU[c.t]} · ${esc(c.div)}` : `${NIVEAU[c.t]} · ${DIVS[c.t]}`}</span><div class="club">${bl ? '' : clubLogo(o.club, 40)}<span>${esc(c.n)}</span></div>
     <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>Stand</dt><dd>${esc(clubPlek(o))}</dd><dt>${salarisLabel(c.t)}</dt><dd>${geldTxt(o.salaris)}</dd><dt>Contract</dt><dd>${o.jaren} jaar</dd>${o.som ? `<dt>Bod op jou</dt><dd>${geldTxt(o.som)}</dd>` : ''}</dl>
+    ${o.laatsteDans && o.oudSalaris > o.salaris ? `<p class="fouttxt klein-tekst">Je levert ${Math.round((1 - o.salaris / o.oudSalaris) * 100)}% in: nu verdien je ${geldTxt(o.oudSalaris)} per jaar.</p>` : ''}
     ${rolRij(o.club, bl ? c : null)}
     ${bl ? `<p class="muted klein-tekst">Je verhuist naar ${esc(o.land)}: nieuwe competitie, nieuwe clubs, nieuwe kranten, een nieuwe taal.</p>` : ''}
     ${bl && S.sp.relatie && o.partnerMee !== undefined ? (o.partnerMee ? `<p class="goedtxt klein-tekst">💕 ${esc(S.sp.relatie.naam)} gaat met je mee naar ${esc(o.land)}.</p>` : `<p class="fouttxt klein-tekst">⚠ ${esc(S.sp.relatie.naam)} wil niet verhuizen naar ${esc(o.land)}.</p><div class="rij">${o.partnerGepraat ? '' : knop(`Met ${esc(S.sp.relatie.naam)} praten`, () => praatMetPartner(o), 'klein', 'data-blijf')}${knop(`Blijven voor ${esc(S.sp.relatie.naam)}`, () => blijfVoorPartner(o), 'klein', 'data-blijf')}</div>`) : ''}
@@ -58,13 +59,13 @@ export function vVenster(){
   const kaarten = [];
   if (V.blijven) kaarten.push(huidigKaart());
   if (V.verlenging) kaarten.push(bodKaart(V.verlenging, 'Verlengen'));
-  V.bods.forEach(o => kaarten.push(bodKaart(o, clubInfo(o).t <= 3 ? 'Ja, ik wil hierheen' : 'Tekenen')));
+  V.bods.forEach(o => kaarten.push(bodKaart(o, o.laatsteDans ? 'Terug naar waar het begon' : clubInfo(o).t <= 3 ? 'Ja, ik wil hierheen' : 'Tekenen')));
   if (kaarten.length) html += `<div class="aanbod">${kaarten.join('')}</div>`;
   if (V.modus === 'weg' || V.modus === 'vrij') html += V.bods.length
     ? knop('Geen van deze clubs: ik wacht op iets beters', zonderClub, 'klein', 'data-bevestig="Je zit dan zonder club en zonder salaris, tot er een club belt." data-ja="Ja, ik wacht"')
     : knop('Verder zonder club', zonderClub);
   if (V.modus === 'clubloos') html += knop(V.bods.length ? 'Nee, ik blijf wachten' : 'Verder zonder club', blijfWachten, V.bods.length ? 'klein' : 'hoofd');
   html += vMarkt();
-  if (V.soort === 'zomer' && sp.leeftijd >= 33) html += knop('Stoppen met voetbal', () => stoppen(`Op je ${sp.leeftijd}e kies je zelf het moment: je stopt als voetballer.`), 'klein', 'data-bevestig="Dit is het einde van je spelerscarrière. Dit kun je niet terugdraaien." data-ja="Ja, ik stop"');
+  if (V.soort === 'zomer' && sp.leeftijd >= 33 && !sp.laatsteSeizoen) html += knop('Mijn laatste seizoen aankondigen', kondigAfscheidAan, 'klein', 'data-bevestig="Je speelt nog één seizoen, daarna stop je als voetballer. Dit kun je niet terugdraaien." data-ja="Ja, mijn laatste seizoen"');
   return html;
 }

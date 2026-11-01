@@ -11,7 +11,7 @@ import { besteSeizoen, carriereScore, eindTitel } from '../../game/seizoen/afsch
 import { FEEST, kiesFeest } from '../../game/seizoen/kampioen.js';
 import { vRecords } from '../../game/seizoen/records.js';
 import { vGala } from '../../game/seizoen/gouden-bal-winst.js';
-import { naSeizoen, stoppen } from '../../game/seizoen/seizoen.js';
+import { kondigAfscheidAan, naSeizoen, stoppen } from '../../game/seizoen/seizoen.js';
 import { fmt1 } from '../../game/speler/o23.js';
 import { startTrainer } from '../../game/trainer.js';
 import { openVenster } from '../../game/transfers/transfers.js';
@@ -43,7 +43,10 @@ export function vSeizoenEinde(){
   return `<div class="verhaal"><span class="label">Einde seizoen ${seizoenLabel()}</span>
     <h2>${E.clubloos ? 'Een seizoen zonder club' : E.plek === 1 ? 'Kampioen!' : `${E.plek}e plaats`}</h2>
     <p>${E.clubloos ? `Je zat ${S.sp.clubloos.weken} ${S.sp.clubloos.weken === 1 ? 'week' : 'weken'} zonder club. Je trainde alleen, terwijl de competitie zonder jou doorging.` : `${esc(E.clubNaam)} eindigt als ${E.plek}e in de ${E.divisie}.${E.plek === 1 ? ' Er wordt gefeest tot diep in de nacht.' : E.plek >= 7 ? ' Een seizoen om snel te vergeten.' : ''}`}</p>
-    <p>Jouw seizoen: ${E.wed} wedstrijden, ${E.g} goals, ${E.a} assists, gemiddeld cijfer ${E.gem === null ? '–' : E.gem.toFixed(1).replace('.', ',')}.</p>
+    ${E.delen ? (() => { const nu = E.delen[E.delen.length - 1], cijfer = g => g === null ? '' : `, gemiddeld cijfer ${g.toFixed(1).replace('.', ',')}`;
+      return `<p>Jouw seizoen bij ${esc(nu.club)}: ${nu.wed} wedstrijden, ${nu.g} goals, ${nu.a} assists${cijfer(nu.gem)}.</p>
+      <p class="muted">${E.delen.slice(0, -1).map(d => `Daarvoor bij ${esc(d.club)} (${esc(d.div)}): ${d.wed} wedstrijden, ${d.g} goals, ${d.a} assists${cijfer(d.gem)}.`).join(' ')} In totaal: ${E.wed} wedstrijden, ${E.g} goals, ${E.a} assists.</p>`; })()
+    : `<p>Jouw seizoen: ${E.wed} wedstrijden, ${E.g} goals, ${E.a} assists, gemiddeld cijfer ${E.gem === null ? '–' : E.gem.toFixed(1).replace('.', ',')}.</p>`}
     ${E.topscorer ? `<p class="muted">Topscorer van de ${E.divisie}: ${esc(E.topscorer)}.</p>` : ''}
     ${vSpelerVanHetSeizoen(E)}</div>
     ${E.gb && E.gb.onderdelen ? `<details class="paneel"><summary class="label" style="cursor:pointer">Gouden Bal: zo kwamen jouw punten tot stand</summary>${vGbOpbouw(E.gb.onderdelen, 'Jouw punten')}</details>` : ''}
@@ -66,7 +69,9 @@ export function vOntwikkeling(){
     <p class="muted">${sp.contract <= 0 ? 'Je contract is afgelopen.' : `Je contract loopt nog ${sp.contract} jaar.`}</p></div>
     ${S.eind.vakantie ? `<p class="moment">${esc(S.eind.vakantie)}</p>` : `<div><span class="label">Op vakantie! Waar ga je naartoe? Je hebt ${geldTxt(sp.geld)}</span><div class="keuzes" style="margin-top:6px">${vakantieOpties().map((o, i) => keuzeKnop(o.l, `${o.prijs ? geldTxt(o.prijs) : 'gratis'} · ${o.d}`, () => kiesVakantie(i), sp.geld < o.prijs ? 'disabled' : '')).join('')}</div></div>`}
     ${knop(S.eind.vakantie ? 'Naar de transfermarkt' : 'Geen vakantie, door naar de transfermarkt', () => openVenster('zomer'))}
-    ${sp.leeftijd >= 30 ? `<div class="paneel"><span class="label">Je bent ${sp.leeftijd}</span><p>Je mag nu zelf kiezen wanneer je stopt. Op je 35e is het hoe dan ook voorbij. Daarna kun je trainer worden.</p>${tmp.stopVraag ? `<p>Weet je het zeker? Dit is het einde van je spelerscarrière.</p><div class="rij">${knop('Ja, ik stop', () => { tmp.stopVraag = false; stoppen(`Op je ${sp.leeftijd}e kies je zelf het moment. Je speelt je afscheidswedstrijd voor een uitverkocht stadion.`); }, 'klein')}${knop('Nee, nog een seizoen', () => { tmp.stopVraag = false; }, 'klein', 'data-blijf')}</div>` : knop('Stoppen met voetbal', () => { tmp.stopVraag = true; }, 'klein', 'data-blijf')}</div>` : ''}`;
+    ${sp.laatsteSeizoen ? `<div class="paneel"><span class="label">Je laatste seizoen</span><p>Je hebt het aangekondigd: dit wordt je laatste seizoen. Daarna hang je je schoenen aan de wilgen.</p></div>`
+    : sp.leeftijd >= 30 ? `<div class="paneel"><span class="label">Je bent ${sp.leeftijd}</span><p>Je mag nu zelf kiezen wanneer je stopt. Op je 35e is het hoe dan ook voorbij. Daarna kun je trainer worden.</p>${tmp.stopVraag ? `<p>Je speelt dan nog één laatste seizoen, daarna stop je. Misschien belt je eerste club nog...</p><div class="rij">${knop('Ja, dit wordt mijn laatste seizoen', () => { tmp.stopVraag = false; kondigAfscheidAan(); }, 'klein')}${knop('Nee, ik ga nog even door', () => { tmp.stopVraag = false; }, 'klein', 'data-blijf')}</div>
+      <p class="muted klein-tekst">${knop('Of: meteen stoppen', () => { tmp.stopVraag = false; stoppen(`Op je ${sp.leeftijd}e kies je zelf het moment. Je speelt je afscheidswedstrijd voor een uitverkocht stadion.`); }, 'klein', 'data-bevestig="Dit is meteen het einde van je spelerscarrière, zonder laatste seizoen." data-ja="Ja, ik stop nu"')}</p>` : knop('Mijn laatste seizoen aankondigen', () => { tmp.stopVraag = true; }, 'klein', 'data-blijf')}</div>` : ''}`;
 }
 
 // Na je carrière: trainer, commentator of clubeigenaar (wat je al gedaan hebt, kan niet nog een keer)

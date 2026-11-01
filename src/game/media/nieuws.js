@@ -101,7 +101,7 @@ export function maakNieuws(M, speelde){
   return items;
 }
 // Een foto bij een artikel: jouw speler met de prijs (de foto zelf wordt na de weergave gemaakt, zie render/krantfoto.js)
-export const FOTO_ALT = {hattrick:'met de wedstrijdbal', get motm(){ return `met de ${ik.Speler} van de Wedstrijd-trofee`; }, svs:'met de bokaal voor Speler van het Seizoen', topscorer:'met de Gouden Schoen'};
+export const FOTO_ALT = {hattrick:'met de wedstrijdbal', get motm(){ return `met de ${ik.Speler} van de Wedstrijd-trofee`; }, svs:'met de bokaal voor Speler van het Seizoen', topscorer:'met de Gouden Schoen', get ererondje(){ return `tijdens ${ik.zijn} ererondje`; }};
 export const fotoVan = (soort, onder) => ({soort, onder});
 function vFoto(f){
   const door = 'Studio Doorbraak';

@@ -63,8 +63,12 @@ const POSES = {
   // de bal in de rechterhand, naast het gezicht
   een:[['upperarm_r', 1, 0, 0, -.9], ['upperarm_r', 0, 0, 1, .55], ['lowerarm_r', 1, 0, 0, -1.7], ['lowerarm_r', 0, 1, 0, -.4],
     ['upperarm_l', 0, 0, 1, -.15]],
+  // zwaaien naar het publiek: de rechterarm hoog en schuin opzij, de linker ontspannen
+  zwaai:[['upperarm_r', 1, 0, 0, -2.45], ['upperarm_r', 0, 0, 1, -.55], ['lowerarm_r', 1, 0, 0, -.45], ['lowerarm_r', 0, 1, 0, -.6],
+    ['upperarm_l', 0, 0, 1, -.12], ['upperarm_l', 1, 0, 0, -.15], ['lowerarm_l', 1, 0, 0, -.35]],
 };
-const POSE_VAN = {hattrick:'een', motm:'borst', svs:'omhoog', goudenbal:'borst', topscorer:'borst', portret:null};
+const POSE_VAN = {hattrick:'een', motm:'borst', svs:'omhoog', goudenbal:'borst', topscorer:'borst', portret:null, ererondje:'zwaai'};
+const ZONDER_PRIJS = {portret:true, ererondje:true};
 // Waar de prijs komt: tussen beide handen, of in de rechterhand. Een beetje naar voren (de handen houden hem vast, niet erin)
 const HAND = {hattrick:'r', motm:'beide', svs:'beide', topscorer:'beide'};
 
@@ -82,6 +86,38 @@ function muurTex(ctx){
   }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
+// ---------- het stadion (bij het ererondje) ----------
+// Avondlucht met lichtmasten, volle tribunes in de clubkleuren, een spandoek en gras. Wazig, zoals achter een speler op een wedstrijdfoto
+function stadionTex(ctx){
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 512; const g = c.getContext('2d');
+  const kl = [(ctx.tenue && ctx.tenue.shirt) || ctx.accent, ctx.accent, (ctx.tenue && ctx.tenue.accent) || '#ffffff'];
+  let z = 7; for (const ch of ctx.club) z = (z * 31 + ch.charCodeAt(0)) % 2147483647; const r = () => (z = z * 16807 % 2147483647) / 2147483647; // (elke club zijn eigen publiek)
+  const lucht = g.createLinearGradient(0, 0, 0, 120); lucht.addColorStop(0, '#05070f'); lucht.addColorStop(1, '#1b2338'); g.fillStyle = lucht; g.fillRect(0, 0, 1024, 120);
+  g.filter = 'blur(2.2px)';
+  // de tribunes: rijen publiek, van achter (klein, donker) naar voor (groter)
+  g.fillStyle = '#20232c'; g.fillRect(0, 70, 1024, 330);
+  for (let y = 78; y < 392; y += 7){
+    const s = 1.6 + (y - 78) / 314 * 3.4, licht = .45 + (y - 78) / 314 * .55;
+    for (let x = -4; x < 1030; x += s * 2.1 + r() * 2){
+      const p = r(); g.globalAlpha = licht;
+      g.fillStyle = p < .5 ? kl[0] : p < .68 ? kl[1] : p < .8 ? kl[2] : ['#e8c9a8', '#8a5a3c', '#f0f0f0', '#3a3f4a'][Math.floor(r() * 4)];
+      g.beginPath(); g.arc(x, y + (r() - .5) * 2, s, 0, Math.PI * 2); g.fill();
+      if (r() < .025){ g.fillRect(x - s * .4, y - s * 4, s * .8, s * 3.5); g.fillRect(x - s * 2.5, y - s * 4.5, s * 5, s * 1.2); } // (een opgestoken sjaal)
+    }
+  }
+  g.globalAlpha = 1;
+  // het spandoek over de rand van de tribune
+  g.fillStyle = kl[0]; g.fillRect(0, 392, 1024, 34); g.fillStyle = kl[1]; g.fillRect(0, 392, 1024, 4); g.fillRect(0, 422, 1024, 4);
+  g.fillStyle = ctx.tenue && /^#(f|e|d)/i.test(kl[0]) ? '#15161c' : '#ffffff'; g.font = '800 22px "Arial Narrow", Impact, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  // (de clubnaam links en het bedankje rechts, zodat de speler ze niet bedekt)
+  g.fillText(ctx.club.toUpperCase().slice(0, 22), 290, 409, 230); g.fillText(`BEDANKT ${String(ctx.naam || '').toUpperCase()}`.trim().slice(0, 30), 655, 409, 200);
+  // het gras
+  const gras = g.createLinearGradient(0, 426, 0, 512); gras.addColorStop(0, '#2f6b2a'); gras.addColorStop(1, '#3f8a35'); g.fillStyle = gras; g.fillRect(0, 426, 1024, 86);
+  // de lichtmasten
+  g.filter = 'blur(6px)';
+  for (const x of [90, 934]){ const l = g.createRadialGradient(x, 40, 2, x, 40, 90); l.addColorStop(0, 'rgba(255,255,240,.95)'); l.addColorStop(1, 'rgba(255,255,240,0)'); g.fillStyle = l; g.fillRect(x - 90, 0, 180, 140); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
 
 function bouwStudio(){
   const r = renderer3D(); if (!r) return null;
@@ -95,7 +131,7 @@ function bouwStudio(){
   return {scene, camera, env, muur, muurKey:null};
 }
 
-// soort: hattrick | motm | svs | topscorer | portret (zonder prijs). ctx: {sleutel, uiterlijk, club, muur, accent}. Geeft een JPEG-dataURL, of null zonder WebGL
+// soort: hattrick | motm | svs | topscorer | portret | ererondje (zonder prijs, in het stadion). ctx: {sleutel, uiterlijk, club, muur, accent, naam}. Geeft een JPEG-dataURL, of null zonder WebGL
 export async function maakFoto(soort, ctx){
   if (!renderer3D()) return null;
   await laadModel();
@@ -103,8 +139,8 @@ export async function maakFoto(soort, ctx){
   const {scene, camera, env, muur} = STUDIO;
   // het clublogo (SVG) eerst als plaatje laden, zodat het op de muur getekend kan worden
   if (ctx.clubId != null && !ctx.logoImg) ctx.logoImg = await new Promise(ok => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = logoURL(ctx.clubId, 256); });
-  const mk = ctx.club + ctx.muur + ctx.accent + (ctx.logoImg ? 'L' : '');
-  if (STUDIO.muurKey !== mk){ if (muur.material.map) muur.material.map.dispose(); muur.material.map = muurTex(ctx); muur.material.needsUpdate = true; STUDIO.muurKey = mk; }
+  const stadion = soort === 'ererondje', mk = (stadion ? 'stadion|' + (ctx.naam || '') + (ctx.tenue ? ctx.tenue.shirt : '') : 'pers|') + ctx.club + ctx.muur + ctx.accent + (ctx.logoImg ? 'L' : '');
+  if (STUDIO.muurKey !== mk){ if (muur.material.map) muur.material.map.dispose(); muur.material.map = stadion ? stadionTex(ctx) : muurTex(ctx); muur.material.needsUpdate = true; STUDIO.muurKey = mk; }
   // het tenue met het clublogo en de shirtsponsor (een profclub heeft er allebei een)
   const tenue = ctx.tenue ? {...ctx.tenue, ...(ctx.clubId != null && ctx.logoImg ? {logoImg:ctx.logoImg, logoId:ctx.clubId} : {}), ...(ctx.sponsor ? {sponsor:ctx.sponsor} : {})} : null;
   const uit = uiterlijkVoor('jij|' + ctx.sleutel, ctx.uiterlijk), m = maakModelSpeler(uit, tenueVoor('wij', tenue ? {wij:tenue} : null));
@@ -115,17 +151,17 @@ export async function maakFoto(soort, ctx){
   for (const [bot, ax, ay, az, hoek] of POSES[POSE_VAN[soort]] || []) draaiBot(m.botten[bot], m.obj, ax, ay, az, hoek);
   draaiBot(m.botten.head, m.obj, 1, 0, 0, .06); // kin iets omlaag, naar de camera
   const speler = new THREE.Group(); speler.add(m.obj); scene.add(speler);
-  speler.rotation.y = ctx.draai ?? (soort === 'hattrick' ? -.25 : .15); // ctx.draai: om te testen (bijv. van achteren)
+  speler.rotation.y = ctx.draai ?? (soort === 'hattrick' ? -.25 : stadion ? -.35 : .15); // ctx.draai: om te testen (bijv. van achteren)
   speler.updateMatrixWorld(true);
   // de prijs in de handen (een portret heeft er geen)
-  const p = soort === 'portret' ? new THREE.Group() : prijs(soort, env), hl = new THREE.Vector3(), hr = new THREE.Vector3();
+  const p = ZONDER_PRIJS[soort] ? new THREE.Group() : prijs(soort, env), hl = new THREE.Vector3(), hr = new THREE.Vector3();
   m.botten.hand_l.getWorldPosition(hl); m.botten.hand_r.getWorldPosition(hr);
   const plek = HAND[soort] === 'r' ? hr : hl.clone().add(hr).multiplyScalar(.5);
   p.position.copy(plek).add(new THREE.Vector3(0, .01, .035)); p.rotation.y = speler.rotation.y; scene.add(p);
   // camera: half-totaal, op de hoogte van de borst (bij de bokaal boven het hoofd iets ruimer)
   const hoog = soort === 'svs';
-  const portret = soort === 'portret', kijk = new THREE.Vector3(0, (hoog ? 1 : portret ? .87 : .79) * uit.lengte, 0);
-  camera.position.set(.1, kijk.y + .02, hoog ? 1.95 : portret ? 1.02 : 1.25);
+  const portret = soort === 'portret', kijk = new THREE.Vector3(0, (hoog ? 1 : stadion ? .9 : portret ? .87 : .79) * uit.lengte, 0);
+  camera.position.set(stadion ? .2 : .1, kijk.y + (stadion ? -.08 : .02), hoog ? 1.95 : stadion ? 1.75 : portret ? 1.02 : 1.25); // (het ererondje iets van onderen, met de opgestoken arm in beeld)
   if (ctx.dichtbij){ kijk.y = .97 * uit.lengte; camera.position.set(.04, kijk.y + .02, .55); } // (om te testen: alleen het hoofd)
   camera.lookAt(kijk); camera.updateProjectionMatrix();
   const cv = fotoRender(scene, camera, FOTO_B, FOTO_H);

@@ -1,4 +1,5 @@
 import { S, club, mod, ovr, seizoenLabel } from '../../core/state.js';
+import { seizoenDeel } from '../seizoen/seizoen.js';
 import { clamp, pick, randInt, rnd, shuffle } from '../../core/utils.js';
 import { CLUBS, LAAGSTE, POS, clubsLand, divClubs, weekFactor } from '../../data/gegevens.js';
 import { SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
@@ -14,7 +15,7 @@ import { sluitVenster } from '../transfers/transfers.js';
 import { agentReset } from '../transfers/zaakwaarnemer.js';
 import { focusNaWedstrijd } from '../wedstrijd/focus.js';
 import { onderwijsCoach, planWedstrijd, verderSpelen } from '../wedstrijd/wedstrijd.js';
-import { verhoog } from '../week.js';
+import { leeftijdGroei, verhoog } from '../week.js';
 import { staminaNaWedstrijd } from '../wedstrijd/stamina.js';
 import { talentNaWedstrijd } from './talent.js';
 import { teamKracht } from '../team/kleedkamer.js';
@@ -90,7 +91,7 @@ export function eindeO23(){
   focusNaWedstrijd(M);
   M.bonus = topBonus(M);
   M.groei = null;
-  if (M.cijfer >= 7 && rnd() < .4 * weekFactor()){
+  if (M.cijfer >= 7 && rnd() < .25 * weekFactor() * leeftijdGroei()){
     const w = POS[sp.pos].w, keys = Object.keys(w); let r = rnd(), k = keys[0];
     for (const kk of keys){ r -= w[kk]; if (r <= 0){ k = kk; break; } }
     if (ovr(sp) < sp.pot + 3){ verhoog(k, 1); M.groei = k; }
@@ -138,6 +139,7 @@ export function huurOuder(){
 export function gaHuren(x){
   const o = typeof x === 'number' ? {club:x} : x, sp = S.sp, V = S.venster, oc = club(), ouder = {n:oc.n, t:oc.t, s:oc.s}, bl = isBuitenland(o), krant = KRANTEN[ouder.t];
   if (V.agentBod != null) agentReset('Je koos voor een huurperiode. Zeg het maar als je daarna een nieuw doel hebt.');
+  seizoenDeel(); // (een huurperiode vanaf de winter)
   sp.huur = {ouder:sp.club, ouderLand:thuisLand(), ouderNaam:ouder.n, ouderT:ouder.t, ouderS:ouder.s, clubWed:sp.clubWed, clubSz:sp.clubSz, status:sp.status, legende:sp.legendeHier, cijfers:[],
     ...(bl ? {bl:sp.buitenland || null, heimwee:sp.heimwee || 0} : {})}; // (na de huur weer zoals het was)
   if (bl) wisselLand(o.land); // (daarna hoort het clubnummer bij een club in dat land: ouder is een kopie)

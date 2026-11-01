@@ -7,7 +7,7 @@ import { KRANTEN } from '../media/nieuws.js';
 import { krantMelding } from '../media/roddel.js';
 import { kinderen } from '../prive/gezin.js';
 import { social } from '../prive/social.js';
-import { startNieuwSeizoen } from '../seizoen/seizoen.js';
+import { seizoenDeel, startNieuwSeizoen } from '../seizoen/seizoen.js';
 import { huurClubs, huurNodig, huurOuder, terugVanHuur } from '../speler/o23.js';
 import { startStatus, statusNaam, statusNiveau, statusPunten } from '../speler/status.js';
 import { buitenlandseBods, ck, clubInfo, isBuitenland, wisselLand, winterInhalen } from './buitenland.js';
@@ -26,6 +26,17 @@ import { clubAfscheid } from './clubafscheid.js';
 import { ik } from '../../core/geslacht.js';
 
 /* ===================== Transfers ===================== */
+// Je laatste seizoen (aangekondigd): je eerste club wil dat je bij hen afsluit, voor een fractie van je salaris.
+// Niet als je er al speelt, en maar één keer
+export function eersteClubBod(){
+  const sp = S.sp, c0 = S.car && S.car.clubs && S.car.clubs[0]; if (!sp.laatsteSeizoen || sp.eersteClubBod || !c0) return null;
+  const land = c0.land || 'Nederland', o = {club:c0.club, ...(land !== thuisLand() ? {land} : {})};
+  if (!o.land && sp.club === c0.club && !sp.huur) return null;
+  const c = clubInfo(o); if (!c || c.n === 'Lege plaats' || !(c.t >= 1)) return null; // (de club speelt niet meer in een competitie)
+  sp.eersteClubBod = true;
+  const salaris = Math.max(100, Math.round(Math.min(sp.salaris * .2, salarisVoor(c.t, ovr(sp), c.s) * .6) / 100) * 100);
+  return {...o, salaris, jaren:1, laatsteDans:true, oudSalaris:sp.salaris};
+}
 export function transferScore(){
   const sp = S.sp, gem = gemCijfer() ?? S.vorigGem;
   return ovr(sp) + (sp.rep - 30) * .08 + (gem - 6.5) * 3 + (sp.transferWens ? 2 : 0) + Math.min(1.5, Math.max(0, Math.log10(social().volgers + 1) - 4) * .75) - (sp.imago > 0 ? 5 : 0);
@@ -162,6 +173,9 @@ export function openVenster(soort){
   if (modus !== 'clubloos' && !eerste){ const bl = buitenlandseBods(modus, soort === 'winter'); if (bl.length){ bods = bods.concat(bl); const gs = bl.find(b => b.gescout); intro += `${gs ? ` ${clubInfo(gs).n} uit ${gs.land} heeft je het hele seizoen gevolgd en doet een bod!` : ''} Er is ook interesse uit het buitenland: ${[...new Set(bl.map(b => b.land))].join(' en ')}!`; } sp.scout = null; }
   if (rvTekst) intro += ' ' + rvTekst;
   if (vb) intro += ' ' + vb.tekst;
+  const eb = soort === 'zomer' ? eersteClubBod() : null;
+  if (eb){ bods = bods.filter(b => !(b.club === eb.club && (b.land || null) === (eb.land || null))); bods.unshift(eb);
+    intro = `${clubInfo(eb).n} belt: "Kom je laatste seizoen spelen waar het allemaal begon." Ze kunnen je maar een fractie betalen van wat je nu verdient. ` + intro; }
   if (sp.relatie) bods.forEach(b => { if (isBuitenland(b) && b.partnerMee === undefined) b.partnerMee = b.land === thuisStart() || rnd() < partnerKans(); });
   S.venster = {soort, modus, intro, bods, verlenging, blijven, agentBod, huurOpties, ...(eigenHuur ? {eigenHuur} : {})};
   sp.transferWens = false;
@@ -173,6 +187,7 @@ export function wissel(o, hoe){
   const sp = S.sp, oc = club(), oud = {n:oc.n, t:oc.t, s:oc.s}, oudStatus = sp.status, teksten = [], oudId = sp.club, oudLand = thuisLand(), landWissel = isBuitenland(o);
   const los = sp.clubloos, naarRivaal = !los && !landWissel && rivaal(oudId) === o.club, naarDoel = isDoel(o); // vóór de landwissel bepalen
   if (hoe === 'geforceerd') modFans(-20, oudId);
+  seizoenDeel(); // (midden in het seizoen: wat je bij je oude club haalde)
   if (!los && !naarRivaal) clubAfscheid(oudId, hoe); // een afscheid (en misschien erelegende) als je er veel betekende
   if (!los) bewaarVertrek(oudId, hoe, naarRivaal); // zonder club: het vertrek is al bewaard toen je club je liet gaan
   sp.clubloos = null;
@@ -245,6 +260,8 @@ export function teken(o){
     S.car.hist.push(`${seizoenLabel()}: contract verlengd bij ${club().n}`);
     S.verhuisTekst = `Je contract bij ${club().n} loopt nu nog ${o.jaren} jaar (tot ${S.jaar + 1 + o.jaren}).`;
   }
+  if (o.laatsteDans){ S.car.hist.push(`${seizoenLabel()}: terug naar ${club().n} voor ${ik.zijn} laatste seizoen`);
+    krantMelding(`${sp.naam} sluit carrière af bij ${club().n}`, `Terug waar het allemaal begon. ${ik.Hij} levert flink in op ${ik.zijn} salaris: "Dit ben ik deze club verschuldigd."`, KRANTEN[0]); }
   sp.clausule = o.clausule ? {bedrag:o.clausule, club:o.club} : null;
   if (o.tekengeld){ sp.geld += o.tekengeld; S.verhuisTekst = (S.verhuisTekst ? S.verhuisTekst + ' ' : '') + `Je krijgt ${geldTxt(o.tekengeld)} tekengeld op je rekening.`; }
   sluitVenster();

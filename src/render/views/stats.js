@@ -31,6 +31,6 @@ export function vStats(){
     <div class="paneel"><span class="label">Persoonlijke prijzen</span>${kast(ind, 'Nog geen persoonlijke prijzen.')}<p class="muted klein-tekst">${vrouwenWereld() ? 'Speelster van de Wedstrijd' : 'Man of the Match'} (een 8,5 of hoger): ${C.motm || 0} keer.</p></div>
     ${overig.length ? `<div class="paneel"><span class="label">Buiten het veld</span>${kast(overig, '')}</div>` : ''}
     <div class="paneel"><span class="label">Seizoen voor seizoen</span>${sz.length ? `<div class="tabelwrap"><table class="tabel seizoenen"><thead><tr><th>Seizoen</th><th>Club</th><th>Wed</th><th>G</th><th>A</th><th>Gem</th></tr></thead><tbody>
-      ${sz.map(x => `<tr><td>${x.s}</td><td><span class="rnaam">${esc(x.club)}</span><span class="rclub">${esc(x.div)} · ${x.plek}e${x.beker ? ` · beker: ${esc(x.beker)}` : ''}</span></td><td>${x.wed}</td><td>${x.g}</td><td>${x.a}</td><td>${x.gem === null ? '–' : fmt1(x.gem)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Na je eerste seizoen zie je hier elk seizoen terug.</p>'}</div>
+      ${sz.map(x => `<tr><td>${x.s}</td><td><span class="rnaam">${esc(x.club)}</span><span class="rclub">${esc(x.div)} · ${x.plek ? x.plek + 'e' : 'tot de winter'}${x.beker ? ` · beker: ${esc(x.beker)}` : ''}</span></td><td>${x.wed}</td><td>${x.g}</td><td>${x.a}</td><td>${x.gem === null ? '–' : fmt1(x.gem)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Na je eerste seizoen zie je hier elk seizoen terug.</p>'}</div>
     ${knop('Terug naar het spel', () => { tmp.stats = false; })}`;
 }

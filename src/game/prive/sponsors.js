@@ -8,7 +8,7 @@ import { teken } from '../transfers/transfers.js';
 import { schoenEvent } from './schoenen.js';
 import { isSuperster } from './merken.js';
 import { krantMelding } from '../media/roddel.js';
-import { plafond, verhoog } from '../week.js';
+import { leeftijdGroei, plafond, verhoog } from '../week.js';
 import { geldF } from '../../data/gegevens.js';
 
 /* ===================== Sponsors ===================== */
@@ -61,15 +61,15 @@ export function maakSponsorEvent(){
     {l:'Nee bedankt', f(){ return `Je bedankt ${merk} vriendelijk.`; }}]};
 }
 
-// Een 9 of hoger: +3 bij een willekeurige eigenschap (binnen je talentplafond)
+// Een 9 of hoger: kans op +1 bij een willekeurige eigenschap (binnen je talentplafond; hoe jonger, hoe groter de kans)
 export function topBonus(M){
-  if (M.cijfer === null || M.cijfer < 9) return null;
+  if (M.cijfer === null || M.cijfer < 9 || rnd() >= .5 * leeftijdGroei()) return null;
   const sp = S.sp, vrij = TRAINBAAR.filter(k => sp.a[k] < plafond());
   // Net als gewone groei: tot je talent op is (klasse = talent + 3)
   if (ovr(sp) >= sp.pot + 3) return {tekst:`Topwedstrijd met een ${fmt1(M.cijfer)}! Je zit aan het maximum van je talent, dus er kan niets meer bij.`};
   if (!vrij.length) return {tekst:`Topwedstrijd met een ${fmt1(M.cijfer)}! Al je eigenschappen zitten aan je plafond, dus er kan niets meer bij.`};
   const k = pick(vrij), voor = sp.a[k];
-  verhoog(k, 3);
+  verhoog(k, 1);
   return {k, n:sp.a[k] - voor, tekst:`Topwedstrijd met een ${fmt1(M.cijfer)}! Bonus: +${sp.a[k] - voor} ${attr(k).toLowerCase()}.`};
 }
 export function koop(id){

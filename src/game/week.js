@@ -89,17 +89,19 @@ export function nieuweWeek(eerste){
 export const weekHerstel = fit => Math.round(20 + (100 - fit) * .2);
 // Elke training telt: je bouwt voortgang op per eigenschap (de trainkans, met een minimum), en bij 100% krijg je +1.
 // Zo groei je per seizoen ongeveer even snel als met een kans per training, maar train je nooit voor niets
-export const TRAIN_MIN = .15;
+export const TRAIN_MIN = .1;
 const pct = x => `${Math.round(x * 100)}%`;
 export const trainXP = k => (S.sp.trainXP && S.sp.trainXP[k]) || 0;
 export function trainVoortgang(attr, f = 1){
   const sp = S.sp, xp = sp.trainXP = sp.trainXP || {}, voor = xp[attr] || 0;
-  let na = voor + Math.max(TRAIN_MIN * f, trainKans() * 1.25 * f * (.8 + rnd() * .4)), plus = 0;
+  let na = voor + Math.max(TRAIN_MIN * f, trainKans() * f * (.8 + rnd() * .4)), plus = 0;
   if (na >= 1){ const v0 = sp.a[attr]; verhoog(attr, (sp.leeftijd < 18 && rnd() < .15) ? 2 : 1); plus = sp.a[attr] - v0; na -= 1; }
   xp[attr] = na;
   return {plus, voor, na};
 }
-export function trainKans(){ const sp = S.sp; return weekFactor() * (clamp((sp.pot - ovr(sp)) / 20, .12, .7) + (sp.items.trainer ? .2 : 0) + pers('train') + rivaalPrikkel()); } // (weekFactor: per seizoen even snel, hoe lang het seizoen ook is)
+// Hoe jonger, hoe sneller je groeit: tot 21 jaar het snelst, daarna steeds langzamer
+export const leeftijdGroei = () => { const l = S.sp.leeftijd; return l <= 21 ? 1.2 : l <= 24 ? .9 : l <= 27 ? .6 : .4; };
+export function trainKans(){ const sp = S.sp; return weekFactor() * leeftijdGroei() * (clamp((sp.pot - ovr(sp)) / 20, .1, .7) + (sp.items.trainer ? .15 : 0) + pers('train') + rivaalPrikkel()); } // (weekFactor: per seizoen even snel, hoe lang het seizoen ook is)
 // Plafond per eigenschap: met jouw talent kun je een eigenschap niet eindeloos opkrikken
 export const PLAFOND_MARGE = 10;
 export const plafond = () => Math.min(99, S.sp.pot + PLAFOND_MARGE);
@@ -139,7 +141,7 @@ export function doeActiviteit(soort, attr){
     // Voetbalgek: nog een uur doorgaan als de rest al onder de douche staat
     mod('fit', -6); mod('vert', 1);
     const k = TRAINBAAR.filter(x => sp.a[x] < plafond()).sort((a, b) => sp.a[a] - sp.a[b])[0];
-    if (k && rnd() < .35 * weekFactor()){ const voor = sp.a[k]; verhoog(k, 1); t = `Als iedereen al naar huis is, sta jij nog op het veld. Je ${attrN(k).toLowerCase()} gaat van ${voor} naar ${sp.a[k]}.`; }
+    if (k && rnd() < .25 * weekFactor() * leeftijdGroei()){ const voor = sp.a[k]; verhoog(k, 1); t = `Als iedereen al naar huis is, sta jij nog op het veld. Je ${attrN(k).toLowerCase()} gaat van ${voor} naar ${sp.a[k]}.`; }
     else t = 'Je blijft na de training nog een uur ballen. Moe maar voldaan ga je naar huis.';
   } else if (soort === 'uit'){
     mod('moraal', 10 + pers('uitMoraal')); mod('fit', -6); mod('focus', -3 + pers('uitFocus'));
