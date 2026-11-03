@@ -8,6 +8,7 @@ import { vMatch, vMatchEnd } from '../render/views/match.js';
 import { vEinde, vOntwikkeling, vSeizoenEinde } from '../render/views/seizoen.js';
 import { vStart, vZijStart } from '../render/views/start.js';
 import { vStats } from '../render/views/stats.js';
+import { bewegingNaRender, vBeweging } from '../render/views/beweging.js';
 import { vTrainerLive } from '../render/views/trainer-extra.js';
 import { vTrainer, vTrainerAanbod, vTrainerCursus, vTrainerSeizoen, vTrainerUitslag, vZijTrainer } from '../render/views/trainer.js';
 import { vVenster } from '../render/views/venster.js';
@@ -38,16 +39,17 @@ export function tabBalk(tabs, actief, kies, cls = 'hubtabs'){
 export function render(){
   resetActs();
   const veld = document.getElementById('veld'), trainerFase = S && (/^(trainer|analist|eigenaar)/.test(S.fase) || (S.fase === 'event' && S.trainer && !S.trainer.gestopt)); // (een privégebeurtenis als trainer)
-  veld.innerHTML = S && tmp.stats ? vStats() : S ? ({selectie:vSelectie, selectieKeuze:vSelectieKeuze, hoofdstuk:vHoofdstuk, week:vWeek, oproep:vOproep, event:vEvent, match:vMatch, matchEnd:vMatchEnd, venster:vVenster, clubloos:vClubloos, afscheid:vAfscheid, seizoenEinde:vSeizoenEinde, ontwikkeling:vOntwikkeling, toernooi:vToernooi, toernooiEinde:vToernooiEinde, einde:vEinde, trainerAanbod:vTrainerAanbod, trainerCursus:vTrainerCursus, trainerLive:vTrainerLive, trainer:vTrainer, trainerUitslag:vTrainerUitslag, trainerSeizoen:vTrainerSeizoen, analist:vAnalist, analistUitslag:vAnalistUitslag, analistSeizoen:vAnalistSeizoen, eigenaarAanbod:vEigenaarAanbod, eigenaar:vEigenaar, eigenaarSeizoen:vEigenaarSeizoen}[S.fase] || vStart)() : vStart();
+  veld.innerHTML = tmp.beweging ? vBeweging() : S && tmp.stats ? vStats() : S ? ({selectie:vSelectie, selectieKeuze:vSelectieKeuze, hoofdstuk:vHoofdstuk, week:vWeek, oproep:vOproep, event:vEvent, match:vMatch, matchEnd:vMatchEnd, venster:vVenster, clubloos:vClubloos, afscheid:vAfscheid, seizoenEinde:vSeizoenEinde, ontwikkeling:vOntwikkeling, toernooi:vToernooi, toernooiEinde:vToernooiEinde, einde:vEinde, trainerAanbod:vTrainerAanbod, trainerCursus:vTrainerCursus, trainerLive:vTrainerLive, trainer:vTrainer, trainerUitslag:vTrainerUitslag, trainerSeizoen:vTrainerSeizoen, analist:vAnalist, analistUitslag:vAnalistUitslag, analistSeizoen:vAnalistSeizoen, eigenaarAanbod:vEigenaarAanbod, eigenaar:vEigenaar, eigenaarSeizoen:vEigenaarSeizoen}[S.fase] || vStart)() : vStart();
   document.getElementById('zij').innerHTML = S && /^(analist|eigenaar)/.test(S.fase) ? (vZijNa() || vZijStart()) : S && S.trainer && trainerFase ? vZijTrainer() : S && S.fase !== 'einde' && !trainerFase && !S.selectie ? vZij() : vZijStart();
   const hud = document.getElementById('hud');
   hud.innerHTML = vHud(!!(S && !trainerFase && S.fase !== 'einde' && !S.selectie));
-  document.body.dataset.fase = S ? (tmp.stats ? 'stats' : S.fase) : 'start';
+  document.body.dataset.fase = tmp.beweging ? 'beweging' : S ? (tmp.stats ? 'stats' : S.fase) : 'start';
   document.documentElement.style.setProperty('--hud-h', hud.offsetHeight + 'px');
   // Laatste actie van de wedstrijd nog niet in beeld gezien? Dan het veld boven het eindscherm
-  if (S && !tmp.stats && S.fase === 'matchEnd' && S.M && openAnims(S.M).length && instel().anim !== 'uit') veld.insertAdjacentHTML('afterbegin', vPitch());
+  if (S && !tmp.beweging && !tmp.stats && S.fase === 'matchEnd' && S.M && openAnims(S.M).length && instel().anim !== 'uit') veld.insertAdjacentHTML('afterbegin', vPitch());
   const log = veld.querySelector('.log'); if (log) log.scrollTop = log.scrollHeight;
   try { pitchNaRender(); } catch (e){ console.error('veld', e); }
+  try { bewegingNaRender(); } catch (e){ console.error('bewegingseditor', e); }
   try { fotoNaRender(); } catch (e){ console.error('krantenfoto', e); }
   markeerSneltoetsen(veld);
   if (S) bewaar();

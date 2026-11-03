@@ -149,7 +149,7 @@ export function vMatchEnd(){
   if (M.cijfer !== null){
     oordeel = M.cijfer >= 8.5 ? `${vrouwenWereld() ? 'Speelster van de Wedstrijd' : 'Man of the Match'}! De fans scanderen je naam.` : M.cijfer >= 7.3 ? 'Sterke wedstrijd. De trainer geeft je een schouderklopje.' : M.cijfer >= 6 ? 'Degelijk. Niks mis mee.' : M.cijfer >= 5 ? 'Matige wedstrijd. De trainer kijkt je niet aan.' : 'Dramatisch. In de kantine wordt over je gepraat.';
   }
-  let html = scorebord() + vSeizoenStrip() + `<div class="verhaal"><span class="label">${uitslag}${M.gesimuleerd ? ' · gesimuleerd' : ''}</span>${M.gesimuleerd ? '<p class="muted klein-tekst">Gesimuleerd: je speler koos zelf de veiligste acties.</p>' : ''}`;
+  let html = scorebord() + vSeizoenStrip() + `<div class="verhaal"><span class="label">${uitslag}${M.gesimuleerd ? ' · gesimuleerd' : ''}</span>${M.gesimuleerd ? '<p class="muted klein-tekst">Gesimuleerd: je speler speelde zoals een gewone speler, niet altijd de beste keuze.</p>' : ''}`;
   if (M.cijfer !== null){
     html += `<div class="rij" style="gap:20px;align-items:flex-end"><div><span class="label">Jouw cijfer</span><div class="groot">${M.cijfer.toFixed(1).replace('.', ',')}</div></div>
       <div class="muted">${statRegel(M)}${M.rood ? ' · rode kaart' : M.geel ? ' · gele kaart' : ''}</div></div>

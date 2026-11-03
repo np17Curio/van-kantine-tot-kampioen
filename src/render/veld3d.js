@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { laadModel, maakModelSpeler, modelKlaar, tenueVoor, uiterlijkVoor, zetBand, zetTenue } from './spelermodel.js';
 import { veer, volgModel } from './beweging.js';
+import { bw } from './beweging-instellingen.js';
 
 /* ===================== 3D-veld ===================== */
 // Tekent dezelfde toestand als het 2D-veld (spelers en bal in meters: x 0-105, y 0-68, z = hoogte), maar dan in 3D.
@@ -267,7 +268,17 @@ if (typeof window !== 'undefined') window.__veld3d = () => { if (!R) return null
     const rel = m.botten.neck_01.quaternion.clone().multiply(m.botten.head.quaternion);
     if (!m.hoofdRust) continue; const d = m.hoofdRust.clone().invert().multiply(rel); hoofden[id] = {hoek:2 * Math.acos(Math.min(1, Math.abs(d.w))), q:[d.x, d.y, d.z, d.w], kijkY:m.kijkY, kijkX:m.kijkX, wIdle:m.wIdle, pose:sp.pose || null}; }
   return {model, pop, kwaliteit:R.kwaliteit || 0, modus:R.modus, scene:R.sceneNr || 0, hoofden, jij:R.spelers.J ? R.spelers.J.modelSleutel : null}; };
+// Hoe krachtig een trap is: een chip en een binnenkantje zachter, een hard schot harder
+const trapKracht = (t, B) => t.soort === 'chip' ? B.schotChip : t.soort === 'binnenkant' ? B.schotBinnen : t.hard ? B.schotHard : 1;
 const hoekVerschil = (a, b) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d; };
+// De bewegingseditor: een camera die om jouw speler draait (hoek ten opzichte van zijn kijkrichting, afstand en hoogte in meters)
+function vrijeCamera(T){
+  const cv = T.camVrij, sj = R.spelers.J; if (!cv || !T.ents.J || !sj) return;
+  const px = wx(T.ents.J.x), pz = wz(T.ents.J.y), a = sj.kijk + cv.hoek;
+  R.camera.position.set(px + Math.sin(a) * cv.afstand, cv.hoogte, pz + Math.cos(a) * cv.afstand); R.camera.lookAt(px, cv.kijkHoogte ?? 1.4, pz); R.camAfstand = cv.afstand;
+}
+// Alleen de camera bijwerken en opnieuw tekenen (de editor op pauze: de spelers blijven staan zoals ze stonden)
+export function kijk3D(T){ if (!R) return; vrijeCamera(T); R.renderer.render(R.scene, R.camera); }
 export function teken3D(T, nu, kleuren){
   if (!R) return;
   const echtDt = R.vorigeNu ? (nu - R.vorigeNu) / 1000 : 0;
@@ -282,7 +293,7 @@ export function teken3D(T, nu, kleuren){
   if (modus === 'auto') meetSnelheid(echtDt);
   const simpel = modus === 'simpel' || (modus === 'auto' && KWALITEIT[R.kwaliteit || 0].eenvoudig);
   if (R.modelNieuw){ R.modelNieuw = false; for (const id in R.spelers){ const sp = R.spelers[id]; R.scene.remove(sp.root, sp.schaduw); } R.spelers = {}; }
-  const tijd = nu / 1000, bal = T.bal, gezien = new Set();
+  const tijd = nu / 1000, bal = T.bal, gezien = new Set(), B = bw(); // (B: de bewegingsgetallen, beweging-instellingen.js)
   const juichWij = T.tekst === 'GOAL!' || /^Raak/.test(T.tekst || ''), juichZij = T.tekst === 'Tegengoal';
   for (const e of Object.values(T.ents)){
     const kl = kleuren[e.rol] || '#cccccc';
@@ -308,22 +319,22 @@ export function teken3D(T, nu, kleuren){
     const naarBal = Math.atan2(bal.x - e.x, -(bal.y - e.y));
     const doel = keeper ? (e.rol === 'K' ? -Math.PI / 2 : Math.PI / 2) : actief === 'jockey' ? naarBal : v > .6 ? Math.atan2(vx, -vy) : naarBal;
     if (nieuw) s.kijk = doel;
-    if (!vast) s.kijk += hoekVerschil(s.kijk, doel) * Math.min(1, dt * (v > .6 ? 10 : 4));
+    if (!vast) s.kijk += hoekVerschil(s.kijk, doel) * Math.min(1, dt * (v > .6 ? B.draaiLoop : B.draaiStil));
     s.root.rotation.y = s.kijk;
-    const sprint = vast ? 0 : Math.min(1, v / 7);
+    const sprint = vast ? 0 : Math.min(1, v / B.sprintVanaf);
     // looppas op afgelegde afstand (anders glijden de voeten): een hele cyclus is twee passen
     const st = s.model ? s.model.stijl : null, sp = st ? st.pas : 1, sa = st ? st.arm : 1;
-    s.fase += v > .2 ? Math.PI * v * dt / (.75 + .055 * v) : 0;
+    s.fase += v > .2 ? Math.PI * v * dt / (B.pasBasis + B.pasPerSnelheid * v) : 0;
     const sw = Math.sin(s.fase), cw = Math.cos(s.fase);
     // basishouding: lopen of stilstaan (ademen). u = arm naar buiten, a = arm naar voren, d = bovenbeen naar voren, k = knie
     // knie buigt veel in de zwaaifase en weinig in de standfase; ellebogen meer gebogen naarmate hij harder loopt
     // versnellen: extra voorover, afremmen: even achterover; in een bocht naar binnen leunen
     const acc = nieuw || !dt ? 0 : (v - (s.vVorig ?? v)) / dt, draai = nieuw || !dt ? 0 : hoekVerschil(s.kijkVorig ?? s.kijk, s.kijk) / dt; s.vVorig = v; s.kijkVorig = s.kijk;
     s.acc = (s.acc || 0) + (acc - (s.acc || 0)) * Math.min(1, dt * 8);
-    const h = {dL:sw * 1.05 * sprint * sp, dR:-sw * 1.05 * sprint * sp, kL:(Math.max(0, -cw) * 1.6 + Math.max(0, sw) * .25) * sprint * sp + .08, kR:(Math.max(0, cw) * 1.6 + Math.max(0, -sw) * .25) * sprint * sp + .08,
-      aL:-sw * 1.2 * sprint * sa, aR:sw * 1.2 * sprint * sa, uL:.14 + .1 * sprint, uR:.14 + .1 * sprint, eL:-.3 - 1.25 * sprint, eR:-.3 - 1.25 * sprint,
-      leun:sprint * (s.model ? .12 : .2) + Math.max(-.25, Math.min(.3, s.acc * .03)), rol:Math.max(-.3, Math.min(.3, -draai * v * .015)), hoogte:0};
-    if (!sprint){ const adem = Math.sin(tijd * 2.2 + s.fase) * .03; h.aL = adem; h.aR = -adem; }
+    const h = {dL:sw * B.dijZwaai * sprint * sp, dR:-sw * B.dijZwaai * sprint * sp, kL:(Math.max(0, -cw) * B.knieZwaai + Math.max(0, sw) * B.knieStand) * sprint * sp + B.knieRust, kR:(Math.max(0, cw) * B.knieZwaai + Math.max(0, -sw) * B.knieStand) * sprint * sp + B.knieRust,
+      aL:-sw * B.armZwaai * sprint * sa, aR:sw * B.armZwaai * sprint * sa, uL:B.armOpzij + B.armOpzijSprint * sprint, uR:B.armOpzij + B.armOpzijSprint * sprint, eL:-B.elleboogRust - B.elleboogSprint * sprint, eR:-B.elleboogRust - B.elleboogSprint * sprint,
+      leun:sprint * B.leunSprint * (s.model ? 1 : 1.67) + Math.max(-.25, Math.min(.3, s.acc * B.leunAccel)), rol:Math.max(-.3, Math.min(.3, -draai * v * B.leunBocht)), hoogte:0};
+    if (!sprint){ const adem = Math.sin(tijd * 2.2 + s.fase) * B.ademen; h.aL = adem; h.aR = -adem; }
     // trappen: schieten of passen (zwaai naar achter, dan door de bal); een hakje gaat juist naar achter
     if (T.trap && T.trap.id === e.id){
       const k = (nu - T.trap.t0) / T.trap.dur, soort = T.trap.soort;
@@ -331,14 +342,14 @@ export function teken3D(T, nu, kleuren){
         if (soort === 'hak'){ const z2 = k < .4 ? (k / .4) * .4 : .4 - ((k - .4) / .6) * 1.6; h.dR = z2; h.kR = k < .4 ? .3 : 1.5 * Math.sin(Math.min(1, (k - .4) / .4) * Math.PI / 2); h.leun = .2; }
         else {
           // aanzet tot het contact (kc), dan door de bal en hoog uitzwaaien, daarna terug
-          const kracht = soort === 'chip' ? .6 : soort === 'binnenkant' ? .8 : T.trap.hard ? 1.4 : 1, kc = T.trap.kc || .4;
-          const zwaai = k < kc ? (k / kc) * 1.05 * kracht : k < kc + .3 ? 1.05 * kracht - ((k - kc) / .3) * 2.7 * kracht : -1.65 * kracht * (1 - (k - kc - .3) / (.7 - kc));
-          h.dR = -zwaai; h.kR = k < kc ? 1.5 * (k / kc) : k < kc + .12 ? 1.5 * (1 - (k - kc) / .12) : .15;
-          h.leun = k < kc ? -.14 * kracht : k < kc + .3 ? .06 : -.12 * kracht; if (soort === 'binnenkant' || soort === 'volley') h.rol = soort === 'volley' ? -.45 : -.18;
+          const kracht = trapKracht(T.trap, B), kc = T.trap.kc || .4;
+          const zwaai = k < kc ? (k / kc) * B.schotUithalen * kracht : k < kc + .3 ? B.schotUithalen * kracht - ((k - kc) / .3) * B.schotDoortrap * kracht : -B.schotUitzwaai * kracht * (1 - (k - kc - .3) / (.7 - kc));
+          h.dR = -zwaai; h.kR = k < kc ? B.schotKnie * (k / kc) : k < kc + .12 ? B.schotKnie * (1 - (k - kc) / .12) : .15;
+          h.leun = k < kc ? -B.schotLeun * kracht : k < kc + .3 ? .06 : -.12 * kracht; if (soort === 'binnenkant' || soort === 'volley') h.rol = soort === 'volley' ? -.45 : -.18;
         }
         // standbeen licht gebogen, armen wijd voor evenwicht: de arm aan de kant van het schopbeen naar achter, de andere naar voren
         const kc2 = T.trap.kc || .4, mee = Math.min(1, k / kc2);
-        h.dL = -.15; h.kL = .25 + .3 * Math.sin(Math.min(1, k / (kc2 + .15)) * Math.PI); h.uL = .55 + .55 * mee; h.uR = .45 + .65 * mee; h.aL = .2 + .6 * mee; h.aR = -.2 - .7 * mee; h.eL = h.eR = -.5;
+        h.dL = -.15; h.kL = .25 + B.standbeen * Math.sin(Math.min(1, k / (kc2 + .15)) * Math.PI); h.uL = .55 + .55 * mee; h.uR = .45 + .65 * mee; h.aL = .2 + .6 * mee; h.aR = -.2 - .7 * mee; h.eL = h.eR = -.5;
       }
     }
     if (keeper && z > .25){
@@ -362,7 +373,7 @@ export function teken3D(T, nu, kleuren){
     s.LA.sch.rotation.x = -g.aL; s.RA.sch.rotation.x = -g.aR; s.LA.sch.rotation.z = -g.uL; s.RA.sch.rotation.z = g.uR; s.LA.elleboog.rotation.x = g.eL; s.RA.elleboog.rotation.x = g.eR;
     s.lijf.rotation.x = g.leun; s.lijf.rotation.z = g.rol;
     const hoogte = g.hoogte;
-    s.lijf.position.y = hoogte / SCHAAL + (sprint ? Math.abs(Math.cos(s.fase)) * .08 * sprint : 0); // twee keer per pas op en neer
+    s.lijf.position.y = hoogte / SCHAAL + (sprint ? Math.abs(Math.cos(s.fase)) * B.opEnNeer * sprint : 0); // twee keer per pas op en neer
     s.root.position.set(wx(e.x), 0, wz(e.y));
     if (s.model){
       // met een marge van 3 m, anders wisselt een speler die precies op de grens staat steeds tussen model en pop
@@ -370,7 +381,7 @@ export function teken3D(T, nu, kleuren){
       if (ver !== s.ver){ s.ver = ver; s.modelHouder.visible = !ver; for (const o of s.procMeshes) o.visible = ver;
         // weer dichtbij: het hoofd begint meteen goed (anders draait het vanuit een oude stand), en de rustanimatie ook
         if (!ver){ s.model.kijkY = s.model.kijkX = undefined; s.model.wIdle = undefined; s.verT = nu; } }
-      if (!ver){ const tk = T.trap && T.trap.id === e.id && nu >= T.trap.t0 && nu <= T.trap.t0 + T.trap.dur ? {k:(nu - T.trap.t0) / T.trap.dur, kc:T.trap.kc || .4, kracht:T.trap.soort === 'chip' ? .6 : T.trap.soort === 'binnenkant' ? .8 : T.trap.hard ? 1.4 : 1, soort:T.trap.soort} : null;
+      if (!ver){ const tk = T.trap && T.trap.id === e.id && nu >= T.trap.t0 && nu <= T.trap.t0 + T.trap.dur ? {k:(nu - T.trap.t0) / T.trap.dur, kc:T.trap.kc || .4, kracht:trapKracht(T.trap, B), soort:T.trap.soort} : null;
         volgModel(s, {dt, v, sprint, fase:s.fase, h:g, actief, trap:tk, keeper, z, naarBal, kijk:s.kijk, balHoogte:bal.z || 0, balAfstand:Math.hypot(bal.x - e.x, bal.y - e.y)}); }
     }
     s.schaduw.position.set(wx(e.x), .015, wz(e.y)); s.schaduw.scale.setScalar(1 - Math.min(.5, hoogte * .3));
@@ -405,6 +416,7 @@ export function teken3D(T, nu, kleuren){
   R.zoom = R.zoom === undefined || !dt ? zoom : R.zoom + (zoom - R.zoom) * Math.min(1, dt * 3);
   R.camera.position.set(R.camX, 14 * R.zoom, R.kijkZ + 40 * R.zoom); R.camera.lookAt(R.camX, 0, R.kijkZ);
   R.camAfstand = Math.hypot(14, 40) * R.zoom;
+  vrijeCamera(T);
   // teksten als HTML-laag: scherp en in de stijl van het spel
   if (R.vak){
     const fx = R.vak.querySelector('.pitchfx'), on = R.vak.querySelector('.pitchonder');

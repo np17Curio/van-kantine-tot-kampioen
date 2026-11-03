@@ -1,4 +1,4 @@
-import { S } from '../core/state.js';
+import { S, tmp } from '../core/state.js';
 import { rnd } from '../core/utils.js';
 import { CLUBS, TRAINBAAR } from '../data/gegevens.js';
 import { fixture } from './competitie/competitie.js';
@@ -36,6 +36,10 @@ function grootBeker(){
 }
 const naEind = M => M && M.inter ? naInterland() : M && M.po ? naNacompetitie() : M && M.beker ? naBeker() : naWedstrijd();
 export function simuleerSeizoen(){
+  tmp.simBezig = true; // (trager groeien: week.js)
+  try { return simuleerDoor(); } finally { tmp.simBezig = false; }
+}
+function simuleerDoor(){
   const sp = S.sp, tel = {wed:0, W:0, G:0, V:0, g:0}, start = S.ronde; let reden = null, stil = 0, vorige = '';
   const telWed = M => { if (!M || M.geteldSim) return; M.geteldSim = true; tel.wed++; tel[M.us > M.them ? 'W' : M.us < M.them ? 'V' : 'G']++; tel.g += M.goals || 0; };
   for (let n = 0; n < 2000; n++){

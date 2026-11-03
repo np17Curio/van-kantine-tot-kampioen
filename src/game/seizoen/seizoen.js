@@ -81,6 +81,7 @@ export function herstelSeizoenDelen(){
     sz.splice(ri, 0, ...eerder.map(d => ({s:lbl, club:d.club, div:d.div, wed:d.wed, g:d.g, a:d.a, nul:0, gem:d.gem, plek:null, beker:null, deel:true}))); }
 }
 export function seizoenEinde(){
+  const wacht0 = (S.krantWacht || []).length; // (berichten die bij het seizoenseinde ontstaan: hieronder in de eindkrant)
   const sp = S.sp, los = !!sp.clubloos, t = club().t, st = stand(t), plek = los ? 0 : st.indexOf(sp.club) + 1;
   const gem = gemCijfer();
   const prijzen = [];
@@ -125,7 +126,11 @@ export function seizoenEinde(){
   const rv = rivaalSeizoen(); if (rv){ krant.push({bron:bron[0], kop:rv.kop, tekst:rv.tekst, wanneer}); S.eind.rivaal = rv; if (rv.prijs){ S.car.prijzen.push(rv.prijs); S.eind.prijzen.push(rv.prijs); } }
   for (const k of europaKrant(wissels).slice(0, 3)) krant.push({bron:KRANTEN[0][0], kop:k.kop, tekst:k.tekst, wanneer});
   for (const k of ontwikkelLanden().slice(0, 2)) krant.push({bron:KRANTEN[0][0], kop:k.kop, tekst:k.tekst, wanneer}); // de landen worden sterker of zwakker
-  S.eind.krant = krant; S.nieuws = krant.concat(S.nieuws || []).slice(0, 12);
+  // Wat bij het seizoenseinde via krantMelding binnenkwam (de Gouden Bal, een standbeeld, een nieuw competitierecord) hoort op dit
+  // scherm, niet pas in de eerste week van het volgende seizoen
+  const vers = (S.krantWacht || []).splice(wacht0).map(k => ({...k, wanneer}));
+  krant.unshift(...vers);
+  S.eind.krant = krant; S.nieuws = krant.concat((S.nieuws || []).filter(x => !vers.some(k => k.kop === x.kop))).slice(0, 12);
   S.fase = 'seizoenEinde';
 }
 export function naSeizoen(){

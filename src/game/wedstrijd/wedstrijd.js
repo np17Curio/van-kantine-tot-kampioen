@@ -1,4 +1,4 @@
-import { S, club, mod, ovr, waarde } from '../../core/state.js';
+import { S, club, mod, ovr, tmp, waarde } from '../../core/state.js';
 import { clamp, pick, poisson, randInt, rnd } from '../../core/utils.js';
 import { AANTAL_RONDES, AANV, CLUBS, POS, TEAMGENOTEN, TEGENSTANDERS, WINTER, INTER_WEKEN, weekFactor } from '../../data/gegevens.js';
 import { eindeBeker, naWedstrijd } from '../competitie/beker.js';
@@ -40,6 +40,8 @@ import { merkenNaWedstrijd } from '../prive/merken.js';
 /* ===================== Wedstrijd ===================== */
 // Achtergrondgoals als jij meespeelt (naast jouw momenten): factor voor jullie en voor de tegenstander
 export const BG = {wij:.5, zij:.85};
+// Bij "seizoen simuleren": minder achtergrondgoals voor jullie en meer voor de tegenstander, zodat een middenmoter niet vanzelf kampioen wordt
+export const SIM_BG = {wij:.8, zij:1.1};
 import { pers } from '../speler/persoonlijkheid.js';
 import { naRivaalDuel, rivaalNaam, speeltTegenRivaal, rivaal, RIVAAL_MOMENTEN, rivaalVoorzet } from '../speler/rivaal.js';
 import { ik, team, vr } from '../../core/geslacht.js';
@@ -77,7 +79,7 @@ export function planWedstrijd(M, T, O, vast){
   // Speel je mee, dan komen jouw goals en assists uit je momenten. De rest van het spel weegt het sterkteverschil zwaarder mee,
   // zodat een zwakke ploeg niet alles wint omdat jij goed bent.
   const r4 = Math.pow(T / O, 4);
-  const bgUs = vast ? vast.us : poisson(1.3 * r4 * BG.wij), bgThem = vast ? vast.them : poisson(1.3 / r4 * BG.zij);
+  const bgUs = vast ? vast.us : poisson(1.3 * r4 * BG.wij * (tmp.simBezig ? SIM_BG.wij : 1)), bgThem = vast ? vast.them : poisson(1.3 / r4 * BG.zij * (tmp.simBezig ? SIM_BG.zij : 1));
   // Wedstrijdverslag: kansen voor beide ploegen (hoe beter het team, hoe meer kansen), kaarten, rust en blessuretijd
   const kansUs = clamp(poisson(1.5 + lu * 2), 1, 7), kansThem = clamp(poisson(1.5 + lt * 2), 1, 7);
   for (let i = 0; i < kansUs; i++) M.ev.push({type:'kansUs', min:randInt(3, 89)});
@@ -307,10 +309,10 @@ function wisselUit(M){
   return x ? {naam:metVoorletter(x), nr:x.nr, ik} : {naam:null};
 }
 export function aftrap(){ if (S.M && S.M.intro) verderSpelen(); }
-// Simuleren: je speler kiest zelf, steeds de actie met de hoogste kans van slagen (bij gelijke kans: zonder kaartrisico,
-// en bij een moment met een toon de gebalanceerde). VAR: rustig afwachten. Alles telt verder net als bij zelf spelen.
-// gewoon: kies zoals een gewone speler (niet altijd de veiligste optie: vaker een goede, soms een gok). Anders de optie met de meeste kans
-export function simuleer(gewoon = false){
+// Simuleren: je speler kiest zelf, zoals een gewone speler (niet altijd de beste optie: vaker een goede, soms een mindere of een gok).
+// VAR: rustig afwachten. Alles telt verder net als bij zelf spelen. gewoon = false: steeds de optie met de meeste kans (voor tests)
+const SIM_KEUS = .5; // (hoe sterk een gesimuleerde speler de kansrijkste optie verkiest: laag = vaker een gewone of mindere keuze)
+export function simuleer(gewoon = true){
   const M = S.M; if (!M || S.fase !== 'match') return;
   M.gesimuleerd = true;
   for (let n = 0; n < 500 && S.fase === 'match' && S.M === M; n++){
@@ -319,7 +321,7 @@ export function simuleer(gewoon = false){
     if (M.pending){
       const opts = pOpts(M.pending), score = o => kans(o) - (o.kaart ? .02 : 0) + (o.toon === 'bal' ? .01 : 0);
       let best = 0; opts.forEach((o, i) => { if (score(o) > score(opts[best])) best = i; });
-      if (gewoon){ const w = opts.map(o => Math.max(.01, score(o)) ** 2), som = w.reduce((a, b) => a + b, 0); let r = rnd() * som; best = w.findIndex(x => (r -= x) <= 0); if (best < 0) best = 0; }
+      if (gewoon){ const w = opts.map(o => Math.max(.01, score(o)) ** SIM_KEUS), som = w.reduce((a, b) => a + b, 0); let r = rnd() * som; best = w.findIndex(x => (r -= x) <= 0); if (best < 0) best = 0; }
       kies(best); continue;
     }
     verderSpelen();

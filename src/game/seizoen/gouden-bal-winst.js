@@ -34,6 +34,12 @@ export function goudenBalWinst(){
   S.eind.gala = {keuze:null, uit:null, gevolgen:uit};
   krantMelding(`${sp.naam} wint de Gouden Bal!`, 'De beste ' + ik.speler + ' van de wereld. Een droom die uitkomt voor de ' + ik.jongen + ' uit de kantine.', KRANTEN[0], fotoVan('goudenbal', `${sp.naam} met de Gouden Bal.`));
 }
+// Een bericht op het eindscherm van het seizoen zelf (krantMelding komt pas in de eerste week van het nieuwe seizoen in beeld)
+function eindKrant(kop, tekst){
+  const it = {bron:KRANTEN[0][0], kop, tekst, wanneer:`einde seizoen ${seizoenLabel()}`};
+  if (!(S.eind && S.eind.krant)) return krantMelding(kop, tekst);
+  S.eind.krant.unshift(it); S.nieuws = [it].concat(S.nieuws || []).slice(0, 12);
+}
 // De speech op het gala
 export function galaSpeech(i){
   const sp = S.sp, G = S.eind && S.eind.gala; if (!G || G.keuze != null) return;
@@ -41,7 +47,7 @@ export function galaSpeech(i){
   G.keuze = i;
   if (i === 0){ toonMeter('kalm'); mod('rep', 3); iedereen(3); mod('vert', 5); G.uit = 'Een bescheiden speech. Je ploeggenoten kijken trots, de trainer knikt. Reputatie +3, vertrouwen +5.'; }
   else if (i === 1){ toonMeter('bal'); mod('moraal', 10); const n = Math.round(social().volgers * .05); social().volgers += n; G.uit = `Je stem breekt als je ${opa} bedankt. De clip gaat de wereld rond: +${volgersTxt(n)} volgers.`; }
-  else { toonMeter('fel'); modFans(10); mod('vert', -3); const n = Math.round(social().volgers * .08); social().volgers += n; krantMelding(`Arrogant? ${sp.naam}: "Ik ben de beste"`, '' + ik.Zijn + ' speech op het gala zorgt voor discussie. ' + ik.Zijn + ' fans vinden het geweldig.'); G.uit = `De zaal valt even stil, en dan juichen je fans. +${volgersTxt(n)} volgers, fans +10. De trainer is minder blij.`; }
+  else { toonMeter('fel'); modFans(10); mod('vert', -3); const n = Math.round(social().volgers * .08); social().volgers += n; eindKrant(`Arrogant? ${sp.naam}: "Ik ben de beste"`, '' + ik.Zijn + ' speech op het gala zorgt voor discussie. ' + ik.Zijn + ' fans vinden het geweldig.'); G.uit = `De zaal valt even stil, en dan juichen je fans. +${volgersTxt(n)} volgers, fans +10. De trainer is minder blij.`; }
 }
 export function vGala(){
   const sp = S.sp, G = S.eind && S.eind.gala; if (!G) return '';

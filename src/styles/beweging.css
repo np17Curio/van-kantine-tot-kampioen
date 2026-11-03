@@ -1,0 +1,54 @@
+/* ===================== Bewegingseditor ===================== */
+body[data-fase="beweging"] .grid{grid-template-columns:minmax(0,1fr)}
+body[data-fase="beweging"] #zij{display:none}
+.bweditor{display:grid;grid-template-columns:340px minmax(0,1fr);gap:12px;min-height:calc(100vh - var(--hud-h, 80px) - 60px)}
+.bwpaneel{display:grid;gap:8px;align-content:start;max-height:calc(100vh - var(--hud-h, 80px) - 60px);overflow-y:auto;padding-right:4px}
+.bwtabs{display:flex;gap:6px}
+.bwtabs button{flex:1;padding:7px;border-radius:8px;border:1px solid var(--lijn);background:var(--paneel)}
+.bwtabs button[aria-selected="true"]{border-color:var(--lamp);background:var(--lamp-zacht);color:var(--lamp)}
+.bwopslag{font-family:var(--f-mono);font-size:.74rem;min-height:1.1em}
+.bwopslag.ok{color:var(--goed)} .bwopslag.fout{color:var(--fout)}
+.bwgroep{border:1px solid var(--lijn);border-radius:10px;background:var(--paneel)}
+.bwgroep summary{cursor:pointer;padding:8px 12px;font-weight:700;display:flex;align-items:center;gap:8px;list-style:none}
+.bwgroep summary::-webkit-details-marker{display:none}
+.bwgroep summary::before{content:"▸";color:var(--mist);transition:transform .15s}
+.bwgroep[open] summary::before{transform:rotate(90deg)}
+.bwtel{margin-left:auto;font-family:var(--f-mono);font-size:.7rem;font-weight:400;color:var(--kaart)}
+.bwrijen{padding:0 12px 8px}
+.bwrij{padding:6px 0;border-top:1px solid rgba(255,255,255,.04)}
+.bwrij:first-child{border-top:0}
+.bwkop{display:flex;align-items:center;gap:6px}
+.bwkop label{flex:1;font-size:.88rem}
+.bwrij.anders .bwkop label::after{content:" •";color:var(--kaart)}
+.bweenh{color:var(--mist);font-size:.72rem}
+.bwgetal{width:68px;padding:2px 5px;border-radius:6px;border:1px solid var(--lijn);background:var(--diep);color:var(--krijt);text-align:right;font-family:var(--f-mono);font-size:.8rem}
+.bwreset{border:0;background:none;color:var(--mist);padding:2px 5px;border-radius:4px;visibility:hidden}
+.bwrij.anders .bwreset{visibility:visible}
+.bwreset:hover{color:var(--krijt);background:var(--hover)}
+.bwrij input[type=range]{width:100%;accent-color:var(--lamp);margin:4px 0 0}
+.bwhulp{color:var(--mist);font-size:.74rem;margin-top:2px}
+.bwacties{display:flex;flex-wrap:wrap;gap:6px}
+.bwbeeld{position:relative;width:100%;max-width:none;margin:0;min-height:420px;border-radius:10px;overflow:hidden;border:1px solid var(--lijn);background:#0b1020}
+.bwbeeld canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.bwbalk{position:absolute;top:8px;left:8px;right:8px;display:flex;flex-wrap:wrap;gap:6px;pointer-events:none}
+.bwknopgroep{pointer-events:auto;display:flex;align-items:center;gap:2px;background:rgba(7,11,22,.84);border:1px solid var(--lijn);border-radius:9px;padding:3px;backdrop-filter:blur(6px)}
+.bwknopgroep > span{color:var(--mist);font-family:var(--f-mono);font-size:.68rem;padding:0 6px;text-transform:uppercase;letter-spacing:.06em}
+.bwknopgroep button{border:0;background:none;padding:5px 8px;border-radius:6px;white-space:nowrap;font-size:.84rem}
+.bwknopgroep button:hover{background:var(--hover)}
+.bwknopgroep button[aria-pressed="true"]{background:var(--lamp);color:var(--op-lamp)}
+.bwknopgroep select{background:var(--diep);color:var(--krijt);border:1px solid var(--lijn);border-radius:6px;padding:3px 4px;font-size:.82rem}
+.bwknopgroep input[type=range]{width:80px;accent-color:var(--lamp)}
+.bwtempo{width:38px;font-family:var(--f-mono);font-size:.74rem;color:var(--mist)}
+.bwstats{position:absolute;left:8px;bottom:8px;margin:0;display:grid;grid-template-columns:auto auto auto auto;gap:2px 10px;background:rgba(7,11,22,.84);border:1px solid var(--lijn);border-radius:9px;padding:7px 10px;font-family:var(--f-mono);font-size:.76rem;font-variant-numeric:tabular-nums}
+.bwstats dt{color:var(--mist)} .bwstats dd{margin:0}
+.bwtip{position:absolute;right:10px;bottom:10px;color:var(--mist);font-size:.72rem;text-align:right;pointer-events:none;text-shadow:0 1px 2px #000}
+@media (max-width:860px){
+  .bweditor{grid-template-columns:minmax(0,1fr);min-height:0}
+  .bwbeeld{order:-1;min-height:58vh}
+  .bwpaneel{max-height:none;overflow:visible}
+  .bwbalk{flex-wrap:nowrap;overflow-x:auto;pointer-events:auto;scrollbar-width:none}
+  .bwbalk::-webkit-scrollbar{display:none}
+  .bwknopgroep{flex:none}
+  .bwstats{grid-template-columns:auto auto}
+  .bwtip{display:none}
+}

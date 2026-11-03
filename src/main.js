@@ -42,6 +42,11 @@ document.addEventListener('click', e => {
   if (!e.target.closest || !e.target.closest('#naarMenu')) return;
   if (S) bewaar(); setS(null); resetTmp(); const m = document.getElementById('modal'); if (m && m.open) m.close(); render();
 });
+// De bewegingseditor (render/views/beweging.js): hoe de 3D-spelers lopen, rennen en schieten
+document.addEventListener('click', e => {
+  if (!e.target.closest || !e.target.closest('#naarBeweging')) return;
+  const m = document.getElementById('modal'); if (m && m.open) m.close(); tmp.beweging = true; tmp.stats = false; render(); window.scrollTo(0, 0);
+});
 document.addEventListener('change', async e => {
   if (e.target.id !== 'opslagLaad' || !e.target.files || !e.target.files[0]) return;
   const tekst = await e.target.files[0].text(); e.target.value = '';
@@ -63,6 +68,9 @@ async function toonHulp(){
     ${hulpInhoud()}
     <h3>Opslag</h3>
     <p class="muted klein-tekst">Je carrière wordt in deze browser bewaard, bij dit adres (tot ${SLOTS} carrières naast elkaar). Download hem als bestand om hem mee te nemen of veilig te bewaren.</p>${opslagKnoppen()}
+    <h3>Beweging van de spelers</h3>
+    <p class="muted klein-tekst">Pas aan hoe de 3D-spelers lopen, rennen, schieten en meebewegen, met een live voorbeeld.</p>
+    <p><button class="klein" id="naarBeweging" type="button">🏃 Bewegingseditor openen</button></p>
     ${S ? '<p><button class="klein" id="naarMenu" type="button">🏠 Naar het hoofdmenu (andere carrière)</button></p>' : ''}
     <h3>Bronnen</h3>
     <p class="muted klein-tekst">3D-spelersmodel: <a href="https://sketchfab.com/3d-models/pallone-da-calciogiocatore-3016826bcb984b02869f8dcc296120e0" target="_blank" rel="noopener" style="color:var(--info)">"pallone da calcio+giocatore"</a> door rosaliarenda (Sketchfab), licentie <a href="http://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener" style="color:var(--info)">CC-BY-4.0</a>. Aangepast voor dit spel: spijkerbroek, bal en wimpers weggelaten, texturen verkleind, eigen tenues, huidskleur, kapsels, lengte, bouw en bewegingen.</p>`);

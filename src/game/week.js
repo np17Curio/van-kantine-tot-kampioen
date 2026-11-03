@@ -1,4 +1,4 @@
-import { S, mod, ovr, attr as attrN } from '../core/state.js';
+import { S, mod, ovr, tmp, attr as attrN } from '../core/state.js';
 import { clamp, rnd } from '../core/utils.js';
 import { AANTAL_RONDES, TRAINBAAR, weekFactor } from '../data/gegevens.js';
 import { maakEvent } from './gebeurtenissen.js';
@@ -100,7 +100,9 @@ export function trainVoortgang(attr, f = 1){
   return {plus, voor, na};
 }
 // Hoe jonger, hoe sneller je groeit: tot 21 jaar het snelst, daarna steeds langzamer
-export const leeftijdGroei = () => { const l = S.sp.leeftijd; return l <= 21 ? 1.2 : l <= 24 ? .9 : l <= 27 ? .6 : .4; };
+// Tijdens "seizoen simuleren" groei je trager dan als je elke week zelf kiest (SIM_GROEI)
+export const SIM_GROEI = .7;
+export const leeftijdGroei = () => { const l = S.sp.leeftijd; return (l <= 21 ? 1.2 : l <= 24 ? .9 : l <= 27 ? .6 : .4) * (tmp.simBezig ? SIM_GROEI : 1); };
 export function trainKans(){ const sp = S.sp; return weekFactor() * leeftijdGroei() * (clamp((sp.pot - ovr(sp)) / 20, .1, .7) + (sp.items.trainer ? .15 : 0) + pers('train') + rivaalPrikkel()); } // (weekFactor: per seizoen even snel, hoe lang het seizoen ook is)
 // Plafond per eigenschap: met jouw talent kun je een eigenschap niet eindeloos opkrikken
 export const PLAFOND_MARGE = 10;
