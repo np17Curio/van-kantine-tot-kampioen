@@ -47,6 +47,7 @@ export function vSeizoenEinde(){
       return `<p>Jouw seizoen bij ${esc(nu.club)}: ${nu.wed} wedstrijden, ${nu.g} goals, ${nu.a} assists${cijfer(nu.gem)}.</p>
       <p class="muted">${E.delen.slice(0, -1).map(d => `Daarvoor bij ${esc(d.club)} (${esc(d.div)}): ${d.wed} wedstrijden, ${d.g} goals, ${d.a} assists${cijfer(d.gem)}.`).join(' ')} In totaal: ${E.wed} wedstrijden, ${E.g} goals, ${E.a} assists.</p>`; })()
     : `<p>Jouw seizoen: ${E.wed} wedstrijden, ${E.g} goals, ${E.a} assists, gemiddeld cijfer ${E.gem === null ? '–' : E.gem.toFixed(1).replace('.', ',')}.</p>`}
+    ${S.ss && S.ss.sterrenMax ? `<p class="seizoensterren">⭐ Sterren dit seizoen: <b>${S.ss.sterren || 0}</b> van ${S.ss.sterrenMax}${S.ss.perfect ? ` · ${S.ss.perfect} ${S.ss.perfect === 1 ? 'perfecte wedstrijd' : 'perfecte wedstrijden'}` : ''}</p>` : ''}
     ${E.topscorer ? `<p class="muted">Topscorer van de ${E.divisie}: ${esc(E.topscorer)}.</p>` : ''}
     ${vSpelerVanHetSeizoen(E)}</div>
     ${E.gb && E.gb.onderdelen ? `<details class="paneel"><summary class="label" style="cursor:pointer">Gouden Bal: zo kwamen jouw punten tot stand</summary>${vGbOpbouw(E.gb.onderdelen, 'Jouw punten')}</details>` : ''}

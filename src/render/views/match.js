@@ -1,4 +1,5 @@
 import { S, club, statWaarde, attr } from '../../core/state.js';
+import { vDoelenBalk, vSterren } from './sterren.js';
 import { act, keuzeKnop, knop } from '../../core/ui.js';
 import { TOON, vriendNa, vriendNaOpties } from '../../game/speler/journey.js';
 import { lichaamKans } from '../../game/speler/lichaam.js';
@@ -63,7 +64,9 @@ export function vStamina(M){
   return `<div class="stamina ${kl}${alarm ? ' alarm' : ''}" title="Elke minuut en elke actie kost stamina. Moeilijke acties kosten meer. Is hij op, dan wisselt de trainer je.${isRoutinier() ? ` Op jouw leeftijd (${S.sp.leeftijd}) raak je sneller leeg, vooral na een uur; een goede conditie helpt.` : ''}"><span class="label">Stamina</span><div class="stambalk"><i style="width:${st}%"></i></div><b>${st}</b>${alarm ? '<span class="klein-tekst">Wisselgevaar</span>' : ''}</div>`;
 }
 // Na afloop: hoeveel fitheid kostte het, en werd je gewisseld?
-export function vFit(M){
+// (na de wedstrijd ook de sterren van je wedstrijddoelen: sterren.js)
+export function vFit(M){ return vSterren(M) + vStaminaNa(M); }
+function vStaminaNa(M){
   if (M.fitVoor === undefined) return '';
   return (M.gewisseld !== undefined ? `<p class="fouttxt">De trainer wisselde je in de ${M.gewisseld}e minuut: je stamina was op${isRoutinier() ? `. Op je ${S.sp.leeftijd}e gaat de stamina sneller op; met conditietraining hou je het langer vol` : ''}.</p>` : '') + `<p class="muted">Fitheid: ${M.fitVoor} → ${S.sp.fit}.</p>`;
 }
@@ -109,7 +112,7 @@ export function vIntro(M){
     : `<p class="muted">${esc(M.wij)} tegen ${esc(M.zij)}.</p>`;
   return scorebord() + `<div class="verhaal intro"><span class="label">${esc(introSoort(M))}</span>
     <div class="rij">${tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}<span class="risico ${rol[1]}">${esc(rol[0])}</span></div>
-    ${info}${opst}</div>` + `<div class="rij">${knop('Aftrap!', aftrap)}${knop('⏩ Simuleer wedstrijd', simuleer, 'hoofd tweede')}</div>`;
+    ${vDoelenBalk(M, true)}${info}${opst}</div>` + `<div class="rij">${knop('Aftrap!', aftrap)}${knop('⏩ Simuleer wedstrijd', simuleer, 'hoofd tweede')}</div>`;
 }
 export function vMatch(){
   if (S.M.intro) return vIntro(S.M);
@@ -126,7 +129,7 @@ export function vMatch(){
   }
   // Jouw actie staat op het veld zelf; zonder veld staat hij boven het verslag
   const veld = vPitch(keuzeHtml);
-  return scorebord() + (veld || keuzeHtml) + vLog() + `<div class="rij" style="margin-top:8px">${knop('⏩ Simuleer de rest', simuleer, 'klein')}</div>`;
+  return scorebord() + vDoelenBalk(M) + (veld || keuzeHtml) + vLog() + `<div class="rij" style="margin-top:8px">${knop('⏩ Simuleer de rest', simuleer, 'klein')}</div>`;
 }
 
 // Na afloop tegen je vriend: shirts ruilen, een knuffel, of plagen (met een toon)

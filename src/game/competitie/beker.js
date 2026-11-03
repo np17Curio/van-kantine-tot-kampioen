@@ -1,4 +1,5 @@
 import { S, club, mod, ovr, seizoenLabel } from '../../core/state.js';
+import { sterrenNa } from '../wedstrijd/opdrachten.js';
 import { knop } from '../../core/ui.js';
 import { clamp, esc, randInt, rnd, shuffle } from '../../core/utils.js';
 import { AANTAL_RONDES, CLUBS, clubsLand, divClubs } from '../../data/gegevens.js';
@@ -193,7 +194,7 @@ export function eindeBeker(){
     S.car.wed++; S.car.g += M.goals; S.car.a += M.assists; carCijfer(M.cijfer);
     S.ss.bg = (S.ss.bg || 0) + M.goals; S.ss.ba = (S.ss.ba || 0) + M.assists; S.ss.bw = (S.ss.bw || 0) + 1;
     statusPunten(wedstrijdPunten(M.cijfer, M.goals, M.assists, winst, M.rood, M.rol === 'invaller') * .5);
-    M.bonus = topBonus(M);
+    M.bonus = topBonus(M); sterrenNa(M); // (de wedstrijddoelen: opdrachten.js)
     focusNaWedstrijd(M); volgersNaWedstrijd(M); recordsNaWedstrijd(M);
   } else M.cijfer = null;
   mod('moraal', winst ? 4 : -4);

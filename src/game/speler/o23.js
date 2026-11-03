@@ -1,4 +1,5 @@
 import { S, club, mod, ovr, seizoenLabel } from '../../core/state.js';
+import { sterrenNa } from '../wedstrijd/opdrachten.js';
 import { seizoenDeel } from '../seizoen/seizoen.js';
 import { clamp, pick, randInt, rnd, shuffle } from '../../core/utils.js';
 import { CLUBS, LAAGSTE, POS, clubsLand, divClubs, weekFactor } from '../../data/gegevens.js';
@@ -89,7 +90,7 @@ export function eindeO23(){
   mod('vert', (M.cijfer - 6.5) * 3);
   O.cijfers.push(M.cijfer); O.g += M.goals; O.a += M.assists;
   focusNaWedstrijd(M);
-  M.bonus = topBonus(M);
+  M.bonus = topBonus(M); sterrenNa(M); // (de wedstrijddoelen: opdrachten.js)
   M.groei = null;
   if (M.cijfer >= 7 && rnd() < .25 * weekFactor() * leeftijdGroei()){
     const w = POS[sp.pos].w, keys = Object.keys(w); let r = rnd(), k = keys[0];

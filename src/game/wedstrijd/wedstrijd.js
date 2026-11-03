@@ -1,4 +1,5 @@
 import { S, club, mod, ovr, tmp, waarde } from '../../core/state.js';
+import { maakOpdrachten, sterrenNa } from './opdrachten.js';
 import { clamp, pick, poisson, randInt, rnd } from '../../core/utils.js';
 import { AANTAL_RONDES, AANV, CLUBS, POS, TEAMGENOTEN, TEGENSTANDERS, WINTER, INTER_WEKEN, weekFactor } from '../../data/gegevens.js';
 import { eindeBeker, naWedstrijd } from '../competitie/beker.js';
@@ -74,6 +75,7 @@ function varTegen(M, zij, op){
 export function planWedstrijd(M, T, O, vast){
   if (M.focusStart === undefined){ if (pers('focusStart')) mod('focus', pers('focusStart')); M.focusStart = Math.round(S.sp.focus ?? 65); }
   const sp = S.sp, rol = M.rol;
+  if (!vast) maakOpdrachten(M, T, O); // drie doelen voor deze wedstrijd (opdrachten.js)
   const lu = 1.3 * Math.pow(T / O, 3), lt = 1.3 * Math.pow(O / T, 3);
   // Zit je niet in het veld, dan staat de uitslag al vast (vast = {us, them}).
   // Speel je mee, dan komen jouw goals en assists uit je momenten. De rest van het spel weegt het sterkteverschil zwaarder mee,
@@ -399,7 +401,7 @@ export function kies(i){
     if (out.redding){ S.ss.red = (S.ss.red || 0) + 1; S.car.red = (S.car.red || 0) + 1; M.reddingen = (M.reddingen || 0) + 1; }
     if (schot) animPush(M, {type:out.tegen ? 'tegenGoal' : 'tegenKans', soort:out.tegen ? 'tegenGoal' : 'tegenKans', variant:pt === 'hogeBal' ? 'kop' : pt === 'penaltyKeeper' ? 'pen' : 'combi', einde:out.tegen ? null : 'redding', jijKeeper:true, ok, geel:!!out.geel});
     else animPush(M, {type:'opbouw', label:opt.l, soort:/Lange|Ver weg|uitgooien|tribune/.test(opt.l) ? 'lang' : 'kort', variant:'normaal', ok, keeperUit:true, tegen:!!out.tegen, assist:!!out.assist, geel:!!out.geel});
-  } else { const soort = opt.anim ? opt.anim[0] : animSoort(M.pending.type, opt.l); if (soort) animPush(M, {type:M.pending.type, label:opt.l, soort, variant:opt.anim ? opt.anim[1] : animVariant(M.pending.type, opt.l), ok, goal:ruwGoal, assist:!!out.assist, team:!!out.teamGoal, tegen:!!out.tegen, geel:!!out.geel, rood:!!out.rood}); }
+  } else { const soort = opt.anim ? opt.anim[0] : animSoort(M.pending.type, opt.l); if (soort) animPush(M, {type:M.pending.type, label:opt.l, soort, variant:opt.anim ? opt.anim[1] : animVariant(M.pending.type, opt.l), ok, goal:ruwGoal, varCheck:!!varWacht, assist:!!out.assist, team:!!out.teamGoal, tegen:!!out.tegen, geel:!!out.geel, rood:!!out.rood}); }
   gebruik(M, opt);
   const keeperM = MOMENTS[M.pending.type] && MOMENTS[M.pending.type].keeper; // (een keeper heeft veel momenten: niet elke redding geeft focus, anders zit hij altijd in de flow)
   const fVoor = S.sp.focus ?? 65; if (ok){ if (!keeperM || rnd() < .35) focusBoost(1); } else mod('focus', -1 * pers('focusMis'));
@@ -523,7 +525,7 @@ export function eindeWedstrijd(){
     focusNaWedstrijd(M);
     M.kaartTekst = kaartenVerwerken(M);
     S.car.wed++; S.car.g += M.goals; S.car.a += M.assists; carCijfer(M.cijfer);
-    M.bonus = topBonus(M);
+    M.bonus = topBonus(M); sterrenNa(M); // (de wedstrijddoelen: opdrachten.js)
     M.groei = null;
     if (M.cijfer >= 7 && rnd() < .25 * weekFactor() * leeftijdGroei()){
       const w = POS[sp.pos].w, keys = Object.keys(w); let r = rnd(), k = keys[0];

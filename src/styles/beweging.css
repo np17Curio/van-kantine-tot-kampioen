@@ -52,3 +52,17 @@ body[data-fase="beweging"] #zij{display:none}
   .bwstats{grid-template-columns:auto auto}
   .bwtip{display:none}
 }
+
+/* ===================== Vrij trainen ===================== */
+body[data-fase="vrijtrainen"] .grid{grid-template-columns:minmax(0,1fr)}
+body[data-fase="vrijtrainen"] #zij{display:none}
+.vrij{display:grid;gap:8px}
+.vtbeeld{min-height:min(72vh,640px);outline:none}
+.vtbeeld:focus-visible{box-shadow:0 0 0 2px var(--lamp)}
+.vtstand{position:absolute;left:10px;top:10px;display:grid;gap:2px;background:rgba(7,11,22,.84);border:1px solid var(--lijn);border-radius:9px;padding:7px 11px;font-family:var(--f-mono);font-size:.8rem;pointer-events:none}
+.vtstand b{font-family:var(--f-display);font-size:1.6rem;color:var(--lamp);line-height:1}
+.vtknoppen{position:absolute;right:10px;bottom:10px;display:none;gap:8px}
+.vtknoppen button{width:64px;height:64px;border-radius:50%;border:2px solid var(--lamp);background:rgba(7,11,22,.75);color:var(--krijt);font-weight:700;font-size:.8rem;touch-action:none}
+.vtknoppen button:active{background:var(--lamp);color:var(--op-lamp)}
+.vttip{bottom:10px;right:10px}
+@media (pointer:coarse){.vtknoppen{display:flex}.vttip{display:none}}

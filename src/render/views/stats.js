@@ -20,7 +20,7 @@ export function vStats(){
   return `<div class="verhaal"><span class="label">Mijn carrière</span><h2>${esc(sp.naam)}</h2><p class="muted">${POS[sp.pos].n} · ${sp.leeftijd} jaar · ${esc(CLUBS[sp.club].n)}</p></div>
     <div class="tegels">
       ${tegel('Wedstrijden', C.wed)}${tegel('Goals', C.g)}${tegel('Assists', C.a)}${tegel('Gem. cijfer', gem)}
-      ${tegel(vrouwenWereld() ? 'Speelster van de Wedstrijd' : 'Man of the Match', C.motm || 0)}${tegel('Kampioen', tel(/^Kampioen/))}${tegel('Bekers', tel(new RegExp(`^(${BEKER_ALT}|Champions League|Europa Cup|Jeugdbeker)`)))}${tegel('Gouden Bal', tel(/^Gouden Bal/))}
+      ${tegel(vrouwenWereld() ? 'Speelster van de Wedstrijd' : 'Man of the Match', C.motm || 0)}${tegel('Sterren ⭐', `${C.sterren || 0}${C.perfect ? ` <span class="muted klein-tekst">(${C.perfect}× perfect)</span>` : ''}`)}${tegel('Kampioen', tel(/^Kampioen/))}${tegel('Bekers', tel(new RegExp(`^(${BEKER_ALT}|Champions League|Europa Cup|Jeugdbeker)`)))}${tegel('Gouden Bal', tel(/^Gouden Bal/))}
       ${tegel('Gele kaarten', C.geel || 0)}${tegel('Rode kaarten', C.rood || 0)}${tegel('Hoogste klasse', C.maxOvr)}${tegel('Clubs', new Set(C.clubs.map(x => (x.land || 'Nederland') + x.club)).size)}
     </div>
     ${int.length ? `<div class="paneel"><span class="label">Interlands</span>${int.map(([n, x]) => `<p><b>${esc(n)}</b>: ${x.caps} interlands · ${x.g} goals · ${x.a} assists</p>`).join('')}</div>` : ''}

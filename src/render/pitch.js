@@ -667,9 +667,11 @@ export function tenuesVanWedstrijd(){
 // Shirtkleur per rol, voor het 2D-veld en de eenvoudige poppen
 export const kleurenVan = T => { const t = T && T.ploegen && T.ploegen.tenues; if (!t) return PITCH_KLEUR; const k = {R:'#222'}; for (const r in t) k[r] = t[r].shirt; return k; };
 export const rugnummerVeilig = () => { try { return S.M && (S.M.inter || S.M.o23 || S.M.trainer) ? '' : rugnummer(); } catch (e){ return ''; } };
-export function pitchSpeel(el, a, klaar){
-  const cv = pitchCanvas(el), {sc, st} = animScript(a), snel = instel().anim === 'snel' ? .5 : 1;
-  const T = {ents:sc.ents, bal:{...sc.bal}, cam:sc.cam, zoom:sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(), onder:a.onder || (a.soort === 'shootout' ? 'Strafschoppen' : null)};
+// opt.herhaling: dezelfde actie nog een keer, in slow motion en ingezoomd op jou (na een goal van jou)
+export function pitchSpeel(el, a, klaar, opt = {}){
+  const cv = pitchCanvas(el), {sc, st} = animScript(a), snel = (instel().anim === 'snel' ? .5 : 1) * (opt.herhaling ? HERHALING_TRAAG : 1);
+  const T = {ents:sc.ents, bal:{...sc.bal}, cam:sc.cam, zoom:opt.herhaling && sc.ents.J ? .55 : sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(),
+    onder:opt.herhaling ? `⟲ HERHALING · ${a.min ?? ''}' · ${S.sp.naam}` : a.onder || (a.soort === 'shootout' ? 'Strafschoppen' : null)};
   let i = -1, t0 = 0, van = null, fx = null, fxT = 0, eind = 0, aanzet = 0;
   const id = (PITCH = {stop:false, klaar}), gen = GEN;
   const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
@@ -711,6 +713,7 @@ export function pitchSpeel(el, a, klaar){
   };
   requestAnimationFrame(frame);
 }
+const HERHALING_TRAAG = 1.8; // zoveel keer langzamer
 // overlay: de keuzes van jouw actie, onderin over het veld
 export function vPitch(overlay = ''){
   const M = S.M; if (!M) return '';
@@ -738,14 +741,17 @@ export function pitchNaRender(){
     const bord = document.querySelector('#veld .score .stand'), bordNu = bord && bord.innerHTML;
     const zetBord = a => { if (!bord || !bord.isConnected || a.min === undefined) return; bord.firstChild.nodeValue = a.stand ?? bord.firstChild.nodeValue; const m = bord.querySelector('.min'); if (m) m.textContent = a.min + "'"; };
     const herstelBord = () => { if (bord && bord.isConnected) bord.innerHTML = bordNu; };
-    const speel = i => { zetBord(open[i]); pitchSpeel(el, open[i], () => {
-      open[i].gezien = true; try { bewaar(); } catch (e){}
+    const speel = i => { zetBord(open[i]); pitchSpeel(el, open[i], () => naAnim(i)); };
+    // na een goal van jou: eerst de herhaling (alleen bij animaties op Normaal, en niet als de VAR er nog naar kijkt)
+    const naAnim = i => {
+      const a = open[i]; a.gezien = true; try { bewaar(); } catch (e){}
+      if (a.goal && !a.varCheck && !a.herhaald && instel().anim === 'normaal' && el.isConnected){ a.herhaald = true; return pitchSpeel(el, a, () => naAnim(i), {herhaling:true}); }
       const sk = document.getElementById('pitchSkip'); if (sk) sk.textContent = open.length - i - 1 > 1 ? `Overslaan (${open.length - i - 1}) ⏭` : 'Overslaan ⏭';
       if (i + 1 < open.length && el.isConnected) return speel(i + 1);
       if (keuzes) keuzes.style.visibility = ''; if (sk) sk.remove();
       herstelBord();
       if (S.M && S.M.pending && el.isConnected && toon(S.M.pending.type)) pitchStatisch(el, S.M.pending.type);
-    }); };
+    };
     speel(0);
   } else if (M.pending && toon(M.pending.type)) pitchStatisch(el, M.pending.type);
 }

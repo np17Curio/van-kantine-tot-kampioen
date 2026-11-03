@@ -351,6 +351,15 @@ export function lijnBotUit(bot, hulp, basis, obj){
   inModel(bot.parent, obj, _qp);
   bot.quaternion.copy(_qp.invert().multiply(_qd));
 }
+// Een bot laten wijzen in een richting in de ruimte van het model (de kleinste draaiing vanuit zijn huidige stand)
+export function richtBot(bot, richting, obj){
+  if (!bot || richting.lengthSq() < 1e-10) return;
+  inModel(bot, obj, _q);
+  _v.copy(bot.userData.richting).applyQuaternion(_q).normalize();
+  _qd.setFromUnitVectors(_v, _d.copy(richting).normalize()).multiply(_q);
+  inModel(bot.parent, obj, _qp);
+  bot.quaternion.copy(_qp.invert().multiply(_qd));
+}
 // Een bot extra draaien om een as in de ruimte van het model (x = opzij, y = omhoog, z = vooruit), bovenop zijn huidige stand
 const _as = new THREE.Vector3();
 export function draaiBot(bot, obj, ax, ay, az, hoek){

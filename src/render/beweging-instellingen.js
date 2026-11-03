@@ -10,11 +10,15 @@ export const BEWEGING_SCHEMA = [
     P('pasBasis', 'Paslengte basis', .75, .4, 1.4, .01, 'm', 'Halve cyclus (één stap) bij stilstand. Groter = langere, tragere passen.'),
     P('pasPerSnelheid', 'Paslengte per m/s', .055, 0, .15, .005, 's', 'Hoeveel langer een stap wordt per m/s. Kleiner = snellere, kortere pasjes.'),
     P('sprintVanaf', 'Volle looppas vanaf', 7, 3, 10, .1, 'm/s', 'Bij deze snelheid zwaaien armen en benen het verst.'),
-    P('dijZwaai', 'Bovenbeen zwaaien', 1.05, .3, 1.6, .01, 'rad'),
-    P('knieZwaai', 'Knie in de zwaaifase', 1.6, .4, 2.4, .01, 'rad', 'Hoe ver de hiel naar de bil komt.'),
-    P('knieStand', 'Knie in de standfase', .25, 0, .8, .01, 'rad'),
-    P('knieRust', 'Knie in rust', .08, 0, .4, .01, 'rad'),
-    P('opEnNeer', 'Op en neer bij rennen', .08, 0, .25, .005, 'm'),
+    P('dutyWandel', 'Grondcontact wandelen', .62, .4, .8, .01, '', 'Deel van de pas dat een voet op de grond staat.'),
+    P('dutyRennen', 'Grondcontact rennen', .36, .2, .6, .01, '', 'Lager = een langere zweeffase.'),
+    P('contactMax', 'Max. contactlengte', .36, .2, .45, .01, '', 'Hoe ver de voet onder het lichaam door mag. Te groot = gestrekte benen.'),
+    P('tilWandel', 'Voet optillen (wandelen)', .07, 0, .2, .005, ''),
+    P('tilRennen', 'Voet optillen (rennen)', .2, 0, .4, .005, ''),
+    P('tilSprint', 'Extra optillen (sprint)', .08, 0, .3, .005, ''),
+    P('doorKnieen', 'Door de knieën bij rennen', .04, 0, .15, .005, ''),
+    P('inveren', 'Inveren steunbeen', .045, 0, .12, .005, '', 'De knie veert in als de voet neerkomt.'),
+    P('zweef', 'Zweefhoogte', .05, 0, .15, .005, '', 'Hoe hoog hij in de zweeffase komt (rennen).'),
     P('draaiLoop', 'Draaien tijdens lopen', 10, 2, 20, .5, '/s', 'Hoe snel hij de looprichting volgt.'),
     P('draaiStil', 'Draaien in stilstand', 4, 1, 12, .5, '/s', 'Hoe snel hij naar de bal draait.'),
   ]},
@@ -98,6 +102,7 @@ export function bewaarBeweging(){ try { localStorage.setItem(OPSLAG, JSON.string
 export function resetProfiel(p){ instellingen().profielen[p] = {...STANDAARD}; }
 
 /* ---------- lezen ---------- */
+// (de voeten staan vast op de grond: looppas.js rekent de benen uit met IK; de maten zijn die van het hulpskelet)
 // De editor laat het voorbeeld het gekozen profiel gebruiken; anders telt de wereld waarin je speelt
 let VOORBEELD = null;
 export const zetVoorbeeldProfiel = p => { VOORBEELD = p; };

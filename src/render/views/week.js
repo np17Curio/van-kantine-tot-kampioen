@@ -189,7 +189,7 @@ function vActiviteiten(){
   const va = verhaalActiviteiten(), verhaal = va.length ? `<div class="actgroep verhaal"><span class="label">Jouw verhaal · ${esc(verhaalTitel(sp))}</span><div class="keuzes">${va.map(a => keuzeKnop(a.l, a.s, () => doeActiviteit(a.id))).join('')}</div></div>` : '';
   return `<section class="activiteiten"><h3 class="sectiekop">Wat doe je deze week? <span class="niv">1 keuze</span></h3>
     <div class="actgroepen">
-    <div class="actgroep"><span class="label">Trainen</span><div class="keuzes">${train}${extra}</div></div>
+    <div class="actgroep"><span class="label">Trainen</span><div class="keuzes">${train}${extra}${keuzeKnop('⚽ Vrij trainen', 'zelf je speler besturen · telt niet als activiteit', () => { tmp.vrijTrainen = true; }, 'data-blijf')}</div></div>
     <div class="actgroep"><span class="label">Herstel en mentaal</span><div class="keuzes">${herstel}</div></div>
     <div class="actgroep"><span class="label">Club en sociaal</span><div class="keuzes">${sociaal}</div></div>${verhaal}</div></section>`;
 }

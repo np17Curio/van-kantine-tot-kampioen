@@ -1,4 +1,5 @@
 import { S, club, gemCijfer, mod, ovr, seizoenLabel } from '../../core/state.js';
+import { sterrenNa } from '../wedstrijd/opdrachten.js';
 import { clamp, pick, randInt, rnd } from '../../core/utils.js';
 import { LANDEN, landInfo } from '../../data/gegevens.js';
 import { topBonus } from '../prive/sponsors.js';
@@ -76,7 +77,7 @@ export function eindeInterland(){
   sp.bonds[naam] = clamp((sp.bonds[naam] ?? 40) + (M.cijfer - 6.3) * 7 + 3, 0, 100);
   if (M.cijfer >= 8.5) S.car.motm = (S.car.motm || 0) + 1;
   focusNaWedstrijd(M);
-  M.bonus = topBonus(M);
+  M.bonus = topBonus(M); sterrenNa(M); // (de wedstrijddoelen: opdrachten.js)
   sp.vorm = clamp(sp.vorm * .7 + (M.cijfer - 6.5) * .3, -3, 3);
   sp.rep = clamp(sp.rep + 2 + (M.cijfer - 6.5) * 1.5 + M.goals * 1.5 + M.assists * .7, 0, 100);
   staminaNaWedstrijd(M);

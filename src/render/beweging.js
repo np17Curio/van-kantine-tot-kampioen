@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { draaiBot, lijnBotUit } from './spelermodel.js';
+import { draaiBot, lijnBotUit, richtBot } from './spelermodel.js';
+import { POP } from './looppas.js';
 import { bw } from './beweging-instellingen.js';
 
 /* ===================== Losse beweging ===================== */
@@ -77,8 +78,36 @@ export function volgModel(s, c){
   draaiBot(B.clavicle_l, m.obj, 1, 0, 0, -.12 * c.h.aR); draaiBot(B.clavicle_r, m.obj, 1, 0, 0, -.12 * c.h.aL);
   // 3. armen en benen volgen het hulpskelet (en bij stilstaan de animatie)
   for (const [bot, hulp] of KOPPEL){ const b = B[bot]; if (!b) continue; lijnBotUit(b, hulp(s), b.userData.rust, m.obj); if (w > .002) b.quaternion.slerp(m.qa[bot], w); }
-  // 4. voeten: tenen omlaag als het been achter is (afzetten), hiel eerst bij het neerzetten; bij een trap de wreef gestrekt
-  const voet = (n, d, schop) => draaiBot(B[n], m.obj, 1, 0, 0, ((schop ? .75 : Math.max(0, -d) * W.voetAfzet - Math.max(0, d) * .25) * (1 - w)));
-  voet('foot_l', c.h.dR, c.trap && c.trap.k > c.trap.kc - .1); voet('foot_r', c.h.dL, false);
+  // 3b. voeten vast op de grond: de benen van het model met hun eigen lengtes naar de enkel van het hulpskelet (looppas.js)
+  const wIK = (c.wIK || 0) * (1 - w);
+  if (wIK > .01){ beenIK(s, m, 'thigh_l', 'calf_l', 'foot_l', s.R, wIK); beenIK(s, m, 'thigh_r', 'calf_r', 'foot_r', s.L, wIK); }
+  // 4. voeten: in de looppas de kanteling uit looppas.js (hiel eerst, tenen afzetten); anders tenen omlaag als het been achter is.
+  // Bij een trap de wreef gestrekt
+  const voet = (n, d, schop, lp) => draaiBot(B[n], m.obj, 1, 0, 0, ((schop ? .75 : (Math.max(0, -d) * W.voetAfzet - Math.max(0, d) * .25) * (1 - wIK) + (lp || 0) * W.voetAfzet / .55) * (1 - w)));
+  voet('foot_l', c.h.dR, c.trap && c.trap.k > c.trap.kc - .1, c.voet && c.voet.R); voet('foot_r', c.h.dL, false, c.voet && c.voet.L);
+}
+// Two-bone IK op de botten van het model, in de ruimte van het model (daar is de schaal overal gelijk).
+// De enkel moet op de enkel van het hulpskelet; de knie in het vlak van heup, enkel en de knie van het hulpskelet.
+// Is het been van het model langer of korter, dan staat het heupgewricht ook zoveel hoger of lager: verschuif het doel mee.
+const _H = new THREE.Vector3(), _K = new THREE.Vector3(), _F = new THREE.Vector3(), _pH = new THREE.Vector3(), _pK = new THREE.Vector3(), _pA = new THREE.Vector3(), _t = new THREE.Vector3(), _n = new THREE.Vector3();
+const _q0 = new THREE.Quaternion(), _q1 = new THREE.Quaternion();
+function beenIK(s, m, dij, kuit, voet, hulp, gewicht){
+  const B = m.botten, obj = m.obj, b1 = B[dij], b2 = B[kuit], b3 = B[voet]; if (!b1 || !b2 || !b3) return;
+  const inM = (o, v) => obj.worldToLocal(o.getWorldPosition(v));
+  obj.updateMatrixWorld(true);
+  inM(b1, _H); inM(b2, _K); inM(b3, _F);
+  const a = m.beenA || (m.beenA = {}), lA = a[dij] || (a[dij] = _H.distanceTo(_K)), lB = a[kuit] || (a[kuit] = _K.distanceTo(_F));
+  // het hulpskelet: heup, knie en enkel (in de ruimte van het model)
+  obj.worldToLocal(hulp.dij.getWorldPosition(_pH)); obj.worldToLocal(hulp.knie.getWorldPosition(_pK)); obj.worldToLocal(hulp.knie.localToWorld(_pA.set(0, -POP.scheen, 0)));
+  const popLen = _pH.distanceTo(_pK) + _pK.distanceTo(_pA);
+  _t.copy(_pA).sub(_pH).add(_H); _t.y -= (lA + lB) - popLen;                         // het enkeldoel voor dit model
+  const naar = _t.clone().sub(_H), d = Math.min(lA + lB - 1e-4, Math.max(Math.abs(lA - lB) + 1e-4, naar.length())), dir = naar.normalize();
+  const pool = _n.copy(_pK).sub(_pH), loodrecht = pool.sub(dir.clone().multiplyScalar(pool.dot(dir)));
+  if (loodrecht.lengthSq() < 1e-8) loodrecht.set(0, 0, 1); loodrecht.normalize();
+  const langs = (lA * lA - lB * lB + d * d) / (2 * d), hoog = Math.sqrt(Math.max(0, lA * lA - langs * langs));
+  const knie = _H.clone().addScaledVector(dir, langs).addScaledVector(loodrecht, hoog), enkel = _H.clone().addScaledVector(dir, d);
+  _q0.copy(b1.quaternion); richtBot(b1, knie.clone().sub(_H), obj); _q1.copy(b1.quaternion); b1.quaternion.copy(_q0).slerp(_q1, gewicht);
+  obj.updateMatrixWorld(true); inM(b2, _K);
+  _q0.copy(b2.quaternion); richtBot(b2, enkel.sub(_K), obj); _q1.copy(b2.quaternion); b2.quaternion.copy(_q0).slerp(_q1, gewicht);
 }
 function hoekVerschil(a, b){ let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d; }
