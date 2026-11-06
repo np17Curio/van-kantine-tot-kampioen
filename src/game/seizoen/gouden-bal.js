@@ -15,16 +15,23 @@ export const topClubs = () => { const l = divClubs(1).sort((a, b) => CLUBS[b].s 
 const isTopClub = id => topClubs().includes(id);
 export function nieuweSter(jong){ return {v:pick(vrouwenWereld() ? STER_VOOR_V : STER_VOOR), n:pick(ACHTERNAMEN), club:pick(topClubs()), basis:jong ? randInt(58, 70) : randInt(62, 80), lft:jong ? randInt(19, 21) : randInt(20, 31)}; }
 export const wereldSterren = () => S.sterren || (S.sterren = Array.from({length:12}, () => nieuweSter(false)));
+// De klasse van een wereldster volgt uit zijn basis (groeit en daalt dus vanzelf mee met de leeftijd)
+export const sterKlasse = x => Math.max(70, Math.min(95, Math.round(62 + x.basis * .35)));
+// De wereldtop: de klasse van de beste ster. Daar wordt jouw klasse mee vergeleken
+export const wereldTop = () => Math.max(...wereldSterren().map(sterKlasse));
+// Klasse tegen de wereldtop: elk punt eronder kost 4 punten, erboven levert het 4 op (hooguit +8)
+const KL_TOP = 4, KL_TOP_MAX = 8;
+const klasseTop = (o, top) => top ? Math.min(KL_TOP_MAX, (o - top) * KL_TOP) : 0;
 // Hoeveel je seizoen telt: de hoogste competitie (Topdivisie) helemaal, daaronder steeds minder
 export const GB_NIVEAU = {1:1, 2:.5};
 // Jouw punten voor de Gouden Bal (dezelfde formule aan het einde van het seizoen en in de race tijdens het seizoen)
-export function goudenBalScore({gem, g, a, kamp, beker, cl, o, t, tb = 0}){
+export function goudenBalScore({gem, g, a, kamp, beker, cl, o, t, tb = 0, top = 0}){
   const f = GB_NIVEAU[t] ?? 0;
-  return Math.round(f * ((gem - 6) * 18 + g * 1.3 + a * .8 + (kamp ? 10 : 0) + (beker ? 6 : 0) + (cl ? 10 : 0) + Math.max(0, o - 70) * .65) + tb);
+  return Math.round(f * ((gem - 6) * 18 + g * 1.3 + a * .8 + (kamp ? 10 : 0) + (beker ? 6 : 0) + (cl ? 10 : 0) + Math.max(0, o - 70) * .65 + klasseTop(o, top)) + tb);
 }
 // De opbouw van je punten: per onderdeel de echte bijdrage (al met de factor van je niveau), ook de minpunten
 const c1 = x => (Math.round(x * 10) / 10).toFixed(1).replace('.', ',');
-export function goudenBalOnderdelen({gem, g, a, kamp, beker, cl, o, t, tb = 0, eerder = 0, prognose = false}){
+export function goudenBalOnderdelen({gem, g, a, kamp, beker, cl, o, t, tb = 0, top = 0, eerder = 0, prognose = false}){
   const f = GB_NIVEAU[t] ?? 0, dr = prognose ? ' (doorgerekend naar een heel seizoen)' : '';
   const rij = [
     {k:'cijfer', l:`Gemiddeld cijfer ${c1(gem)} (een 6,0 telt als 0, lager kost punten)`, v:(gem - 6) * 18 * f},
@@ -35,27 +42,29 @@ export function goudenBalOnderdelen({gem, g, a, kamp, beker, cl, o, t, tb = 0, e
   if (beker) rij.push({k:'beker', l:'Beker gewonnen', v:6 * f});
   if (cl) rij.push({k:'cl', l:'Champions League gewonnen', v:10 * f});
   rij.push({k:'klasse', l:`Klasse ${o} (alles boven de 70 telt)`, v:Math.max(0, o - 70) * .65 * f});
+  if (top) rij.push({k:'klasseTop', l:`Klasse ${o} tegen de wereldtop ${top} (${o < top ? 'eronder kost punten' : o > top ? 'je bent beter dan de wereldtop' : 'even goed als de wereldtop'})`, v:klasseTop(o, top) * f});
   if (tb) rij.push({k:'tb', l:'Bonus van het WK of EK van afgelopen zomer', v:tb});
   if (eerder) rij.push({k:'eerder', l:`${eerder} eerder gewonnen Gouden ${eerder === 1 ? 'Bal' : 'Ballen'} (de jury wil ook wel eens een ander)`, v:-Math.min(12, eerder * 3)});
   return {rij, f, totaal:Math.round(rij.filter(r => r.k !== 'eerder').reduce((s, r) => s + r.v, 0)) + (eerder ? -Math.min(12, eerder * 3) : 0)};
 }
-const GB_NAAM = {cijfer:'Gemiddeld cijfer', goals:'Goals', assists:'Assists', kamp:'Kampioensbonus', klasse:'Klasse', beker:'Beker', cl:'Champions League', tb:'WK/EK-bonus', eerder:'Eerdere Gouden Ballen'};
+const GB_NAAM = {cijfer:'Gemiddeld cijfer', goals:'Goals', assists:'Assists', kamp:'Kampioensbonus', klasse:'Klasse', klasseTop:'Klasse tegen de wereldtop', beker:'Beker', cl:'Champions League', tb:'WK/EK-bonus', eerder:'Eerdere Gouden Ballen'};
 export const fmtPunt = v => (v > 0 ? '+' : v < 0 ? '−' : '') + c1(Math.abs(v));
 const eerdereGB = () => S.car.prijzen.filter(p => /^Gouden Bal/.test(p)).length;
 export function goudenBal(gem){
   const sp = S.sp, t = club().t, st = stand(t), kamp = !sp.clubloos && st[0] === sp.club;
   const g = S.ss.g + (S.ss.bg || 0), a = S.ss.a + (S.ss.ba || 0);
   const tb = sp.tGB || 0; sp.tGB = 0; // bonus van het WK/EK van afgelopen zomer
-  const mijn = S.ss.wed >= 8 && gem !== null ? goudenBalScore({gem, g, a, kamp, beker:S.ss.bekerWinst, cl:S.ss.clWinst, o:ovr(sp), t, tb}) : 0;
+  const top = wereldTop(), o = ovr(sp);
+  const mijn = S.ss.wed >= 8 && gem !== null ? goudenBalScore({gem, g, a, kamp, beker:S.ss.bekerWinst, cl:S.ss.clWinst, o, t, tb, top}) : 0;
   wereldSterren().forEach(x => { if (!isTopClub(x.club)) x.club = pick(topClubs()); });
-  const lijst = wereldSterren().map(x => ({naam:metVoornaam(x.v, x.n), club:CLUBS[x.club].n, score:Math.round(x.basis + rnd() * 18 + (stand(1)[0] === x.club || (CLUBS[x.club].gast && CLUBS[x.club].gast.rang === 1) ? 8 : 0))}));
+  const lijst = wereldSterren().map(x => ({naam:metVoornaam(x.v, x.n), club:CLUBS[x.club].n, k:sterKlasse(x), score:Math.round(x.basis + rnd() * 18 + (stand(1)[0] === x.club || (CLUBS[x.club].gast && CLUBS[x.club].gast.rang === 1) ? 8 : 0))}));
   // De jury wil ook wel eens een ander: elke eerder gewonnen Gouden Bal telt licht tegen je mee
   const eerder = eerdereGB();
-  lijst.push({naam:sp.naam, club:club().n, score:mijn ? mijn - Math.min(12, eerder * 3) : 0, jij:true});
+  lijst.push({naam:sp.naam, club:club().n, k:o, score:mijn ? mijn - Math.min(12, eerder * 3) : 0, jij:true});
   lijst.sort((x, y) => y.score - x.score || (x.jij ? -1 : 1));
   // Sterren worden ouder: beter tot 26, daarna langzaam minder, rond 34 stoppen ze
   S.sterren = wereldSterren().map(x => { x.lft++; if (!isTopClub(x.club)) x.club = pick(topClubs()); x.basis += x.lft < 26 ? randInt(0, 3) : x.lft < 30 ? randInt(-1, 1) : -randInt(2, 4); return x.lft >= 34 || x.basis < 55 ? nieuweSter(true) : x; });
-  const onderdelen = mijn ? goudenBalOnderdelen({gem, g, a, kamp, beker:S.ss.bekerWinst, cl:S.ss.clWinst, o:ovr(sp), t, tb, eerder}) : null;
+  const onderdelen = mijn ? goudenBalOnderdelen({gem, g, a, kamp, beker:S.ss.bekerWinst, cl:S.ss.clWinst, o, t, tb, top, eerder}) : null;
   return {lijst, plek:lijst.findIndex(x => x.jij) + 1, telt:mijn > 0, onderdelen};
 }
 
@@ -64,12 +73,13 @@ export function goudenBalStand(){
   const sp = S.sp, t = club().t, wed = S.ss.wed || 0, gem = gemCijfer(), los = !!sp.clubloos;
   const kamp = !los && stand(t)[0] === sp.club, schaal = wed >= 3 ? Math.max(1, AANTAL_RONDES / wed) : 1;
   const g = S.ss.g + (S.ss.bg || 0), a = S.ss.a + (S.ss.ba || 0), gP = Math.round(g * schaal), aP = Math.round(a * schaal);
-  const basis = {gem:gem ?? 6, g:gP, a:aP, kamp, beker:S.ss.bekerWinst, cl:S.ss.clWinst, o:ovr(sp), t, tb:sp.tGB || 0};
+  const kTop = wereldTop(), o = ovr(sp);
+  const basis = {gem:gem ?? 6, g:gP, a:aP, kamp, beker:S.ss.bekerWinst, cl:S.ss.clWinst, o, t, tb:sp.tGB || 0, top:kTop};
   const onderdelen = goudenBalOnderdelen({...basis, eerder:eerdereGB(), prognose:wed >= 3});
   const mijn = los || gem === null ? 0 : onderdelen.totaal;
   wereldSterren().forEach(x => { if (!isTopClub(x.club)) x.club = pick(topClubs()); });
-  const lijst = wereldSterren().map(x => ({naam:metVoornaam(x.v, x.n), club:CLUBS[x.club].n, score:Math.round(x.basis + 9 + (stand(1)[0] === x.club || (CLUBS[x.club].gast && CLUBS[x.club].gast.rang === 1) ? 8 : 0))}));
-  lijst.push({naam:sp.naam, club:los ? 'zonder club' : club().n, score:mijn, jij:true});
+  const lijst = wereldSterren().map(x => ({naam:metVoornaam(x.v, x.n), club:CLUBS[x.club].n, k:sterKlasse(x), score:Math.round(x.basis + 9 + (stand(1)[0] === x.club || (CLUBS[x.club].gast && CLUBS[x.club].gast.rang === 1) ? 8 : 0))}));
+  lijst.push({naam:sp.naam, club:los ? 'zonder club' : club().n, k:o, score:mijn, jij:true});
   lijst.sort((x, y) => y.score - x.score || (x.jij ? -1 : 1));
   const plek = lijst.findIndex(x => x.jij) + 1, top = lijst[0].jij ? lijst[1] : lijst[0], gat = Math.max(0, top.score - mijn + 1);
   // Wat levert wat op (met jouw niveau erbij)
@@ -82,14 +92,14 @@ export function goudenBalStand(){
     tips.push(`Elke goal +${r1(1.3 * f)}, elke assist +${r1(.8 * f)}.`);
     if (!kamp) tips.push(`Kampioen worden: +${Math.round(10 * f)}.`);
     if (!S.ss.clWinst) tips.push(`De Champions League winnen: +${Math.round(10 * f)}. De beker: +${Math.round(6 * f)}.`);
-    tips.push(`Elk punt klasse boven de 70: +${r1(.65 * f)}.`);
+    tips.push(`Klasse telt zwaar: elk punt klasse levert +${r1((.65 + KL_TOP) * f)} op${o < kTop + KL_TOP_MAX / KL_TOP ? '' : ' (je zit al aan de maximale bonus tegen de wereldtop)'}. De wereldtop heeft klasse ${kTop}, jij ${o}.`);
   }
   // Wat veranderde er sinds vorige week (ten opzichte van de momentopname van een week eerder)
   const V = S.ss.gbVorig, verschil = [];
   if (V && gem !== null){
     for (const r of onderdelen.rij){ const oud = (V.rij.find(x => x.k === r.k) || {v:0}).v, d = r.v - oud; if (Math.abs(d) < 1) continue;
       const waarom = r.k === 'cijfer' ? `je gemiddelde ging van ${c1(V.gem)} naar ${c1(gem)}` : r.k === 'goals' ? (d < 0 ? 'je scoorde minder dan je gemiddelde, dus je doorgerekende goals dalen' : 'je scoorde, dus je doorgerekende goals stijgen')
-        : r.k === 'assists' ? (d < 0 ? 'minder assists dan je gemiddelde' : 'je gaf assists') : r.k === 'kamp' ? (d < 0 ? 'je staat niet meer bovenaan' : 'je staat nu bovenaan') : r.k === 'klasse' ? 'je klasse veranderde' : '';
+        : r.k === 'assists' ? (d < 0 ? 'minder assists dan je gemiddelde' : 'je gaf assists') : r.k === 'kamp' ? (d < 0 ? 'je staat niet meer bovenaan' : 'je staat nu bovenaan') : r.k === 'klasse' ? 'je klasse veranderde' : r.k === 'klasseTop' ? 'je klasse of die van de wereldtop veranderde' : '';
       verschil.push({l:GB_NAAM[r.k] || r.k, d, waarom}); }
     for (const x of V.rij) if (!onderdelen.rij.some(r => r.k === x.k) && Math.abs(x.v) >= 1) verschil.push({l:GB_NAAM[x.k] || x.k, d:-x.v, waarom:''});
   }

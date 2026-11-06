@@ -1,5 +1,6 @@
 import { S, club, mod, ovr, tmp, waarde } from '../../core/state.js';
 import { maakOpdrachten, sterrenNa } from './opdrachten.js';
+import { blesseer, blessureKans, terugVanBlessure } from '../speler/blessures.js';
 import { clamp, pick, poisson, randInt, rnd } from '../../core/utils.js';
 import { AANTAL_RONDES, AANV, CLUBS, POS, TEAMGENOTEN, TEGENSTANDERS, WINTER, INTER_WEKEN, weekFactor } from '../../data/gegevens.js';
 import { eindeBeker, naWedstrijd } from '../competitie/beker.js';
@@ -524,7 +525,7 @@ export function eindeWedstrijd(){
     statusPunten(wedstrijdPunten(M.cijfer, M.goals, M.assists, M.us > M.them, M.rood, M.rol === 'invaller') * weekFactor());
     focusNaWedstrijd(M);
     M.kaartTekst = kaartenVerwerken(M);
-    S.car.wed++; S.car.g += M.goals; S.car.a += M.assists; carCijfer(M.cijfer);
+    S.car.wed++; if (M.rood) S.sp.roodBij = S.car.wed; S.car.g += M.goals; S.car.a += M.assists; carCijfer(M.cijfer);
     M.bonus = topBonus(M); sterrenNa(M); // (de wedstrijddoelen: opdrachten.js)
     M.groei = null;
     if (M.cijfer >= 7 && rnd() < .25 * weekFactor() * leeftijdGroei()){
@@ -533,7 +534,8 @@ export function eindeWedstrijd(){
       if (ovr(sp) < sp.pot + 3){ verhoog(k, 1); M.groei = k; }
     }
     M.talent = rnd() < weekFactor() ? talentNaWedstrijd(M.cijfer) : null;
-    if (sp.fit < 30 && rnd() < .12 * pers('blessure')){ sp.blessure = Math.max(1, randInt(1, 4) - pers('herstel')); M.blessureNieuw = sp.blessure; }
+    if (sp.fit < 30 && rnd() < .12 * pers('blessure')){ sp.blessure = Math.max(1, randInt(1, 4) - pers('herstel')); sp.blesSoort = {id:'moe', n:'Overbelasting', kort:'overbelasting', wk:sp.blessure}; M.blessureNieuw = sp.blessure; }
+    else if (!M.inter && rnd() < blessureKans(sp.fit)){ const b = blesseer(); if (b){ M.blessureNieuw = b.wk; M.blesSoort = b; } } // (blessures.js: van hamstring tot kruisband)
   } else {
     M.cijfer = null;
     if (M.rol === 'tribune'){ mod('vert', 3); statusPunten(-weekFactor()); }
@@ -544,7 +546,7 @@ export function eindeWedstrijd(){
     if (sp.geschorst > 0) sp.geschorst--;
     sp.vorm *= .5;
     if (M.rol !== 'blessure') mod('fit', 10);
-    if (sp.blessure > 0) sp.blessure--;
+    if (sp.blessure > 0){ sp.blessure--; const t = terugVanBlessure(); if (t && S.week) S.week.tekst.push(t); }
   }
   if (M.us > M.them){ mod('moraal', 4); iedereen(1); }
   else if (M.us < M.them) mod('moraal', -4 * pers('nederlaagMoraal'));

@@ -77,7 +77,7 @@ export function scoorGewicht(x, k, gem){
 }
 export function gewogen(lijst, k){
   const metV = lijst.some(x => x.vriend), b = metV ? lijst.filter(x => x.basis && x.k !== undefined && !x.vriend) : [], gem = b.length ? b.reduce((a, x) => a + x.k, 0) / b.length : 60;
-  const w = x => metV ? scoorGewicht(x, k, gem) : x[k];
+  const w = x => x.bles > 0 ? 0 : metV ? scoorGewicht(x, k, gem) : x[k]; // (een geblesseerde speelt niet, dus scoort niet)
   let tot = 0; for (const x of lijst) tot += w(x); let r = rnd() * tot; for (const x of lijst){ r -= w(x); if (r <= 0) return x; } return lijst[lijst.length - 1];
 }
 export const vindSpeler = (id, n) => selectie(id).find(x => x.n === n) || null;

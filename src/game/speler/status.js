@@ -13,6 +13,7 @@ import { MAX_PERS, PERS, pers } from './persoonlijkheid.js';
 import { zetWereld } from '../../data/gegevens.js';
 import { ik } from '../../core/geslacht.js';
 import { eindLengte } from './lichaam.js';
+import { chemie } from '../team/kleedkamer.js';
 
 /* ===================== Status bij de club ===================== */
 // Startstatus bij een nieuwe club: hoe beter je bent dan de club en hoe bekender je bent, hoe hoger
@@ -22,18 +23,40 @@ export function startStatus(id, cObj){
   // Een tiener is bij een nieuwe club altijd eerst een jonkie, hoe goed hij ook is
   return sp.leeftijd < 20 ? Math.min(st, 8) : st;
 }
-// Niveau uit punten, met voorwaarden voor aanvoerder (1 seizoen, leeftijd) en clublegende (4 seizoenen)
-export function niveauVoor(pt, sz, wed, legende, t, leeftijd){
+// Niveau uit punten, met voorwaarden voor aanvoerder (aanvOk: de eisen hieronder) en clublegende (4 seizoenen)
+export function niveauVoor(pt, sz, wed, legende, t, leeftijd, aanvOk = sz >= 1 && leeftijd >= 23){
   if (legende) return LEGENDE;
   let n = 0;
   STATUS.forEach((s, i) => { if (pt >= s.min) n = i; });
   if (n === 0 && wed >= 10 && pt >= 8) n = 1; // na 10 wedstrijden ben je geen nieuwkomer meer, als je niet slecht speelt
   if (n >= LEGENDE && sz < 4) n = AANV;
-  if (n >= AANV && (sz < 1 || leeftijd < 21)) n = AANV - 1;
+  if (n >= AANV && !aanvOk) n = AANV - 1;
   return n;
 }
-export const aanvLeeftijd = () => 21;
-export function statusNiveau(){ const sp = S.sp; return niveauVoor(sp.status, sp.clubSz, sp.clubWed, sp.legendeHier, club().t, sp.leeftijd); }
+// Aanvoerder word je niet zomaar: naast je statuspunten moet de groep achter je staan, de trainer je vertrouwen,
+// en heb je ervaring nodig. Onder de 23 kan het ook (vanaf 19), maar dan zijn de eisen strenger: dat gebeurt maar zelden.
+export const aanvLeeftijd = () => 19;
+export const JONG_AANV = 23;
+export function aanvoerderEisen(){
+  const sp = S.sp, jong = sp.leeftijd < JONG_AANV, rood = sp.roodBij != null ? S.car.wed - sp.roodBij : 99, groep = Math.round(chemie());
+  const eis = (t, nu, doel, eenheid = '') => ({t, nu, doel, eenheid, ok:nu >= doel, voortgang:Math.max(0, Math.min(1, nu / doel))});
+  return [
+    eis('Statuspunten', Math.floor(sp.status), STATUS[AANV].min),
+    eis('Hele seizoenen bij de club', sp.clubSz, 1),
+    eis('Wedstrijden voor de club', sp.clubWed, 30),
+    {...eis('Vertrouwen van de trainer', Math.round(sp.vert), jong ? 90 : 75), tip:'Train hard, speel goed en blijf uit de problemen.'},
+    {...eis('Band met de groep', groep, jong ? 70 : 60), tip:'Doe dingen met je teamgenoten (Team: praten, samen trainen, uitpraten).'},
+    eis('Wedstrijden in je carrière', S.car.wed, 80),
+    {...eis('Wedstrijden zonder rode kaart', Math.min(rood, 10), 10), t:'Geen rode kaart in je laatste 10 wedstrijden'},
+    eis('Leeftijd', sp.leeftijd, aanvLeeftijd(), ' jaar'),
+  ];
+}
+export function statusNiveau(){
+  const sp = S.sp;
+  // al aanvoerder? Dan hou je de band zolang je statuspunten hoog genoeg blijven. Anders moeten alle eisen gehaald zijn
+  const aanvOk = sp.status >= STATUS[AANV].min && ((sp.statusNiveau >= AANV && sp.clubSz >= 1) || aanvoerderEisen().every(e => e.ok));
+  return niveauVoor(sp.status, sp.clubSz, sp.clubWed, sp.legendeHier, club().t, sp.leeftijd, aanvOk);
+}
 export function statusNaam(n){ return n === 0 && S.sp.leeftijd < 21 ? 'Jonkie' : STATUS[n].n; }
 export function statusPunten(d){ if (d > 0) d *= pers('status'); S.sp.status = clamp(S.sp.status + d, 0, 100); }
 // Punten per wedstrijd: langzaam omhoog, na een slechte wedstrijd hard omlaag
@@ -50,7 +73,7 @@ export function statusDrempel(){
   // Bankspeler: verdien het met goede wedstrijden, of hoor er na 10 wedstrijden vanzelf bij (als je niet slecht speelt)
   if (doel === 1 && sp.clubWed < 10) nodig[0] = sp.status >= 8 ? `${nodig[0]} met goede wedstrijden (of nog ${10 - sp.clubWed} wedstrijden spelen)` : `${nodig[0]} met goede wedstrijden (of na ${10 - sp.clubWed} wedstrijden, als je dan minstens 8 statuspunten hebt)`;
   else if (doel === 1) nodig[0] = `${nodig[0]} met goede wedstrijden`;
-  if (doel === AANV){ if (sp.clubSz < 1) nodig.push('1 heel seizoen bij de club'); if (sp.leeftijd < aanvLeeftijd()) nodig.push(`minimaal ${aanvLeeftijd()} jaar`); }
+  if (doel === AANV) for (const e of aanvoerderEisen().slice(1)) if (!e.ok) nodig.push(`${e.t.toLowerCase()} ${e.nu}/${e.doel}`);
   if (doel === LEGENDE && sp.clubSz < 4) nodig.push(`${4 - sp.clubSz} ${4 - sp.clubSz === 1 ? 'seizoen' : 'seizoenen'} meer bij de club`);
   return {naam:STATUS[doel].n, nodig};
 }

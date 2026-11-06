@@ -1,7 +1,7 @@
 import { S, club, gemCijfer, ovr, salarisLabel, seizoenLabel, sterren, tmp, waarde, attr } from '../../core/state.js';
 import { knop, tabBalk } from '../../core/ui.js';
 import { clamp, esc, geldTxt } from '../../core/utils.js';
-import { AANTAL_RONDES, CLUBS, DIVS, LEGENDE, POS, SPONSOR_CAT, STATUS, STATUS_KORT, TRAINBAAR, landInfo, STATUS_ROL, STATUS_UITLEG, WINTER, rondeInWeek, rondesVan, rondesVoor } from '../../data/gegevens.js';
+import { AANV, AANTAL_RONDES, CLUBS, DIVS, LEGENDE, POS, SPONSOR_CAT, STATUS, STATUS_KORT, TRAINBAAR, landInfo, STATUS_ROL, STATUS_UITLEG, WINTER, rondeInWeek, rondesVan, rondesVoor } from '../../data/gegevens.js';
 import { bekerAgenda, vBekerKaart } from '../../game/competitie/beker.js';
 import { stand } from '../../game/competitie/spelers.js';
 import { interStatus, kanStoppenInter, kanTerugInter, landenVoor, magInterland, stopInternational, terugInternational } from '../../game/interlands/interlands.js';
@@ -13,7 +13,7 @@ import { isProf } from '../../game/prive/sponsors.js';
 import { autoInfo, woning } from '../../game/prive/wonen-auto.js';
 import { vKalmte } from '../../game/speler/kalmte.js';
 import { fmt1, gemiddelde, huurOuder } from '../../game/speler/o23.js';
-import { statusDrempel, statusNaam, statusNiveau } from '../../game/speler/status.js';
+import { JONG_AANV, aanvoerderEisen, statusDrempel, statusNaam, statusNiveau } from '../../game/speler/status.js';
 import { rugnummer } from '../../game/team/rugnummers.js';
 import { fixture } from '../../game/competitie/competitie.js';
 import { clubLogo } from '../../data/logos.js';
@@ -26,6 +26,15 @@ import { OORDEEL, besteLeagues, mijnLeague } from '../../game/speler/niveau.js';
 import { vr } from '../../core/geslacht.js';
 
 export function balk(l, v, cls = ''){ return `<div class="balk ${cls}"><span>${l}</span><span class="b"><i style="width:${clamp(v, 0, 100)}%"></i></span><span class="v">${Math.round(v)}</span></div>`; }
+// Op weg naar de aanvoerdersband: een balk (gemiddelde van alle eisen) en per eis je stand
+function vAanvoerderEisen(){
+  const l = aanvoerderEisen(), pct = Math.round(l.reduce((a, e) => a + e.voortgang, 0) / l.length * 100), jong = S.sp.leeftijd < JONG_AANV;
+  return `<div class="aanveisen"><div class="rij" style="justify-content:space-between"><span class="label">Op weg naar aanvoerder</span><span class="label">${l.filter(e => e.ok).length}/${l.length} eisen</span></div>
+    <div class="aanvbalk" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Op weg naar aanvoerder"><i style="width:${pct}%"></i></div>
+    <ul>${l.map(e => `<li class="${e.ok ? 'klaar' : ''}"><span class="vink">${e.ok ? '✓' : '○'}</span>${esc(e.t)}<span class="muted">${e.nu}${e.eenheid}/${e.doel}${e.eenheid}</span></li>`).join('')}</ul>
+    ${l.filter(e => !e.ok && e.tip).map(e => `<p class="muted klein-tekst">💡 ${esc(e.tip)}</p>`).join('')}
+    ${jong ? `<p class="muted klein-tekst">Jong aanvoerder (onder de ${JONG_AANV}): de trainer en de groep moeten extra veel vertrouwen in je hebben.</p>` : ''}</div>`;
+}
 export function vStatus(){
   const sp = S.sp, n = statusNiveau(), d = statusDrempel();
   if (sp.clubloos) return `<div class="status"><span class="label">Status</span><div class="statusnaam">Zonder club</div><p class="muted klein-tekst">Al ${sp.clubloos.weken} ${sp.clubloos.weken === 1 ? 'week' : 'weken'}. Bij een nieuwe club begin je opnieuw.</p></div>`;
@@ -41,6 +50,7 @@ export function vStatus(){
     ${sp.o23 ? '' : `<p class="muted klein-tekst statusrol">${STATUS_UITLEG[n]}</p>`}
     <div class="segs">${segs}</div>
     <div class="treden">${namen}</div>
+    ${!sp.o23 && n >= 2 && n < AANV ? vAanvoerderEisen() : ''}
     <p class="muted klein-tekst">${sp.o23 ? 'Bewijs jezelf bij de O23 om terug te komen bij de selectie.' : d ? `Volgende stap omhoog: ${d.naam} (${STATUS_ROL[n + 1]}) · nog ${d.nodig.join(' en ')}` : 'Hoger kan niet. Je naam staat voor altijd in de clubboeken.'}</p>
   </div>`;
 }
@@ -159,7 +169,7 @@ export function vZij(){
         <div><span class="label">Gem. cijfer</span><b>${gem === null ? '–' : gem.toFixed(1).replace('.', ',')}</b></div>
       </div>
       <div><span class="label">Privé</span><div>${prive}</div></div>
-      ${sp.blessure > 0 ? `<p style="color:var(--fout)">${sp.verlof ? 'Zwangerschapsverlof' : 'Geblesseerd'}: nog ${sp.blessure} ${sp.blessure === 1 ? 'week' : 'weken'}</p>` : ''}
+      ${sp.blessure > 0 ? `<p style="color:var(--fout)">${sp.verlof ? 'Zwangerschapsverlof' : `Geblesseerd${sp.blesSoort && sp.blesSoort.kort ? ` (${esc(sp.blesSoort.kort)})` : ''}`}: nog ${sp.blessure} ${sp.blessure === 1 ? 'week' : 'weken'}</p>` : ''}
     </div>`;
   const leeg = t => `<div class="kaart"><p class="muted">${t}</p></div>`;
   const tabs = {

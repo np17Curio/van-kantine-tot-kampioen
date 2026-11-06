@@ -106,7 +106,7 @@ export function eindeNacompetitie(){
     sp.vorm = clamp(sp.vorm * .6 + (M.cijfer - 6.5) * .7, -3, 3);
     sp.rep = clamp(sp.rep + (M.cijfer - 6.5) + M.goals * .8 + (winst ? 1 : 0), 0, 100);
     staminaNaWedstrijd(M);
-    S.car.wed++; S.car.g += M.goals; S.car.a += M.assists; carCijfer(M.cijfer);
+    S.car.wed++; if (M.rood) S.sp.roodBij = S.car.wed; S.car.g += M.goals; S.car.a += M.assists; carCijfer(M.cijfer);
     statusPunten(wedstrijdPunten(M.cijfer, M.goals, M.assists, winst, M.rood, M.rol === 'invaller') * .5);
     M.bonus = topBonus(M); sterrenNa(M); // (de wedstrijddoelen: opdrachten.js)
     focusNaWedstrijd(M); volgersNaWedstrijd(M);

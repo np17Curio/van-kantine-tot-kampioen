@@ -169,7 +169,7 @@ export function vMatchEnd(){
     if (M.reeksTekst) html += `<p class="melding">${esc(M.reeksTekst)}</p>`;
     if (M.rivaalTekst) html += `<p class="melding">${esc(M.rivaalTekst)}</p>`;
     if (varTekst(M)) html += `<p class="melding var">${esc(varTekst(M))}</p>`;
-    if (M.blessureNieuw) html += `<p style="color:var(--fout)">Je hebt je geblesseerd en ligt ${M.blessureNieuw} ${M.blessureNieuw === 1 ? 'week' : 'weken'} uit. Te weinig rust genomen?</p>`;
+    if (M.blessureNieuw) html += M.blesSoort ? `<p style="color:var(--fout)"><b>${esc(M.blesSoort.n)}.</b> Je ligt ${M.blessureNieuw} ${M.blessureNieuw === 1 ? 'week' : 'weken'} uit.${M.blessureNieuw >= 20 ? ' Je seizoen is waarschijnlijk voorbij.' : ''}${M.blesSoort.gevolg ? ` Je houdt er blijvend iets aan over: ${esc(M.blesSoort.gevolg)}.` : ''}</p>` : `<p style="color:var(--fout)">Je hebt je geblesseerd en ligt ${M.blessureNieuw} ${M.blessureNieuw === 1 ? 'week' : 'weken'} uit. Te weinig rust genomen?</p>`;
     if (M.kampioen) html += `<div class="kampioen"><span class="label">Kampioen!</span><h2>🏆 ${esc(club().n)}</h2><p>${esc(M.kampioenTekst)}</p></div>`;
     if (M.recordTekst) html += `<div class="kampioen"><span class="label">Record!</span>${[].concat(M.recordTekst).map(t => `<p>${esc(t)}</p>`).join('')}</div>`;
     if (M.derbyTekst) html += `<p class="melding" style="${M.us < M.them ? 'color:var(--fout);border-color:var(--fout)' : ''}">${esc(M.derbyTekst)}</p>`;

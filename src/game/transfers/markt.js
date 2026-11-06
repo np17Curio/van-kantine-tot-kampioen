@@ -1,4 +1,4 @@
-import { S, club, mod } from '../../core/state.js';
+import { S, club, mod, ovr } from '../../core/state.js';
 import { clamp, esc, geldTxt, pick, randInt, rnd } from '../../core/utils.js';
 import { BASE, CLUBS, DIVS, LAAGSTE, NL_CLUBS, divClubs, ligaVan } from '../../data/gegevens.js';
 import { LAND_DATA, SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
@@ -100,12 +100,14 @@ export function clubTransfers(soort, {zonderMijn = false} = {}){
     const d = doeDeal(verkoper, koper, speler, hoger, delta, soort); if (d) deals.push(d);
   }
   deals.push(...buitenlandAankopen(comp, soort, mijn, zonderMijn, delta));
+  const succes = soort === 'zomer' && t <= 2 ? succesAankopen(comp, mijn, zonderMijn) : {deals:[], clubs:[]};
+  deals.push(...succes.deals);
   const inhaal = inhaalAankopen(zonderMijn ? comp.filter(i => i !== mijn) : comp, onder, soort);
   deals.push(...inhaal.deals);
   if (soort === 'zomer') jeugdDoorstroom(comp.includes(mijn) ? comp : comp.concat(mijn));
   S.clubs = CLUBS.map(c => [c.t, c.s]);
   const opgekomen = (S.jeugdIn || []).slice(jeugdStart).filter(x => x.club === mijn);
-  markNieuws(deals, t, mijn, jeugd, opgekomen, gestopt, inhaal.clubs);
+  markNieuws(deals, t, mijn, jeugd, opgekomen, gestopt, inhaal.clubs, succes.clubs);
   return deals;
 }
 // ---------- Aankopen in het buitenland ----------
@@ -161,6 +163,41 @@ export function buitenlandAankopen(comp, soort, mijn, zonderMijn, delta = {}){
     }
   }
   return deals;
+}
+// ---------- Versterking door succes ----------
+// Een club die vorig seizoen kampioen werd of in de top 3 eindigde (of een Europese beker won) heeft geld en aantrekkingskracht:
+// in de zomer haalt hij spelers die écht beter zijn dan zijn zwakste basisspelers. Ben jij een topspeler bij je club, dan willen
+// spelers naast jou spelen. Grenzen: hooguit +2 per zomer, niet meer dan 3 boven de op één na sterkste club, nooit boven 93.
+export const SUCCES = {kampioen:2, top3:1, europa:1, ster:1, maxPlus:2, voorsprong:3, plafond:93};
+export function succesRedenen(id, mijn){
+  const v = (S.vorig || {})[id], B = (S.ss && S.ss.bekers) || {}, r = [];
+  if (v && v.plek === 1) r.push({n:SUCCES.kampioen, t:'het kampioenschap'});
+  else if (v && v.plek <= 3) r.push({n:SUCCES.top3, t:`de ${v.plek}e plaats`});
+  if (['cl', 'eur'].some(k => B[k] && B[k].winnaar === id)) r.push({n:SUCCES.europa, t:'de Europese beker'});
+  if (id === mijn && S.sp && !S.sp.clubloos && !S.sp.o23 && ovr(S.sp) >= CLUBS[id].s + 6) r.push({n:SUCCES.ster, t:'jouw naam (spelers willen naast jou spelen)'});
+  return r;
+}
+export function succesAankopen(comp, mijn, zonderMijn){
+  const deals = [], clubs = [], landen = SPEEL_LANDEN.filter(l => l !== thuisLand()).concat(VER_LANDEN);
+  for (const id of comp){
+    if (zonderMijn && id === mijn) continue;
+    const redenen = succesRedenen(id, mijn), n = redenen.reduce((a, r) => a + r.n, 0); if (!n) continue;
+    const c = CLUBS[id], tweede = Math.max(30, ...comp.filter(i => i !== id).map(i => CLUBS[i].s)), plafond = Math.min(SUCCES.plafond, tweede + SUCCES.voorsprong);
+    let erbij = 0; const l = [];
+    for (let i = 0; i < n + 2 && l.length < n && erbij < SUCCES.maxPlus && c.s < plafond; i++){
+      const sel = selectie(id), zwak = sel.filter(x => x.basis && x.k !== undefined && !x.vriend && !isRivaal(x) && (x.pos !== 'K' || rnd() < .15)).sort((a, b) => a.k - b.k)[0]; if (!zwak) break;
+      const k = clamp(c.s + randInt(1, 4), 30, 94); if (k < zwak.k + 2) continue; // alleen iemand die echt beter is
+      const land = pick(landen), namen = (LAND_NAMEN[land] || ACHTERNAMEN).filter(a => naamVrij(sel, a)), nm = namen.length ? pick(namen) : pick(ACHTERNAMEN.filter(a => naamVrij(sel, a))) || 'Novak';
+      const nieuw = {v:pick(VOORL), n:nm, pos:zwak.pos, basis:true, k, lft:randInt(23, 28), g:zwak.g, a:zwak.a};
+      neemOp(id, nieuw);
+      const plus = Math.min(k - zwak.k >= 5 ? 2 : 1, SUCCES.maxPlus - erbij, plafond - c.s);
+      if (plus > 0){ c.s = clamp(c.s + plus, 30, 95); erbij += plus; }
+      const d = noteerDeal(null, id, nieuw, 'zomer', {buitenland:true, succes:true, land, vanNaam:vanClub(land, false), som:transferSom(k, false), k});
+      deals.push(d); l.push(d);
+    }
+    if (l.length){ clubs.push({id, n:l.length, erbij, reden:redenen.map(r => r.t)}); if (id === mijn) S.succesInv = {jaar:S.jaar, club:id, n:l.length, erbij, reden:redenen.map(r => r.t), s:c.s}; }
+  }
+  return {deals, clubs};
 }
 // Waar komt een buitenlandse aankoop vandaan: "Real Montaña (Spanje)" of "Brazilië"
 export const buitenlandBron = d => d.vanNaam ? `${d.vanNaam} (${d.land})` : d.land;
@@ -219,11 +256,11 @@ const GROEI = lft => lft <= 21 ? [0, 4] : lft <= 25 ? [0, 2] : lft <= 29 ? [-1, 
 export function ontwikkelSpelers(clubs, mijn){
   const gestopt = [];
   for (const id of clubs){
-    const sel = selectie(id);
+    const sel = selectie(id), v = (S.vorig || {})[id], winnaars = id === mijn && v && v.plek === 1 ? .7 : .5; // (een winnende groep groeit samen)
     for (const x of sel){
       if (isRivaal(x) || x.vriend) continue; // je rivaal en je jeugdvriend groeien zelf (rivaal.js, journey.js)
       x.lft = (x.lft || 25) + 1; x.kVorig = x.k;
-      const [lo, hi] = GROEI(x.lft); x.k = clamp(x.k + randInt(lo, hi) + (x.basis && x.lft <= 25 && rnd() < .5 ? 1 : 0), 25, 95);
+      const [lo, hi] = GROEI(x.lft); x.k = clamp(x.k + randInt(lo, hi) + (x.basis && x.lft <= 25 && rnd() < winnaars ? 1 : 0), 25, 95);
     }
     // stoppen: 34 jaar en ouder (de keeper mag tot 36)
     for (const x of sel.filter(x => !isRivaal(x) && !x.vriend && x.lft >= (x.pos === 'K' ? 36 : 34))){ sel.splice(sel.indexOf(x), 1); if (id === mijn){ gestopt.push(x); delete kleedkamer().rel[x.n]; } }
@@ -252,11 +289,15 @@ export function jeugdDoorstroom(clubs){
   }
 }
 // Wat het voor jou betekent, en de krant
-function markNieuws(deals, t, mijn, jeugd, opgekomen = [], gestopt = [], inhaal = []){
+function markNieuws(deals, t, mijn, jeugd, opgekomen = [], gestopt = [], inhaal = [], succes = []){
   const sp = S.sp, cn = id => id == null ? 'het buitenland' : CLUBS[id].n, naam = d => metVoorletter(d), prijs = d => d.som ? ` voor ${geldTxt(d.som)}` : '';
   const herkomst = d => d.buitenland ? `van ${buitenlandBron(d)}` : d.vrij ? 'transfervrij uit het buitenland' : d.reserve ? `reservespeler bij ${cn(d.van)}` : `van ${cn(d.van)}`;
   const erin = deals.filter(d => d.naar === mijn), eruit = deals.filter(d => d.van === mijn), rest = deals.filter(d => d.naar !== mijn && d.van !== mijn && !d.inhaal);
   const tekst = [];
+  const en = l => l.length > 1 ? l.slice(0, -1).join(', ') + ' en ' + l[l.length - 1] : l[0];
+  // clubs die na hun succes investeren (bij jouw club staan de namen ook in de aankopen hieronder)
+  for (const c of succes.filter(c => c.id !== mijn)){ const l = deals.filter(d => d.succes && d.naar === c.id);
+    krantMelding(`${cn(c.id)} investeert na ${en(c.reden)}`, `${cn(c.id)} haalt ${l.map(d => `${naam(d)} (${POS_NAAM[d.pos].toLowerCase()}, klasse ${d.k}, ${herkomst(d)})`).join(', ')}. De rest van de ${DIVS[t]} is gewaarschuwd.`); }
   // clubs die achterlopen en zich gericht versterken
   for (const c of inhaal){ const l = deals.filter(d => d.inhaal && d.naar === c.id);
     krantMelding(`${cn(c.id)} slaat toe op de transfermarkt: ${l.length} ${l.length === 1 ? 'versterking' : 'versterkingen'}`, `${cn(c.id)} wil niet achterblijven in de ${DIVS[t]} en haalt ${l.map(d => `${naam(d)} (${POS_NAAM[d.pos].toLowerCase()}, ${herkomst(d)})`).join(', ')}. Geen grote namen, wel spelers die het team beter maken.`); }
@@ -268,6 +309,7 @@ function markNieuws(deals, t, mijn, jeugd, opgekomen = [], gestopt = [], inhaal 
   if (rest.length) krantMelding(`Transfers in de ${DIVS[t]}`, rest.slice(0, 5).map(d => `${kortClub(d.naar)} haalt ${naam(d)} (${d.buitenland ? d.land : kortClub(d.van)})`).join(' · ') + '.');
   if (!jeugd){
     if (erin.length) tekst.push(`Nieuw bij ${cn(mijn)}: ${erin.map(d => `${naam(d)} (${POS_NAAM[d.pos].toLowerCase()}, ${herkomst(d)}${d.ster ? ', een ster' : ''})`).join(', ')}.`);
+    const sc = succes.find(c => c.id === mijn); if (sc) tekst.push(`Dankzij ${en(sc.reden)} kan de club investeren: ${sc.n} ${sc.n === 1 ? 'versterking' : 'versterkingen'}. De clubsterkte gaat omhoog naar ${CLUBS[mijn].s}.`);
     const ik = inhaal.find(c => c.id === mijn); if (ik) tekst.push(`De club wil niet achterblijven in de ${DIVS[t]}: met de nieuwe spelers gaat de clubsterkte omhoog naar ${CLUBS[mijn].s}.`);
     for (const d of eruit){
       const b = band(d.n); delete kleedkamer().rel[d.n];

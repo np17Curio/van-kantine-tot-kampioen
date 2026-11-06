@@ -13,6 +13,7 @@ import { PERS, karakter } from './persoonlijkheid.js';
 import { groeiSeizoen, plaats as plaatsRivaal } from './rivaal.js';
 import { iedereen, zetBand as kleedBand } from '../team/kleedkamer.js';
 import { DELEN, VERVOLG, deelVan } from './journey-delen.js';
+import { BLESSURES, ZWAAR } from './blessures.js';
 import { eersteSeizoen } from '../transfers/vertrek.js';
 import { ik, team, vp, vr, vriendVrouw } from '../../core/geslacht.js';
 import { ik as IK } from '../../core/geslacht.js'; // (in hoofdstuk 0 is 'ik' een lokale variabele)
@@ -245,7 +246,7 @@ export function plaatsVriend(id, o23){
   const sel = selectie(id), linie = LINIE_VAN[vriendPos()];
   if (sel.some(y => y.vriend)) return;
   const bank = sel.filter(y => y.pos === linie && !y.basis).sort((a, b) => a.k - b.k)[0]; if (bank) sel.splice(sel.indexOf(bank), 1);
-  sel.push({v:v.v, n:v.n, pos:linie, basis:!o23, g:linie === 'A' ? 4 : linie === 'M' ? 2.2 : linie === 'K' ? 0 : 1, a:linie === 'M' ? 2.6 : linie === 'K' ? .1 : 1.4, k:v.k, lft:v.lft, vriend:true});
+  sel.push({v:v.v, n:v.n, pos:linie, basis:!o23, g:linie === 'A' ? 4 : linie === 'M' ? 2.2 : linie === 'K' ? 0 : 1, a:linie === 'M' ? 2.6 : linie === 'K' ? .1 : 1.4, k:v.k, lft:v.lft, vriend:true, bles:v.blessure > 0 ? v.blessure : 0});
 }
 // Je eigen club: die van je contract (op huur in eigen land: je eigen club, niet de huurclub)
 const mijnVasteClub = () => { const sp = S.sp; return sp.huur && (!sp.huur.ouderLand || sp.huur.ouderLand === thuisLand()) ? sp.huur.ouder : sp.club; };
@@ -354,7 +355,7 @@ export function vriendStats(){
   const v = S.sp && S.sp.vriend; let g = 0, a = 0; if (!v) return {g, a};
   // Speelt hij in een ander land dan jij, dan zit zijn competitie niet in het spel: een schatting uit zijn klasse en de speelronde
   if (!v.weg && !vriendHier() && v.club != null){
-    const k = v.k || 60, pos = LINIE_VAN[vriendPos()] || 'M', ronde = Math.min(S.ronde || 0, 34) * .85, vorm = .8 + ((S.jaar * 37 + v.n.length * 11) % 40) / 100;
+    const k = v.k || 60, pos = LINIE_VAN[vriendPos()] || 'M', gemist = v.blesSz && v.blesSz.jaar === S.jaar ? v.blesSz.wk : 0, ronde = Math.max(0, Math.min(S.ronde || 0, 34) - gemist) * .85, vorm = .8 + ((S.jaar * 37 + v.n.length * 11) % 40) / 100;
     const rg = pos === 'A' ? .3 + (k - 65) * .012 : pos === 'M' ? .12 + (k - 65) * .004 : pos === 'K' ? 0 : .04, ra = pos === 'A' ? .12 : pos === 'M' ? .2 + (k - 65) * .004 : pos === 'K' ? .01 : .06;
     return {g:Math.max(0, Math.round(rg * ronde * vorm)), a:Math.max(0, Math.round(ra * ronde * vorm))};
   }
@@ -401,6 +402,7 @@ export function vriendOuder(){
   vriendGroei(rest);
   const gat = ovr(sp) - v.k; if (gat >= 6 && v.lft < 30){ zetVriendK(v.k + (gat >= 10 ? 3 : 2)); if (v.k > v.pot) v.pot = v.k; }
   v.groeiRest = 0; v.lft++; v.groeiTot = S.jaar; zetVriendK(v.k);
+  if (v.blessure > 0){ v.blessure = Math.max(0, v.blessure - 8); const x = vriendSpeler(); if (x) x.bles = v.blessure; if (!v.blessure) v.blesSoort = null; } // (de zomer telt als 8 weken herstel)
   const begin = v.kVorig ?? voor; v.kVorig = v.k; // (klasse aan het begin van dit seizoen)
   const groei = v.k > begin ? `${v.voornaam} is ook beter geworden: klasse ${begin} → ${v.k}.` : v.k < begin ? `${v.voornaam} gaat wat achteruit: klasse ${begin} → ${v.k}.` : null;
   const tr = vriendTransfer();
@@ -448,7 +450,7 @@ export function vriendSeizoen(){
 // eerste elftal (of allebei bij de O23) zitten en hij in de basis staat
 export const vriendSpeler = () => { const sp = S.sp, v = sp.vriend; if (!v || v.club == null || !vriendHier()) return null; return selectie(v.club).find(y => y.vriend) || null; };
 export function vriendInTeam(M){
-  const sp = S.sp, v = sp.vriend; if (!M || !v) return false;
+  const sp = S.sp, v = sp.vriend; if (!M || !v || v.blessure > 0) return false;
   if (M.inter) return !!(M.vriendMee && M.vriendMee.basis); // samen in het nationale team
   if (M.selectie) return !vriendApart();
   if (!vriendActief() || !bijJou() || !!v.o23 !== !!sp.o23) return false;
@@ -458,7 +460,7 @@ export function vriendInTeam(M){
 export const zetVriendBand = d => { if (S.sp.vriend && d) zetBand(d); };
 // Speel je tegen je vriend? (hij speelt bij de tegenstander en is geen rivaal)
 // Speelt hij bij de tegenstander (en is hij geen rivaal)? En staat hij in hun basiself (zoals in de intro)?
-export const vriendBijTegenstander = opp => { const sp = S.sp; return opp != null && !sp.o23 && vriendActief() && vriendHier() && sp.vriend.club === opp && !sp.vriend.o23; };
+export const vriendBijTegenstander = opp => { const sp = S.sp; return opp != null && !sp.o23 && vriendActief() && vriendHier() && sp.vriend.club === opp && !sp.vriend.o23 && !(sp.vriend.blessure > 0); };
 export const speeltTegenVriend = opp => vriendBijTegenstander(opp) && startElf(opp, false, 'M').elf.some(x => x.vriend);
 // Vóór de wedstrijd: hij appt je (één keer per week, niet verplicht)
 export function vriendDuelVraag(){
@@ -519,7 +521,7 @@ export function vriendActie(id){
 // ---------- samen in het nationale team ----------
 // Hij komt uit hetzelfde land als jij (jullie groeiden samen op). Opgeroepen als zijn klasse rond de drempel van dat land ligt.
 export function vriendInterland(land){
-  const sp = S.sp, v = sp.vriend; if (!v || S.trainer || vriendApart()) return null;
+  const sp = S.sp, v = sp.vriend; if (!v || S.trainer || vriendApart() || v.blessure > 0) return null;
   const zijnLand = (sp.herkomst && sp.herkomst.geboren) || interLand(); if (land !== zijnLand) return null;
   const d = interDrempel(land); if (v.k + randInt(-2, 2) < d) return null;
   return {basis:v.k >= d + 4, eerste:!(v.int && v.int.caps)};
@@ -690,12 +692,36 @@ export function vriendEvents(){
 }
 
 // ---------- elke week: jullie band, en een nieuwe kans voor de zaakwaarnemer ----------
+// ---------- zijn blessures ----------
+// Hij ligt eruit: hij speelt niet (startElf laat geblesseerden weg), scoort niet en gaat niet mee naar interlands
+export function blesseerVriend(id){
+  const v = S.sp.vriend, B = BLESSURES[id]; if (!v || !B) return 0;
+  const wk = randInt(B.wk[0], B.wk[1]); v.blessure = wk; v.blesSoort = {id, n:B.n, kort:B.kort, wk};
+  if (B.blijvend){ if (B.blijvend.pot) v.pot = Math.max(v.k, (v.pot || v.k) - B.blijvend.pot); zetVriendK(v.k - (B.blijvend.cond || 0)); }
+  const x = vriendSpeler(); if (x) x.bles = wk;
+  return wk;
+}
+function vriendBlessureWeek(){
+  const sp = S.sp, v = sp.vriend, J = sp.journey;
+  // Oude opslag: het verhaal van zijn kruisband was er al, maar hij speelde gewoon door. Nu ligt hij er alsnog uit (de weken die al voorbij zijn tellen mee)
+  if (!v.blesV2){ v.blesV2 = true;
+    if (J && J.h === 19 && vriendActief() && !(v.blessure > 0)){ const al = Math.max(0, (S.weekNr || 0) - (J.vorige || 0)), wk = (v.kbVerhaal = blesseerVriend('kruisband')) - al;
+      if (wk > 0){ v.blessure = wk; const x = vriendSpeler(); if (x) x.bles = wk; if (S.week) S.week.tekst.push(`${v.voornaam} revalideert nog van ${vr.zijn} kruisband: nog ${wk} weken.`); return; } else { v.blessure = 0; v.blesSoort = null; const x = vriendSpeler(); if (x) x.bles = 0; } } }
+  if (!(v.blessure > 0)) return;
+  v.blessure--; v.blesSz = v.blesSz && v.blesSz.jaar === S.jaar ? v.blesSz : {jaar:S.jaar, wk:0}; v.blesSz.wk++;
+  const x = vriendSpeler(); if (x) x.bles = v.blessure;
+  if (v.blessure <= 0){ const b = v.blesSoort || {wk:0, kort:''}; v.blesSoort = null;
+    if (S.week) S.week.tekst.push(`${v.voornaam} is weer fit${b.kort ? ` na ${vr.zijn} ${b.kort}blessure` : ''}! ${vr.Hij} appt je een foto vanaf het trainingsveld.`);
+    if (b.wk >= ZWAAR) krantMelding(`${v.voornaam} ${v.n} terug na ${b.kort}blessure`, `Na ${b.wk} weken revalidatie staat de ${vr.jeugdvriend} van ${sp.naam} weer op het veld.`); }
+}
+export const vriendGeblesseerd = () => { const v = S.sp && S.sp.vriend; return !!(v && v.blessure > 0); };
 export function vriendWeek(eerste){
   const sp = S.sp, v = sp.vriend, J = sp.journey; if (!v || S.trainer) return;
   vriendInhalen(); vriendTalent();
   if (v.komt && (eerste || (v.komt.na === 'winter' && S.ronde >= WINTER))) vriendKomt(); // hij komt naar jouw club
   if (!eerste && S.ronde >= WINTER && !sp.clubloos) vriendWinter();
   if (eerste) return;
+  vriendBlessureWeek();
   if (vriendActief()){
     // Zonder contact groeien jullie langzaam uit elkaar; bij dezelfde club zie je elkaar elke dag
     if (!S.week || !S.week.vriend) zetBand(bijJou() && !sp.o23 ? .5 : -1 * weekFactor());

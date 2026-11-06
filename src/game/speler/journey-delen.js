@@ -4,7 +4,7 @@ import { thuisLand } from '../../data/landen.js';
 import { krantMelding } from '../media/roddel.js';
 import { modFans } from '../wedstrijd/fans-pers.js';
 import { statusNiveau } from './status.js';
-import { MAKELAAR, bijJou, vriendInBasis, vriendPos, isKeeper, nulTxt, prestatie, interLand, laatsteWeek, opaNaam, vriendActief, vriendClubNaam, zetBand, zetRivaalBand } from './journey.js';
+import { MAKELAAR, bijJou, vriendInBasis, vriendPos, isKeeper, nulTxt, prestatie, interLand, laatsteWeek, opaNaam, vriendActief, vriendClubNaam, zetBand, zetRivaalBand, blesseerVriend } from './journey.js';
 import { ik, team, vr } from '../../core/geslacht.js';
 
 /* ===================== Jouw verhaal, deel 2 tot en met 4 ===================== */
@@ -171,14 +171,14 @@ export const VERVOLG = {
       o('De roddelsite publiekelijk aanvallen', 'fel', () => { modFans(4); mod('rep', -2); krantMelding(`${S.sp.naam} haalt hard uit naar roddelsite`, `"Dit is gewoon gelogen," schrijft ${ik.hij} op social media.`); return 'Je fans staan achter je, maar het verhaal leeft nog dagen door.'; })]})},
   19: {wanneer:c => c.sz >= 5 ? {} : null, inhoud:() => {
     const r = rol(), v = vn();
-    if (r === 'vriend') return {
-      tekst:[`Slecht nieuws: ${v} heeft ${vr.zijn} kruisband afgescheurd. De artsen zeggen dat het de vraag is of ${vr.hij} ooit nog op het oude niveau komt.`,
+    if (r === 'vriend'){ const V = S.sp.vriend, wk = V.kbVerhaal || (V.kbVerhaal = blesseerVriend('kruisband')); return { // (eenmalig: de inhoud wordt bij elke weergave opnieuw opgebouwd)
+      tekst:[`Slecht nieuws: ${v} heeft ${vr.zijn} kruisband afgescheurd. ${vr.Hij} ligt er zeker ${wk} weken uit. De artsen zeggen dat het de vraag is of ${vr.hij} ooit nog op het oude niveau komt.`,
         `Je bezoekt ${vr.hem} in het ziekenhuis. ${vr.Hij} probeert te lachen. "Weet je nog, ${penalty()}? Nu moet jij het voor ons allebei doen."`],
       opa:'"Ik heb nooit iemand zien terugkomen zonder iemand die in hem bleef geloven."',
       opts:[o('"Ik help je terug. Elke week."', 'kalm', () => { zetBand(15); mod('moraal', 3); mod('focus', -2); return 'Je gaat elke maandag langs bij ' + vr.zijn + ' revalidatie. Het wordt jullie vaste afspraak.'; }),
         o('"Je komt terug. Ik weet het zeker."', 'bal', () => { zetBand(8); return '' + vr.Hij + ' knikt. ' + vr.Hij + ' gelooft het een beetje meer.'; }),
         isKeeper() ? o('"Ik houd de volgende nul voor jou."', 'fel', () => { zetBand(6); mod('focus', 5); modFans(3); return 'Na je volgende nul houd je ' + vr.zijn + ' shirt omhoog. Het hele stadion klapt.'; })
-          : o('"Ik maak mijn volgende goal voor jou."', 'fel', () => { zetBand(6); mod('focus', 5); modFans(3); return 'Bij je volgende goal laat je ' + vr.zijn + ' rugnummer zien. Het hele stadion klapt.'; })]};
+          : o('"Ik maak mijn volgende goal voor jou."', 'fel', () => { zetBand(6); mod('focus', 5); modFans(3); return 'Bij je volgende goal laat je ' + vr.zijn + ' rugnummer zien. Het hele stadion klapt.'; })]}; }
     if (r === 'rivaal') return {
       tekst:[`De titelrace komt neer op jou en ${v}. ${isKeeper() ? 'Jij houdt de nul, ' + vr.hij + ' moet erlangs: wie dat duel wint' : 'Wie de meeste goals maakt'}, wint waarschijnlijk alles. De media noemen het "het duel van het decennium".`,
         'Op een galadiner staan jullie ineens naast elkaar bij de bar.'],

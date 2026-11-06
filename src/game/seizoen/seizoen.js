@@ -156,7 +156,8 @@ export function naSeizoen(){
   }
   if (!sp.clubloos) sp.contract--;
   sp.rep = clamp(sp.rep * .92, 0, 100);
-  sp.blessure = 0; sp.fit = 95;
+  // Een zware blessure loopt door in de zomer (8 weken herstel), een lichte is dan over
+  sp.blessure = Math.max(0, (sp.blessure || 0) - 8); if (!sp.blessure) sp.blesSoort = null; sp.fit = 95;
   // Promotie en degradatie gaan nu in: de nieuwe competities beginnen met een lege stand
   S.vorig = {}; for (let t = 1; t <= LAAGSTE; t++) stand(t).forEach((id, i) => { S.vorig[id] = {t, plek:i + 1}; });
   if (S.eind.wissels){ voerPromotieUit(S.eind.wissels); S.tab = nieuweTabellen(); S.ss.st = {}; S.ss.res = {}; }

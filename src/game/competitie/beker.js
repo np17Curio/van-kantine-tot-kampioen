@@ -191,7 +191,7 @@ export function eindeBeker(){
     sp.vorm = clamp(sp.vorm * .6 + (M.cijfer - 6.5) * .7, -3, 3);
     sp.rep = clamp(sp.rep + (M.cijfer - 6.5) + M.goals * .8, 0, 100);
     staminaNaWedstrijd(M);
-    S.car.wed++; S.car.g += M.goals; S.car.a += M.assists; carCijfer(M.cijfer);
+    S.car.wed++; if (M.rood) S.sp.roodBij = S.car.wed; S.car.g += M.goals; S.car.a += M.assists; carCijfer(M.cijfer);
     S.ss.bg = (S.ss.bg || 0) + M.goals; S.ss.ba = (S.ss.ba || 0) + M.assists; S.ss.bw = (S.ss.bw || 0) + 1;
     statusPunten(wedstrijdPunten(M.cijfer, M.goals, M.assists, winst, M.rood, M.rol === 'invaller') * .5);
     M.bonus = topBonus(M); sterrenNa(M); // (de wedstrijddoelen: opdrachten.js)

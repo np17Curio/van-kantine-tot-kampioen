@@ -266,10 +266,10 @@ export function vGbOpbouw(O, titel){
 function vGoudenBal(){
   const sp = S.sp; if (sp.o23 || S.trainer) return '';
   const G = goudenBalStand(), top = G.lijst.slice(0, 6), jij = G.lijst.find(x => x.jij), inTop = top.includes(jij);
-  const rij = (x, i) => `<li class="${x.jij ? 'mij' : ''}"><span>${i + 1}. ${esc(x.naam)} <span class="muted">· ${esc(x.club)}</span></span><b>${x.score}</b></li>`;
+  const rij = (x, i) => `<li class="${x.jij ? 'mij' : ''}"><span>${i + 1}. ${esc(x.naam)} <span class="muted">· ${esc(x.club)}${x.k ? ` · kl. ${x.k}` : ''}</span></span><b>${x.score}</b></li>`;
   return `<section id="goudenBalPanel" class="paneel sectie"><h3 class="sectiekop">Gouden Bal-race <span class="niv">verwachting · jij ${G.plek}e van ${G.lijst.length}</span></h3>
     <p class="muted klein-tekst">Punten als het seizoen zo doorgaat (jouw goals en assists doorgerekend: ${G.prognose.g} goals, ${G.prognose.a} assists). De sterren scoren aan het einde nog wat hoger of lager.</p>
-    <ol class="gb gbrace">${top.map(rij).join('')}${inTop ? '' : `<li class="mij"><span>${G.plek}. ${esc(jij.naam)} <span class="muted">· ${esc(jij.club)}</span></span><b>${jij.score}</b></li>`}</ol>
+    <ol class="gb gbrace">${top.map(rij).join('')}${inTop ? '' : `<li class="mij"><span>${G.plek}. ${esc(jij.naam)} <span class="muted">· ${esc(jij.club)}${jij.k ? ` · kl. ${jij.k}` : ''}</span></span><b>${jij.score}</b></li>`}</ol>
     <p>${G.plek === 1 ? 'Je staat bovenaan! Houd dit vol.' : `Je hebt nog ongeveer <b>${G.gat} punten</b> nodig om ${esc(G.top.naam)} in te halen.`}</p>
     ${vGbOpbouw(G.onderdelen, 'Zo komen jouw punten tot stand')}
     ${G.delta !== null && G.delta !== undefined ? `<p class="${G.delta < 0 ? 'fouttxt' : G.delta > 0 ? 'goedtxt' : 'muted'}">Sinds vorige week: ${G.delta > 0 ? '↑' : G.delta < 0 ? '↓' : '='}${Math.abs(G.delta)} ${Math.abs(G.delta) === 1 ? 'punt' : 'punten'}${G.verschil.length ? '' : '.'}</p>${G.verschil.length ? `<ul class="tips">${G.verschil.map(v => `<li><b class="${v.d < 0 ? 'omlaag' : 'omhoog'}">${esc(v.l)} ${fmtPunt(v.d)}</b>${v.waarom ? `: ${esc(v.waarom)}` : ''}</li>`).join('')}</ul>` : ''}` : ''}
