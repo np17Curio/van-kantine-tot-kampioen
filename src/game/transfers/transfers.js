@@ -37,6 +37,10 @@ export function eersteClubBod(){
   const salaris = Math.max(100, Math.round(Math.min(sp.salaris * .2, salarisVoor(c.t, ovr(sp), c.s) * .6) / 100) * 100);
   return {...o, salaris, jaren:1, laatsteDans:true, oudSalaris:sp.salaris};
 }
+// Een club biedt alleen als jij niet véél beter bent dan zijn ploeg: zo'n speler kan hij niet betalen, en die wil er ook niet heen.
+// normaal: gewone biedingen · lijst: je staat op de transferlijst · weg: je moet weg of je contract loopt af
+export const AMBITIE = {normaal:12, lijst:15, weg:15};
+export const pastBijClub = (s, marge = AMBITIE.normaal) => s >= ovr(S.sp) - marge;
 export function transferScore(){
   const sp = S.sp, gem = gemCijfer() ?? S.vorigGem;
   return ovr(sp) + (sp.rep - 30) * .08 + (gem - 6.5) * 3 + (sp.transferWens ? 2 : 0) + Math.min(1.5, Math.max(0, Math.log10(social().volgers + 1) - 4) * .75) - (sp.imago > 0 ? 5 : 0);
@@ -47,7 +51,7 @@ export function kandidaatClubs(){
   if (sp.clubWed < 10) return []; // eerst jezelf bewijzen bij je huidige club
   return CLUBS.map((c, i) => i).filter(i => {
     if (i === sp.club) return false;
-    const c = CLUBS[i];
+    const c = CLUBS[i]; if (!pastBijClub(c.s)) return false;
     // Net goed genoeg voor een hoger niveau? Dan bieden vooral de kleinere clubs daar. Topclubs willen meer
     if (c.t < eigen.t) return c.t >= eigen.t - 1 && score >= MIN[c.t] && score >= c.s - 3;
     if (c.t === eigen.t) return c.s > eigen.s && score >= c.s + 1;
@@ -78,7 +82,7 @@ export function maakAanbiedingen(modus){
     ids = shuffle(omhoog).slice(0, Math.min(3, k, omhoog.length));
     // Op de transferlijst: je club werkt mee, dus er melden zich altijd een paar clubs (ook van je eigen niveau of net lager)
     if (sp.transferlijst && ids.length < 2){
-      const extra = CLUBS.map((c, i) => i).filter(i => i !== sp.club && !ids.includes(i) && (CLUBS[i].t === eigen.t || CLUBS[i].t === eigen.t + 1) && wilJou(i, 6));
+      const extra = CLUBS.map((c, i) => i).filter(i => i !== sp.club && !ids.includes(i) && (CLUBS[i].t === eigen.t || CLUBS[i].t === eigen.t + 1) && wilJou(i, 6) && pastBijClub(CLUBS[i].s, AMBITIE.lijst));
       ids = ids.concat(shuffle(extra).slice(0, 2 - ids.length));
     }
   }
@@ -89,9 +93,17 @@ export function maakAanbiedingen(modus){
     const past = i => { const t = CLUBS[i].t;
       if (slecht) return eigen.t === LAAGSTE ? t === LAAGSTE : t > eigen.t;
       return t > eigen.t || (t === eigen.t && (modus === 'clubloos' || CLUBS[i].s <= eigen.s)); };
-    const omlaag = CLUBS.map((c, i) => i).filter(i => i !== sp.club && !ids.includes(i) && past(i) && wilJou(i));
     const n = aantalBelangstellend(slecht ? randInt(1, 2) : modus === 'weg' ? randInt(2, 3) : randInt(1, 2));
-    ids = ids.concat(shuffle(omlaag).slice(0, n));
+    // Loopt je contract af (of moet je weg) en ben je goed: dan melden eerst sterkere clubs van je eigen niveau of één hoger
+    let erbij = 0;
+    if (!slecht){
+      const sterk = CLUBS.map((c, i) => i).filter(i => i !== sp.club && !ids.includes(i) && CLUBS[i].t >= Math.max(1, eigen.t - 1) && CLUBS[i].t <= eigen.t && CLUBS[i].s > eigen.s && wilJou(i) && pastBijClub(CLUBS[i].s));
+      const l = shuffle(sterk).slice(0, Math.min(2, n)); ids = ids.concat(l); erbij = l.length;
+    }
+    // Daarna lagere clubs, maar niet veel zwakker dan jij. Is er zo niemand, dan de sterkste clubs die je willen
+    const alle = CLUBS.map((c, i) => i).filter(i => i !== sp.club && !ids.includes(i) && past(i) && wilJou(i));
+    const omlaag = alle.filter(i => pastBijClub(CLUBS[i].s, AMBITIE.weg)), rest = Math.max(0, n - erbij);
+    ids = ids.concat(omlaag.length ? shuffle(omlaag).slice(0, rest) : erbij ? [] : alle.sort((a, b) => CLUBS[b].s - CLUBS[a].s).slice(0, Math.min(4, rest))); // (wel sterke clubs? dan geen zwakke)
     // Geen club die je wil? Dan zit je straks zonder club
   }
   return ids.map(i => {
@@ -238,6 +250,7 @@ export function wissel(o, hoe){
     else teksten.push(eindRelatie(`${naam} wil niet mee naar het buitenland. Jullie gaan uit elkaar.`));
   }
   if (sp.agent && naarDoel) agentReset(`Gelukt! Je speelt nu bij ${nieuw.n}${landWissel ? ` in ${o.land}` : ''}. Heb je een nieuw doel? Zeg het maar.`);
+  tmp.ondertekening = {clubId:o.club, jaren:o.jaren, salaris:o.salaris, som:o.som || 0}; // de animatie (contract tekenen) na de volgende weergave
   return teksten.join(' ');
 }
 export function transferNieuws(hoe, oud, nieuw, o){

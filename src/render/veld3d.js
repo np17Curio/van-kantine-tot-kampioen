@@ -19,12 +19,12 @@ export function beschikbaar(){
   return !!R;
 }
 
-function canvasTex(w, h, teken){
+export function canvasTex(w, h, teken){
   const c = document.createElement('canvas'); c.width = w; c.height = h; teken(c.getContext('2d'), w, h);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 // Gras met banen en alle lijnen, op één textuur (4 meter uitloop rondom)
-function veldTex(max){
+export function veldTex(max){
   const M = 4, PX = 18, W = (105 + 2 * M) * PX, H = (68 + 2 * M) * PX;
   const t = canvasTex(W, H, (g) => {
     for (let i = -1; i < 15; i++){ g.fillStyle = (i + 20) % 2 ? '#2f7d3f' : '#378c48'; g.fillRect((M + i * 7.5) * PX, 0, 7.5 * PX, H); }
@@ -46,7 +46,7 @@ function veldTex(max){
   t.anisotropy = max; return {t, w:105 + 2 * M, h:68 + 2 * M};
 }
 // Publiek op de tribune: een zee van gekleurde stipjes
-function publiekTex(){
+export function publiekTex(){
   return canvasTex(512, 128, (g, w, h) => {
     g.fillStyle = '#1a2238'; g.fillRect(0, 0, w, h);
     const kl = ['#c6f432', '#e8ecf5', '#38bdf8', '#e05252', '#8c97b0', '#f5c84c', '#2a3654'];

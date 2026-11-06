@@ -1,4 +1,4 @@
-import { S, club, mod, ovr, seizoenLabel } from '../../core/state.js';
+import { S, club, mod, ovr, seizoenLabel, tmp } from '../../core/state.js';
 import { sterrenNa } from '../wedstrijd/opdrachten.js';
 import { seizoenDeel } from '../seizoen/seizoen.js';
 import { clamp, pick, randInt, rnd, shuffle } from '../../core/utils.js';
@@ -147,6 +147,7 @@ export function gaHuren(x){
   const naam = CLUBS[o.club].n, waar = bl ? ` in ${o.land}` : '';
   sp.o23 = null; sp.recent = []; sp.gewaarschuwd = false;
   sp.club = o.club; sp.clubWed = 0; sp.clubSz = 0; sp.legendeHier = false; sp.status = 38; sp.vert = 55; sp.sindsTransfer = 0;
+  tmp.ondertekening = {clubId:o.club, huur:true}; // de animatie (contract tekenen), als huurling
   sp.statusNiveau = statusNiveau();
   mod('moraal', 5);
   S.car.clubs.push({club:o.club, van:S.jaar, huur:true, land:thuisLand(), n:naam});

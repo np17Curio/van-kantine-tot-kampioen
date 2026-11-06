@@ -55,6 +55,12 @@ export function render(){
   try { fotoNaRender(); } catch (e){ console.error('krantenfoto', e); }
   markeerSneltoetsen(veld);
   if (S) bewaar();
+  // Net getekend bij een nieuwe club? Dan de animatie (over het spel heen; het spel zelf is al bijgewerkt)
+  if (S && tmp.ondertekening){ const o = tmp.ondertekening; tmp.ondertekening = null; if (instel().transferAnim !== 'uit') speelOndertekening(o); }
+}
+let CONTRACT = null;
+export function speelOndertekening(o){
+  return (CONTRACT || (CONTRACT = import('../render/contractscene.js'))).then(m => m.speelContractScene(o)).catch(e => console.warn('transfer-animatie', e));
 }
 
 // Nummer 1-9 op de eerste keuzes in het speelveld, en de hoofdknop (Enter) markeren

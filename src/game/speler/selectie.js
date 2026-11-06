@@ -1,4 +1,4 @@
-import { S, club, mod, ovr, salarisVoor, seizoenLabel } from '../../core/state.js';
+import { S, club, mod, ovr, salarisVoor, seizoenLabel, tmp } from '../../core/state.js';
 import { clamp, pick, randInt, rnd } from '../../core/utils.js';
 import { CLUBS, LAAGSTE, TRAINBAAR, divClubs } from '../../data/gegevens.js';
 import { thuisLand } from '../../data/landen.js';
@@ -188,6 +188,7 @@ export function tekenSelectie(i){
     maakRivaal({v, n:n.join('. '), k:ovr(sp) + d, t:rg >= SEL_DREMPEL.top ? 1 : LAAGSTE,
       achtergrond:`Jullie streden op de selectiedagen om de eerste plek bij de ${POS_MEERV[sp.pos]}: ${team.hij} werd ${rp}e, jij ${plek}e.`}); }
   S.selectie = null;
+  tmp.ondertekening = {clubId:u.club, jaren:u.jaren, salaris:u.salaris, o23:!!u.o23}; // je eerste club: de animatie (contract tekenen)
   nieuweWeek(true);
   startIntro({...u, gem});
   if (inVerhaal()) openHoofdstuk(3, S.fase);

@@ -6,7 +6,7 @@ import { bekerSchema, nieuweBekers, speelBekerRonde } from '../competitie/beker.
 import { LAND_DATA, SPEEL_LANDEN, divNaam, thuisLand, zetLand } from '../../data/landen.js';
 import { nl } from '../prive/school.js';
 import { nieuweTabellen } from '../speler/status.js';
-import { transferScore } from './transfers.js';
+import { pastBijClub, transferScore } from './transfers.js';
 import { pasSlotsToe, slotLand } from '../competitie/europa.js';
 import { modFans } from '../wedstrijd/fans-pers.js';
 
@@ -42,7 +42,7 @@ export function buitenlandseBods(modus, winter){
   const sp = S.sp, eigen = club(), o = ovr(sp), score = transferScore();
   if (!(modus === 'normaal' || modus === 'vrij') || eigen.t < 1 || sp.leeftijd < 18 || sp.o23 || sp.huur) return [];
   const gem = gemCijfer() ?? S.vorigGem ?? 6.5, uit = [];
-  const past = (land, id) => { const c = vreemdeClub(land, id); return c.t >= Math.max(1, eigen.t - 1) && c.t <= eigen.t && score >= MIN[c.t] - 2 && c.s <= o + 8; };
+  const past = (land, id) => { const c = vreemdeClub(land, id); return c.t >= Math.max(1, eigen.t - 1) && c.t <= eigen.t && score >= MIN[c.t] - 2 && c.s <= o + 8 && pastBijClub(c.s); }; // (niet veel zwakker dan jij)
   // Scouts van een buitenlandse club volgden je dit seizoen: dat bod komt er zeker (als je nog goed genoeg bent)
   const sc = sp.scout; if (sc && sc.land !== thuisLand() && past(sc.land, sc.club)) uit.push(bodVan(sc.land, sc.club, true));
   const kans = .35 + Math.min(.2, sp.rep / 200) + (gem >= 7 ? .15 : gem >= 6.5 ? .07 : 0) + (sp.transferlijst ? .2 : 0) - (sp.imago > 0 ? .12 : 0);

@@ -1,6 +1,7 @@
-import { S, club, statWaarde, attr } from '../../core/state.js';
+import { S, club, statWaarde, attr, tmp } from '../../core/state.js';
 import { vDoelenBalk, vSterren } from './sterren.js';
-import { act, keuzeKnop, knop } from '../../core/ui.js';
+import { act, keuzeKnop, knop, render } from '../../core/ui.js';
+import { toast } from '../../core/feedback.js';
 import { TOON, vriendNa, vriendNaOpties } from '../../game/speler/journey.js';
 import { lichaamKans } from '../../game/speler/lichaam.js';
 import { esc } from '../../core/utils.js';
@@ -19,7 +20,7 @@ import { rugTeam, rugnummer } from '../../game/team/rugnummers.js';
 import { startElf } from '../../game/competitie/spelers.js';
 import { metVoorletter } from '../../game/media/nieuws.js';
 
-import { vPitch } from '../pitch.js';
+import { instel, vPitch } from '../pitch.js';
 import { vInterEnd } from './interland.js';
 import { vSelectieEnd } from './selectiedagen.js';
 import { vSeizoenStrip } from './zijbalk.js';
@@ -86,7 +87,7 @@ const ROL = {basis:['Je staat in de basis', 'r-veilig'], invaller:['Je begint op
   blessure:['Je bent geblesseerd', 'r-riskant'], geschorst:['Je bent geschorst', 'r-riskant'], rust:['Je krijgt rust', 'r-gem'], o23:['Je speelt bij de O23', 'r-gem']};
 // De elf van een club (aangevuld uit de bank als er iemand ontbreekt) en de wissels. Jij staat erbij als je in de basis staat
 // De elf en de wissels (startElf), met rugnummers
-function elftal(id, metJou, vulPos){ rugTeam(id); const r = startElf(id, metJou, vulPos); if (metJou) r.elf.push({jij:true, n:S.sp.naam, pos:LINIE[S.sp.pos], nr:rugnummer()}); return r; }
+export function elftal(id, metJou, vulPos){ rugTeam(id); const r = startElf(id, metJou, vulPos); if (metJou) r.elf.push({jij:true, n:S.sp.naam, pos:LINIE[S.sp.pos], nr:rugnummer()}); return r; }
 const spelerRij = x => `<li class="${x.jij ? 'mij' : ''}"><span class="nr">${x.nr ? x.nr : ''}</span><span>${x.jij ? `<b>${esc(x.n)} (jij)</b>${isAanvoerder() ? ' <span class="tag" title="Aanvoerder">C</span>' : ''}` : esc(metVoorletter(x))}${x.vriend ? ' 🤝' : ''}${x.rivaal ? ' ⚔️' : ''}</span></li>`;
 function vElftal(id, titel, metJou, toonBank, opBank){
   const {elf, bank} = elftal(id, metJou, id === S.sp.club ? null : 'M'), tel = p => elf.filter(x => x.pos === p).length;
@@ -96,7 +97,7 @@ function vElftal(id, titel, metJou, toonBank, opBank){
     ${LINIES.map(([p, l]) => { const g = elf.filter(x => x.pos === p); return g.length ? `<span class="label">${l}</span><ol>${g.map(spelerRij).join('')}</ol>` : ''; }).join('')}
     ${toonBank ? `<span class="label">Wissels</span><ol class="wissels">${mij.concat(bank.slice().sort((x, y) => (y.vriend || y.rivaal ? 1 : 0) - (x.vriend || x.rivaal ? 1 : 0)).slice(0, 6)).map(spelerRij).join('')}</ol>` : ''}</div>`;
 }
-function introSoort(M){
+export function introSoort(M){
   if (M.selectie) return `Selectiewedstrijd ${S.selectie ? S.selectie.cijfers.length + 1 : ''} van 3`;
   if (M.inter) return 'Interland';
   if (M.o23) return 'O23';
@@ -112,7 +113,27 @@ export function vIntro(M){
     : `<p class="muted">${esc(M.wij)} tegen ${esc(M.zij)}.</p>`;
   return scorebord() + `<div class="verhaal intro"><span class="label">${esc(introSoort(M))}</span>
     <div class="rij">${tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}<span class="risico ${rol[1]}">${esc(rol[0])}</span></div>
-    ${vDoelenBalk(M, true)}${info}${opst}</div>` + `<div class="rij">${knop('Aftrap!', aftrap)}${knop('⏩ Simuleer wedstrijd', simuleer, 'hoofd tweede')}</div>`;
+    ${vDoelenBalk(M, true)}${info}${opst}</div>` + `<div class="rij">${knop('Aftrap!', () => aftrapMetOpkomst(M))}${knop('⏩ Simuleer wedstrijd', simuleer, 'hoofd tweede')}${magOpkomst(M) ? knop('🎬 Opkomst', () => { speelOpkomstScene(M); }, 'klein', 'data-blijf') : ''}</div>`;
+}
+
+// ---------- de opkomst (render/opkomstscene.js): de teams komen het veld op en de opstellingen ----------
+// Bij clubwedstrijden en de O23 (de O23-elftallen worden daar verzonnen). instel().opkomst: 'belangrijk' (standaard) | 'altijd' | 'uit'
+export const magOpkomst = M => !!(M && !M.inter && !M.selectie && !M.trainer && !tmp.simBezig && (M.o23 ? M.eerste && CLUBS[M.eerste.opp] : M.opp != null && CLUBS[M.opp]));
+const eersteRonde = M => !M.beker && !M.po && rondesVoor(club().t, S.ronde) === 0;
+export const belangrijkDuel = M => !M.o23 && !!(M.beker || M.po || M.derby || M.rivaal || eersteRonde(M));
+function toonOpkomst(M){
+  const s = instel().opkomst || 'belangrijk';
+  return s !== 'uit' && magOpkomst(M) && (s === 'altijd' || belangrijkDuel(M));
+}
+let OPKOMST = null;
+function speelOpkomstScene(M){
+  return (OPKOMST || (OPKOMST = import('../opkomstscene.js'))).then(m => m.speelOpkomst(M))
+    .catch(e => { console.warn('opkomst', e); toast('De opkomst kon niet worden afgespeeld.'); });
+}
+// Aftrap: eerst de opkomst (het introscherm blijft eronder staan), daarna pas de wedstrijd
+function aftrapMetOpkomst(M){
+  if (!toonOpkomst(M)) return aftrap();
+  speelOpkomstScene(M).then(() => { if (S && S.M === M && M.intro){ aftrap(); render(); } });
 }
 export function vMatch(){
   if (S.M.intro) return vIntro(S.M);

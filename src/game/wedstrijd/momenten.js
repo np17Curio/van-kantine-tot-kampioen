@@ -270,6 +270,10 @@ export function focusStaat(f){ return f >= FLOW ? {k:'In de flow', cls:'r-veilig
 export const staminaEffect = st => { const e = (st - 60) / 300 - (st < 25 ? .06 : 0); return e < 0 ? e * pers('staminaStraf') : e; };
 // Bij een grote voorsprong zet de tegenstander de bus: nog eens scoren wordt lastiger (−5% per goal boven 2, hooguit −15%)
 const voorsprongRem = (opt, M) => opt.st === 'afw' && M.us - M.them > 2 ? Math.min(.15, (M.us - M.them - 2) * .05) : 0;
+// Afwerken: elke goal die je deze wedstrijd al maakte maakt het volgende schot lastiger (ze dekken je extra, de keeper is gewaarschuwd),
+// elke keeper redt er wel eens een, en ook de beste spits mist: een schot slaagt hooguit in AFW.max van de gevallen
+export const AFW = {perGoal:.08, maxRem:.24, keeper:.04, max:.78};
+export const afwerkRem = (opt, M) => opt.st === 'afw' ? AFW.keeper + Math.min(AFW.maxRem, (M.goals || 0) * AFW.perGoal) : 0;
 export function kans(opt){
   const sp = S.sp, M = S.M;
   const oppS = M.oppS ?? CLUBS[M.opp].s;
@@ -279,7 +283,7 @@ export function kans(opt){
   // Kalmte (rustig blijven, niet reageren) wordt tegen een betere ploeg maar half zo veel lastiger: kalmte groeit niet mee met je klasse
   const tegen = opt.st === 'kalm' && oppS > KALM_KNIK ? (KALM_KNIK - 48) + (oppS - KALM_KNIK) * .5 : oppS - 48;
   const moeilijk = opt.b + tegen + top * (TOP_EXTRA[opt.st] || 0) + (M.pending && M.pending.zeker ? 12 : 0); // (keeper: een schot dat anders zeker binnen was, is lastig te redden)
-  return clamp(.5 + (M.pending && M.pending.rivaal ? M.rivaalBonus || 0 : 0) + (statWaarde(opt.st) - moeilijk) / 45 + sp.vorm * .03 + staminaEffect(stamina(M)) + (sp.moraal - 50) / 500 + focusEffect(sp.focus ?? 65) + (opt.st === 'pas' && telt(M) ? (chemie() - 50) / 600 : 0) + (sp.items.analist ? .02 : 0) + tactiekKans(opt.st) + persKans(opt.st, M.pending && M.pending.type) + lichaamKans(opt, M.pending && M.pending.type) + karakterKans(opt) + (M.revanche || 0) - voorsprongRem(opt, M), .05, .9); // (ook een wereldspeler mist soms: hooguit 90%)
+  return clamp(.5 + (M.pending && M.pending.rivaal ? M.rivaalBonus || 0 : 0) + (statWaarde(opt.st) - moeilijk) / 45 + sp.vorm * .03 + staminaEffect(stamina(M)) + (sp.moraal - 50) / 500 + focusEffect(sp.focus ?? 65) + (opt.st === 'pas' && telt(M) ? (chemie() - 50) / 600 : 0) + (sp.items.analist ? .02 : 0) + tactiekKans(opt.st) + persKans(opt.st, M.pending && M.pending.type) + lichaamKans(opt, M.pending && M.pending.type) + karakterKans(opt) + (M.revanche || 0) - voorsprongRem(opt, M) - afwerkRem(opt, M), .05, opt.st === 'afw' ? AFW.max : .9); // (ook een wereldspeler mist soms: hooguit 90%, een schot hooguit AFW.max)
 }
 export function risico(p){ return p > .7 ? ['Veilig','r-veilig'] : p >= .45 ? ['Gemiddeld','r-gem'] : ['Riskant','r-riskant']; }
 export const KAART_MOMENTEN = ['tackle', 'opstootje', 'provocatie', 'verdedigen'];

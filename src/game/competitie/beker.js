@@ -255,7 +255,7 @@ export function vBekerKaartK(k){
   if (b.winnaar === S.sp.club) status = '<p class="goedtxt"><b>Bekerwinnaar!</b></p>';
   else if (b.winnaar !== null) status = `<p>Winnaar: <b>${esc(CLUBS[b.winnaar].n)}</b>.</p>`;
   else if (nog) status = `<p>Jullie zitten nog in de beker. Volgende: <b>${esc(bekerRondeNaam(k, b.rondes.length))}</b>${volgende ? ` (na week ${volgende})` : ''}.</p>`;
-  else { const uit = b.rondes.flat().find(m => (m.h === S.sp.club || m.u === S.sp.club) && m.w !== S.sp.club); status = `<p class="muted">Uitgeschakeld${uit ? ` door ${esc(CLUBS[uit.w].n)}` : ''}. Nog ${b.levend.length} clubs over.</p>`; }
+  else { const uit = b.rondes.flat().find(m => (m.h === S.sp.club || m.u === S.sp.club) && m.w != null && m.w !== S.sp.club && CLUBS[m.w]); status = `<p class="muted">Uitgeschakeld${uit ? ` door ${esc(CLUBS[uit.w].n)}` : ''}. Nog ${b.levend.length} clubs over.</p>`; }
   const laatste = b.rondes.length ? b.rondes[b.rondes.length - 1] : null;
   return `<div class="kaart"><h3>${naam}</h3>${status}${laatste ? `<span class="label">${esc(bekerRondeNaam(k, b.rondes.length - 1))}</span>${vBekerUitslagen(laatste.filter((m, i) => i < 8 || m.h === S.sp.club || m.u === S.sp.club))}` : (bekerSchema(k)[0] ? `<p class="muted klein-tekst">De eerste ronde wordt na week ${bekerSchema(k)[0]} gespeeld.</p>` : '')}</div>`;
 }
