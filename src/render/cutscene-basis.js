@@ -6,7 +6,8 @@ import * as THREE from 'three';
 // opgeruimd (ook de WebGL-context), zodat er niets blijft openstaan.
 
 // De laag. tag = het labeltje linksboven; label = voor schermlezers. Scène-eigen HTML gaat in laag.ui
-export function maakLaag({tag = '', label = 'Animatie'} = {}){
+// interactief: alleen Esc sluit (Enter en Spatie zijn dan voor de knoppen in de scène); andere toetsen gaan naar laag.opToets(e)
+export function maakLaag({tag = '', label = 'Animatie', interactief = false} = {}){
   const el = document.createElement('div'); el.className = 'cutscene'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', label);
   el.innerHTML = `<div class="cs-vak"></div><div class="cs-flits"></div>
     <div class="cs-top">${tag ? `<span class="cs-tag">${tag}</span>` : '<span></span>'}<button class="cs-skip" type="button">Overslaan <kbd>Esc</kbd></button></div>
@@ -15,7 +16,7 @@ export function maakLaag({tag = '', label = 'Animatie'} = {}){
   const $ = s => el.querySelector(s);
   let klaar = null;
   const L = {
-    el, $, vak:$('.cs-vak'), ui:$('.cs-ui'), weg:false,
+    el, $, vak:$('.cs-vak'), ui:$('.cs-ui'), weg:false, opToets:null,
     opKlaar(f){ klaar = f; if (L.weg) f(); },
     geladen(){ const l = $('.cs-laden'); if (l) l.remove(); },
     sluit(){ if (L.weg) return; L.weg = true; removeEventListener('keydown', toets, true); el.classList.remove('aan'); el.classList.add('uit'); setTimeout(() => el.remove(), 450); if (klaar) klaar(); },
@@ -23,7 +24,9 @@ export function maakLaag({tag = '', label = 'Animatie'} = {}){
     tijd(p){ $('.cs-balk i').style.width = (Math.min(1, p) * 100).toFixed(1) + '%'; },
   };
   // zolang de scène loopt gaan toetsen niet naar het spel eronder (Enter zou anders de hoofdknop indrukken)
-  const toets = e => { e.stopImmediatePropagation(); if (['Escape', ' ', 'Enter'].includes(e.key)){ e.preventDefault(); L.sluit(); } };
+  const toets = e => { e.stopImmediatePropagation();
+    if (e.key === 'Escape' || (!interactief && [' ', 'Enter'].includes(e.key))){ e.preventDefault(); L.sluit(); return; }
+    if (interactief && L.opToets) L.opToets(e); };
   addEventListener('keydown', toets, true);
   $('.cs-skip').addEventListener('click', () => L.sluit());
   return L;
@@ -70,6 +73,22 @@ export function speelLus(laag, duur, stap, {uitloop = .6} = {}){
       frame = requestAnimationFrame(lus);
     };
     stap(t, 0);
+    frame = requestAnimationFrame(lus);
+  });
+}
+
+// Een lus zonder vaste duur (voor scènes waarin je iets kiest): stap(t, dt) per beeld, tot de laag dicht is. Geeft een Promise
+export function draaiLus(laag, stap){
+  let t = testTijd().start, vorige = performance.now(), frame = 0;
+  return new Promise(klaar => {
+    laag.opKlaar(() => { cancelAnimationFrame(frame); klaar(); });
+    const lus = (nu) => {
+      if (laag.weg) return;
+      const dt = Math.min(.1, (nu - vorige) / 1000); vorige = nu; t += dt;
+      stap(t, dt);
+      if (!laag.weg) frame = requestAnimationFrame(lus);
+    };
+    stap(0, 0);
     frame = requestAnimationFrame(lus);
   });
 }

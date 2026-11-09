@@ -97,3 +97,52 @@
 @media (prefers-reduced-motion:reduce){
   .ok-sp,.ok-bank li,.ok-bord{transition:opacity .3s ease}
 }
+
+/* ===== Persconferentie (render/persscene.js): vraag, antwoordkaarten, gevolg en overzicht ===== */
+.pc-paneel{position:absolute;left:16px;right:16px;bottom:calc(7vh + 18px);max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.pc-vraag,.pc-uit{background:linear-gradient(90deg,rgba(7,11,22,.94),rgba(7,11,22,.8));border-left:4px solid var(--lamp);border-radius:6px;padding:12px 16px;opacity:0;transform:translateY(10px);transition:opacity .35s ease,transform .45s ease;display:none}
+.pc-vraag.aan,.pc-uit.aan{display:block;opacity:1;transform:none;animation:pcin .45s ease}
+@keyframes pcin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.pc-wie{font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mist);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pc-krant{background:var(--lamp);color:var(--op-lamp);padding:1px 8px;border-radius:3px;letter-spacing:.1em}
+.pc-nr{margin-left:auto;font-family:var(--f-mono);letter-spacing:0;text-transform:none}
+.pc-tekst{margin:6px 0 0;font-family:var(--f-display);font-weight:800;font-size:clamp(1.05rem,2.4vw,1.45rem);line-height:1.2}
+.pc-keuzes{display:none;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.pc-keuzes.aan{display:grid}
+.cs-ui .pc-keuze,.cs-ui .pc-knop{pointer-events:auto}
+.pc-keuze{display:grid;gap:5px;align-content:start;text-align:left;font:inherit;color:#fff;background:rgba(12,18,34,.93);border:1px solid rgba(255,255,255,.16);border-top:3px solid var(--kl,#fff);border-radius:8px;padding:10px 12px;cursor:pointer;animation:pcin .4s ease var(--d) both;transition:border-color .15s ease,background .15s ease,translate .15s ease}
+.pc-keuze:hover,.pc-keuze:focus-visible{background:rgba(26,36,60,.96);border-color:var(--kl);translate:0 -2px;outline:none;box-shadow:0 0 0 2px var(--kl)}
+.pc-b{--kl:#7cc6ff}.pc-z{--kl:#f3c44f}.pc-u{--kl:#ff6b5b}
+.pc-uit{border-left-color:var(--kl,var(--lamp))}
+.pc-k1{display:flex;align-items:center;gap:8px;font-family:var(--f-display);text-transform:uppercase;letter-spacing:.04em;font-size:1rem}
+.pc-k1 kbd{margin-left:auto;font-family:var(--f-mono);font-size:.75rem;padding:0 6px;border:1px solid rgba(255,255,255,.3);border-radius:4px;color:var(--mist)}
+.pc-icoon{font-size:1.15rem}
+.pc-citaat{font-size:.92rem;line-height:1.35}
+.pc-hint{font-size:.76rem;color:var(--mist);line-height:1.3}
+.pc-jij{margin:0;font-size:1.05rem;line-height:1.35}
+.pc-gevolg{margin:8px 0 0;font-size:.9rem;color:#dfe5f2;line-height:1.4;opacity:0;transition:opacity .4s ease;min-height:1.4em}
+.pc-gevolg.aan{opacity:1}
+.pc-knop{font:inherit;font-weight:700;color:var(--op-lamp);background:var(--lamp);border:0;border-radius:6px;padding:7px 14px;cursor:pointer;margin-top:10px}
+.pc-knop:hover,.pc-knop:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.pc-knop kbd{font-family:var(--f-mono);font-size:.75em;opacity:.7;margin-left:4px}
+.pc-knop[hidden]{display:none}
+.pc-slot{position:absolute;left:50%;top:50%;transform:translate(-50%,-46%) scale(.96);width:min(420px,calc(100% - 32px));background:linear-gradient(160deg,rgba(7,11,22,.95),rgba(7,11,22,.85));border:1px solid rgba(255,255,255,.1);border-top:4px solid var(--lamp);border-radius:10px;padding:18px;text-align:center;opacity:0;transition:opacity .4s ease,transform .5s cubic-bezier(.2,1.3,.4,1);box-shadow:0 16px 40px rgba(0,0,0,.5)}
+.pc-slot.aan{opacity:1;transform:translate(-50%,-50%)}
+.pc-slot img{width:52px;height:52px;display:block;margin:0 auto 6px}
+.pc-skop{font-family:var(--f-display);font-weight:900;font-size:1.5rem;text-transform:uppercase;line-height:1.05}
+.pc-ssub{margin:4px 0 10px;color:var(--mist);font-size:.9rem}
+.pc-slot ul{list-style:none;margin:0;padding:0;display:grid;gap:4px;text-align:left}
+.pc-slot li{display:flex;justify-content:space-between;gap:12px;padding:5px 10px;background:rgba(255,255,255,.05);border-radius:4px;font-size:.92rem}
+.pc-slot li.op b{color:#7ee08a}.pc-slot li.neer b{color:#ff7b6b}
+@media (max-width:640px){
+  .pc-paneel{bottom:calc(7vh + 10px);gap:8px}
+  .pc-keuzes{grid-template-columns:minmax(0,1fr);gap:6px}
+  .pc-keuze{padding:8px 10px;gap:3px}
+  .pc-hint{display:none}
+  .pc-citaat{font-size:.85rem}
+  .pc-vraag,.pc-uit{padding:10px 12px}
+}
+@media (prefers-reduced-motion:reduce){
+  .pc-vraag.aan,.pc-uit.aan,.pc-keuze{animation:none;opacity:1;transform:none}
+  .pc-slot{transition:opacity .3s ease}
+}

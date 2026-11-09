@@ -130,35 +130,80 @@ export function maakPers(M, soort){
     recent.push(keuze.id); if (recent.length > 6) recent.shift();
     v = keuze;
   }
-  return {bron, vraag:v.vraag, opts:[{s:'b', l:'Bescheiden', t:v.b}, {s:'z', l:'Zelfverzekerd', t:v.z}, {s:'u', l:'Uitdagend', t:v.u}], doel:v.doel, zij, klaar:false};
+  // Daarna nog een of twee vragen van andere journalisten, over iets anders (bij een derby, je rivaal of een finale twee)
+  const vragen = [vraagVan(v)], recent = S.persRecent = S.persRecent || [];
+  const extra = vervolgVragen(M).filter(x => x.doel !== v.doel && !recent.includes(x.id));
+  for (let n = soort === 'finale' || M.derby || M.rivaal ? 2 : 1; n > 0 && extra.length; n--){
+    const x = extra.splice(Math.floor(rnd() * extra.length), 1)[0]; vragen.push(vraagVan(x));
+    recent.push(x.id); if (recent.length > 8) recent.shift();
+    for (let i = extra.length - 1; i >= 0; i--) if (extra[i].doel === x.doel) extra.splice(i, 1);
+  }
+  return {bron, zij, vragen, klaar:false};
 }
-export function persAntwoord(i){
-  const sp = S.sp, M = S.M, P = M && M.pers; if (!P || P.klaar) return;
-  const o = P.opts[i], so = social(), naam = sp.naam; P.klaar = true; P.keuze = i;
+const vraagVan = v => ({vraag:v.vraag, opts:[{s:'b', l:'Bescheiden', t:v.b}, {s:'z', l:'Zelfverzekerd', t:v.z}, {s:'u', l:'Uitdagend', t:v.u}], doel:v.doel, keuze:null, uit:null});
+// Vervolgvragen: over de trainer, de fans, je toekomst en je ploeggenoten
+function vervolgVragen(M){
+  const sp = S.sp, wij = club().n, L = [];
+  if (M.rol !== 'basis') L.push({id:'vBank', doel:'trainer', vraag:'Je begon op de bank. Verdien je meer speeltijd?', b:'"De trainer kiest. Ik moet het gewoon laten zien op de training."', z:'"Ja. Als ik speel, maak ik het verschil. Dat weet de trainer ook."', u:'"Vraag maar aan de trainer waarom ik op de bank zit. Ik snap het niet."'});
+  else L.push({id:'vTrainer', doel:'trainer', vraag:'Hoe is je band met de trainer?', b:'"Goed. Ik leer elke dag van de staf."', z:'"De trainer weet wat die aan me heeft. Ik lever elke week."', u:'"We zijn het lang niet altijd eens. Dat mag iedereen weten."'});
+  L.push(fans() < 40
+    ? {id:'vFansBoos', doel:'fans', vraag:'Er klinkt kritiek vanaf de tribune. Wat zeg je tegen de supporters?', b:'"Ik begrijp ze. Ik ga er alles aan doen om ze weer achter me te krijgen."', z:'"Over een paar weken zingen ze mijn naam weer, let maar op."', u:'"Als ze alleen komen om te fluiten, kunnen ze beter thuisblijven."'}
+    : {id:'vFans', doel:'fans', vraag:'De supporters staan achter je. Wat wil je tegen ze zeggen?', b:'"Bedankt. Zij zijn onze twaalfde man, elke week weer."', z:'"Blijf komen. Er gaan hier mooie dingen gebeuren."', u:'"Fijn, maar ik speel voor mezelf. Niet voor de tribune."'});
+  if ((sp.contract ?? 9) <= 1) L.push({id:'vContract', doel:'club', vraag:'Je contract loopt af. Blijf je?', b:`"Ik zou graag blijven. Ik voel me thuis bij ${wij}."`, z:'"Mijn zaakwaarnemer praat met de club. We zien wel wat er komt."', u:'"Ik ga voor de beste aanbieding. Zo werkt voetbal nou eenmaal."'});
+  L.push({id:'vGroep', doel:'team', vraag:'Hoe staat de groep ervoor?', b:'"Het is een hechte groep. We doen het samen."', z:'"We zijn sterk. En ik wil daarin een leider zijn."', u:`"Sommige ${team.jongens} moeten wakker worden. Meer zeg ik niet."`});
+  L.push({id:'vAmbitie', doel:'ambitie', vraag:'Wat is je doel voor de rest van het seizoen?', b:'"Elke week beter worden. De rest volgt vanzelf."', z:'"Zo veel mogelijk scoren en hoog eindigen. Daar ga ik voor."', u:'"Hier alles winnen, en dan door naar een topclub."'});
+  return L;
+}
+// De vragen van een persconferentie (een oude opslag had er maar één, met de vraag in P zelf)
+export function persVragen(P){
+  if (!P) return [];
+  if (!P.vragen) P.vragen = [{vraag:P.vraag, opts:P.opts, doel:P.doel, keuze:P.keuze ?? null, uit:P.uit ?? null}];
+  return P.vragen;
+}
+export const persOpen = P => persVragen(P).findIndex(v => v.keuze == null);
+// Een antwoord op vraag q (standaard de eerste open vraag). Latere vragen tellen iets minder zwaar. Geeft de uitkomst als tekst
+export function persAntwoord(i, q){
+  const sp = S.sp, M = S.M, P = M && M.pers; if (!P) return null;
+  const V = persVragen(P); if (q == null) q = persOpen(P);
+  const v = V[q]; if (!v || v.keuze != null || !v.opts[i]) return null;
+  const o = v.opts[i], so = social(), naam = sp.naam, f = [1, .7, .5][q] ?? .5; v.keuze = i;
+  const sc = x => x === 0 ? 0 : Math.sign(x) * Math.max(1, Math.round(Math.abs(x) * f)), pl = x => (x > 0 ? '+' : '−') + Math.abs(x);
+  const krant = (kop, tekst) => { if (P.kop) return; P.kop = true; krantMelding(kop, tekst); }; // (één krantenkop per persconferentie)
   toonMeter(o.s === 'b' ? 'kalm' : o.s === 'z' ? 'bal' : 'fel'); // je karakter: rustig of heethoofd
   const citaat = o.t.replace(/^"|"$/g, '');
-  if (P.doel === 'rivaalSpeler' && o.s === 'b') zetBand(5);
-  if (o.s === 'b'){ mod('rep', 1); mod('vert', 2); modFans(2); P.uit = 'Een netjes antwoord. De trainer knikt goedkeurend en de fans waarderen je bescheidenheid. Reputatie +1 · vertrouwen +2 · fans +2.'; }
-  else if (o.s === 'z'){ const n = Math.round(30 + so.volgers * .02); so.volgers += n; mod('rep', 1); sp.grootSpraak = true;
-    P.uit = `Stoere taal! +${volgersTxt(n)} volgers. Maar let op: speel je volgende week slecht, dan wordt dit tegen je gebruikt. Speel je goed, dan krijg je extra respect.`; }
+  if (v.doel === 'rivaalSpeler' && o.s === 'b') zetBand(5);
+  let uit;
+  if (o.s === 'b'){ const r = sc(1), vt = sc(2), fa = sc(2), mo = sc(1); mod('rep', r); mod('vert', vt); modFans(fa); mod('moraal', mo);
+    uit = `Een netjes antwoord. De trainer knikt goedkeurend en de fans waarderen je bescheidenheid. Reputatie ${pl(r)} · vertrouwen ${pl(vt)} · fans ${pl(fa)} · moraal ${pl(mo)}.`; }
+  else if (o.s === 'z'){ const n = Math.round((30 + so.volgers * .02) * f), mo = sc(2); so.volgers += n; mod('rep', sc(1)); mod('moraal', mo); sp.grootSpraak = true;
+    uit = `Stoere taal! +${volgersTxt(n)} volgers, moraal ${pl(mo)}. Maar let op: speel je volgende week slecht, dan wordt dit tegen je gebruikt. Speel je goed, dan krijg je extra respect.`; }
   else {
-    const n = Math.round(60 + so.volgers * .05); so.volgers += n;
+    const n = Math.round((60 + so.volgers * .05) * f); so.volgers += n;
     const kop = `${naam}: "${citaat.length > 70 ? citaat.slice(0, 67) + '...' : citaat}"`;
-    let uit = `Boem. Dit gaat viral: +${volgersTxt(n)} volgers. `;
-    if (P.doel === 'rivaalSpeler'){ zetBand(-10); const R = rivaalObj(); if (R) R.reactie = true; uit += `Je rivaal leest het ook. Hij gaat reageren, dat weet je zeker.`; krantMelding(kop, `Na het duel haalt ${naam} uit naar ${ik.zijn} rivaal ${rivaalNaam()}.`); }
-    else if (P.doel === 'rivaal'){ modFans(4); S.ss.rivaalFel = true; uit += `De fans smullen ervan (fans +4), maar bij ${P.zij} zijn ze woedend. De volgende derby wordt extra fel: meer kans op kaarten en opstootjes.`; krantMelding(kop, `Na de derby gooide ${naam} olie op het vuur. Bij ${P.zij} hangen ze het artikel op in de kleedkamer.`); }
-    else if (P.doel === 'trainer'){ onrust(3, 'Gedoe met de trainer'); mod('vert', -8); statusPunten(-2); uit += 'De trainer leest het de volgende ochtend in de krant. Hij is er niet blij mee. Vertrouwen −8.'; krantMelding(kop, `${naam} wijst na een slechte wedstrijd naar de trainer. "Dit lossen we intern op," zegt de club.`); }
-    else if (P.doel === 'team'){ iedereen(-4); mod('vert', -3); uit += 'Je teamgenoten zijn er niet blij mee. Band met iedereen −4, vertrouwen −3.'; krantMelding(kop, `Onrust bij ${club().n}: ${naam} haalt uit naar ${ik.zijn} eigen teamgenoten.`); }
-    else if (P.doel === 'club'){ modFans(-10); mod('rep', 2); uit += 'Grote clubs horen het wel, maar de fans van je eigen club zijn beledigd. Fans −10, reputatie +2.'; krantMelding(kop, `Opvallende woorden van ${naam}. De supporters van ${club().n} reageren boos op social media.`); }
-    else if (P.doel === 'scheids'){ const boete = Math.max(100, Math.min(25000, Math.round(sp.salaris * .01 / 50) * 50)); sp.geld = Math.max(0, sp.geld - boete); modFans(2); uit += `De bond geeft je een boete van ${geldTxt(boete)}. De fans vinden het wel stoer (fans +2).`; krantMelding(kop, `${naam} krijgt een boete van ${geldTxt(boete)} voor zijn uitspraken over de scheidsrechter.`); }
-    else { mod('rep', -1); modFans(2); uit += `Bij ${P.zij} vinden ze het respectloos. Reputatie −1, maar je eigen fans lachen erom (fans +2).`; krantMelding(kop, `${naam} steekt na afloop de draak met ${P.zij}.`); }
-    P.uit = uit;
+    uit = `Boem. Dit gaat viral: +${volgersTxt(n)} volgers. `;
+    if (v.doel === 'rivaalSpeler'){ zetBand(-10); const R = rivaalObj(); if (R) R.reactie = true; uit += `Je rivaal leest het ook. Hij gaat reageren, dat weet je zeker.`; krant(kop, `Na het duel haalt ${naam} uit naar ${ik.zijn} rivaal ${rivaalNaam()}.`); }
+    else if (v.doel === 'rivaal'){ const fa = sc(4); modFans(fa); mod('moraal', sc(1)); S.ss.rivaalFel = true; uit += `De fans smullen ervan (fans ${pl(fa)}), maar bij ${P.zij} zijn ze woedend. De volgende derby wordt extra fel: meer kans op kaarten en opstootjes.`; krant(kop, `Na de derby gooide ${naam} olie op het vuur. Bij ${P.zij} hangen ze het artikel op in de kleedkamer.`); }
+    else if (v.doel === 'trainer'){ const vt = sc(-8), mo = sc(-2); onrust(3, 'Gedoe met de trainer'); mod('vert', vt); mod('moraal', mo); statusPunten(-2); uit += `De trainer leest het de volgende ochtend in de krant en is er niet blij mee. Vertrouwen ${pl(vt)} · moraal ${pl(mo)}.`; krant(kop, `${naam} wijst naar de trainer. "Dit lossen we intern op," zegt de club.`); }
+    else if (v.doel === 'team'){ const b = sc(-4), vt = sc(-3), mo = sc(-2); iedereen(b); mod('vert', vt); mod('moraal', mo); uit += `Je teamgenoten zijn er niet blij mee. Band met iedereen ${pl(b)} · vertrouwen ${pl(vt)} · moraal ${pl(mo)}.`; krant(kop, `Onrust bij ${club().n}: ${naam} haalt uit naar ${ik.zijn} eigen teamgenoten.`); }
+    else if (v.doel === 'club'){ const fa = sc(-10), r = sc(2); modFans(fa); mod('rep', r); uit += `Grote clubs horen het wel, maar de fans van je eigen club zijn beledigd. Fans ${pl(fa)} · reputatie ${pl(r)}.`; krant(kop, `Opvallende woorden van ${naam}. De supporters van ${club().n} reageren boos op social media.`); }
+    else if (v.doel === 'fans'){ const fa = sc(-8), mo = sc(1); modFans(fa); mod('moraal', mo); uit += `Op de tribunes valt dit slecht: fans ${pl(fa)}. Al voelt het voor jezelf wel lekker om het te zeggen (moraal ${pl(mo)}).`; krant(kop, `${naam} haalt uit naar ${ik.zijn} eigen supporters.`); }
+    else if (v.doel === 'ambitie'){ const fa = sc(-3), r = sc(1), mo = sc(2); modFans(fa); mod('rep', r); mod('moraal', mo); uit += `Grote clubs lezen mee (reputatie ${pl(r)}), maar de eigen fans horen liever iets anders (fans ${pl(fa)}). Moraal ${pl(mo)}.`; krant(kop, `${naam} droomt hardop van een topclub.`); }
+    else if (v.doel === 'scheids'){ const boete = Math.max(100, Math.min(25000, Math.round(sp.salaris * .01 / 50) * 50)), fa = sc(2); sp.geld = Math.max(0, sp.geld - boete); modFans(fa); uit += `De bond geeft je een boete van ${geldTxt(boete)}. De fans vinden het wel stoer (fans ${pl(fa)}).`; krant(kop, `${naam} krijgt een boete van ${geldTxt(boete)} voor ${ik.zijn} uitspraken over de scheidsrechter.`); }
+    else { const r = sc(-1), fa = sc(2); mod('rep', r); modFans(fa); mod('moraal', sc(1)); uit += `Bij ${P.zij} vinden ze het respectloos. Reputatie ${pl(r)}, maar je eigen fans lachen erom (fans ${pl(fa)}).`; krant(kop, `${naam} steekt na afloop de draak met ${P.zij}.`); }
   }
+  v.uit = uit;
+  P.klaar = persOpen(P) < 0;
+  return uit;
 }
+export const PERS_ICOON = {b:'🧊', z:'⚖️', u:'🔥'};
+export const PERS_HINT = {b:'veilig, kleine plus', z:'volgers en moraal, maar je moet het waarmaken', u:'gaat viral, komt in de krant, heeft gevolgen'};
 export function vPers(){
   const M = S.M, P = M && M.pers; if (!P) return '';
-  if (P.klaar) return `<div class="paneel"><span class="label">Persconferentie · ${esc(P.bron)}</span><p class="muted">"${esc(P.vraag)}"</p><p><b>Jij:</b> ${esc(P.opts[P.keuze].t)}</p><p class="melding">${esc(P.uit)}</p></div>`;
-  return `<div class="paneel" id="persPanel"><span class="label">Persconferentie · ${esc(P.bron)}</span><p>Een verslaggever houdt een microfoon onder je neus: <b>"${esc(P.vraag)}"</b></p>
-    <div class="keuzes">${P.opts.map((o, i) => keuzeKnop(`${o.s === 'b' ? '🧊' : o.s === 'z' ? '⚖️' : '🔥'} ${o.l}`, `${esc(o.t)} · ${o.s === 'b' ? 'veilig, kleine plus' : o.s === 'z' ? 'volgers, maar je moet het waarmaken' : 'gaat viral, komt in de krant, heeft gevolgen'}`, () => persAntwoord(i), 'data-blijf')).join('')}</div>
+  const V = persVragen(P), open = persOpen(P);
+  const gedaan = V.filter(v => v.keuze != null).map(v => `<p class="muted">"${esc(v.vraag)}"</p><p><b>Jij:</b> ${esc(v.opts[v.keuze].t)}</p><p class="melding">${esc(v.uit)}</p>`).join('');
+  if (open < 0) return `<div class="paneel"><span class="label">Persconferentie · ${esc(P.bron)}</span>${gedaan}</div>`;
+  const v = V[open];
+  return `<div class="paneel" id="persPanel"><span class="label">Persconferentie · ${esc(P.bron)}${V.length > 1 ? ` · vraag ${open + 1} van ${V.length}` : ''}</span>${gedaan}<p>${open ? 'Een andere verslaggever steekt de hand op' : 'Een verslaggever houdt een microfoon onder je neus'}: <b>"${esc(v.vraag)}"</b></p>
+    <div class="keuzes">${v.opts.map((o, i) => keuzeKnop(`${PERS_ICOON[o.s]} ${o.l}`, `${esc(o.t)} · ${PERS_HINT[o.s]}`, () => persAntwoord(i, open), 'data-blijf')).join('')}</div>
     <p class="muted klein-tekst">Je mag ook gewoon doorlopen zonder iets te zeggen.</p></div>`;
 }

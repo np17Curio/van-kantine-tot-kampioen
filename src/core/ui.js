@@ -57,6 +57,20 @@ export function render(){
   if (S) bewaar();
   // Net getekend bij een nieuwe club? Dan de animatie (over het spel heen; het spel zelf is al bijgewerkt)
   if (S && tmp.ondertekening){ const o = tmp.ondertekening; tmp.ondertekening = null; if (instel().transferAnim !== 'uit') speelOndertekening(o); }
+  // Een persconferentie die nog open staat? Dan meteen de animatie (als speler na de wedstrijd, als trainer ervoor)
+  if (S && !tmp.beweging && !tmp.vrijTrainen && !tmp.stats && !tmp.simBezig) persCheck();
+}
+let PERS = null, persWacht = 0;
+function persOpenNu(){
+  const P = S.fase === 'matchEnd' && S.M ? S.M.pers : S.fase === 'trainer' && S.trainer ? S.trainer.pers : null;
+  return P && !P.getoond && !P.klaar ? P : null;
+}
+function persCheck(){
+  const P = persOpenNu(); if (!P) return;
+  // eerst de laatste actie van de wedstrijd op het veld laten uitspelen
+  if (S.fase === 'matchEnd' && openAnims(S.M).length && instel().anim !== 'uit'){ clearTimeout(persWacht); persWacht = setTimeout(() => { if (S && persOpenNu() === P) persCheck(); }, 600); return; }
+  P.getoond = true; bewaar();
+  (PERS || (PERS = import('../render/persscene.js'))).then(m => m.speelPersconferentie()).catch(e => console.warn('persconferentie', e)).finally(() => { if (S) render(); });
 }
 let CONTRACT = null;
 export function speelOndertekening(o){

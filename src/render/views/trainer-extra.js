@@ -9,7 +9,7 @@ import { TOON } from '../../game/speler/journey.js';
 import { PEPTALK, SLOT, TACTIEK, liveEff, liveTactiek, liveWissel, slotKeuze, tweedeHelft } from '../../game/trainer.js';
 import { dramaKeuze, dramaOpties, dramaTekst } from '../../game/trainer/drama.js';
 import { DIPLOMAS, heeftDiploma } from '../../game/trainer/loopbaan.js';
-import { persAntwoord, rivaalClub, trainerVan } from '../../game/trainer/pers.js';
+import { persAntwoord, persOpenTrainer, persVragenTrainer, rivaalClub, trainerVan } from '../../game/trainer/pers.js';
 import { eff, fit, kan, mijnSel, opst } from '../../game/trainer/ploeg.js';
 import { vPitch } from '../pitch.js';
 import { vBuiten } from './week.js';
@@ -52,9 +52,12 @@ export const dramaOpen = () => !!(S.trainer.drama && !S.trainer.drama.klaar);
 // De persconferentie voor de wedstrijd (niet verplicht)
 export function vPersPaneel(){
   const P = S.trainer.pers; if (!P) return '';
-  if (P.keuze != null) return `<div class="paneel"><span class="label">Persconferentie</span><p class="melding">${esc(P.uit)}</p></div>`;
-  return `<div class="paneel"><span class="label">Persconferentie voor de wedstrijd (niet verplicht)</span><p class="moment">🎤 ${esc(P.vraag)}</p>
-    <div class="keuzes">${P.opts.map((o, i) => `<button class="keuze" data-i="${act(() => persAntwoord(i))}" data-blijf><span class="t">${TOON[o.toon].i} ${esc(o.l)}</span><span class="s">${esc(o.s)}</span></button>`).join('')}</div></div>`;
+  const V = persVragenTrainer(P), open = persOpenTrainer(P);
+  const gedaan = V.filter(v => v.keuze != null).map(v => `<p class="muted">🎤 ${esc(v.vraag)}</p><p><b>Jij:</b> ${esc(v.opts[v.keuze].l)}</p><p class="melding">${esc(v.uit)}</p>`).join('');
+  if (open < 0) return `<div class="paneel"><span class="label">Persconferentie</span>${gedaan}</div>`;
+  const v = V[open];
+  return `<div class="paneel"><span class="label">Persconferentie voor de wedstrijd (niet verplicht)${V.length > 1 ? ` · vraag ${open + 1} van ${V.length}` : ''}</span>${gedaan}<p class="moment">🎤 ${esc(v.vraag)}</p>
+    <div class="keuzes">${v.opts.map((o, i) => `<button class="keuze" data-i="${act(() => persAntwoord(i, open))}" data-blijf><span class="t">${TOON[o.toon].i} ${esc(o.l)}</span><span class="s">${esc(o.s)}</span></button>`).join('')}</div></div>`;
 }
 // De prijzenkast: prijzen, diploma's, duels met andere trainers, je loopbaan
 const icoon = p => /Trainer van het Jaar|Jeugdtrainer/.test(p) ? '⭐' : /^Kampioen/.test(p) ? '🏆' : '🥇';
