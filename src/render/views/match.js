@@ -15,7 +15,8 @@ import { vPers } from '../../game/wedstrijd/fans-pers.js';
 import { focusStaat, kans, pOpts, risico } from '../../game/wedstrijd/momenten.js';
 import { WAARSCHUW, actieKosten, isRoutinier, stamina } from '../../game/wedstrijd/stamina.js';
 import { vReunieEinde } from '../../game/wedstrijd/reunie.js';
-import { aftrap, metVriendNa, kies, mijnNaam, simuleer, stand2, VAR_KEUZES, varKeuze, varTekst } from '../../game/wedstrijd/wedstrijd.js';
+import { aftrap, dansKies, metVriendNa, kies, mijnNaam, simuleer, stand2, VAR_KEUZES, varKeuze, varTekst } from '../../game/wedstrijd/wedstrijd.js';
+import { dansLijst, goalsNu, volgendeDans } from '../../game/wedstrijd/dansen.js';
 import { rugTeam, rugnummer } from '../../game/team/rugnummers.js';
 import { startElf } from '../../game/competitie/spelers.js';
 import { metVoorletter } from '../../game/media/nieuws.js';
@@ -141,6 +142,10 @@ export function vMatch(){
   let keuzeHtml = '';
   if (M.varKeuze){
     keuzeHtml = `<p class="moment nieuw varmoment" ${wacht}><b>${M.min}'</b> · 📺 VAR-check op jouw goal! De scheidsrechter bekijkt de beelden. Wat doe je?</p><div class="keuzes">${VAR_KEUZES.map((o, i) => `<button class="keuze" data-i="${act(() => varKeuze(i))}"><span class="t">${esc(o.l)}</span><span class="s">${esc(o.s)}</span></button>`).join('')}</div>`;
+  } else if (M.dansKeuze){
+    // jouw goal: kies je juichdans (je favoriet staat bovenaan); de volgende dans die nog vrij moet komen als teaser
+    const fav = S.sp.dans, nxt = volgendeDans(), nog = nxt ? nxt.vanaf - goalsNu() : 0;
+    keuzeHtml = `<p class="moment nieuw dansmoment" ${wacht}><b>${M.dansKeuze.m}</b> · ⚽ GOAL! Hoe vier je hem?</p><div class="keuzes nieuw" ${wacht}>${dansLijst().map(d => `<button class="keuze" data-i="${act(() => dansKies(d.id))}"><span class="t">${d.i} ${esc(d.n)}${d.id === fav ? ' <span class="muted" title="Je laatst gekozen dans">★</span>' : ''}</span><span class="s">${esc(d.s)}</span></button>`).join('')}${nxt ? `<button class="keuze" disabled><span class="t">🔒 ${esc(nxt.n)}</span><span class="s">Nog ${nog} ${nog === 1 ? 'goal' : 'goals'} in je carrière</span></button>` : ''}</div>`;
   } else if (M.pending){
     const f = Math.round(S.sp.focus ?? 65), fs = focusStaat(f);
     keuzeHtml = `<p class="moment nieuw" ${wacht}><b>${M.min}'</b> · ${esc(M.pending.tekst)}</p><p class="opst nieuw" ${wacht}><span class="label">Focus ${f}</span>${fs ? `<span class="risico ${fs.cls}">${fs.k}</span><span class="muted klein-tekst">${fs.t}</span>` : '<span class="muted klein-tekst">Lukt een actie, dan groeit je focus. Mislukt ze, dan zakt hij.</span>'}</p>${(M.oppS ?? 0) >= 85 && !M.o23 ? `<p class="muted klein-tekst nieuw" ${wacht}>Tegen een topclub is scoren extra lastig: hun keeper is van wereldklasse.</p>` : ''}<div class="keuzes nieuw" ${wacht}>${pOpts(M.pending).map((o, i) => {

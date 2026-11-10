@@ -18,7 +18,7 @@ import { vZij } from '../render/views/zijbalk.js';
 import { vAnalist, vAnalistSeizoen, vAnalistUitslag, vEigenaar, vEigenaarAanbod, vEigenaarSeizoen, vZijNa } from '../render/views/nacarriere.js';
 import { vClubloos } from '../render/views/clubloos.js';
 import { vSelectie, vSelectieKeuze } from '../render/views/selectiedagen.js';
-import { vHoofdstuk } from '../render/views/hoofdstuk.js';
+import { hoofdstukNaRender, vHoofdstuk } from '../render/views/hoofdstuk.js';
 import { vAfscheid } from '../render/views/afscheid.js';
 
 /* ===================== Weergave ===================== */
@@ -50,6 +50,7 @@ export function render(){
   if (S && !tmp.beweging && !tmp.vrijTrainen && !tmp.stats && S.fase === 'matchEnd' && S.M && openAnims(S.M).length && instel().anim !== 'uit') veld.insertAdjacentHTML('afterbegin', vPitch());
   const log = veld.querySelector('.log'); if (log) log.scrollTop = log.scrollHeight;
   try { pitchNaRender(); } catch (e){ console.error('veld', e); }
+  try { hoofdstukNaRender(); } catch (e){ console.error('proloogpenalty', e); }
   try { bewegingNaRender(); } catch (e){ console.error('bewegingseditor', e); }
   try { vrijNaRender(); } catch (e){ console.error('vrij trainen', e); }
   try { fotoNaRender(); } catch (e){ console.error('krantenfoto', e); }

@@ -201,13 +201,32 @@ const POSE = {
   volley:   {duur:700, f:() => ({rol:-.45, dR:1.2, kR:.2, dL:-.1, kL:.3, uL:1.1, uR:.6, leun:-.15})},
   spreid:   {vast:true, f:() => ({kL:.7, kR:.7, dL:.35, dR:.35, uL:.9, uR:.9, aL:.4, aR:.4, leun:.25, hoogte:-.12})},
   jockey:   {boven:true, f:() => ({leun:.25, uL:.5, uR:.5, aL:.2, aR:.2, eL:-.6, eR:-.6})},
+  // ----- juichdansen (game/wedstrijd/dansen.js; script in pitch.js, soort 'dans'). k = seconden sinds het begin -----
+  // camera: draait naar de kijker toe · draai: draaiing om de lengteas (pirouette, robot, boogschutter)
+  heupwieg: {camera:true, f:k => { const s = Math.sin(k * 6), c = Math.cos(k * 6), l = Math.max(0, s), r = Math.max(0, -s);
+    return {rol:s * .18, hoogte:-.05 - .04 * Math.abs(c), dL:.1 + .15 * l, dR:.1 + .15 * r, kL:.25 + .35 * l, kR:.25 + .35 * r, uL:.7 + .5 * s, uR:.7 - .5 * s, aL:.5, aR:.5, eL:-1.3, eR:-1.3, leun:.05, draai:Math.sin(k * 3) * .25}; }},
+  vliegtuig:{boven:true, f:k => ({uL:1.5, uR:1.5, aL:-.1, aR:-.1, eL:-.05, eR:-.05, rol:Math.sin(k * 2.6) * .38, leun:.18})},
+  kracht:   {camera:true, f:k => { const p = Math.min(1, k * 2.5), puls = Math.sin(k * 7) * .15;
+    return {dL:.15 * p, dR:-.15 * p, kL:.35 * p, kR:.35 * p, hoogte:-.08 * p, uL:1.45 * p, uR:1.45 * p, aL:.15, aR:.15, eL:(-1.9 + puls) * p, eR:(-1.9 - puls) * p, leun:-.28 * p}; }},
+  knieslide:{vast:true, f:k => { const p = Math.min(1, k * 3); return {dL:-.1, dR:-.1, kL:1.55 * p, kR:1.55 * p, hoogte:-.68 * p, leun:-.55 * p, uL:2.4 * p, uR:2.4 * p, aL:.1, aR:.1, eL:-.2, eR:-.2}; }},
+  robot:    {camera:true, f:k => { const b = Math.floor(k * 2.5) % 4, P = [
+      {aL:1.57, eL:-1.57, uL:.1, aR:0, uR:1.57, eR:0, draai:0}, {aL:0, uL:1.57, eL:-1.57, aR:1.57, eR:-1.57, uR:.1, draai:.55},
+      {aL:1.57, eL:0, uL:.1, aR:1.57, eR:0, uR:.1, draai:0}, {aL:0, uL:1.57, eL:-1.57, aR:0, uR:1.57, eR:-1.57, draai:-.55}][b];
+    return {...P, kL:.15, kR:.15, hoogte:-.04 * (b % 2), leun:0, rol:0}; }},
+  kangoeroe:{camera:true, f:k => { const j = Math.abs(Math.sin(k * 4.5));
+    return {hoogte:j * .5, dL:.9 * j, dR:.9 * j, kL:1.4 * j + .2, kR:1.4 * j + .2, aL:.9, aR:.9, uL:.25, uR:.25, eL:-1.6, eR:-1.6, leun:.1}; }},
+  pirouette:{camera:true, f:k => { const g = Math.min(1, Math.max(0, (k - .2) / 1.6)), p = g * g * (3 - 2 * g), rond = k < 1.9;
+    return {draai:p * Math.PI * 4, hoogte:.06 * Math.min(1, k * 3), uL:rond ? 2.7 : 1.5, uR:rond ? 2.7 : 1.5, aL:0, aR:0, eL:-.2, eR:-.2, dL:0, dR:rond ? .4 : 0, kR:rond ? .9 : .1, kL:.05, leun:rond ? 0 : -.15}; }},
+  boogschutter:{camera:true, f:k => { const span = Math.min(1, k / 1.2), los = k > 1.4;
+    return {draai:1.1, dL:.35, dR:-.35, kL:.35, kR:.1, hoogte:-.05, aL:1.5, uL:.1, eL:0, aR:los ? .6 : 1.45, uR:los ? 1.3 : .3, eR:los ? -.2 : -.3 - 2 * span, rol:-.08, leun:-.05}; }},
+  polonaise:{boven:true, f:k => ({aL:1.3, aR:1.3, uL:.25, uR:.25, eL:-.2, eR:-.2, rol:Math.sin(k * 7) * .12, leun:.08})},
 };
 export const POSE_NAMEN = Object.keys(POSE);
 // ---------- echte spelersmodellen ----------
 // Wie is dit (voor een vast uiterlijk): jij, of een speler van een club. Het hulpskelet (de eenvoudige pop) blijft de bewegingen bepalen, onzichtbaar
 function sleutelVan(e, T){
   const p = T.ploegen || {};
-  if (e.id === 'J' && (e.rol === 'wij' || e.rol === 'k' || !e.rol)) return 'jij|' + (p.jij || 'x') + (p.jijUit ? '|' + p.jijUit.huid + p.jijUit.haar + p.jijUit.kapsel + (p.jijUit.lengte || '') + (p.jijUit.bmi || '') + '|' + (p.jijUit.schoen ?? '') : '') + (p.band ? '|C' : '');
+  if (e.id === 'J' && (e.rol === 'wij' || e.rol === 'k' || !e.rol)) return 'jij|' + (p.jij || 'x') + (p.jijUit ? '|' + [p.jijUit.huid, p.jijUit.haar, p.jijUit.kapsel, p.jijUit.lengte || '', p.jijUit.bmi || '', p.jijUit.schoen ?? ''].join(',') : '') + (p.band ? '|C' : '');
   if (e.rol === 'R') return 'scheids|' + (p.zij ?? '');
   const club = e.rol === 'wij' || e.rol === 'k' ? p.wij : p.zij;
   return 'c' + club + '|' + e.id;
@@ -323,7 +342,8 @@ export function teken3D(T, nu, kleuren){
     // kijkrichting: waar hij heen loopt, anders naar de bal (in wereldassen: x = x, z = -y)
     // keepers blijven het veld in kijken, ook als ze opzij duiken; bij sommige houdingen draait hij niet
     const naarBal = Math.atan2(bal.x - e.x, -(bal.y - e.y));
-    const doel = keeper ? (e.rol === 'K' ? -Math.PI / 2 : Math.PI / 2) : actief === 'jockey' ? naarBal : v > .6 ? Math.atan2(vx, -vy) : naarBal;
+    const naarCamera = Math.atan2((R.camX ?? wx(e.x)) - wx(e.x), 40); // (de camera staat aan de kant van de kleine y, 40 m terug)
+    const doel = keeper ? (e.rol === 'K' ? -Math.PI / 2 : Math.PI / 2) : actief && POSE[actief].camera ? naarCamera : actief === 'jockey' ? naarBal : v > .6 ? Math.atan2(vx, -vy) : naarBal;
     if (nieuw) s.kijk = doel;
     if (!vast) s.kijk += hoekVerschil(s.kijk, doel) * Math.min(1, dt * (v > .6 ? B.draaiLoop : B.draaiStil));
     s.root.rotation.y = s.kijk;
@@ -341,7 +361,7 @@ export function teken3D(T, nu, kleuren){
     const lp = looppas(s.fase, vast ? 0 : v, SCHAAL, B), ik0 = beenHoeken(lp, 0);
     const h = {dL:ik0.dL, dR:ik0.dR, kL:ik0.kL, kR:ik0.kR,
       aL:-sw * B.armZwaai * sprint * sa, aR:sw * B.armZwaai * sprint * sa, uL:B.armOpzij + B.armOpzijSprint * sprint, uR:B.armOpzij + B.armOpzijSprint * sprint, eL:-B.elleboogRust - B.elleboogSprint * sprint, eR:-B.elleboogRust - B.elleboogSprint * sprint,
-      leun:sprint * B.leunSprint * (s.model ? 1 : 1.67) + Math.max(-.25, Math.min(.3, s.acc * B.leunAccel)), rol:Math.max(-.3, Math.min(.3, -draai * v * B.leunBocht)), hoogte:0};
+      leun:sprint * B.leunSprint * (s.model ? 1 : 1.67) + Math.max(-.25, Math.min(.3, s.acc * B.leunAccel)), rol:Math.max(-.3, Math.min(.3, -draai * v * B.leunBocht)), hoogte:0, draai:0};
     if (!sprint){ const adem = Math.sin(tijd * 2.2 + s.fase) * B.ademen; h.aL = adem; h.aR = -adem; }
     // trappen: schieten of passen (zwaai naar achter, dan door de bal); een hakje gaat juist naar achter
     if (T.trap && T.trap.id === e.id){
@@ -373,10 +393,13 @@ export function teken3D(T, nu, kleuren){
     const leg = (naam, w, k) => { const p = POSE[naam], d = p.f(k, tijd); for (const key in d){ if (p.boven && BENEN.has(key)) continue; h[key] += (d[key] - h[key]) * w; } };
     if (s.uit && nu - s.uitT0 < 220) leg(s.uit, 1 - (nu - s.uitT0) / 220, s.uitK);
     if (actief) leg(actief, Math.min(1, (nu - s.poseStart) / 180), (nu - s.poseStart) / 1000);
-    if (!actief && ((juichWij && e.rol === 'wij') || (juichZij && e.rol === 'zij')) && z < .2 && !keeper) leg('juich', 1, 0);
+    if (!actief && ((juichWij && e.rol === 'wij') || (juichZij && e.rol === 'zij')) && z < .2 && !keeper && !(T.geenJuichJ && e.id === 'J')) leg('juich', 1, 0); // (na jouw goal kies je zelf je juichdans)
     // veren: elk gewricht volgt zijn doel met een beetje vertraging en uitzwaai (een nieuw opgestelde speler begint direct goed)
     if (nieuw) s.veer = null;
+    // draaien om de lengteas (dansen): na afloop terug naar de dichtstbijzijnde hele slag, zodat hij niet terugdraait
+    if (!actief && s.veer && s.veer.x.draai && Math.abs(s.veer.x.draai) > Math.PI) s.veer.x.draai = Math.atan2(Math.sin(s.veer.x.draai), Math.cos(s.veer.x.draai));
     const g = veer(s, h, dt, st ? st.veer : 1);
+    s.root.rotation.y = s.kijk + (g.draai || 0);
     // De looppas zelf gaat zonder veren (anders lopen de voeten achter en glijden ze alsnog). Bij een trap, sprong, duik of een
     // houding met de benen nemen de veren het weer over, met een zachte overgang
     const tr = T.trap && T.trap.id === e.id && nu >= T.trap.t0 && nu <= T.trap.t0 + T.trap.dur, P1 = actief && POSE[actief], P2 = s.uit && nu - s.uitT0 < 220 && POSE[s.uit];

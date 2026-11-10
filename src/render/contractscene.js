@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { laadAnimatie, qrot } from './anim/voetbal-anim.js';
 import { maakRetarget } from './anim/retarget.js';
+import { langeBroek, maakPubliek } from './publiek.js';
 import { hashGetal, laadModel, maakModelSpeler, uiterlijkVoor } from './spelermodel.js';
 import { ploegen } from './pitch.js';
 import { S } from '../core/state.js';
@@ -26,6 +27,14 @@ const laadData = () => DATA || (DATA = import('./anim/contract_tekenen.json').th
 const VOORNAAM = ['J.', 'H.', 'P.', 'W.', 'R.', 'M.', 'A.', 'C.', 'F.', 'G.', 'K.', 'L.', 'E.', 'T.'];
 const ACHTERNAAM = ['Van der Meer', 'Hoekstra', 'De Ruyter', 'Verbeek', 'Kramer', 'Van Dijk', 'Brandsma', 'Lindqvist', 'Moreau', 'Ferreira', 'Rossi', 'Novak', 'Hartmann', 'Okafor', 'Schouten', 'De Lange', 'Bakker', 'Sanders', 'Castelli', 'Van Rijn'];
 const CONTRACT_MIDDEN = new THREE.Vector3(-.6, .75, -.17);
+// Het publiek (publiek.js): links de pers, rechts clubmensen in clubkleur, met een gangpad in het midden voor de camera;
+// twee fotografen staan op de hoeken. Ze kijken naar de tafel.
+const TAFEL = [0, -.3];
+const PUBLIEK = [
+  ...[[-3.3, 2.0], [-2.4, 2.0], [-1.5, 2.0], [-3.0, 2.9], [-2.1, 2.9]].map(([x, z]) => ({x, z, rol:'pers', kijk:TAFEL})),
+  ...[[1.9, 2.0], [2.8, 2.0], [3.7, 2.0], [2.2, 2.9], [3.1, 2.9]].map(([x, z]) => ({x, z, rol:'club', kijk:TAFEL})),
+  {x:-2.5, z:1.0, rol:'fotograaf', kijk:TAFEL}, {x:2.7, z:.9, rol:'fotograaf', kijk:TAFEL},
+];
 
 let BEZIG = null;
 // o = {clubId, jaren?, salaris?, som?}. Geeft een Promise die klaar is als de scène af is of overgeslagen.
@@ -81,6 +90,7 @@ async function speel(o){
     // props
     const props = maakProps(info, reg); for (const p of Object.values(props.mesh)) scene.add(p);
     const confetti = maakConfetti(tenue, reg); scene.add(confetti.mesh);
+    const publiek = maakPubliek({scene, anim, reg, plekken:PUBLIEK, sleutel:c.n, tenue, stoel:kamer.stoel});
 
     // ---------- teksten bij de gebeurtenissen ----------
     const T = {binnen:2.4, zwaai:5.4, penPak:8.2, penNeer:12.7, tekenStart:9.2, tekenEind:12.2, hand:14.0, handEind:16.2, shirt:17.3, einde:anim.duur};
@@ -128,22 +138,22 @@ async function speel(o){
         camera.fov = cam.yfov_graden || 40; camera.updateProjectionMatrix();
         // fotografen: flitsen bij de handdruk en bij het shirt
         const flitsTijd = (tt > T.hand && tt < T.handEind) || tt > T.shirt + .2;
-        if (flitsTijd && Math.random() < dt * 2.2){ flits.intensity = 30; flits.position.set(-1.5 + Math.random() * 3, 1.6 + Math.random() * .6, 1.6 + Math.random() * 1.5); laag.flits(); }
+        if (flitsTijd && Math.random() < dt * 2.2){ flits.intensity = 30; if (!publiek.flitsPlek(flits.position)) flits.position.set(-1.5 + Math.random() * 3, 1.6 + Math.random() * .6, 1.6 + Math.random() * 1.5); laag.flits(); }
         flits.intensity *= Math.pow(.0005, dt);
         confetti.stap(tt - T.shirt, dt);
+        // het publiek klapt als je getekend hebt, bij de handdruk en bij het shirt
+        const klap = (tt > T.tekenEind && tt < T.tekenEind + 2.5) || tt > T.shirt ? 1 : tt > T.hand && tt < T.handEind ? .7 : 0;
+        publiek.stap(tt, dt, {klap});
         renderer.render(scene, camera);
     });
     for (const r of [rIk, rVz]) scene.remove(r.houder);
+    publiek.weg();
   } finally {
     if (r3) r3.opruim();
     laag.sluit();
   }
 }
 
-// Het model heeft een korte broek met blote knieën: voor een pak of nette broek ook de knie in de broekkleur
-function langeBroek(m){
-  for (const o of m.meshes) if (o.userData.deel === 'broek' && Array.isArray(o.material)) o.material = [o.material[0], o.material[0], o.material[2]];
-}
 
 
 // ---------- de bestuurskamer ----------
@@ -209,7 +219,14 @@ function bouwKamer(info, reg){
   // twee flesjes water en een naambordje
   const glas = reg(new THREE.MeshPhysicalMaterial({color:0xcfe8ff, roughness:.05, transmission:.6, transparent:true, opacity:.6}));
   for (const x of [-1.05, 1.05]){ const f = new THREE.Mesh(reg(new THREE.CylinderGeometry(.03, .03, .2, 16)), glas); f.position.set(x, .85, -.05); groep.add(f); }
-  return {groep};
+  // stoelen voor het publiek (p = [x, y, z] op de vloer, h = kijkrichting)
+  const stof = mat({color:0x30343f, roughness:.8}), poot = mat({color:0x888c94, metalness:.8, roughness:.3});
+  const blok = (g, b, h, d, m, x, y, z) => { const me = new THREE.Mesh(reg(new THREE.BoxGeometry(b, h, d)), m); me.position.set(x, y, z); g.add(me); };
+  const stoel = (p, h) => { const g = new THREE.Group(); g.position.set(p[0], 0, p[2]); g.rotation.y = h; groep.add(g);
+    blok(g, .46, .06, .44, stof, 0, .44, 0); blok(g, .46, .38, .05, stof, 0, .7, -.24);
+    for (const [x, z] of [[-.2, -.18], [.2, -.18], [-.2, .18], [.2, .18]]) blok(g, .025, .42, .025, poot, x, .21, z);
+  };
+  return {groep, stoel};
 }
 
 // ---------- props: contract, pen, opgevouwen shirt, open shirt ----------

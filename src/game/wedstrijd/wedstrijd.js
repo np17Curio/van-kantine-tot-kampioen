@@ -34,6 +34,7 @@ import { eindeNacompetitie, nacompetitie } from '../competitie/nacompetitie.js';
 import { ontvangst, reunieAftrap, reunieMet, reunieNaWedstrijd } from './reunie.js';
 import { leeftijdGroei, nieuweWeek, verhoog } from '../week.js';
 import { animAnderen, animPush, animSoort, animVariant } from '../../render/pitch.js';
+import { dansLijst, dansTekst, dansVan, dansVrij, nieuwVrij } from './dansen.js';
 import { talentNaWedstrijd } from '../speler/talent.js';
 import { reeksTekst, vormBonus } from '../competitie/vorm.js';
 import { krantMelding } from '../media/roddel.js';
@@ -321,6 +322,7 @@ export function simuleer(gewoon = true){
   for (let n = 0; n < 500 && S.fase === 'match' && S.M === M; n++){
     if (M.intro){ aftrap(); continue; }
     if (M.varKeuze){ varKeuze(0); continue; }
+    if (M.dansKeuze){ dansKies(null); continue; }
     if (M.pending){
       const opts = pOpts(M.pending), score = o => kans(o) - (o.kaart ? .02 : 0) + (o.toon === 'bal' ? .01 : 0);
       let best = 0; opts.forEach((o, i) => { if (score(o) > score(opts[best])) best = i; });
@@ -343,6 +345,7 @@ export function verderSpelen(){
   if (M.intro === undefined && !(M.idx > 0)){ M.intro = true; return; }
   if (M.intro) M.intro = false;
   if (M.varKeuze) return varKeuze(0);
+  if (M.dansKeuze) return dansKies(null);
   while (M.idx < M.ev.length){
     const e = M.ev[M.idx++]; M.min = e.min; wisselCheck(M);
     // Keeper in het veld: elke goal van de tegenstander (en een deel van hun grote kansen) wordt een moment waarin jij kiest
@@ -402,7 +405,7 @@ export function kies(i){
     if (out.redding){ S.ss.red = (S.ss.red || 0) + 1; S.car.red = (S.car.red || 0) + 1; M.reddingen = (M.reddingen || 0) + 1; }
     if (schot) animPush(M, {type:out.tegen ? 'tegenGoal' : 'tegenKans', soort:out.tegen ? 'tegenGoal' : 'tegenKans', variant:pt === 'hogeBal' ? 'kop' : pt === 'penaltyKeeper' ? 'pen' : 'combi', einde:out.tegen ? null : 'redding', jijKeeper:true, ok, geel:!!out.geel});
     else animPush(M, {type:'opbouw', label:opt.l, soort:/Lange|Ver weg|uitgooien|tribune/.test(opt.l) ? 'lang' : 'kort', variant:'normaal', ok, keeperUit:true, tegen:!!out.tegen, assist:!!out.assist, geel:!!out.geel});
-  } else { const soort = opt.anim ? opt.anim[0] : animSoort(M.pending.type, opt.l); if (soort) animPush(M, {type:M.pending.type, label:opt.l, soort, variant:opt.anim ? opt.anim[1] : animVariant(M.pending.type, opt.l), ok, goal:ruwGoal, varCheck:!!varWacht, assist:!!out.assist, team:!!out.teamGoal, tegen:!!out.tegen, geel:!!out.geel, rood:!!out.rood}); }
+  } else { const soort = opt.anim ? opt.anim[0] : animSoort(M.pending.type, opt.l); if (soort) animPush(M, {type:M.pending.type, label:opt.l, soort, variant:opt.anim ? opt.anim[1] : animVariant(M.pending.type, opt.l), ok, goal:ruwGoal, dansNa:ruwGoal && !out.rood, varCheck:!!varWacht, assist:!!out.assist, team:!!out.teamGoal, tegen:!!out.tegen, geel:!!out.geel, rood:!!out.rood}); }
   gebruik(M, opt);
   const keeperM = MOMENTS[M.pending.type] && MOMENTS[M.pending.type].keeper; // (een keeper heeft veel momenten: niet elke redding geeft focus, anders zit hij altijd in de flow)
   const fVoor = S.sp.focus ?? 65; if (ok){ if (!keeperM || rnd() < .35) focusBoost(1); } else mod('focus', -1 * pers('focusMis'));
@@ -437,6 +440,8 @@ export function kies(i){
   M.pending = null;
   if (varWacht && !M.rood){ M.log.push({m, t:'📺 VAR-check! De scheidsrechter legt zijn hand bij zijn oor en loopt naar het scherm...', k:'var'}); M.varKeuze = {uitslag:varWacht, m}; return; }
   if (out.goal && M.reunie && !M.juichGekozen && !M.rood){ M.juichGekozen = true; M.pending = bouwMoment('juichen'); return; }
+  // jouw goal: hoe vier je hem? (de eventuele vervolgactie komt daarna)
+  if (out.goal && !M.rood){ openDans(M, m, out.next && M.us - M.them < 4 ? out.next : null); return; }
   if (out.next && !M.rood && M.us - M.them < 4){ // (bij een ruime voorsprong geen extra scoremoment meer)
     // Vervolgactie in dezelfde aanval: zelfde minuut, zodat het verslag op volgorde blijft
     M.pending = bouwMoment(out.next);
@@ -474,6 +479,28 @@ export function varKeuze(i){
   }
   if (M.rood && !M.tienMan){ M.tienMan = true; M.log.push({m, t:'Jullie moeten met tien man verder. Je teamgenoten kijken je boos aan.', k:'info'}); }
   if (V.uitslag === 'ok' && M.reunie && !M.juichGekozen && !M.rood){ M.juichGekozen = true; M.pending = bouwMoment('juichen'); return; }
+  if (V.uitslag === 'ok' && !M.rood){ openDans(M, m, null); return; }
+  verderSpelen();
+}
+
+// Juichdansen (dansen.js): na jouw goal kies je hoe je hem viert. Alleen show; nieuw vrijgespeelde dansen staan meteen in het verslag
+function openDans(M, m, next){
+  M.dansKeuze = {m, next};
+  // vangnet: de goalanimatie weet dat er een keuze volgt (geen standaardjuichen, de herhaling pas na de dans)
+  const g = (M.animQ || []).slice().reverse().find(a => a.goal && !a.gezien); if (g) g.dansNa = true;
+  for (const d of nieuwVrij()) M.log.push({m, t:`🔓 Nieuwe juichdans vrijgespeeld: ${d.i} ${d.n}!`, k:'info'});
+}
+export function dansKies(id){
+  const M = S.M, D = M && M.dansKeuze; if (!D) return;
+  M.dansKeuze = null;
+  const gekozen = dansVan(id), d = gekozen && dansVrij().includes(gekozen) ? gekozen : dansLijst()[0];
+  if (!d){ verderSpelen(); return; }
+  S.sp.dans = d.id;
+  // de herhaling van je goal komt na de dans (pitch.js); bij een VAR-check was er geen herhaling
+  const goal = (M.animQ || []).slice().reverse().find(a => a.dansNa && a.goal);
+  animPush(M, {soort:'dans', type:'dans', variant:d.id, onder:`${D.m} · ${d.i} ${d.n}`, herhaal:goal && !goal.varCheck ? goal.id : null});
+  M.log.push({m:D.m, t:`${d.i} ${dansTekst(d)}`, k:''});
+  if (D.next && !M.rood){ M.pending = bouwMoment(D.next); return; }
   verderSpelen();
 }
 // Gele en rode kaarten in de competitie: 5 keer geel = 1 wedstrijd schorsing, twee keer geel = 1, direct rood = 2

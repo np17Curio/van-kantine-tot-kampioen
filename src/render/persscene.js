@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { laadAnimatie, qmul, qrot } from './anim/voetbal-anim.js';
+import { laadAnimatie } from './anim/voetbal-anim.js';
+import { langeBroek, maakPubliek } from './publiek.js';
 import { maakRetarget } from './anim/retarget.js';
 import { hashGetal, laadModel, maakModelSpeler, uiterlijkVoor } from './spelermodel.js';
 import { ploegen } from './pitch.js';
@@ -30,9 +31,10 @@ import { GLAD, canvas, draaiLus, laadPlaatje, licht, maakLaag, maakRenderer, tex
 let DATA = null;
 const laadData = () => DATA || (DATA = import('./anim/contract_tekenen.json').then(m => laadAnimatie(m.default)));
 const ZIT = 8.4, OPSTAAN = [13.0, 14.1];      // tijden in de animatie: zitten, opstaan
-const STOEL = [-.6, 0, -.85];                  // waar jij zit (de heup); de journalisten krijgen dezelfde pose, verplaatst
-const RIJEN = [[-2.0, 2.5], [-.85, 2.45], [.35, 2.5], [1.5, 2.6], [-1.45, 3.55], [-.25, 3.5], [.95, 3.55]];
-const KLEDING = ['#3b4a6b', '#7a2e2e', '#2f5d50', '#8d99a8', '#4a4a52', '#1f3a5f', '#6b4f7a', '#8a6a3a'];
+// Het publiek: drie rijen journalisten (achterin een gangpad op x 0,5–2: daar komt de camera uit de animatie langs),
+// twee fotografen aan de zijkanten en een cameraman achter elke tv-camera (publiek.js)
+const RIJEN = [[-2.3, 2.4], [-1.2, 2.4], [-.1, 2.4], [1.0, 2.45], [2.1, 2.5], [-2.6, 3.3], [-1.5, 3.3], [-.4, 3.3], [.7, 3.35], [2.3, 3.4], [-2.8, 4.2], [-1.7, 4.2], [-.6, 4.2], [2.6, 4.3]];
+const TV = [[3.0, 1.5], [-3.4, 3.4]], JIJ = [-.6, -.85];
 const ZENDERS = [['TV1', '#d62828'], ['SPORT', '#1d4ed8'], ['24', '#f59e0b'], ['RADIO', '#111827'], ['FM', '#059669']];
 
 let BEZIG = null;
@@ -69,14 +71,6 @@ function invoer(){
     meters:() => { const sp = S.sp; return [{n:'Fans', v:fans()}, {n:'Moraal', v:sp.moraal}, {n:'Vertrouwen', v:sp.vert}, {n:'Reputatie', v:sp.rep}, {n:'Volgers', v:social().volgers, t:volgersTxt}]; }};
 }
 
-// ---------- een pose verplaatsen en draaien (om de verticale as), rond jouw stoel ----------
-const draaiQ = h => [0, Math.sin(h / 2), 0, Math.cos(h / 2)];
-function verplaatsPunt(p, plek, h){ const r = qrot(draaiQ(h), [p[0] - STOEL[0], p[1], p[2] - STOEL[2]]); return [plek[0] + r[0], r[1], plek[1] + r[2]]; }
-function verplaatsPose(pose, plek, h){
-  const q = draaiQ(h), uit = {};
-  for (const n in pose) uit[n] = {t:verplaatsPunt(pose[n].t, plek, h), r:qmul(q, pose[n].r)};
-  return uit;
-}
 const V3 = a => new THREE.Vector3(a[0], a[1], a[2]);
 
 async function speel(o){
@@ -114,23 +108,12 @@ async function speel(o){
     const rIk = maakRetarget(ik), rPv = maakRetarget(pv);
     scene.add(rIk.houder, rPv.houder);
 
-    // ---------- de journalisten: op stoelen in twee rijen, met een blocnote ----------
-    const zitPose = anim.wereldPose('Speler', ZIT);
-    const SCHOOT_L = [-.45, .62, -.56], SCHOOT_R = [-.75, .62, -.56], OMHOOG_R = [-.84, 1.58, -.78];
-    const pers = RIJEN.map(([x, z], i) => {
-      const h = Math.atan2(STOEL[0] - x, STOEL[2] - z); // (kijkt naar jouw plek aan tafel)
-      const uit = uiterlijkVoor('journalist|' + c.n + '|' + i), kl = KLEDING[(hashGetal('jk' + i + c.n)) % KLEDING.length];
-      const m = maakModelSpeler(uit, {shirt:kl, accent:kl, patroon:'effen', broek:'#2a2d36', sok:'#1a1c22'}); if (!m) return null;
-      langeBroek(m);
-      const r = maakRetarget(m), plek = [x, z]; scene.add(r.houder);
-      const pose = verplaatsPose(zitPose, plek, h);
-      const P = p => V3(verplaatsPunt(p, plek, h));
-      const j = {r, pose, h:h, schootL:P(SCHOOT_L), schootR:P(SCHOOT_R), omhoog:P(OMHOOG_R), hoofd:V3(verplaatsPunt([-.6, 1.12, -.78], plek, h)), heup:V3(verplaatsPunt(STOEL.map((v, k) => k === 1 ? .53 : v), plek, h)), w:0, doel:0};
-      j.zet = () => { const w = GLAD(0, 1, j.w); r.zet(pose, {doel:{hand_l:j.schootL, hand_r:j.schootR.clone().lerp(j.omhoog, w)}}); };
-      j.zet();
-      zaal.stoel(verplaatsPunt([-.6, 0, -.88], plek, h), h, true);
-      return j;
-    }).filter(Boolean);
+    // ---------- het publiek ----------
+    const plekken = RIJEN.map(([x, z]) => ({x, z, rol:'pers', kijk:JIJ}));
+    plekken.push({x:-3.3, z:1.0, rol:'fotograaf', kijk:JIJ}, {x:2.9, z:.9, rol:'fotograaf', kijk:JIJ});
+    for (const [x, z] of TV){ const d = Math.hypot(JIJ[0] - x, JIJ[1] - z); plekken.push({x:x - (JIJ[0] - x) / d * .55, z:z - (JIJ[1] - z) / d * .55, rol:'cameraman', kijk:JIJ}); }
+    const publiek = maakPubliek({scene, anim, reg, plekken, sleutel:c.n, tenue, stoel:(p, h) => zaal.stoel(p, h, true)});
+    const pers = publiek.zittend.filter(l => l.rol === 'pers');
 
     // ---------- teksten en knoppen ----------
     laag.geladen();
@@ -143,6 +126,7 @@ async function speel(o){
     const naar = (f) => { fase = f; ft = 0; };
     const volgendeVraag = () => {
       const k = open.indexOf(q) + 1;
+      for (const p of pers) p.doel = 0;
       if (k < open.length){ q = open[k]; keuze = -1; ui.verberg(); const j = vrager(); if (j) j.doel = 1; naar('hand'); }
       else { ui.verberg(); naar('opstaan'); }
     };
@@ -154,6 +138,8 @@ async function speel(o){
       ui.zetGevolg(uit || '');
       beantwoord++; laag.tijd(beantwoord / Math.max(1, open.length));
       const j = vrager(); if (j) j.doel = 0;
+      // na een uitdagend antwoord willen meer journalisten doorvragen
+      if (opt.soort === 'u') pers.filter(p => p !== j).sort(() => Math.random() - .5).slice(0, 3).forEach(p => { p.doel = 1; });
       flitsKans = opt.soort === 'u' ? 7 : opt.soort === 'z' ? 2.5 : 1;
       naar('antwoord');
     };
@@ -165,7 +151,11 @@ async function speel(o){
     const cam = {pos:new THREE.Vector3(), doel:new THREE.Vector3(), fov:40, los:false}, wens = {pos:new THREE.Vector3(), doel:new THREE.Vector3(), fov:40};
     const hoofdIk = V3([-.6, 1.08, -.72]);
     const shot = (naam) => {
+      wens.zaalIn = false;
       if (naam === 'zaal'){ wens.pos.set(1.7, 1.75, 4.6); wens.doel.set(-.15, .95, -.45); wens.fov = 42; }
+      else if (naam === 'publiek'){ wens.zaalIn = true; wens.pos.set(1.05, 1.42, -.3); wens.doel.set(-.35, .95, 3.2); wens.fov = 54; }
+      else if (naam === 'handOp'){ const j = vrager(); if (!j) return shot('publiek'); wens.zaalIn = true;
+        wens.pos.set(j.heup.x > -.6 ? -.1 : .9, 1.42, -.3); wens.doel.copy(j.hoofd).add(_v.set(0, .12, 0)); wens.fov = 40; }
       else if (naam === 'jij'){ wens.pos.set(-.22, 1.2, 1.25); wens.doel.set(-.62, 1.0, -.72); wens.fov = 34; }
       else if (naam === 'vraag'){ const j = vrager(); if (!j) return shot('zaal');
         const weg = j.heup.clone().sub(hoofdIk).setY(0).normalize(), zij = new THREE.Vector3(-weg.z, 0, weg.x);
@@ -176,13 +166,14 @@ async function speel(o){
     const zetCamera = (tt, dt) => {
       if (!cam.los){
         const a = anim.object('Camera', Math.min(tt, ZIT)); camera.position.fromArray(a.t); camera.quaternion.fromArray(a.r); camera.fov = a.yfov_graden || 40;
-        if (tt >= ZIT){ cam.los = true; cam.pos.copy(camera.position); cam.doel.copy(camera.position).add(kijk.set(0, 0, -1).applyQuaternion(camera.quaternion).multiplyScalar(3.4)); cam.fov = camera.fov; shot('zaal'); }
+        if (tt >= ZIT){ cam.los = true; cam.pos.copy(camera.position); cam.doel.copy(camera.position).add(kijk.set(0, 0, -1).applyQuaternion(camera.quaternion).multiplyScalar(3.4)); cam.fov = camera.fov; shot('publiek'); }
       } else {
         const k = 1 - Math.exp(-dt * 2.4);
         cam.pos.lerp(wens.pos, k); cam.doel.lerp(wens.doel, k); cam.fov += (wens.fov - cam.fov) * k;
         camera.position.copy(cam.pos); camera.lookAt(cam.doel); camera.fov = cam.fov;
       }
-      const z = camera.userData.zoom || 1; if (z < 1) camera.translateZ((1 / z - 1) * 1.1);
+      // smal scherm: verder naar achteren, of (als je vanaf de tafel de zaal in kijkt; daarachter staat de wand) breder kijken
+      const z = camera.userData.zoom || 1; if (z < 1){ if (cam.los && wens.zaalIn) camera.fov = Math.min(80, camera.fov / Math.sqrt(z)); else camera.translateZ((1 / z - 1) * 1.1); }
       camera.updateProjectionMatrix();
     };
 
@@ -209,11 +200,11 @@ async function speel(o){
         animT = Math.min(t, ZIT);
         if (t > 2.4 && !ui.onder) ui.onderschrift(o.kop, o.sub);
         if (t > 5.4 && !ui.wenk){ ui.wenk = true; ui.melding(`${esc(info.voorlichter)}, persvoorlichter: "Ga zitten, ze zijn er klaar voor."`); }
-        if (t >= ZIT + .5){ q = -1; if (open.length){ q = open[0]; keuze = -1; const j = vrager(); if (j) j.doel = 1; naar('hand'); } else naar('opstaan'); }
+        if (t >= ZIT + 2.2){ q = -1; if (open.length){ q = open[0]; keuze = -1; const j = vrager(); if (j) j.doel = 1; naar('hand'); } else naar('opstaan'); }
         flitsKans = t > 5 ? 1.5 : .4;
       } else if (fase === 'hand'){
-        shot('vraag');
-        if (ft > 1.0){ ui.vraag(vragen[q], open.indexOf(q), open.length); naar('vraag'); }
+        shot('handOp');
+        if (ft > 1.6){ ui.vraag(vragen[q], open.indexOf(q), open.length); shot('vraag'); naar('vraag'); }
       } else if (fase === 'vraag'){
         flitsKans = .3;
       } else if (fase === 'antwoord'){
@@ -222,7 +213,7 @@ async function speel(o){
         armW = GLAD(0, .35, ft) * (1 - GLAD(1.8, 2.3, ft)) * (.65 + .35 * Math.sin(ft * snel));
         if (ft > 2.4){ ui.toonGevolg(); naar('gevolg'); }
       } else if (fase === 'gevolg'){
-        if (ft > 1.2) shot('zaal');
+        if (ft > 1.2) shot('publiek');
         flitsKans *= Math.pow(.4, dt);
         const lees = Math.min(9, Math.max(4, (ui.gevolgLengte || 0) / 28));
         if (ft > lees) volgendeVraag();
@@ -248,25 +239,21 @@ async function speel(o){
       rIk.zet(pIk, extraIk); rPv.zet(pPv, extraPv);
       const j = q >= 0 ? vrager() : null, kijkNaar = (fase === 'hand' || fase === 'vraag') && j ? j.hoofd : null;
       if (zit){ draaiHoofd(ik, rIk.houder, 'ik', kijkNaar, dt); draaiHoofd(pv, rPv.houder, 'pv', j ? j.hoofd : null, dt); }
-      for (const p of pers){ if (p.w === p.doel) continue; p.w = p.doel > p.w ? Math.min(p.doel, p.w + dt * 1.6) : Math.max(p.doel, p.w - dt * 1.2); p.zet(); }
+      publiek.stap(t, dt);
 
       zetCamera(t, dt);
       // fotografen
-      if (Math.random() < dt * flitsKans){ flits.intensity = 30; flits.position.set(-2 + Math.random() * 4, 1.3 + Math.random() * .6, 2 + Math.random() * 1.8); laag.flits(); }
+      if (Math.random() < dt * flitsKans){ flits.intensity = 16; if (!publiek.flitsPlek(flits.position)) flits.position.set(-2 + Math.random() * 4, 1.3 + Math.random() * .6, 2 + Math.random() * 1.8); laag.flits(); }
       flits.intensity *= Math.pow(.0005, dt);
       zaal.stap(t);
       renderer.render(scene, camera);
     });
-    for (const r of [rIk, rPv, ...pers.map(p => p.r)]) scene.remove(r.houder);
+    for (const r of [rIk, rPv]) scene.remove(r.houder);
+    publiek.weg();
   } finally {
     if (r3) r3.opruim();
     laag.sluit();
   }
-}
-
-// Het model heeft een korte broek met blote knieën: voor een lange broek ook de knie in de broekkleur
-function langeBroek(m){
-  for (const o of m.meshes) if (o.userData.deel === 'broek' && Array.isArray(o.material)) o.material = [o.material[0], o.material[0], o.material[2]];
 }
 
 // ---------- de perszaal (dezelfde maten als de bestuurskamer in contractscene.js) ----------
@@ -295,6 +282,13 @@ function bouwPerszaal(info, reg){
   // linkerwand met de deur waar je binnenkomt
   doos(.12, 6.2, 1.0, muur, -6.0, 3.1, -1.5); doos(.12, 6.2, 6, muur, -6.0, 3.1, 3.2); doos(.12, 3.95, 1.2, muur, -6.0, 4.22, -.4);
   const deur = doos(.05, 2.25, 1.0, mat({color:0x4b5260, roughness:.6}), -5.6, 1.13, .15); deur.rotation.y = -1.1;
+  // achterwand achter het publiek en de rechterwand (ver genoeg weg voor de camera aan het begin, op x 6 / z 7)
+  const zaalMuur = mat({color:0x3a404d, roughness:.9});
+  doos(12.8, 4.6, .12, zaalMuur, .3, 2.3, 7.7); doos(.12, 4.6, 9.8, zaalMuur, 6.7, 2.3, 2.8);
+  doos(12.8, .5, .14, mat({color:tenue.shirt, roughness:.7}), .3, 2.6, 7.62); // (een band in de clubkleur)
+  const uitgang = (x, z, ry) => { const [ec, eg] = canvas(256, 96); eg.fillStyle = '#1b8a3c'; eg.fillRect(0, 0, 256, 96); eg.fillStyle = '#fff'; eg.font = '900 44px Arial, sans-serif'; eg.textAlign = 'center'; eg.textBaseline = 'middle'; eg.fillText('UITGANG', 128, 50);
+    const m = new THREE.Mesh(reg(new THREE.PlaneGeometry(.5, .19)), reg(new THREE.MeshBasicMaterial({map:tex(ec, reg)}))); m.position.set(x, 2.35, z); m.rotation.y = ry; groep.add(m); };
+  uitgang(-3.5, 7.62, Math.PI); doos(1.0, 2.2, .06, mat({color:0x2a2e38, roughness:.5}), -3.5, 1.1, 7.66);
   // banieren in de clubkleuren
   for (const x of [-2.2, 2.0]){
     const [bc, bg] = canvas(256, 1024); bg.fillStyle = tenue.shirt; bg.fillRect(0, 0, 256, 1024); bg.fillStyle = tenue.accent || '#fff'; bg.fillRect(0, 0, 256, 60); bg.fillRect(0, 964, 256, 60);

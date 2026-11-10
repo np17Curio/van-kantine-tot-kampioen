@@ -59,6 +59,8 @@ function pitchSceneBasis(type){
     // rust: het team in een kring in de middencirkel, jij in het midden
     toespraak:[e('J',52.5,34,'wij'), ...['A','B','C','D','F','G'].map((k, i) => e(k, 52.5 + Math.cos(i / 6 * Math.PI * 2) * 2.4, 34 + Math.sin(i / 6 * Math.PI * 2) * 2.4, 'wij'))],
     // net gescoord tegen je oude club: jij voor hun doel, je oude fans op de tribune
+    // juichdans (dansen.js): jij bij de hoekvlag, je teamgenoten rennen erheen, de bal ligt nog in het net
+    dans:     [e('J',94,38,'wij'), e('A',88,44,'wij'), e('B',91,49,'wij'), e('C',84,40,'wij'), e('X',96,36,'zij'), e('R',84,44,'R')], // (teamgenoten achter je: de camera staat aan de kant van de kleine y)
     juichen:  [e('J',97,38,'wij'), e('A',92,34,'wij'), e('B',93,45,'wij'), e('C',89,40,'wij'), e('X',95,30,'zij'), e('R',85,47,'R')],
     opbouw:   [e('J',20,34,'wij'), e('A',31,19,'wij'), e('B',32,49,'wij'), e('X',30,33,'zij'), e('Y',38,40,'zij'), e('k',1.5,34,'k')],
     provocatie:[e('J',60,34,'wij'), e('A',56,39,'wij'), e('X',61.6,34.8,'zij'), e('Y',65,29,'zij'), e('R',57,27,'R')],
@@ -78,11 +80,11 @@ function pitchSceneBasis(type){
   // Waar ligt de bal aan het begin
   const bal = type === 'corner' ? {x:104.3, y:67, z:0} : type === 'verdCorner' ? {x:0.8, y:67, z:0} : type === 'kopduel' || type === 'volley' ? {x:ents.A.x, y:ents.A.y, z:0}
     : type === 'penalty' ? {x:94, y:34, z:0} : type === 'keeperFout' ? {x:97.5, y:35, z:0} : ['verdedigen', 'tackle'].includes(type) ? {x:ents.X.x, y:ents.X.y, z:0}
-    : type === 'wissel' ? {x:52.5, y:34, z:0} : type === 'provocatie' || type === 'opstootje' ? {x:64, y:40, z:0} : type === 'toespraak' ? {x:56, y:30, z:0} : type === 'juichen' ? {x:105.4, y:34, z:.2} : type === 'shootout' ? {x:94, y:34, z:0} : /^tegen/.test(type) ? {x:ents.X.x + .8, y:ents.X.y, z:0} : /^team/.test(type) ? {x:ents.C.x + .8, y:ents.C.y, z:0} : {x:ents.J.x + .8, y:ents.J.y, z:0};
+    : type === 'wissel' ? {x:52.5, y:34, z:0} : type === 'provocatie' || type === 'opstootje' ? {x:64, y:40, z:0} : type === 'toespraak' ? {x:56, y:30, z:0} : type === 'juichen' || type === 'dans' ? {x:105.4, y:34, z:.2} : type === 'shootout' ? {x:94, y:34, z:0} : /^tegen/.test(type) ? {x:ents.X.x + .8, y:ents.X.y, z:0} : /^team/.test(type) ? {x:ents.C.x + .8, y:ents.C.y, z:0} : {x:ents.J.x + .8, y:ents.J.y, z:0};
   const cam = /^tegen/.test(type) ? 18 : ['verdedigen', 'verdCorner'].includes(type) ? 18 : type === 'opbouw' ? 24 : type === 'tackle' ? 44 : ['counter', 'diepteBal'].includes(type) ? 68 : ['provocatie', 'opstootje'].includes(type) ? 60 : type === 'toespraak' || type === 'wissel' ? 52.5 : 87;
   // Duels, tackles, juichen en de toespraak gebeuren op een paar meter: daar zoomt de camera verder in, op de plek van de actie
-  const dichtbij = ['provocatie', 'opstootje', 'tackle', 'verdedigen', 'juichen', 'toespraak', 'wissel'].includes(type);
-  return {ents, bal, cam, zoom:dichtbij ? .6 : type === 'penalty' || type === 'shootout' ? .8 : 1, camY:type === 'wissel' ? 62 : dichtbij && ents.J ? ents.J.y : 34};
+  const dichtbij = ['provocatie', 'opstootje', 'tackle', 'verdedigen', 'juichen', 'toespraak', 'wissel', 'dans'].includes(type);
+  return {ents, bal, cam, zoom:type === 'dans' ? .3 : dichtbij ? .6 : type === 'penalty' || type === 'shootout' ? .8 : 1, camY:type === 'wissel' ? 62 : dichtbij && ents.J ? ents.J.y : 34};
 }
 
 // Wachtrij: jouw acties en wat anderen doen, in volgorde afgespeeld
@@ -142,6 +144,8 @@ export const ANIM_KEUZE = {
   'Intikken':['schot', 'normaal'], 'Hard erop':['schot', 'normaal'], 'Breed op een teamgenoot':['pass', 'breed'],
   'Afstandsschot':['schot', 'afstand'], 'Lange bal de zestien in':['pass', 'zestien'], 'Dribbelen de zestien in':['dribbel', 'normaal'], 'Voorzet op de keeper die mee is':['pass', 'keeperkop']
 };
+// De y van de linkerhoek, gezien vanaf de stip: de schutter kijkt naar x = 105, dus zijn linkerhand wijst naar de grote y (weg van de camera)
+const PEN_LINKS = 36.6;
 const keuze = (type, l) => ANIM_KEUZE[type + '|' + l] || ANIM_KEUZE[l] || null;
 // Welke soort beweging hoort bij een keuze (vangnet voor nieuwe keuzes die nog niet in de tabel staan)
 export function animSoort(type, l){
@@ -164,7 +168,8 @@ export function animSoort(type, l){
 }
 export const animVariant = (type, l) => { const k = keuze(type, l); return k ? k[1] : 'normaal'; };
 // Houdingen die een speler in een stap kan aannemen (veld3d tekent ze; 2D negeert ze)
-export const POSES = ['duw', 'struikel', 'val', 'sliding', 'steek', 'schouder', 'trek', 'borst', 'kopstoot', 'lach', 'roep', 'kalm', 'wijs', 'protest', 'wuif', 'kaart', 'sorry', 'kniel', 'ssst', 'juich', 'klap', 'praat', 'vang', 'blok', 'omhaal', 'volley', 'spreid', 'jockey'];
+export const POSES = ['duw', 'struikel', 'val', 'sliding', 'steek', 'schouder', 'trek', 'borst', 'kopstoot', 'lach', 'roep', 'kalm', 'wijs', 'protest', 'wuif', 'kaart', 'sorry', 'kniel', 'ssst', 'juich', 'klap', 'praat', 'vang', 'blok', 'omhaal', 'volley', 'spreid', 'jockey',
+  'heupwieg', 'vliegtuig', 'kracht', 'knieslide', 'robot', 'kangoeroe', 'pirouette', 'boogschutter', 'polonaise'];
 // Het script: een lijst stappen. Elke stap verplaatst spelers en/of de bal in d milliseconden.
 // moves: {id:{x, y, z, pose, rol}}  ·  bal: {to, boog, krul, trap, van} of {volg}  ·  fx: tekst-effect aan het eind van de stap
 export function animScript(a){ const r = animScriptBasis(a); return a.jijKeeper ? alsKeeper(r) : r; }
@@ -174,6 +179,8 @@ function animScriptBasis(a){
   if (a.keeperUit && E.J){ Object.assign(E.J, {x:4, y:34, rol:'k'}); delete E.k; sc.bal = {x:5, y:34, z:0}; }
   // Vanaf de bank: jij staat langs de lijn bij de dug-out; vanaf de tribune: buiten beeld
   if ((a.bank || a.tribune) && E.J){ Object.assign(E.J, a.bank ? {x:52.5, y:71.5} : {x:-30, y:90}); }
+  // Je vriend neemt de penalty (proloog): hij staat bij de stip, jij kijkt toe
+  if (a.schutter === 'A' && E.A && E.J){ Object.assign(E.A, {x:92, y:34}); Object.assign(E.J, {x:86, y:42}); }
   const J = E.J, maat = E.A || E.B, tegen = E.X, K = E.K || E.k, v = a.variant || 'normaal';
   // waar staat iedereen na de vorige stap (zodat een volgende stap daarop kan voortbouwen)
   const cur = {}; for (const k in E) cur[k] = {x:E[k].x, y:E[k].y};
@@ -187,7 +194,8 @@ function animScriptBasis(a){
   // De scheids komt erbij en geeft de kaart aan wie de overtreding maakte
   const kaartStap = (wie = 'J') => { const k = kaart(); if (!k) return false; const p = cur[wie] || cur.J; stap(800, {R: E.R ? {x:p.x - 1.3, y:p.y - 1.7, pose:'kaart'} : undefined, [wie]:{pose:'sorry'}}, null, k); return true; };
   const c = a.soort;
-  const juich = (wie, links) => { if (!E[wie]) return; const hoek = links ? {x:3, y:62} : {x:102, y:62}; const mv = {[wie]:{...hoek, pose:'juich'}}; ['A', 'B', 'C', 'J', 'Y', 'Z'].forEach(k => { if (k !== wie && E[k] && E[k].rol === E[wie].rol) mv[k] = k === 'J' && (a.bank || a.tribune) ? (a.bank ? {pose:'juich'} : undefined) : {x:hoek.x + (links ? 3 : -3) + r() * 2, y:hoek.y - 2 - r() * 4, pose:'juich'}; }); stap(900, mv, null); };
+  const juich = (wie, links) => { if (!E[wie] || (wie === 'J' && a.dansNa)) return; // (na jouw goal kies je zelf hoe je juicht: dansen.js)
+ const hoek = links ? {x:3, y:62} : {x:102, y:62}; const mv = {[wie]:{...hoek, pose:'juich'}}; ['A', 'B', 'C', 'J', 'Y', 'Z'].forEach(k => { if (k === 'J' && a.dansNa) return; if (k !== wie && E[k] && E[k].rol === E[wie].rol) mv[k] = k === 'J' && (a.bank || a.tribune) ? (a.bank ? {pose:'juich'} : undefined) : {x:hoek.x + (links ? 3 : -3) + r() * 2, y:hoek.y - 2 - r() * 4, pose:'juich'}; }); stap(900, mv, null); };
   if (c === 'shootout'){
     let w = 0, z = 0;
     a.kicks.forEach(k => {
@@ -217,6 +225,36 @@ function animScriptBasis(a){
     else if (a.einde === 'lijn'){ const ly = 33 + r() * 2; stap(1, {[wij ? 'X' : 'A']:{x:lijnX, y:ly + 1.5}}, null); stap(600, {[wij ? 'X' : 'A']:{y:ly}, [S1]:{z:0}}, {to:{x:lijnX, y:ly, z:.4}, boog:.3}, 'lijn'); stap(400, {}, {to:{x:wij ? 96 : 9, y:ly + 8, z:0}, boog:1.5}); }
     else if (a.einde === 'over'){ stap(600, {[S1]:{z:0}}, {to:{x:wij ? 107 : -2, y:33 + r() * 2, z:3.3}, boog:.8}, 'over'); }
     else { const d = {x:wij ? 103.6 : 1.4, y:32 + r() * 4, z:.9}; stap(600, {[KP]:{x:d.x, y:d.y, z:.5}, [S1]:{z:0}}, {to:d, boog:.4}, wij ? 'redding' : 'onzeRedding'); }
+    return {sc, st};
+  }
+  // ===== Juichdans na jouw goal (dansen.js) =====
+  if (c === 'dans'){
+    const NAAM = {heupwieg:'💃 Heupwieg', vliegtuig:'✈️ Vliegtuig', kracht:'💪 Krachtpose', knieslide:'🛷 Knieslide', robot:'🤖 Robot', kangoeroe:'🦘 Kangoeroe', pirouette:'🌀 Pirouette', boogschutter:'🏹 Boogschutter', polonaise:'🕺 Teamdans'};
+    // je begint waar je scoorde (voor het doel) en viert hem bij de hoekvlag P; de teamgenoten rennen achter je aan
+    const P = {x:99, y:58}, fx = {t:NAAM[v] || 'Feest!', kl:'#ffd84a'};
+    const maten = {A:{x:P.x - 3.5, y:P.y + 2.5, pose:'juich'}, B:{x:P.x + 2.5, y:P.y + 2.2, pose:'juich'}, C:{x:P.x - 5, y:P.y + .8, pose:'klap'}};
+    const volg = {A:{x:P.x - 7, y:P.y - 1}, B:{x:P.x - 4, y:P.y + 3}, C:{x:P.x - 10, y:P.y - 3}};
+    if (v === 'vliegtuig'){ // meteen met de armen wijd, in een boog naar de hoekvlag en langs de zijlijn terug
+      stap(1000, {J:{x:J.x + 3, y:J.y + 10, pose:'vliegtuig'}}, null, fx);
+      stap(900, {J:{x:P.x, y:P.y + 2}, ...volg}, null);
+      stap(900, {J:{x:P.x - 6, y:P.y + 4}}, null);
+      stap(900, {J:{x:P.x - 9, y:P.y + 1}, A:{x:P.x - 12, y:P.y + 3.5, pose:'juich'}, B:{x:P.x - 6.5, y:P.y + 4.5, pose:'juich'}, C:{x:P.x - 11, y:P.y - 1, pose:'klap'}}, null);
+      stap(500, {J:{pose:'juich'}}, null);
+    } else if (v === 'knieslide'){ // aanloop richting de hoekvlag, dan op de knieën glijden
+      stap(800, {J:{x:P.x - 2, y:P.y - 7, pose:null}, ...volg}, null);
+      stap(1300, {J:{x:P.x, y:P.y, pose:'knieslide'}}, null, fx);
+      stap(1300, maten, null);
+    } else if (v === 'polonaise'){ // eerst naar de hoekvlag, dan de hele ploeg in een rij achter je aan
+      stap(900, {J:{x:P.x, y:P.y, pose:null}, A:{x:P.x - 1.2, y:P.y + .4}, B:{x:P.x - 2.4, y:P.y + .8}, C:{x:P.x - 3.6, y:P.y + 1.2}}, null);
+      const rij = (dx, dy) => ({J:{x:P.x + dx, y:P.y + dy, pose:'polonaise'}, A:{x:P.x + dx - 1.2, y:P.y + dy + .4, pose:'polonaise'}, B:{x:P.x + dx - 2.4, y:P.y + dy + .8, pose:'polonaise'}, C:{x:P.x + dx - 3.6, y:P.y + dy + 1.2, pose:'polonaise'}});
+      stap(1200, rij(-4, 1.5), null, fx); stap(1200, rij(-8, 3), null); stap(1000, rij(-11, 2), null);
+      stap(500, {J:{pose:'juich'}, A:{pose:'juich'}, B:{pose:'juich'}, C:{pose:'juich'}}, null);
+    } else { // naar de hoekvlag rennen en daar de dans; de teamgenoten komen eromheen staan
+      stap(900, {J:{x:P.x, y:P.y, pose:null}, ...volg}, null);
+      stap(1400, {J:{pose:v}}, null, fx);
+      stap(1500, maten, null);
+      stap(v === 'pirouette' || v === 'boogschutter' ? 900 : 600, {}, null);
+    }
     return {sc, st};
   }
   // ===== Juichen na een goal tegen je oude club =====
@@ -510,9 +548,11 @@ function animScriptBasis(a){
     else if (a.ok){ const d = {x:103.5, y:K.y + (r() - .5) * 3, z:.8}; stap(600, {K:{x:103.6, y:d.y, z:.5}}, {to:d, boog: c === 'chip' ? 3 : .5, trap}, 'redding'); }
     else { const d = naast(); stap(650, {K:{y:K.y + (r() - .5) * 2}}, {to:d, boog: c === 'chip' ? 3.5 : .8, trap}, d.z > 3 ? 'over' : 'naast'); }
   } else if (c === 'penalty'){
-    const hoek = r() < .5 ? 31.4 : 36.6, kHoek = hoek > 34 ? 36.5 : 31.5, verkeerd = hoek > 34 ? 31.5 : 36.5;
-    if (v === 'stopje'){ stap(300, {J:{x:93}}, null); stap(450, {J:{x:93.05}, K:{y:a.goal ? verkeerd : kHoek, z:.55}}, null); }
-    else stap(450, {J:{x:93.4, y:34}}, null);
+    // a.kant: zelf gekozen hoek (gezien vanaf de stip); a.schutter: wie schiet (proloog: je vriend 'A')
+    const P = a.schutter || 'J', ander = P === 'J' ? 'A' : 'J';
+    const hoek = a.kant ? (a.kant === 'L' ? PEN_LINKS : 68 - PEN_LINKS) : r() < .5 ? 31.4 : 36.6, kHoek = hoek > 34 ? 36.5 : 31.5, verkeerd = hoek > 34 ? 31.5 : 36.5;
+    if (v === 'stopje'){ stap(300, {[P]:{x:93}}, null); stap(450, {[P]:{x:93.05}, K:{y:a.goal ? verkeerd : kHoek, z:.55}}, null); }
+    else stap(450, {[P]:{x:93.4, y:34}}, null);
     let doel, boog = .3, duur = 600, km;
     if (v === 'midden'){ doel = {x:105.6, y:34 + (r() - .5), z:.5 + r()}; km = a.goal ? {y:verkeerd, z:.6} : {y:34, z:.2, pose:'vang'}; }
     else if (v === 'panenka'){ doel = {x:105.6, y:34, z:1.4}; boog = 1.8; duur = 1000; km = a.goal ? {y:verkeerd, z:.6} : {y:34, z:.3, pose:'vang'}; }
@@ -520,8 +560,12 @@ function animScriptBasis(a){
     else { doel = {x:105.6, y:hoek, z:.4 + r() * 1.6}; km = {y:a.goal ? verkeerd : hoek, z:.6}; }
     const trap = v === 'panenka' ? 'chip' : 'normaal';
     if (a.goal) stap(duur, {K:km}, {to:doel, boog, trap}, 'goal');
-    else if (a.ok || v === 'panenka' || v === 'midden' || r() < .6) stap(duur, {K:{...km, x:104.4, y:doel.y}}, {to:{x:104.4, y:doel.y, z:Math.min(doel.z, 1.6)}, boog, trap}, 'redding');
+    else if (a.ok || v === 'panenka' || v === 'midden' || (a.verhaal && (v === 'hoek' || P !== 'J')) || r() < .6) stap(duur, {K:{...km, x:104.4, y:doel.y}}, {to:{x:104.4, y:doel.y, z:Math.min(doel.z, 1.6)}, boog, trap}, 'redding');
     else stap(600, {K:km}, {to:{x:107, y:hoek, z:3.2}, boog:.6, trap}, 'over');
+    // Proloog: samen juichen, of op je knieën en je vriend komt je troosten
+    if (a.verhaal && E[ander]){ const p = cur[P];
+      if (a.goal) stap(1200, {[P]:{x:97, y:40, pose:'juich'}, [ander]:{x:96.2, y:41.2, pose:'juich'}}, null, {t:'Kampioen!', kl:'#ffd84a'});
+      else stap(1200, {[P]:{x:p.x + .6, y:p.y, pose:'kniel'}, [ander]:{x:p.x - .4, y:p.y + 1.1, pose:'sorry'}}, null, {t:'Gemist…', kl:'#ff9b9b'}); }
   } else if (c === 'pass' || c === 'kort' || c === 'lang'){
     const doelpos = c === 'kort' ? {x:maat.x - 3, y:maat.y} : {x:Math.min(98, maat.x + (c === 'lang' ? 7 : 5)), y:maat.y + (34 - maat.y) * .25};
     if (a.ok){
@@ -670,7 +714,7 @@ export const rugnummerVeilig = () => { try { return S.M && (S.M.inter || S.M.o23
 // opt.herhaling: dezelfde actie nog een keer, in slow motion en ingezoomd op jou (na een goal van jou)
 export function pitchSpeel(el, a, klaar, opt = {}){
   const cv = pitchCanvas(el), {sc, st} = animScript(a), snel = (instel().anim === 'snel' ? .5 : 1) * (opt.herhaling ? HERHALING_TRAAG : 1);
-  const T = {ents:sc.ents, bal:{...sc.bal}, cam:sc.cam, zoom:opt.herhaling && sc.ents.J ? .55 : sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(),
+  const T = {geenJuichJ:!!a.dansNa, ents:sc.ents, bal:{...sc.bal}, cam:sc.cam, zoom:opt.herhaling && sc.ents.J ? .55 : sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(),
     onder:opt.herhaling ? `⟲ HERHALING · ${a.min ?? ''}' · ${S.sp.naam}` : a.onder || (a.soort === 'shootout' ? 'Strafschoppen' : null)};
   let i = -1, t0 = 0, van = null, fx = null, fxT = 0, eind = 0, aanzet = 0;
   const id = (PITCH = {stop:false, klaar}), gen = GEN;
@@ -724,7 +768,7 @@ export function vPitch(overlay = ''){
   const veld = v => knop(v.toUpperCase(), () => { instel().veld = v; }, (instel().veld || '3d') === v ? 'klein aan' : 'klein', 'data-blijf');
   const spelers = (v, l) => knop(l, () => { instel().spelers = v; delete instel().kwaliteit; }, spelerModus() === v ? 'klein aan' : 'klein', `data-blijf title="${v === 'echt' ? 'Altijd de 3D-spelers' : v === 'auto' ? 'Eenvoudiger als het beeld te traag wordt' : 'Altijd de eenvoudige spelers (snelst)'}"`);
   return `<div id="pitch25" class="pitch25"><div class="pitchvak"><canvas aria-label="Het veld van bovenaf, schuin gezien"></canvas>${overlay ? `<div class="pitchkeuze">${overlay}</div>` : ''}</div>
-    <div class="rij pitchknop" style="gap:6px;align-items:center;flex-wrap:wrap"><span class="muted klein-tekst">Animatie:</span>${zet('normaal')}${zet('snel')}${zet('uit')}<span class="muted klein-tekst" style="margin-left:8px">Veld:</span>${veld('3d')}${veld('2d')}${(instel().veld || '3d') === '3d' ? `<span class="muted klein-tekst" style="margin-left:8px">Spelers:</span>${spelers('echt', 'Echt')}${spelers('auto', 'Auto')}${spelers('simpel', 'Simpel')}` : ''}${nieuwAnim ? knop(open.length > 1 ? `Overslaan (${open.length}) ⏭` : 'Overslaan ⏭', () => { openAnims(M).forEach(a => a.gezien = true); }, 'klein', 'data-blijf id="pitchSkip"') : ''}</div></div>`;
+    <div class="rij pitchknop" style="gap:6px;align-items:center;flex-wrap:wrap"><span class="muted klein-tekst" title="Versie van de veldanimaties">Animatie <small style="opacity:.55">v3</small>:</span>${zet('normaal')}${zet('snel')}${zet('uit')}<span class="muted klein-tekst" style="margin-left:8px">Veld:</span>${veld('3d')}${veld('2d')}${(instel().veld || '3d') === '3d' ? `<span class="muted klein-tekst" style="margin-left:8px">Spelers:</span>${spelers('echt', 'Echt')}${spelers('auto', 'Auto')}${spelers('simpel', 'Simpel')}` : ''}${nieuwAnim ? knop(open.length > 1 ? `Overslaan (${open.length}) ⏭` : 'Overslaan ⏭', () => { openAnims(M).forEach(a => a.gezien = true); }, 'klein', 'data-blijf id="pitchSkip"') : ''}</div></div>`;
 }
 // Na elke weergave: het veld tekenen of de wachtrij met animaties afspelen
 export function pitchNaRender(){
@@ -745,7 +789,9 @@ export function pitchNaRender(){
     // na een goal van jou: eerst de herhaling (alleen bij animaties op Normaal, en niet als de VAR er nog naar kijkt)
     const naAnim = i => {
       const a = open[i]; a.gezien = true; try { bewaar(); } catch (e){}
-      if (a.goal && !a.varCheck && !a.herhaald && instel().anim === 'normaal' && el.isConnected){ a.herhaald = true; return pitchSpeel(el, a, () => naAnim(i), {herhaling:true}); }
+      if (a.goal && !a.dansNa && !a.varCheck && !a.herhaald && instel().anim === 'normaal' && el.isConnected){ a.herhaald = true; return pitchSpeel(el, a, () => naAnim(i), {herhaling:true}); }
+      // na de juichdans: de herhaling van jouw goal
+      if (a.soort === 'dans' && a.herhaal && instel().anim === 'normaal' && el.isConnected){ const g = (S.M && S.M.animQ || []).find(x => x.id === a.herhaal); if (g && !g.herhaald){ g.herhaald = true; return pitchSpeel(el, g, () => naAnim(i), {herhaling:true}); } }
       const sk = document.getElementById('pitchSkip'); if (sk) sk.textContent = open.length - i - 1 > 1 ? `Overslaan (${open.length - i - 1}) ⏭` : 'Overslaan ⏭';
       if (i + 1 < open.length && el.isConnected) return speel(i + 1);
       if (keuzes) keuzes.style.visibility = ''; if (sk) sk.remove();

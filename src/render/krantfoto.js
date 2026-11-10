@@ -27,7 +27,9 @@ function fotoCtx(img){
   const c = club(), [muur, accent] = MUREN[(S.sp.club || 0) % MUREN.length];
   const pl = ploegen(); return {sleutel:pl.jij, naam:S.sp.naam, uiterlijk:S.sp.uiterlijk || null, club:c ? c.n : '', muur, accent, tenue:clubTenue(S.sp.club), clubId:S.sp.club, band:!!pl.band, sponsor:S.sp.clubloos || S.sp.o23 ? null : shirtSponsor(c, thuisLand())}; // (de shirtsponsor van je club)
 }
-const sleutelVan = (soort, ctx) => [soort, ctx.sleutel, ctx.club, ctx.draai ?? '', ctx.band ? 'C' : '', ctx.uiterlijk ? ctx.uiterlijk.huid + ctx.uiterlijk.haar + ctx.uiterlijk.kapsel + (ctx.uiterlijk.lengte || '') + (ctx.uiterlijk.bmi || '') + '|' + (ctx.uiterlijk.schoen ?? '') : ''].join('|');
+// (het uiterlijk als losse velden: huid en haar zijn getallen, opgeteld zouden huid 1 + haar 2 en huid 2 + haar 1 dezelfde foto geven)
+const uitSleutel = u => u ? [u.huid, u.haar, u.kapsel, u.lengte ?? '', u.bmi ?? '', u.schoen ?? '', u.vrouw ? 'v' : ''].join(',') : '';
+const sleutelVan = (soort, ctx) => [soort, ctx.sleutel, ctx.club, ctx.draai ?? '', ctx.band ? 'C' : '', uitSleutel(ctx.uiterlijk)].join('|');
 export function foto(soort, img){
   const ctx = fotoCtx(img), key = sleutelVan(soort, ctx);
   if (!KLAAR.has(key)){

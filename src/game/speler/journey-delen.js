@@ -20,7 +20,7 @@ const caps = () => Object.values((S.car && S.car.int) || {}).reduce((a, x) => a 
 const rol = () => vriendActief() ? 'vriend' : S.sp.rivaal && S.sp.rivaal.exVriend ? 'rivaal' : 'geen';
 const vn = () => S.sp.vriend ? S.sp.vriend.voornaam : 'je ' + vr.jeugdvriend + '';
 const zijnClub = () => { const R = S.sp.rivaal; return (rol() === 'rivaal' ? (CLUBS[R.club] && CLUBS[R.club].n) : vriendClubNaam()) || '' + vr.zijn + ' club'; };
-const penalty = () => S.sp.journey.penalty === 'vriend' ? 'de penalty die jij ' + vr.hem + ' gaf toen jullie tien waren' : S.sp.journey.penalty === 'zelf' ? 'die laatste penalty die jij toen zelf nam' : 'die foto van jullie met de beker, toen jullie tien waren';
+const penalty = () => S.sp.journey.penalty === 'vriend' ? 'de penalty die jij ' + vr.hem + ' gaf toen jullie tien waren' : S.sp.journey.penalty === 'zelf' ? 'die laatste penalty die jij toen zelf nam' : `die foto van jullie met ${S.sp.journey.penRaak === false ? 'de zilveren medaille' : 'de beker'}, toen jullie tien waren`;
 const opaZin = () => S.sp.journey.opaZiek ? `${opaNaam()}, die na zijn ziekte weer op de been is,` : opaNaam();
 function inEuropa(){
   const B = S.ss.bekers || {}, id = S.sp.club;

@@ -118,9 +118,17 @@ export function hoofdstukInhoud(){
           : `Het wordt strafschoppen.${hij ? ` ${vn} staat in het doel en stopt er twee.` : ''} Bij 4-4 kijkt de trainer naar jullie twee: wie neemt de laatste? Langs de lijn staat ${opa}, die veertig jaar geleden zelf spits was, met zijn handen in zijn jaszakken.`],
       opa:ik ? '"Een keeper die een penalty neemt? Dat durven alleen de echten. Maar een echte ' + IK.vriend + ' weet wanneer ' + IK.hij + ' de bal moet geven."' : '"Een echte spits wil die bal. Maar een echte ' + IK.vriend + ' weet wanneer ' + IK.hij + ' hem moet geven."',
       opts:[
-        o(ik ? 'Zelf de laatste nemen, als keeper' : 'Zelf de laatste nemen', 'fel', () => { zetBand(-5); sp.journey.penalty = 'zelf'; mod('rep', 1); return ik ? `Je loopt uit je doel naar de stip, voordat ${vn} iets kan zeggen. Een keeper die de laatste neemt, dat zie je zelden. Hard, linksboven: kampioen! ${vn} juicht mee, maar je ziet dat ${vr.hij} hem zelf ook had willen nemen.` : `Je pakt de bal voordat ${vn} iets kan zeggen. Hard, linksboven: kampioen! ${vn} juicht mee, maar je ziet dat ${vr.hij} hem zelf ook had willen nemen.`; }),
-        o(`${vn} hem laten nemen`, 'kalm', () => { zetBand(10); sp.journey.penalty = 'vriend'; return ik ? `Je geeft ${vn} de bal. ${vr.Hij} schiet hem keihard in de kruising en rent dwars over het veld naar jouw doel: "Jij stopte er twee, ik maakte hem af. Samen, ${IK.knul}. Altijd samen."` : `Je geeft ${vn} de bal. ${vr.Hij} schiet hem keihard in de kruising. ${vr.Hij} rent meteen naar jou toe: "Samen, ${IK.knul}. Altijd samen."`; }),
-        o('Samen beslissen: tossen', 'bal', () => { zetBand(4); sp.journey.penalty = 'samen'; return `Jullie tossen. ${vn} wint, neemt hem en scoort. Op de foto in de krant staan jullie samen met de beker${ik ? ', jij nog in je keepershandschoenen' : ''}.`; })]}; }
+        // De laatste penalty zie je op het veld (penRichting/penKlaar): f krijgt pas daarna te horen of hij erin ging
+        {...o(ik ? 'Zelf de laatste nemen, als keeper' : 'Zelf de laatste nemen', 'fel', (raak, p = {}) => { sp.journey.penalty = 'zelf';
+          const begin = ik ? `Je loopt uit je doel naar de stip, voordat ${vn} iets kan zeggen. Een keeper die de laatste neemt, dat zie je zelden.` : `Je pakt de bal voordat ${vn} iets kan zeggen.`;
+          if (raak){ zetBand(-5); mod('rep', 1); return `${begin} ${p.t || 'Hard, linksboven'}: kampioen! ${vn} juicht mee, maar je ziet dat ${vr.hij} hem zelf ook had willen nemen.`; }
+          zetBand(-2); return `${begin} ${p.t || 'Hard, linksboven'}... maar hij gaat er niet in. Het wordt sudden death, en die verliezen jullie. ${vn} slaat een arm om je heen: "${ik ? 'Jij stopte er twee. Zonder jou stonden we hier niet eens.' : 'Volgende keer winnen we hem. Samen.'}" Je zegt niks. Je vergeet dit nooit.`; }), pen:'zelf'},
+        {...o(`${vn} hem laten nemen`, 'kalm', raak => { sp.journey.penalty = 'vriend';
+          if (raak){ zetBand(10); return ik ? `Je geeft ${vn} de bal. ${vr.Hij} schiet hem keihard in de kruising en rent dwars over het veld naar jouw doel: "Jij stopte er twee, ik maakte hem af. Samen, ${IK.knul}. Altijd samen."` : `Je geeft ${vn} de bal. ${vr.Hij} schiet hem keihard in de kruising. ${vr.Hij} rent meteen naar jou toe: "Samen, ${IK.knul}. Altijd samen."`; }
+          zetBand(12); return `Je geeft ${vn} de bal. ${vr.Hij} schiet, maar de keeper heeft hem. Het wordt sudden death, en die verliezen jullie. In de kleedkamer huilt ${vn}. Jij blijft naast ${vr.hem} zitten tot iedereen weg is: "Volgende keer, samen."`; }), pen:'vriend'},
+        {...o('Samen beslissen: tossen', 'bal', raak => { sp.journey.penalty = 'samen';
+          if (raak){ zetBand(4); return `Jullie tossen. ${vn} wint, neemt hem en scoort. Op de foto in de krant staan jullie samen met de beker${ik ? ', jij nog in je keepershandschoenen' : ''}.`; }
+          zetBand(6); return `Jullie tossen. ${vn} wint en neemt hem, maar mist. Het wordt sudden death, en die verliezen jullie. Op de foto in de krant staan jullie toch samen, met de zilveren medaille${ik ? ', jij nog in je keepershandschoenen' : ''}.`; }), pen:'samen'}]}; }
     case 1: return {
       tekst:[`Nu, ${sp.leeftijd} jaar oud. De selectiedagen in ${land}: twintig talenten, drie wedstrijden, en tribunes vol scouts. ${vriendApart() ? `${vn} doet ook mee, bij de selectiedagen voor ${vr.jongens}.` : `Jij en ${vn} zijn er allebei.`}`,
         `Op de scoutingranglijst sta je onderaan bij de ${{SPITS:'spitsen', MID:'middenvelders', VERD:'verdedigers', KEEPER:'keepers'}[sp.pos] || 'talenten'}. Alleen wie hoog eindigt, krijgt een aanbieding van een club uit de hoogste league. ${vn} slaat je op je schouder: "Wij gaan dit samen halen."`],
@@ -197,7 +205,9 @@ export function hoofdstukInhoud(){
         o('"' + vr.Hij + ' koos voor het geld. Dat zegt genoeg."', 'fel', () => { zetRivaalBand(-12); krantMelding(`${sp.naam} haalt uit naar ex-vriend ${vn} ${v.n}`, `"${vr.Hij} koos voor het geld. Dat zegt genoeg," aldus ${sp.naam}.`); return 'Het interview gaat viral. Je rivaal leest het ook, dat weet je zeker.'; })]};
     case 6: if (vriendRoute()) return {
       tekst:[`De laatste speelronde van het seizoen komt eraan. ${bijJou() ? `Op de avond ervoor eten ${vn} en jij samen, zoals jullie al jaren doen voor een belangrijke wedstrijd.` : `${vn} belt: "Morgen de laatste speelronde. Na afloop samen eten, wat er ook gebeurt?"`}`,
-        `"Weet je nog, die penalty's toen we tien waren?" vraagt ${vn}. ${sp.journey.penalty === 'vriend' ? '"Jij gaf mij toen de bal. Dat ben ik nooit vergeten."' : sp.journey.penalty === 'zelf' ? '"Jij nam hem toen zelf. Nu snap ik waarom: jij wilt altijd winnen."' : '"Die foto hangt nog steeds bij mijn ouders aan de muur."'}`],
+        `"Weet je nog, die penalty's toen we tien waren?" vraagt ${vn}. ${sp.journey.penRaak === false
+          ? (sp.journey.penalty === 'vriend' ? '"Jij gaf mij toen de bal, en ik miste. Jij bleef naast me zitten tot iedereen weg was. Dat ben ik nooit vergeten."' : sp.journey.penalty === 'zelf' ? '"Jij nam hem toen zelf, en miste. Nu snap ik waarom je altijd zo hard traint."' : '"Die foto met de zilveren medaille hangt nog steeds bij mijn ouders aan de muur."')
+          : sp.journey.penalty === 'vriend' ? '"Jij gaf mij toen de bal. Dat ben ik nooit vergeten."' : sp.journey.penalty === 'zelf' ? '"Jij nam hem toen zelf. Nu snap ik waarom: jij wilt altijd winnen."' : '"Die foto hangt nog steeds bij mijn ouders aan de muur."'}`],
       opa:'"Ik had ooit een vriend zoals hij. Ik heb hem laten gaan. Jij niet. Daar ben ik trots op."',
       opts:[
         o('"Wat er ook gebeurt: samen."', 'kalm', () => { zetBand(10); mod('moraal', 8); return 'Jullie proosten met een glas cola. Wat een seizoen.'; }),
@@ -224,7 +234,34 @@ export const zetRivaalBand = d => { const R = S.sp.rivaal; if (R) R.band = clamp
 export function kiesHoofdstuk(i){
   const H = S.hoofdstuk; if (!H || H.keuze !== null) return;
   const o = hoofdstukInhoud().opts[i]; if (!o) return;
-  H.keuze = i; H.uit = o.f() + ' ' + toonEffect(o.toon);
+  H.keuze = i;
+  // De laatste penalty van de proloog: eerst zie je hem op het veld (zelf kies je eerst waar je schiet)
+  if (o.pen){ H.pen = o.pen === 'zelf' ? {wie:'zelf', fase:'richting'} : {wie:o.pen, fase:'speel', anim:vriendPen()}; return; }
+  H.uit = o.f() + ' ' + toonEffect(o.toon);
+}
+// Waar schiet je je penalty (proloog)? kans = de kans dat hij erin gaat
+export const PEN_RICHTING = [
+  {id:'laagL', l:'↙ Laag links', v:'hoek', kant:'L', kans:.75, t:'Laag in de linkerhoek', s:'Grote kans'},
+  {id:'laagR', l:'↘ Laag rechts', v:'hoek', kant:'R', kans:.75, t:'Laag in de rechterhoek', s:'Grote kans'},
+  {id:'hoogL', l:'↖ Kruising links', v:'kruising', kant:'L', kans:.65, t:'Hoog in de linkerkruising', s:'Mooi, maar hij kan over'},
+  {id:'hoogR', l:'↗ Kruising rechts', v:'kruising', kant:'R', kans:.65, t:'Hoog in de rechterkruising', s:'Mooi, maar hij kan over'},
+  {id:'midden', l:'⬆ Door het midden', v:'midden', kans:.65, t:'Keihard door het midden', s:'Blijft de keeper staan?'},
+  {id:'panenka', l:'🥄 Panenka', v:'panenka', kans:.55, t:'Een panenka, rustig door het midden', s:'Lef! Maar een gok'}];
+const penAnim = (schutter, r, goal) => ({soort:'penalty', type:'penalty', variant:r.v, kant:r.kant || null, goal, ok:false, schutter, verhaal:true, t:r.t, onder:'Jeugdfinale · laatste strafschop'});
+// Je vriend schiet: raak gaat keihard in de kruising (zoals het verhaal zegt), mis kan overal
+const vriendPen = () => { const raak = rnd() < .75; return penAnim('A', PEN_RICHTING[raak ? randInt(2, 3) : randInt(0, 3)], raak); };
+export function penRichting(id){
+  const H = S.hoofdstuk, p = H && H.pen; if (!p || p.fase !== 'richting') return;
+  const r = PEN_RICHTING.find(x => x.id === id) || PEN_RICHTING[0];
+  p.anim = penAnim('J', r, rnd() < r.kans); p.fase = 'speel';
+}
+// Na de animatie (of overgeslagen): de afloop en het effect
+export function penKlaar(){
+  const H = S.hoofdstuk, p = H && H.pen; if (!p || p.fase === 'klaar') return;
+  if (!p.anim) penRichting(PEN_RICHTING[randInt(0, 1)].id);
+  const o = hoofdstukInhoud().opts[H.keuze]; p.fase = 'klaar';
+  S.sp.journey.penRaak = !!p.anim.goal;
+  H.uit = o.f(p.anim.goal, p.anim) + ' ' + toonEffect(o.toon);
 }
 // "Verder": terug naar waar je was (of door naar het volgende hoofdstuk)
 export function verderHoofdstuk(){
