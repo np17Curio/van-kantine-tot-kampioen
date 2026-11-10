@@ -169,7 +169,7 @@ export function animSoort(type, l){
 export const animVariant = (type, l) => { const k = keuze(type, l); return k ? k[1] : 'normaal'; };
 // Houdingen die een speler in een stap kan aannemen (veld3d tekent ze; 2D negeert ze)
 export const POSES = ['duw', 'struikel', 'val', 'sliding', 'steek', 'schouder', 'trek', 'borst', 'kopstoot', 'lach', 'roep', 'kalm', 'wijs', 'protest', 'wuif', 'kaart', 'sorry', 'kniel', 'ssst', 'juich', 'klap', 'praat', 'vang', 'blok', 'omhaal', 'volley', 'spreid', 'jockey',
-  'heupwieg', 'vliegtuig', 'kracht', 'knieslide', 'robot', 'kangoeroe', 'pirouette', 'boogschutter', 'polonaise'];
+  'heupwieg', 'vliegtuig', 'kracht', 'knieslide', 'robot', 'kangoeroe', 'pirouette', 'boogschutter', 'polonaise', 'overspring', 'balen'];
 // Het script: een lijst stappen. Elke stap verplaatst spelers en/of de bal in d milliseconden.
 // moves: {id:{x, y, z, pose, rol}}  ·  bal: {to, boog, krul, trap, van} of {volg}  ·  fx: tekst-effect aan het eind van de stap
 export function animScript(a){ const r = animScriptBasis(a); return a.jijKeeper ? alsKeeper(r) : r; }
@@ -582,6 +582,20 @@ function animScriptBasis(a){
       stap(500, {X:{x:mid.x - 8, y:mid.y}}, {volg:'X'});
       if (a.tegen) tegengoal();
     }
+  } else if (c === 'dribbel' && (v === 'normaal' || v === 'oprukken')){
+    // Voorbij dribbelen (stijlbron art/chibi_anims.px.js, 'voorbij'): de verdediger komt met een sliding,
+    // jij wipt de bal op en springt eroverheen; hij blijft liggen en baalt. Mislukt: zijn sliding pakt de bal af
+    const jx = J.x, jy = J.y;
+    stap(500, {J:{x:jx + 3, y:jy + 1}, X:{x:jx + 7, y:jy + 1.5, pose:'jockey'}}, {volg:'J'});
+    if (a.ok){
+      stap(520, {J:{x:jx + 8, y:jy + 1, pose:'overspring'}, X:{x:jx + 5, y:jy + 1.3, pose:'sliding'}}, {to:{x:jx + 9.2, y:jy + 1, z:0}, boog:1.3, trap:'geen'});
+      stap(450, {J:{x:jx + 11, y:jy + 1, pose:null}, X:{pose:'balen'}}, {volg:'J'});
+      if (a.goal || a.assist || a.team){ if (a.goal){ const d = doelR(); stap(600, {K:{y:d.y > 34 ? 31 : 37, z:.4}}, {to:d, boog:.4}, 'goal'); } else scoort(); }
+    } else {
+      stap(480, {J:{x:jx + 4, y:jy + 1.2, pose:'struikel'}, X:{x:jx + 3.6, y:jy + 1.3, pose:'sliding'}}, {to:{x:jx + 3.4, y:jy + 1.4, z:0}, boog:0, trap:'geen'}, 'afgepakt');
+      stap(450, {J:{pose:'val'}, X:{x:jx - 2, y:jy + 1.3, pose:null}}, {volg:'X'});
+      if (a.tegen) tegengoal();
+    }
   } else if (c === 'dribbel'){
     if (a.ok){
       stap(450, {J:{x:J.x + 3, y:J.y + 2.5}, X:{x:J.x + 2, y:J.y - .5}}, {volg:'J'});
@@ -674,9 +688,7 @@ export let PITCH = null; // lopende animatie
 let V3 = null, GEN = 0;
 if (typeof window !== 'undefined') import('./veld3d.js').then(m => { V3 = m; }).catch(e => console.warn('3D-veld kon niet laden', e));
 export const is3D = () => !!(V3 && instel().veld !== '2d' && V3.beschikbaar());
-// instel().kwaliteit = 'vast': de automatische kwaliteit nooit terugschakelen (altijd de echte spelers)
-export const spelerModus = () => instel().spelers || (instel().kwaliteit === 'vast' ? 'echt' : 'auto');
-function teken(cv, T, nu){ if (cv._3d && V3){ T.spelers = spelerModus(); V3.teken3D(T, nu, kleurenVan(T)); } else tekenVeld(cv, T); }
+function teken(cv, T, nu){ if (cv._3d && V3) V3.teken3D(T, nu); else tekenVeld(cv, T); }
 export function pitchCanvas(el){
   const b = Math.round(Math.min(el.clientWidth || 600, Math.max(320, window.innerHeight * .48 / .52))), dpr = Math.min(2, window.devicePixelRatio || 1), h = Math.round(b * .52);
   if (is3D()){ const c3 = V3.koppel3D(el, b, h, dpr); if (c3) return c3; }
@@ -713,7 +725,8 @@ export const kleurenVan = T => { const t = T && T.ploegen && T.ploegen.tenues; i
 export const rugnummerVeilig = () => { try { return S.M && (S.M.inter || S.M.o23 || S.M.trainer) ? '' : rugnummer(); } catch (e){ return ''; } };
 // opt.herhaling: dezelfde actie nog een keer, in slow motion en ingezoomd op jou (na een goal van jou)
 export function pitchSpeel(el, a, klaar, opt = {}){
-  const cv = pitchCanvas(el), {sc, st} = animScript(a), snel = (instel().anim === 'snel' ? .5 : 1) * (opt.herhaling ? HERHALING_TRAAG : 1);
+  // (window.__pitchTraag: alleen voor tests, om een trage headless browser elk moment te laten vastleggen)
+  const cv = pitchCanvas(el), {sc, st} = animScript(a), snel = (instel().anim === 'snel' ? .5 : 1) * (opt.herhaling ? HERHALING_TRAAG : 1) * ((typeof window !== 'undefined' && window.__pitchTraag) || 1);
   const T = {geenJuichJ:!!a.dansNa, ents:sc.ents, bal:{...sc.bal}, cam:sc.cam, zoom:opt.herhaling && sc.ents.J ? .55 : sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(),
     onder:opt.herhaling ? `⟲ HERHALING · ${a.min ?? ''}' · ${S.sp.naam}` : a.onder || (a.soort === 'shootout' ? 'Strafschoppen' : null)};
   let i = -1, t0 = 0, van = null, fx = null, fxT = 0, eind = 0, aanzet = 0;
@@ -723,6 +736,7 @@ export function pitchSpeel(el, a, klaar, opt = {}){
     i++; t0 = nu;
     if (i >= st.length){ eind = nu; return; }
     const s = st[i]; van = {ents:{}, bal:{...T.bal}};
+    T.balVolg = s.bal && s.bal.volg || null; // (wie de bal aan de voet heeft: het 3D-veld laat hem dan dribbelen)
     for (const k in s.moves){ const m = s.moves[k]; if (m && T.ents[k]){ if (m.rol) T.ents[k].rol = m.rol; if ('pose' in m){ T.ents[k].pose = m.pose; T.ents[k].poseT0 = nu; } van.ents[k] = {...T.ents[k]}; } }
     if (s.d <= 1){ T.tekst = null; T.netBol = 0; T.netKant = null; fx = null; }
     if (s.bal && s.bal.van){ T.bal = {x:s.bal.van.x, y:s.bal.van.y, z:0}; van.bal = {...T.bal}; }
@@ -766,9 +780,8 @@ export function vPitch(overlay = ''){
   if (instel().anim === 'uit' && !M.pending) return '';
   const zet = v => knop(v === 'normaal' ? 'Normaal' : v === 'snel' ? 'Snel' : 'Uit', () => { instel().anim = v; if (v === 'uit') openAnims(M).forEach(a => a.gezien = true); }, instel().anim === v ? 'klein aan' : 'klein', 'data-blijf');
   const veld = v => knop(v.toUpperCase(), () => { instel().veld = v; }, (instel().veld || '3d') === v ? 'klein aan' : 'klein', 'data-blijf');
-  const spelers = (v, l) => knop(l, () => { instel().spelers = v; delete instel().kwaliteit; }, spelerModus() === v ? 'klein aan' : 'klein', `data-blijf title="${v === 'echt' ? 'Altijd de 3D-spelers' : v === 'auto' ? 'Eenvoudiger als het beeld te traag wordt' : 'Altijd de eenvoudige spelers (snelst)'}"`);
   return `<div id="pitch25" class="pitch25"><div class="pitchvak"><canvas aria-label="Het veld van bovenaf, schuin gezien"></canvas>${overlay ? `<div class="pitchkeuze">${overlay}</div>` : ''}</div>
-    <div class="rij pitchknop" style="gap:6px;align-items:center;flex-wrap:wrap"><span class="muted klein-tekst" title="Versie van de veldanimaties">Animatie <small style="opacity:.55">v3</small>:</span>${zet('normaal')}${zet('snel')}${zet('uit')}<span class="muted klein-tekst" style="margin-left:8px">Veld:</span>${veld('3d')}${veld('2d')}${(instel().veld || '3d') === '3d' ? `<span class="muted klein-tekst" style="margin-left:8px">Spelers:</span>${spelers('echt', 'Echt')}${spelers('auto', 'Auto')}${spelers('simpel', 'Simpel')}` : ''}${nieuwAnim ? knop(open.length > 1 ? `Overslaan (${open.length}) ⏭` : 'Overslaan ⏭', () => { openAnims(M).forEach(a => a.gezien = true); }, 'klein', 'data-blijf id="pitchSkip"') : ''}</div></div>`;
+    <div class="rij pitchknop" style="gap:6px;align-items:center;flex-wrap:wrap"><span class="muted klein-tekst" title="Versie van de veldanimaties">Animatie <small style="opacity:.55">v4</small>:</span>${zet('normaal')}${zet('snel')}${zet('uit')}<span class="muted klein-tekst" style="margin-left:8px">Veld:</span>${veld('3d')}${veld('2d')}${nieuwAnim ? knop(open.length > 1 ? `Overslaan (${open.length}) ⏭` : 'Overslaan ⏭', () => { openAnims(M).forEach(a => a.gezien = true); }, 'klein', 'data-blijf id="pitchSkip"') : ''}</div></div>`;
 }
 // Na elke weergave: het veld tekenen of de wachtrij met animaties afspelen
 export function pitchNaRender(){

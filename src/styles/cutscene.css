@@ -146,3 +146,9 @@
   .pc-vraag.aan,.pc-uit.aan,.pc-keuze{animation:none;opacity:1;transform:none}
   .pc-slot{transition:opacity .3s ease}
 }
+/* de contractscène in pixels (render/pixel/contract.js): zo groot mogelijk, scherpe pixels */
+.cs-vak .cs-pixel{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;image-rendering:pixelated;background:#1a1414}
+/* de opkomst in pixels (render/pixel/opkomst.js): een klein label met het soort wedstrijd, zolang de spelers in de tunnel staan */
+.op-label{position:absolute;left:50%;top:calc(7vh + 50px);transform:translate(-50%,-6px);padding:5px 12px;border-radius:6px;background:rgba(15,20,36,.82);color:#ffe9a8;font-family:var(--f-mono, monospace);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;white-space:nowrap}
+.op-label.aan{opacity:1;transform:translate(-50%,0)}
+.op-label b{color:#c6f432;font-weight:700}

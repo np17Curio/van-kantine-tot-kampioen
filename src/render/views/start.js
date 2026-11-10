@@ -25,7 +25,7 @@ export function vHerkomstKeuze(){
 }
 
 export const opgroeiKeuze = () => tmp.opgroei || (SPEEL_LANDEN.includes(tmp.geboren) ? tmp.geboren : 'Nederland');
-// Je speler aanmaken: huidskleur, haarkleur en kapsel, met een portret in 3D (gemaakt in de fotostudio)
+// Je speler aanmaken: huidskleur, haarkleur en kapsel, met je pixelspeler ernaast (render/pixel/voorbeeld.js)
 function vUiterlijk(){
   const u = tmp.uiterlijk || (tmp.uiterlijk = willekeurigUiterlijk());
   if (!u.lengte) u.lengte = standaardLengte(tmp.pos, tmp.vrouw); if (!u.bmi) u.bmi = 22.5; // lengte en bouw (lichaam.js)
@@ -37,7 +37,7 @@ function vUiterlijk(){
   if (!tmp.uitSleutel) tmp.uitSleutel = Math.random().toString(36).slice(2, 10);
   const vlak = (lijst, k, label, namen) => `<div class="kleurvlakken" role="group" aria-label="${label}">${lijst.map((kl, i) => `<button class="kleurvlak ${u[k] === i ? 'aan' : ''}" style="--kl:${kl}" aria-pressed="${u[k] === i}" aria-label="${label} ${namen ? namen[i] : `${i + 1} van ${lijst.length}`}" title="${namen ? namen[i] : ''}" data-i="${act(() => { u[k] = i; })}" data-blijf></button>`).join('')}</div>`;
   return `<div class="aanmaken">
-    <figure class="portretfoto"><img data-foto="portret" data-uit="${u.huid},${u.haar},${u.kapsel},${u.lengte},${u.bmi},${tmp.vrouw ? 1 : 0}" data-sleutel="${tmp.uitSleutel}" alt="Jouw speler"><span class="ontwikkel">Foto laden…</span></figure>
+    <figure class="portretfoto"><canvas id="pixelVoorbeeld" data-uit="${u.huid},${u.haar},${u.kapsel},${u.lengte},${u.bmi},${tmp.vrouw ? 1 : 0}" data-sleutel="${tmp.uitSleutel}" role="img" aria-label="Jouw ${tmp.vrouw ? 'speelster' : 'speler'}"></canvas><span class="reellabel" aria-hidden="true"></span></figure>
     <div class="aanmaakkeuzes">
       ${geslacht}
       <div class="invoer"><label class="label" for="naam">Naam van je ${tmp.vrouw ? 'speelster' : 'speler'}</label><input id="naam" maxlength="24" placeholder="bijv. ${tmp.vrouw ? 'Lieke de Raket' : 'Daan de Kanon'}" value="${esc(tmp.naam)}"></div>

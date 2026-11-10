@@ -65,7 +65,8 @@ export function speelLus(laag, duur, stap, {uitloop = .6} = {}){
     laag.opKlaar(() => { cancelAnimationFrame(frame); klaar(); });
     const lus = (nu) => {
       if (laag.weg) return;
-      const dt = pauze ? 0 : Math.min(.1, (nu - vorige) / 1000); vorige = nu; t += dt;
+      // (het tijdstempel van requestAnimationFrame kan net vóór performance.now() liggen: nooit terug in de tijd)
+      const dt = pauze ? 0 : Math.max(0, Math.min(.1, (nu - vorige) / 1000)); vorige = nu; t += dt;
       if (t >= duur + uitloop){ laag.sluit(); return; }
       const tt = Math.min(t, duur);
       stap(tt, dt);
@@ -84,7 +85,7 @@ export function draaiLus(laag, stap){
     laag.opKlaar(() => { cancelAnimationFrame(frame); klaar(); });
     const lus = (nu) => {
       if (laag.weg) return;
-      const dt = Math.min(.1, (nu - vorige) / 1000); vorige = nu; t += dt;
+      const dt = Math.max(0, Math.min(.1, (nu - vorige) / 1000)); vorige = nu; t += dt;
       stap(t, dt);
       if (!laag.weg) frame = requestAnimationFrame(lus);
     };

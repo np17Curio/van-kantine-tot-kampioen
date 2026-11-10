@@ -2,6 +2,7 @@ import { S, bewaar, tmp } from './state.js';
 import { vToernooi, vToernooiEinde } from '../game/interlands/toernooi.js';
 import { instel, openAnims, pitchNaRender, vPitch } from '../render/pitch.js';
 import { fotoNaRender } from '../render/krantfoto.js';
+import { voorbeeldNaRender } from '../render/pixel/voorbeeld.js';
 import { vHud } from '../render/views/hud.js';
 import { vOproep } from '../render/views/interland.js';
 import { vMatch, vMatchEnd } from '../render/views/match.js';
@@ -54,6 +55,7 @@ export function render(){
   try { bewegingNaRender(); } catch (e){ console.error('bewegingseditor', e); }
   try { vrijNaRender(); } catch (e){ console.error('vrij trainen', e); }
   try { fotoNaRender(); } catch (e){ console.error('krantenfoto', e); }
+  try { voorbeeldNaRender(); } catch (e){ console.error('pixelspeler', e); }
   markeerSneltoetsen(veld);
   if (S) bewaar();
   // Net getekend bij een nieuwe club? Dan de animatie (over het spel heen; het spel zelf is al bijgewerkt)

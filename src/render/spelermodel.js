@@ -102,33 +102,8 @@ const materiaal = (key, maak) => BASIS.mat[key] || (BASIS.mat[key] = maak());
 
 // ---------- uiterlijk ----------
 export { HAAR, HUID, KAPSELS, SCHOENEN }; // de lijsten staan in data/uiterlijk.js
-export function hashGetal(s){ let h = 2166136261; for (let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
-// Een vaste dobbelsteen: dezelfde sleutel geeft altijd hetzelfde uiterlijk, en ook dezelfde manier van bewegen.
-// eigen = wat je zelf koos bij het aanmaken van je speler (huid, haar, kapsel); de rest blijft van de dobbelsteen
-const GEWOON = KAPSELS.filter(k => !KROES_KAPSELS.includes(k)); // de andere kapsels (met 'model' dubbel)
-export function uiterlijkVoor(sleutel, eigen){
-  let h = hashGetal(sleutel); const d = n => { h = Math.imul(h ^ (h >>> 15), 2246822519) >>> 0; return h % n; };
-  const huid = d(HUID.length);
-  // (een donkere huid: vaker kroeshaar-kapsels, zoals een afro, cornrows of vlechten)
-  // (in het vrouwenvoetbal: vaker lang haar of een staart, iets kleiner en slanker)
-  const v = vrouwenWereld(), kroes = huid >= 3 && d(5) < 3;
-  const u = {huid, haar: huid >= 4 && d(3) ? 0 : d(HAAR.length), kapsel:kroes ? KROES_KAPSELS[d(KROES_KAPSELS.length)] : v ? KAPSELS_V[d(KAPSELS_V.length)] : d(25) === 0 ? 'vlechten' : GEWOON[d(GEWOON.length)], lengte:(v ? .89 : .93) + d(15) / 100, bouw:(v ? .85 : .9) + d(21) / 100, schoen:d(SCHOENEN.length),
-    stijl:{arm:.8 + d(41) / 100, pas:.9 + d(26) / 100, houding:d(11) / 100, veer:.85 + d(31) / 100}};
-  if (eigen){ if (HUID[eigen.huid]) u.huid = eigen.huid; if (HAAR[eigen.haar]) u.haar = eigen.haar; if (KAPSELS.includes(eigen.kapsel)) u.kapsel = eigen.kapsel; if (SCHOENEN[eigen.schoen]) u.schoen = eigen.schoen;
-    // gekozen lengte (165-200 cm) en bouw (bmi 20-27,5)
-    // (een speelster: 155-190 cm en iets slanker)
-    const ev = eigen.vrouw ?? v, l0 = ev ? 155 : 165, b0 = ev ? .85 : .9;
-    if (eigen.lengte) u.lengte = (ev ? .89 : .93) + Math.max(0, Math.min(35, eigen.lengte - l0)) / 35 * .14; if (eigen.bmi) u.bouw = b0 + Math.max(0, Math.min(7.5, eigen.bmi - 20)) / 7.5 * .2; }
-  return u;
-}
-// Tenue voor een rol in de wedstrijd: uit de tenues van deze wedstrijd (data/tenues.js), anders een vaste kleur per rol
-export function tenueVoor(rol, tenues){
-  if (tenues && tenues[rol]) return tenues[rol];
-  if (rol === 'K') return {shirt:'#8a5cf0', accent:'#141720', patroon:'effen', broek:'#141720', sok:'#8a5cf0'};
-  if (rol === 'k') return {shirt:'#2fbf71', accent:'#141720', patroon:'effen', broek:'#141720', sok:'#2fbf71'};
-  if (rol === 'R') return {shirt:'#15161c', accent:'#15161c', patroon:'effen', broek:'#15161c', sok:'#15161c'};
-  return STANDAARD;
-}
+import { hashGetal } from './pixel/uiterlijk.js';
+export { hashGetal, uiterlijkVoor, tenueVoor } from './pixel/uiterlijk.js'; // (verhuisd: three-vrij)
 const tenueKey = t => [t.shirt, t.accent, t.patroon, t.broek, t.sok, t.sponsor ? t.sponsor.naam : '', t.logoImg ? 'L' + (t.logoId ?? '') : ''].join('|');
 // Welk deel van het shirt krijgt de accentkleur? u en v zijn plaatsen op de shirttextuur (0 tot 1)
 const PATROON = {

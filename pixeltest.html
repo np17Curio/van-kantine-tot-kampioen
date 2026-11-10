@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pixelspelers</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; padding: 16px; background: #10131c; color: #e8ecf4; font: 14px system-ui, sans-serif; }
+    h2 { margin: 18px 0 6px; font-size: 15px; }
+    .rij { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-end; }
+    .vak { display: grid; justify-items: center; gap: 2px; background: #1a2030; border-radius: 6px; padding: 4px; }
+    .vak span { font-size: 11px; opacity: .7; }
+    canvas { image-rendering: pixelated; }
+  </style>
+</head>
+<body>
+  <p>Ontwikkelpagina (alleen in <code>npm run dev</code>): alle animaties van de pixelspelers. Bron van de stijl: <code>art/chibi_anims.px.js</code>.</p>
+  <div id="uit"></div>
+  <script type="module" src="/src/render/pixel/pixeltest.js"></script>
+</body>
+</html>
