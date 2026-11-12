@@ -1,6 +1,6 @@
 import { S, club, mod, ovr, seizoenLabel } from '../../core/state.js';
 import { clamp, geldTxt, randInt, rnd } from '../../core/utils.js';
-import { HAAR, HAAR_NAAM, HUID, KAPSELS, KAPSEL_KEUZE, SCHOENEN } from '../../data/uiterlijk.js';
+import { BAARD_KEUZE, HAAR, HAAR_NAAM, HUID, KAPSELS, KAPSEL_KEUZE, SCHOENEN } from '../../data/uiterlijk.js';
 import { krantMelding } from '../media/roddel.js';
 import { social, volgersTxt } from './social.js';
 import { verhoog } from '../week.js';
@@ -34,6 +34,24 @@ export function naarKapper(kapsel, haar){
   const naam = (KAPSEL_KEUZE.find(([k]) => k === u.kapsel) || [, 'nieuw'])[1].toLowerCase(), product = (sp.sponsors || []).some(d => d.cat === 'verzorging');
   let t = `Bij de kapper: ${naam}${verven ? `, en je haar is nu ${HAAR_NAAM[u.haar].toLowerCase()}` : ''} (${geldTxt(prijs)}).`;
   if (rnd() < (product ? .6 : .3)){ const n = Math.round(30 + social().volgers * .01); social().volgers += n; t += ` Je nieuwe look valt op: +${volgersTxt(n)} volgers.`; if (product){ mod('moraal', 2); t += ' Je sponsor deelt de foto.'; } }
+  S.week.tekst.push(t);
+}
+
+// ---------- Gezichtshaar ----------
+// Jongens van 18 of ouder; u.baard undefined = de baard groeit nog niet (je begon op je 15e)
+export const baardMag = () => !S.sp.vrouw && S.sp.leeftijd >= 18;
+export function baardWeek(){
+  const sp = S.sp; if (sp.vrouw || sp.leeftijd < 18 || !S.week) return;
+  const u = mijnUiterlijk(); if (u.baard !== undefined) return;
+  u.baard = 'geen';
+  S.week.tekst.push('Je baard begint te groeien! Bij de kapper (Privé › Kapper en schoenen) kies je wat je ermee doet: stoppels, een snor, een sikje of een volle baard. Of je blijft gladgeschoren.');
+}
+export function naarKapperBaard(baard){
+  const sp = S.sp, u = mijnUiterlijk(); if (!kanKapper() || !baardMag() || u.baard === baard || sp.geld < KAPPER.knippen) return;
+  const keuze = BAARD_KEUZE.find(([b]) => b === baard); if (!keuze) return;
+  u.baard = baard; sp.geld -= KAPPER.knippen; S.week.kapper = true;
+  let t = baard === 'geen' ? `Bij de kapper: alles eraf, je bent weer gladgeschoren (${geldTxt(KAPPER.knippen)}).` : `Bij de kapper: je hebt nu ${baard === 'stoppels' ? 'stoppels' : baard === 'baard' ? 'een volle baard' : 'een ' + baard} (${geldTxt(KAPPER.knippen)}).`;
+  if (rnd() < .3){ const n = Math.round(30 + social().volgers * .01); social().volgers += n; t += ` Je nieuwe look valt op: +${volgersTxt(n)} volgers.`; }
   S.week.tekst.push(t);
 }
 

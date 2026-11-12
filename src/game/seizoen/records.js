@@ -1,3 +1,4 @@
+import { hoogtepuntenNaWedstrijd } from '../speler/hoogtepunten.js';
 import { S, club, mod, seizoenLabel } from '../../core/state.js';
 import { esc } from '../../core/utils.js';
 import { CLUBS, DIVS, LAAGSTE, WERELD, rondesVan } from '../../data/gegevens.js';
@@ -51,7 +52,9 @@ export const recs = () => S.car.rec || (S.car.rec = {seizoen:{v:0}, wed:{v:0}, r
 export const competitieGoals = t => Object.values(S.ss.st || {}).reduce((n, x) => n + (x.jij && CLUBS[x.club] && CLUBS[x.club].t === t ? x.g : 0), 0);
 export function recordsNaWedstrijd(M){
   const R = recs(), sp = S.sp, c = club(), naam = sp.naam, t = c.t, uit = [], zij = M.zij ?? (M.opp !== undefined ? CLUBS[M.opp].n : '');
-  if (R.debuut === null){ R.debuut = {lft:sp.leeftijd, club:c.n, s:seizoenLabel()}; }
+  const debuut = R.debuut === null;
+  if (debuut){ R.debuut = {lft:sp.leeftijd, club:c.n, s:seizoenLabel()}; }
+  hoogtepuntenNaWedstrijd(M, debuut); // je debuut, je eerste goal, mijlpalen: een moment met keuzes (hoogtepunten.js)
   // Doelpunten in één wedstrijd
   if (M.goals >= 3){ R.hattricks++; if (R.hattricks > 1) uit.push(`Hattrick nummer ${R.hattricks} in je carrière!`); }
   if (M.goals > R.wed.v){ const was = R.wed.v; R.wed = {v:M.goals, tegen:zij, s:seizoenLabel()}; if (M.goals >= 3 && was >= 2) uit.push(`Persoonlijk record: ${M.goals} goals in één wedstrijd!`); }

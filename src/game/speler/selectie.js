@@ -1,3 +1,4 @@
+import { hoogtepunt } from './hoogtepunten.js';
 import { S, club, mod, ovr, salarisVoor, seizoenLabel, tmp } from '../../core/state.js';
 import { clamp, pick, randInt, rnd } from '../../core/utils.js';
 import { CLUBS, LAAGSTE, TRAINBAAR, divClubs } from '../../data/gegevens.js';
@@ -10,9 +11,11 @@ import { nieuweWeek, weekHerstel } from '../week.js';
 import { fmt1, gemiddelde } from './o23.js';
 import { startIntro } from './startverhaal.js';
 import { statusNiveau, startStatus } from './status.js';
-import { inVerhaal, openHoofdstuk, plaatsVriend, vriendApart, vriendNaam, vriendPos } from './journey.js';
+import { plaatsVriend, vriendApart, vriendNaam, vriendPos } from './journey.js';
 import { andereWereldClub, andereWereldIds } from '../transfers/buitenland.js';
 import { maakRivaal } from './rivaal.js';
+import { eindeProefWed } from './proef.js';
+import { AGENT } from '../../data/gegevens.js';
 import { team } from '../../core/geslacht.js';
 
 /* ===================== Selectiewedstrijden: waar begint je carrière? ===================== */
@@ -45,6 +48,7 @@ export function startSelectie(){
   verderSpelen();
 }
 export function eindeSelectie(){
+  if (S.M && S.M.proef) return eindeProefWed(); // (de oefenwedstrijd van de laatbloeier, proef.js)
   const sp = S.sp, M = S.M, Sel = S.selectie;
   M.klaar = true;
   if (M.us > M.them) M.cijfer += .3; else if (M.us < M.them) M.cijfer -= .3;
@@ -164,7 +168,6 @@ export function naSelectie(){
   const Sel = S.selectie; S.M = null;
   if (!Sel.bods){ S.sp.fit = clamp(S.sp.fit + weekHerstel(S.sp.fit), 0, 100); S.fase = 'selectie'; return; }
   const r = mijnPlek();
-  if (inVerhaal()) return openHoofdstuk(2, 'selectieKeuze', {plek:r.plek, van:r.van, vriendPlek:r.vriendPlek || '?', meerv:r.meerv, vriendMeerv:r.vriendMeerv, vriendVan:r.vriendVan});
   S.fase = 'selectieKeuze';
 }
 // Tekenen bij de club van jouw keuze
@@ -179,7 +182,8 @@ export function tekenSelectie(i){
   sp.statusNiveau = statusNiveau();
   S.car.clubs = [{club:sp.club, van:S.jaar, land:thuisLand()}];
   const V = Sel.verhaal, wie = V === 'wonder' ? 'als wonderkind van 15' : V === 'normaal' ? 'als 18-jarige' : 'als 23-jarige laatbloeier';
-  S.car.hist.push(`${seizoenLabel()}: begonnen ${wie} met ${SELECTIE_WED} selectiewedstrijden (gemiddeld ${fmt1(gem)}, plek ${plek} bij de ${POS_MEERV[sp.pos]}, klasse ${ovr(sp)})`);
+  if (u.proef){ const P = Sel.proef; S.car.hist.push(`${seizoenLabel()}: begonnen ${wie}: via zaakwaarnemer ${AGENT} een proeftraining (${fmt1(P.training)}) en een oefenwedstrijd (${fmt1(P.wed)}) bij ${c.n}${P.poging > 1 ? `, bij de ${P.poging}e kans` : ''} (klasse ${ovr(sp)})`); }
+  else S.car.hist.push(`${seizoenLabel()}: begonnen ${wie} met ${SELECTIE_WED} selectiewedstrijden (gemiddeld ${fmt1(gem)}, plek ${plek} bij de ${POS_MEERV[sp.pos]}, klasse ${ovr(sp)})`);
   S.car.hist.push(`${seizoenLabel()}: ${u.o23 ? `naar de O23 van ${c.n}` : `tekent bij ${c.n}`}${thuisLand() !== 'Nederland' ? ` (${thuisLand()})` : ''}`);
   if (sp.vriend && Sel.vriendClub) plaatsVriend(Sel.vriendClub.club, Sel.vriendClub.o23);
   // Je rivaal van de selectiedagen tekent bij een andere club, van zijn/haar niveau (het liefst in jouw league)
@@ -187,10 +191,10 @@ export function tekenSelectie(i){
   if (R && !sp.rivaal && R.cijfers.length){ const rg = gemiddelde(R.cijfers), d = clamp(Math.round((rg - gemiddelde(Sel.cijfers)) * 3), -4, 5), [v, ...n] = R.n.split('. '), rp = mijnPlek().rivaalPlek;
     maakRivaal({v, n:n.join('. '), k:ovr(sp) + d, t:rg >= SEL_DREMPEL.top ? 1 : LAAGSTE,
       achtergrond:`Jullie streden op de selectiedagen om de eerste plek bij de ${POS_MEERV[sp.pos]}: ${team.hij} werd ${rp}e, jij ${plek}e.`}); }
+  hoogtepunt('profContract', {club:c.n, o23:!!u.o23, salaris:u.salaris, jaren:u.jaren}); // (hoogtepunten.js: volgende week, met keuzes)
   S.selectie = null;
   tmp.ondertekening = {clubId:u.club, jaren:u.jaren, salaris:u.salaris, o23:!!u.o23}; // je eerste club: de animatie (contract tekenen)
   nieuweWeek(true);
   startIntro({...u, gem});
-  if (inVerhaal()) openHoofdstuk(3, S.fase);
   return club();
 }

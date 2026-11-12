@@ -16,7 +16,7 @@ import { rustWeek, simuleer, startWedstrijd } from './wedstrijd/wedstrijd.js';
 // Speelt week na week door, en stopt bij de grote momenten: de transferperiode, een verhaalhoofdstuk, een interland,
 // een eindtoernooi, een derby, een transferbod en het einde van het seizoen. Kleine keuzes maakt het spel zelf, zoals een gewone
 // speler: niet elke week de perfecte training en niet altijd de veiligste optie in de wedstrijd (anders groei je sneller dan als je zelf speelt).
-const STOP = {venster:'de transferperiode is open', hoofdstuk:'een nieuw hoofdstuk in je verhaal', oproep:'de bondscoach roept je op', toernooi:'het eindtoernooi begint', seizoenEinde:'het seizoen zit erop'};
+const STOP = {venster:'de transferperiode is open', oproep:'de bondscoach roept je op', toernooi:'het eindtoernooi begint', seizoenEinde:'het seizoen zit erop'};
 function weekKeuzes(){
   const sp = S.sp, w = S.week;
   if (w.school && !w.school.klaar) beantwoord(rnd() < .7 ? w.school.goed : (w.school.goed + 1) % 3);

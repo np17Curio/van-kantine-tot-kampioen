@@ -37,6 +37,13 @@ export function herstel(st){
     st.sp.auto = it.auto ? 'sport' : st.sp.rijbewijs ? 'oud' : null;
     st.sp.rij = {lessen:st.sp.rijbewijs ? 20 : 0, theorie:!!st.sp.rijbewijs};
   }
-  if (st && st.fase === 'event' && !(st.ev && st.ev.opts && typeof st.ev.opts[0].f === 'function')){ st.ev = null; st.fase = 'week'; }
+  // Geen hoofdstukken meer: stond je midden in een hoofdstuk, dan ga je door waar het hoofdstuk naartoe ging. De verleiding
+  // (vroeger hoofdstuk 4) is nu een weekbericht: was die al geweest, dan komt hij niet nog een keer
+  if (st && st.fase === 'hoofdstuk'){ st.fase = (st.hoofdstuk && typeof st.hoofdstuk.terug === 'string' && st.hoofdstuk.terug !== 'hoofdstuk') ? st.hoofdstuk.terug : 'week'; }
+  if (st && st.hoofdstuk !== undefined) delete st.hoofdstuk;
+  if (st && st.sp && st.sp.journey && st.sp.journey.h !== undefined){ const J = st.sp.journey; J.verleiding = J.h >= 4; delete J.h; J.v = 3; }
+  if (st && st.fase === 'event' && !(st.ev && st.ev.opts && typeof st.ev.opts[0].f === 'function')){ st.ev = null; st.fase = 'week';
+    if (st.hoogNu){ (st.hoogWacht = st.hoogWacht || []).unshift(st.hoogNu); } } // (een hoogtepunt komt volgende week terug)
+  if (st) st.hoogNu = null;
   return st;
 }

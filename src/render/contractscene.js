@@ -4,7 +4,7 @@ import { esc, geldTxt } from '../core/utils.js';
 import { CLUBS } from '../data/gegevens.js';
 import { clubTenue } from '../data/tenues.js';
 import { logoURL } from '../data/logos.js';
-import { rugnummer } from '../game/team/rugnummers.js';
+import { shirtNummer } from '../game/team/rugnummers.js';
 import { laadPlaatje, maakLaag, speelLus } from './cutscene-basis.js';
 import { FLITS, FPS, FRAMES, MOMENT, maakContract } from './pixel/contract.js';
 import { hashGetal, uiterlijkVoor } from './pixel/uiterlijk.js';
@@ -34,8 +34,8 @@ async function speel(o){
   try {
     const tenue = clubTenue(clubId), logoImg = await laadPlaatje(logoURL(clubId, 256));
     if (laag.weg) return;
-    const o23 = !!(o.o23 || sp.o23); // (bij de O23 nog geen rugnummer van het eerste elftal)
-    let nr = null; if (!o23) try { nr = rugnummer(); } catch (e){}
+    const o23 = !!(o.o23 || sp.o23); // (bij de O23 een nummer van het beloftenteam)
+    let nr = null; try { nr = shirtNummer(o23); } catch (e){}
     const info = {club:c.n, naam:sp.naam, nr, tenue, logoImg, jaren:o.huur ? null : o.jaren ?? sp.contract, salaris:o.salaris ?? sp.salaris, o23, huur:!!o.huur,
       voorzitter:`${VOORNAAM[hashGetal('vzv|' + c.n) % VOORNAAM.length]} ${ACHTERNAAM[hashGetal('vza|' + c.n) % ACHTERNAAM.length]}`};
 

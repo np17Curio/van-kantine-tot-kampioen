@@ -40,8 +40,9 @@ export function lookVan(uit = {}, tenue = null, opties = {}){
   if (!k.a){ k.a = donker(k.y, .35); k.A = donker(k.y, .5); } // de zolen
   if (opties.kleuren) Object.assign(k, opties.kleuren); // (eigen kleuren, zoals de eigenaar in de contractscène)
   const patroon = kleding === 'tenue' ? (t.patroon || 'effen') : 'effen';
-  const sleutel = [uit.kapsel || 'model', uit.vrouw ? 'v' : '', opties.snor ? 'snor' : '', kleding, patroon, opties.handschoen ? 'q' : '', opties.band ? 'C' : '', opties.rugnummer || '', ...Object.values(k)].join('|');
-  return {kapsel:uit.kapsel || 'model', vrouw:!!uit.vrouw, snor:!!opties.snor, kleding, patroon, handschoen:!!opties.handschoen, band:!!opties.band, rugnummer:opties.rugnummer || '', kleuren:k, sleutel,
+  const baard = opties.snor ? 'snor' : !uit.vrouw && uit.baard && uit.baard !== 'geen' ? uit.baard : '';
+  const sleutel = [uit.kapsel || 'model', uit.vrouw ? 'v' : '', opties.snor ? 'snor' : baard, kleding, patroon, opties.handschoen ? 'q' : '', opties.band ? 'C' : '', opties.rugnummer || '', ...Object.values(k)].join('|');
+  return {kapsel:uit.kapsel || 'model', vrouw:!!uit.vrouw, snor:!!opties.snor, baard, kleding, patroon, handschoen:!!opties.handschoen, band:!!opties.band, rugnummer:opties.rugnummer || '', kleuren:k, sleutel,
     lengte:uit.lengte || 1, bouw:uit.bouw || 1};
 }
 
@@ -53,9 +54,9 @@ export const aantal = naam => anim(naam).frames.length;
 // Welk frame na t seconden (loop: rond; anders blijft het laatste staan)
 export function frameOp(naam, t){ const a = anim(naam), n = a.frames.length, i = Math.floor(Math.max(0, t) * a.fps); return a.loop ? i % n : Math.min(n - 1, i); }
 export function frame(look, naam, i, flip = false){
-  const a = anim(naam), vorm = [look.kapsel, look.vrouw ? 'v' : '', look.kleding, look.patroon, look.handschoen ? 'q' : '', look.band ? 'C' : '', look.rugnummer || '', look.snor ? 's' : '', naam, i].join('|');
+  const a = anim(naam), vorm = [look.kapsel, look.vrouw ? 'v' : '', look.kleding, look.patroon, look.handschoen ? 'q' : '', look.band ? 'C' : '', look.rugnummer || '', look.snor ? 's' : look.baard || '', naam, i].join('|');
   let img = SLEUTELS.get(vorm);
-  if (!img){ img = tekenFrame(a, i, {kapsel:look.kapsel, vrouw:look.vrouw, kleding:look.kleding, patroon:look.patroon, handschoen:look.handschoen, band:look.band, nr:look.rugnummer, snor:look.snor, bal:false}); SLEUTELS.set(vorm, img); }
+  if (!img){ img = tekenFrame(a, i, {kapsel:look.kapsel, vrouw:look.vrouw, kleding:look.kleding, patroon:look.patroon, handschoen:look.handschoen, band:look.band, nr:look.rugnummer, snor:look.snor, baard:look.baard, bal:false}); SLEUTELS.set(vorm, img); }
   const sl = look.sleutel + '#' + naam + '#' + i + (flip ? 'f' : '');
   let cv = CANVAS.get(sl);
   if (!cv){

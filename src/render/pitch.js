@@ -274,8 +274,9 @@ function animScriptBasis(a){
   }
   // ===== Invallen: het bord omhoog, een high five bij de lijn en jij sprint het veld in =====
   if (c === 'wissel'){
-    stap(800, {R:{pose:'wijs'}, A:{x:54, y:66, pose:null}}, null, {t:a.bord || 'Wissel!', kl:'#ffd84a'});
-    stap(450, {A:{x:53.2, y:68.4, pose:'klap'}, J:{x:52.4, y:68.9, pose:'klap'}}, null);
+    // de vierde official houdt het wisselbord omhoog: rood het nummer dat eruit gaat, groen het nummer dat erin komt (veld3d.js: T.bord)
+    stap(1300, {R:{pose:'kaart'}, A:{x:54, y:66, pose:null}}, null, a.uit == null && a.in == null ? {t:a.bord || 'Wissel!', kl:'#ffd84a'} : null); // (zonder nummers: de tekst in beeld)
+    stap(600, {A:{x:53.2, y:68.4, pose:'klap'}, J:{x:52.4, y:68.9, pose:'klap'}}, null);
     stap(1000, {A:{x:48.5, y:72, pose:null}, J:{x:58, y:58, pose:null}, R:{pose:null}}, null, {t:'Je bent erin!', kl:'#b9ff9c'});
     return {sc, st};
   }
@@ -670,6 +671,8 @@ export function tekenVeld(cv, toestand){
     if (d.id === 'J' && (toestand.ploegen || ploegen()).band){ ctx.fillStyle = '#f3c44f'; ctx.fillRect(q.x - w / 2, shirt + (broek - shirt) * .12, w * .2, (broek - shirt) * .2); } // aanvoerdersband
     if (d.id === 'J'){ ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(gnd.x, gnd.y, 1.5 * k * 1.6, .55 * k * 1.6, 0, 0, Math.PI * 2); ctx.stroke();
       ctx.fillStyle = '#111'; ctx.font = `bold ${Math.max(8, w * .55)}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.fillText(String(toestand.nr || ''), q.x, shirt + (broek - shirt) * .72); }
+    if (toestand.bord && d.id === 'R' && d.pose === 'kaart'){ const bw = w * 2.6, bh = w * 2; ctx.fillStyle = '#111'; ctx.fillRect(q.x - bw / 2, hoofd - h * .35 - bh, bw, bh);
+      ctx.font = `bold ${Math.max(7, bh * .38)}px ui-monospace,monospace`; ctx.textAlign = 'center'; ctx.fillStyle = '#ff3b30'; ctx.fillText(String(toestand.bord.uit ?? '–'), q.x, hoofd - h * .35 - bh * .55); ctx.fillStyle = '#3cff5a'; ctx.fillText(String(toestand.bord.in ?? '–'), q.x, hoofd - h * .35 - bh * .08); } // het wisselbord
     if (toestand.kaart && d.id === (toestand.kaartOp || 'J')){ ctx.fillStyle = toestand.kaart === 'rood' ? '#e23b3b' : '#ffd400'; ctx.fillRect(q.x + w * .6, hoofd - h * .35, w * .5, w * .7); }
   }
   // onderschrift (wat er gebeurt)
@@ -727,7 +730,7 @@ export const rugnummerVeilig = () => { try { return S.M && (S.M.inter || S.M.o23
 export function pitchSpeel(el, a, klaar, opt = {}){
   // (window.__pitchTraag: alleen voor tests, om een trage headless browser elk moment te laten vastleggen)
   const cv = pitchCanvas(el), {sc, st} = animScript(a), snel = (instel().anim === 'snel' ? .5 : 1) * (opt.herhaling ? HERHALING_TRAAG : 1) * ((typeof window !== 'undefined' && window.__pitchTraag) || 1);
-  const T = {geenJuichJ:!!a.dansNa, ents:sc.ents, bal:{...sc.bal}, cam:sc.cam, zoom:opt.herhaling && sc.ents.J ? .55 : sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(),
+  const T = {geenJuichJ:!!a.dansNa, bord:a.soort === 'wissel' ? {uit:a.uit ?? null, in:a.in ?? null} : null, ents:sc.ents, bal:{...sc.bal}, cam:sc.cam, zoom:opt.herhaling && sc.ents.J ? .55 : sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(),
     onder:opt.herhaling ? `⟲ HERHALING · ${a.min ?? ''}' · ${S.sp.naam}` : a.onder || (a.soort === 'shootout' ? 'Strafschoppen' : null)};
   let i = -1, t0 = 0, van = null, fx = null, fxT = 0, eind = 0, aanzet = 0;
   const id = (PITCH = {stop:false, klaar}), gen = GEN;

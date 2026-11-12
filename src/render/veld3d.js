@@ -129,6 +129,23 @@ function maakSpeler(){
   return {root:sprite, sprite, mat, look:null, sleutel:null, x:null, y:null, kijk:0, flip:false, fase:0, pose:null, poseStart:0, rust:0, naam:null, i:0};
 }
 function schaduw(){ const m = new THREE.Mesh(new THREE.CircleGeometry(.62 * SCHAAL, 18), R.schaduwM); m.rotation.x = -Math.PI / 2; m.position.y = .015; R.scene.add(m); return m; }
+// Het wisselbord van de vierde official: een zwart lichtbord met boven in rood het nummer dat eruit gaat (▼)
+// en onder in groen het nummer dat erin komt (▲), zoals bij echt voetbal
+function bordSprite(uit, erin){
+  const tex = canvasTex(192, 224, (g, w, h) => {
+    g.fillStyle = '#2a2d33'; g.fillRect(0, 0, w, h); g.fillStyle = '#07080a'; g.fillRect(8, 8, w - 16, h - 16);
+    g.fillStyle = '#2a2d33'; g.fillRect(8, h / 2 - 3, w - 16, 6); // (de rand tussen de twee helften)
+    const rij = (txt, y, kleur, pijl) => {
+      g.font = '900 78px ui-monospace,Consolas,monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.shadowColor = kleur; g.shadowBlur = 14; g.fillStyle = kleur; g.fillText(txt, w / 2 + 14, y);
+      g.font = '900 34px system-ui,sans-serif'; g.fillText(pijl, 30, y); g.shadowBlur = 0;
+    };
+    rij(uit != null ? String(uit) : '–', h * .27, '#ff3b30', '▼');
+    rij(erin != null ? String(erin) : '–', h * .75, '#3cff5a', '▲');
+  });
+  tex.magFilter = THREE.LinearFilter;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true})); s.scale.set(1.3, 1.52, 1); return s;
+}
 function nummerSprite(nr){
   const tex = canvasTex(128, 64, (g, w, h) => { g.font = '900 52px system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = 8; g.strokeStyle = 'rgba(0,0,0,.7)'; g.strokeText(String(nr), w / 2, h / 2 + 2); g.fillStyle = '#fff'; g.fillText(String(nr), w / 2, h / 2 + 2); });
   const s = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, depthTest:false, transparent:true})); s.scale.set(1.3, .65, 1); return s;
@@ -167,7 +184,7 @@ export const POSE_NAMEN = Object.keys(POSE);
 // Wie is dit (voor een vast uiterlijk): jij, of een speler van een club
 function sleutelVan(e, T){
   const p = T.ploegen || {};
-  if (e.id === 'J' && (e.rol === 'wij' || e.rol === 'k' || !e.rol)) return 'jij|' + (p.jij || 'x') + (p.jijUit ? '|' + [p.jijUit.huid, p.jijUit.haar, p.jijUit.kapsel, p.jijUit.lengte || '', p.jijUit.bmi || '', p.jijUit.schoen ?? ''].join(',') : '') + (p.band ? '|C' : '');
+  if (e.id === 'J' && (e.rol === 'wij' || e.rol === 'k' || !e.rol)) return 'jij|' + (p.jij || 'x') + (p.jijUit ? '|' + [p.jijUit.huid, p.jijUit.haar, p.jijUit.kapsel, p.jijUit.lengte || '', p.jijUit.bmi || '', p.jijUit.schoen ?? '', p.jijUit.baard || ''].join(',') : '') + (p.band ? '|C' : '');
   if (e.rol === 'R') return 'scheids|' + (p.zij ?? '');
   const club = e.rol === 'wij' || e.rol === 'k' ? p.wij : p.zij;
   return 'c' + club + '|' + e.id;
@@ -292,6 +309,13 @@ export function teken3D(T, nu){
   }
   for (const id in R.spelers) if (!gezien.has(id)){ R.spelers[id].root.visible = false; R.spelers[id].schaduw.visible = false; }
   if (!gezien.has('J')){ R.ring.visible = false; if (R.nrSprite) R.nrSprite.visible = false; }
+  // wisselbord: de vierde official (R) houdt het omhoog zolang hij in de houding 'kaart' staat (pitch.js, soort 'wissel')
+  const Rf = T.bord && T.ents.R, bordOp = !!(Rf && Rf.pose === 'kaart');
+  if (bordOp){ const sl = `${T.bord.uit}|${T.bord.in}`;
+    if (R.bordSl !== sl){ if (R.bord){ R.scene.remove(R.bord); R.bord.material.map.dispose(); R.bord.material.dispose(); } R.bord = bordSprite(T.bord.uit, T.bord.in); R.scene.add(R.bord); R.bordSl = sl; }
+    const op = Math.min(1, (nu - (Rf.poseT0 || nu)) / 250); // (het bord gaat omhoog)
+    R.bord.position.set(wx(Rf.x) + .85, 2.75 - (1 - op) * .7, wz(Rf.y) + .1); R.bord.visible = true; } // (de onderkant in zijn opgestoken hand)
+  else if (R.bord) R.bord.visible = false;
   // kaart: de scheidsrechter (of anders de speler) houdt hem omhoog
   if (T.kaart){ const wie = T.ents.R || T.ents[T.kaartOp || 'J']; if (wie){ R.kaart.visible = true; R.kaartM.color.set(T.kaart === 'rood' ? 0xe23b3b : 0xffd400); R.kaart.position.set(wx(wie.x) + .5, 2.75 * SCHAAL, wz(wie.y)); R.kaart.lookAt(R.camera.position); } } else R.kaart.visible = false;
   // bal: rolt mee met de beweging

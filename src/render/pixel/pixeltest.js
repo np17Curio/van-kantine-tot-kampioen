@@ -7,6 +7,10 @@ import { KAPSEL_KEUZE } from '../../data/uiterlijk.js';
 
 import { maakContract } from './contract.js';
 import { maakOpkomst } from './opkomst.js';
+import { DRAAI_FRAMES, draaiBeeld, stijlKrant } from './krant.js';
+// De krant van de stijlbron (deel 10) en het indraaien, als strip van 24 beelden van 300×300 (zoals pxl anim 'krant')
+window.__krantStrip = () => { const {uitsnede} = maakContract({stijlbron:true, alleenUitsnede:true}), p = stijlKrant(uitsnede()), c = document.createElement('canvas');
+  c.width = 300 * DRAAI_FRAMES; c.height = 300; const g = c.getContext('2d'); for (let f = 0; f < DRAAI_FRAMES; f++) g.drawImage(draaiBeeld(p, f, 300, '#0f1424'), f * 300, 0); return c.toDataURL('image/png'); };
 // De opkomst in de kleuren van de stijlbron, per beeld vergeleken met de strip van pxl (frame f op x = f·382)
 window.__opkomstVgl = async (ref, alleen) => {
   const im = await new Promise(ok => { const i = new Image(); i.onload = () => ok(i); i.src = ref; });

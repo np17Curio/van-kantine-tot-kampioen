@@ -73,3 +73,10 @@
 .gbrace{margin:8px 0;padding-left:0;list-style:none}.gbrace li{display:flex;justify-content:space-between;gap:8px;padding:3px 6px;border-radius:4px}.gbrace li.mij{background:rgba(212,255,58,.12);font-weight:700}
 .tips{margin:6px 0 0 18px;padding:0}.tips li{margin:2px 0;font-size:.92em}
 .gbopbouw{width:100%;border-collapse:collapse;margin:6px 0 8px;font-size:.92em}.gbopbouw td{padding:3px 6px;border-bottom:1px solid rgba(255,255,255,.06)}.gbopbouw td:last-child{text-align:right;white-space:nowrap;font-weight:700}.gbopbouw .totaal td{border-top:2px solid rgba(255,255,255,.2);font-weight:800}
+/* de pixelkrant (render/pixel/krant.js): elke krant een voorpagina in pixels */
+.pixelkranten{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,400px),400px));gap:22px 18px;align-items:start;justify-content:start}
+.pixelkrant{margin:0;position:relative;width:400px;max-width:100%}
+/* precies 2× (200 → 400 px) en niet gedraaid: dan blijft de kleine pixeltekst scherp */
+.pixelkrant canvas{display:block;width:100%;height:auto;image-rendering:pixelated;filter:drop-shadow(4px 5px 0 rgba(0,0,0,.35))}
+.pixelkrant .krantdraai{position:absolute;image-rendering:pixelated;pointer-events:none;z-index:3}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}

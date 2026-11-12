@@ -12,7 +12,6 @@ const BW = 160, BH = 200, VLOER = 172; // het interne beeld (pixels) en waar de 
 // [animatie, duur in seconden, wat eronder staat]
 const REEL = [['sta', 1.6, 'klaar voor de aftrap'], ['ren', 1.4, 'rent opzij'], ['ren_voor', 1.4, 'rent naar je toe'], ['ren_achter', 1.4, 'rent van je af'],
   ['dribbel', 1.4, 'dribbelt'], ['schiet', .8, 'schiet'], ['juich', 1.4, 'juicht']];
-const REEL_DUUR = REEL.reduce((s, [, d]) => s + d, 0);
 let LUS = null, ACHTER = null, BALCV = null;
 
 // Het stadion achter je speler: avondlucht, tribune vol lichtjes en een grasmat met banen (één keer getekend)
@@ -35,28 +34,38 @@ function achtergrond(){
   return (ACHTER = c);
 }
 
-// Welk stuk van de showreel op tijd t (seconden)
-function moment(t){
-  let r = t % REEL_DUUR;
-  for (const [naam, duur, tekst] of REEL){ if (r < duur) return {naam, t:r, tekst}; r -= duur; }
+// Welk stuk van een showreel op tijd t (seconden)
+function moment(reel, t){
+  const totaal = reel.reduce((s, [, d]) => s + d, 0);
+  let r = t % totaal;
+  for (const [naam, duur, tekst] of reel){ if (r < duur) return {naam, t:r, tekst}; r -= duur; }
   return {naam:'sta', t:0, tekst:''};
 }
+const LUSSEN = new Map(); // (canvas → requestAnimationFrame-id: één lus per canvas)
 
 export function voorbeeldNaRender(){
   const cv = document.getElementById('pixelVoorbeeld');
   if (LUS){ cancelAnimationFrame(LUS); LUS = null; }
   if (!cv) return;
   // het uiterlijk zoals op het veld: lengte en bmi worden de factoren lengte en bouw
-  const [huid, haar, kapsel, lengte, bmi, vrouw] = (cv.dataset.uit || '').split(',');
-  const eigen = {huid:+huid, haar:+haar, kapsel, lengte:+lengte || undefined, bmi:+bmi || undefined, vrouw:vrouw === '1'};
+  const [huid, haar, kapsel, lengte, bmi, vrouw, schoen, baard] = (cv.dataset.uit || '').split(',');
+  const eigen = {huid:+huid, haar:+haar, kapsel, lengte:+lengte || undefined, bmi:+bmi || undefined, vrouw:vrouw === '1', ...(schoen !== undefined && schoen !== '' ? {schoen:+schoen} : {}), ...(baard ? {baard} : {})};
   const look = lookVan(uiterlijkVoor('jij|' + (cv.dataset.sleutel || 'x'), eigen), STANDAARD);
+  speelReel(cv, look, REEL);
+}
+
+// Een pixelspeler (look, pixel/atlas.js) die een reeks animaties afspeelt in het kleine stadion: reel = [[animatie, seconden, tekst], …].
+// De tekst komt in een .reellabel naast het canvas. Gebruikt door het aanmaakscherm en de proeftraining (views/proef.js).
+export function speelReel(cv, look, reel){
+  if (LUSSEN.has(cv)){ cancelAnimationFrame(LUSSEN.get(cv)); LUSSEN.delete(cv); }
   cv.width = BW; cv.height = BH;
   const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
   if (!BALCV) BALCV = inkleuren(BAL);
   const sx = 2 * (look.bouw || 1), sy = 2 * (look.lengte || 1), label = cv.parentElement && cv.parentElement.querySelector('.reellabel');
+  const t0 = performance.now();
   const teken = nu => {
-    if (!cv.isConnected){ LUS = null; return; }
-    const {naam, t, tekst} = moment(nu / 1000), i = frameOp(naam, t), f = frame(look, naam, i, false);
+    if (!cv.isConnected){ LUSSEN.delete(cv); return; }
+    const {naam, t, tekst} = moment(reel, Math.max(0, nu - t0) / 1000), i = frameOp(naam, t), f = frame(look, naam, i, false);
     if (label && label.textContent !== tekst) label.textContent = tekst;
     g.drawImage(achtergrond(), 0, 0);
     // schaduw onder de voeten
@@ -66,10 +75,12 @@ export function voorbeeldNaRender(){
     g.drawImage(f, x0, y0, f.width * sx, f.height * sy);
     // de bal: aan de voet bij het dribbelen, vóór de voet bij het schieten en daarna weg
     let b = null;
-    if (naam === 'dribbel') b = [ax + BAL_VOOR[i], ay - 6];
+    if (naam === 'dribbel' || naam === 'voorbij') b = [ax + (BAL_VOOR[i] ?? 10), ay - 6];
     else if (naam === 'schiet') b = i < 4 ? [ax + 13, ay - 6] : [ax + 13 + (i - 3) * 22, ay - 6 - (i - 3) * 9];
     if (b) g.drawImage(BALCV, x0 + (b[0] - 5) * sx, y0 + (b[1] - 5) * sy, BALCV.width * 2, BALCV.height * 2);
-    LUS = requestAnimationFrame(teken);
+    LUSSEN.set(cv, requestAnimationFrame(teken));
+    if (cv.id === 'pixelVoorbeeld') LUS = LUSSEN.get(cv);
   };
-  LUS = requestAnimationFrame(teken);
+  LUSSEN.set(cv, requestAnimationFrame(teken));
+  if (cv.id === 'pixelVoorbeeld') LUS = LUSSEN.get(cv);
 }

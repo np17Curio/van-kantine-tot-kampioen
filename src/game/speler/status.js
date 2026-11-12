@@ -6,7 +6,8 @@ import { nieuweBekers } from '../competitie/beker.js';
 import { opstMax } from '../team/opstelling.js';
 import { norm } from '../transfers/zaakwaarnemer.js';
 import { LEEFTIJDEN, startVoor } from './startverhaal.js';
-import { maakJourney, openHoofdstuk } from './journey.js';
+import { maakJourney } from './journey.js';
+import { nieuweKans, vriendAlBijClub } from './proef.js';
 import { fotoVan } from '../media/nieuws.js';
 import { krantMelding } from '../media/roddel.js';
 import { MAX_PERS, PERS, pers } from './persoonlijkheid.js';
@@ -154,8 +155,9 @@ export function nieuwSpel(naam, pos, herkomst, land, opties = {}){
     car:{wed:0,g:0,a:0,clubs:[{club:sp.club, van:2026, land}], prijzen:[], hist:[], maxOvr:ovr(sp), maxWaarde:0, int:{}},
     fase:'week', week:null, ev:null, M:null, venster:null, eind:null});
   S.ss.bekers = nieuweBekers();
-  S.selectie = {cijfers:[], g:0, a:0, tegen:[], verhaal:V.id};
+  S.selectie = {cijfers:[], g:0, a:0, tegen:[], verhaal:V.id, ...(V.id === 'bewijs' ? {proef:{poging:0, geprobeerd:[]}} : {})}; // (op je 23e: geen selectiedagen maar een proeftraining, proef.js)
   S.slot = opties.slot || 1; // de opslagplek van deze carrière
-  maakJourney(sp, opties.vriend || {}); // je verhaal: jeugdvriend (met de naam en positie die je koos), opa en de hoofdstukken (journey.js)
-  openHoofdstuk(0, 'selectie');
+  maakJourney(sp, opties.vriend || {}); // je verhaal: jeugdvriend (met de naam en positie die je koos), en opa (journey.js)
+  // Meteen beginnen: de selectiedagen, of op je 23e de proeftraining die je zaakwaarnemer regelt (je vriend speelt dan al bij een club)
+  if (V.id === 'bewijs'){ vriendAlBijClub(); nieuweKans(); } else S.fase = 'selectie';
 }

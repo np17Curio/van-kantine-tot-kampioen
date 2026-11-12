@@ -18,8 +18,8 @@ import { koop } from '../../game/prive/sponsors.js';
 import { merkenPerWeek, mijnMerken, vMerken } from '../../game/prive/merken.js';
 import { OORDEEL, besteLeagues, mijnLeague, oordeel } from '../../game/speler/niveau.js';
 import { landenRanking } from '../../game/competitie/landsterkte.js';
-import { KAPPER, MERKEN, kanAanvragen, kanKapper, kansTxt, mijnUiterlijk, naarKapper, schoenDeal, schoenKans, vraagAan } from '../../game/prive/schoenen.js';
-import { HAAR_NAAM, KAPSEL_KEUZE } from '../../data/uiterlijk.js';
+import { KAPPER, MERKEN, baardMag, kanAanvragen, kanKapper, kansTxt, mijnUiterlijk, naarKapper, naarKapperBaard, schoenDeal, schoenKans, vraagAan } from '../../game/prive/schoenen.js';
+import { BAARD_KEUZE, HAAR_NAAM, KAPSEL_KEUZE } from '../../data/uiterlijk.js';
 import { vUitgaan } from '../../game/prive/verleidingen.js';
 import { AUTOS, EXAMEN_PRIJS, RIJLES, THEORIE_PRIJS, WONINGEN, autoInfo, autoWaarde, koopAuto, praktijkExamen, rijles, startTheorie, theorieAntwoord, verhuis, verkoopWaarde, woning } from '../../game/prive/wonen-auto.js';
 import { welkomTekst } from '../../game/speler/startverhaal.js';
@@ -479,7 +479,10 @@ function vBuitenBasis(){
     <div style="flex:1;min-width:220px"><span class="label">Kapper · knippen ${geldTxt(KAPPER.knippen)}, verven ${geldTxt(KAPPER.verven)}${kapper ? '' : ' · deze week al geweest'}</span>
       <div class="kapsels" role="group" aria-label="Kapsel">${KAPSEL_KEUZE.map(([k, n]) => knop(n, () => naarKapper(k, null), 'klein' + (u.kapsel === k ? ' aan' : ''), `data-blijf aria-pressed="${u.kapsel === k}" ${kapper && u.kapsel !== k && sp.geld >= KAPPER.knippen ? '' : 'disabled'}`)).join('')}</div>
       <span class="label" style="margin-top:8px">Haarkleur</span>
-      <div class="kapsels" role="group" aria-label="Haarkleur">${HAAR_NAAM.map((n, i) => knop(n, () => naarKapper(null, i), 'klein' + (u.haar === i ? ' aan' : ''), `data-blijf aria-pressed="${u.haar === i}" ${kapper && u.haar !== i && sp.geld >= KAPPER.verven ? '' : 'disabled'}`)).join('')}</div></div></div>
+      <div class="kapsels" role="group" aria-label="Haarkleur">${HAAR_NAAM.map((n, i) => knop(n, () => naarKapper(null, i), 'klein' + (u.haar === i ? ' aan' : ''), `data-blijf aria-pressed="${u.haar === i}" ${kapper && u.haar !== i && sp.geld >= KAPPER.verven ? '' : 'disabled'}`)).join('')}</div>
+      ${sp.vrouw ? '' : baardMag() && u.baard !== undefined ? `<span class="label" style="margin-top:8px">Gezichtshaar · ${geldTxt(KAPPER.knippen)}</span>
+      <div class="kapsels" role="group" aria-label="Gezichtshaar">${BAARD_KEUZE.map(([b, n]) => knop(n, () => naarKapperBaard(b), 'klein' + (u.baard === b ? ' aan' : ''), `data-blijf aria-pressed="${u.baard === b}" ${kapper && u.baard !== b && sp.geld >= KAPPER.knippen ? '' : 'disabled'}`)).join('')}</div>`
+        : `<p class="muted klein-tekst" style="margin-top:8px">Gezichtshaar: je baard komt nog (rond je 18e).</p>`}</div></div>
     <span class="label winkelkop">Voetbalschoenen${dl ? ` · jij speelt op ${esc(dl.merk)} (${geldTxt(dl.bedrag)} per jaar, ${dl.levenslang ? 'levenslang' : `nog ${dl.jaren} ${dl.jaren === 1 ? 'seizoen' : 'seizoenen'}`})` : ''}</span>
     <p class="muted klein-tekst">Hoe beter je bent, hoe groter het merk dat je wil hebben. De grote merken nemen alleen de beste spelers. Per merk kun je het één keer per halfjaar vragen.</p>
     <div class="keuzes">${MERKEN.map(m => { const reden = kanAanvragen(m), k = schoenKans(m);
@@ -500,8 +503,8 @@ export function vSchool(){
 
 export function vEvent(){
   const soort = S.ev.soort;
-  const label = soort === 'verhaal' ? `Jouw verhaal · ${verhaalTitel(S.sp) || ''}` : soort === 'prive' ? 'Buiten het veld' : soort === 'transfer' ? 'Transfernieuws' : soort === 'sponsor' ? 'Sponsoraanbod' : 'Bij de club';
-  const kop = soort === 'verhaal' ? 'Een moment dat je niet vergeet' : soort === 'prive' ? 'Ondertussen, in je privéleven' : soort === 'transfer' ? 'Er ligt een bod op tafel' : soort === 'sponsor' ? 'Een merk wil jou' : 'Er gebeurt iets';
+  const label = soort === 'hoogtepunt' ? `Hoogtepunt · ${esc(S.ev.titel || '')}` : soort === 'verhaal' ? `Jouw verhaal · ${esc(S.ev.titel || verhaalTitel(S.sp) || '')}` : soort === 'prive' ? 'Buiten het veld' : soort === 'transfer' ? 'Transfernieuws' : soort === 'sponsor' ? 'Sponsoraanbod' : 'Bij de club';
+  const kop = soort === 'hoogtepunt' ? 'Een moment om te delen' : soort === 'verhaal' ? 'Een moment dat je niet vergeet' : soort === 'prive' ? 'Ondertussen, in je privéleven' : soort === 'transfer' ? 'Er ligt een bod op tafel' : soort === 'sponsor' ? 'Een merk wil jou' : 'Er gebeurt iets';
   return `<div class="verhaal"><span class="label">${label}</span><h2>${kop}</h2>
     ${S.week.tekst.map(t => `<p class="muted">${esc(t)}</p>`).join('')}
     <p class="moment">${esc(S.ev.tekst)}</p></div>

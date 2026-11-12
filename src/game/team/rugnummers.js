@@ -52,6 +52,17 @@ export function rugnummer(){
   sp.rugMelding = tekst;
   return nr;
 }
+// Het nummer op je shirt (contractscène, krantfoto): bij het eerste elftal je rugnummer, bij de O23 een vast nummer
+// van het beloftenteam (24-45, één keer gekozen en bewaard in sp.o23.nr)
+export function shirtNummer(o23 = !!S.sp.o23){
+  const sp = S.sp;
+  if (!o23) return rugnummer();
+  const o = sp.o23 && typeof sp.o23 === 'object' ? sp.o23 : null;
+  if (o && o.nr) return o.nr;
+  let h = 7; for (const ch of `${sp.naam}|${sp.club}`) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const nr = 24 + h % 22; if (o) o.nr = nr;
+  return nr;
+}
 export function zetRug(nr){ const sp = S.sp; sp.rug = {club:ck(sp.club), nr}; (sp.rugHist = sp.rugHist || {})[ck(sp.club)] = nr; }
 export const stNaam = st => STATUS[st].n;
 // Net bij de selectie gekomen: de laatste 14 weken uit de jeugd doorgestroomd of gekocht

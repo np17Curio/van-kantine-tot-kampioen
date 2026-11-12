@@ -1,3 +1,4 @@
+import { hoogtepunt } from './hoogtepunten.js';
 import { S, seizoenLabel } from '../../core/state.js';
 import { randInt, rnd } from '../../core/utils.js';
 import { krantMelding } from '../media/roddel.js';
@@ -31,7 +32,7 @@ export function blesseer(id = kiesBlessure()){
   const sp = S.sp, B = BLESSURES[id] || BLESSURES.hamstring;
   const wk = Math.max(1, randInt(B.wk[0], B.wk[1]) - (B.wk[1] >= ZWAAR ? 0 : pers('herstel')));
   if (wk <= (sp.blessure || 0)) return null; // al langer geblesseerd
-  sp.blessure = wk; sp.blesSoort = {id, n:B.n, kort:B.kort, wk};
+  sp.blessure = wk; sp.blesSoort = {id, n:B.n, kort:B.kort, wk, gemist:0, zomer:false}; // (gemist: de weken die je echt mist; in de zomer gaan er 8 af)
   const gevolg = [];
   if (B.blijvend){
     if (B.blijvend.cond && sp.a && sp.a.cond != null){ sp.a.cond = Math.max(1, sp.a.cond - B.blijvend.cond); gevolg.push(`conditie −${B.blijvend.cond}`); }
@@ -48,5 +49,8 @@ export function blesseer(id = kiesBlessure()){
 export function terugVanBlessure(){
   const sp = S.sp, b = sp.blesSoort; if (!b || sp.blessure > 0) return null;
   sp.blesSoort = null;
-  return b.wk >= ZWAAR ? `Je bent terug na je ${b.kort}blessure! Na ${b.wk} weken sta je weer op het veld.` : null;
+  if (b.wk < ZWAAR) return null;
+  hoogtepunt('terugBlessure', {kort:b.kort}, true); // (hoogtepunten.js: wie wil je bedanken?)
+  const n = b.gemist ?? b.wk; // (de weken die je echt aan de kant stond, niet de verwachte duur)
+  return `Je bent terug na je ${b.kort}blessure! Na ${n} ${n === 1 ? 'week' : 'weken'}${b.zomer ? ' en de zomerstop' : ''} sta je weer op het veld.`;
 }

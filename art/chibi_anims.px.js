@@ -765,3 +765,68 @@ anim("opkomst", { w: SW, h: SH, frames: OP_FRAMES, fps: 10, outline: "k" }, (c) 
     }
   }
 })
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// 10. KRANT: voorpagina over de transfer, met de persfoto uit de contract-scène.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+const KW = 200, KH = 272
+// Persfoto = uitsnede van de contract-scène (zaal + speler met shirt + klappende eigenaar).
+const FOTO = [10, 116, 180, 72]                   // x, y, b, h op de krant
+const FOTO_BRON = [20, 28]                        // linksboven van de uitsnede in de zaal
+sprite("_krant", { w: KW, h: KH },
+  rect(0, 0, KW, KH, "f"),
+  // kop van de krant
+  text(KW / 2, 6, "DE PIXEL KRANT", "k", { scale: 2, align: "c" }),
+  hline(6, 22, KW - 12, "k"), hline(6, 24, KW - 12, "k"),
+  text(8, 27, "DINSDAG 10 NOVEMBER 2026", "L"), text(KW - 8, 27, "EUR 2.50", "L", { align: "r" }),
+  hline(6, 33, KW - 12, "k"),
+  // rubriek
+  rect(6, 37, 74, 9, "r"), text(9, 39, "TRANSFERNIEUWS", "w"),
+  text(KW - 8, 39, "SPORT", "r", { align: "r" }),
+  // hoofdkop
+  text(KW / 2, 52, "DE BOER", "k", { scale: 3, align: "c" }),
+  text(KW / 2, 72, "TEKENT BIJ", "k", { scale: 3, align: "c" }),
+  text(KW / 2, 92, "ROOD-WIT!", "r", { scale: 3, align: "c" }),
+  hline(30, 110, KW - 60, "L"),
+  // foto met lijst
+  rect(FOTO[0] - 2, FOTO[1] - 2, FOTO[2] + 4, FOTO[3] + 4, "k"),
+  clip([FOTO[0], FOTO[1], FOTO[2], FOTO[3]],
+    stamp("_zaal", FOTO[0] - FOTO_BRON[0], FOTO[1] - FOTO_BRON[1]),
+    stamp("_baas_klap1", FOTO[0] - FOTO_BRON[0] + BX - 36, FOTO[1] - FOTO_BRON[1] + DY - 1, { flip: "x" }),
+    stamp("_sp_44", FOTO[0] - FOTO_BRON[0] + SX - 41, FOTO[1] - FOTO_BRON[1] + DY - 1)),
+  // onderschrift
+  text(8, 193, "DE BOER TOONT ZIJN NIEUWE SHIRT MET", "k"),
+  text(8, 200, "RUGNUMMER 10. FOTO: PIXEL PERS", "L"),
+  hline(6, 208, KW - 12, "L"),
+  // artikel (twee kolommen 'tekst') en een kader met de feiten
+  text(8, 213, "PIXELSTAD -", "k"),
+  (c) => {
+    const regels = [38, 52, 56, 44, 54, 50, 30, 54, 48, 56, 40, 22]
+    regels.forEach((l, i) => { const x = i < 6 ? 8 : 70, y = (i < 6 ? 221 : 213) + (i % 6) * 8 + (i < 6 ? 0 : 0); c.rect(x, y, l, 2, "L") })
+    c.rect(52, 213, 10, 2, "L")
+  },
+  rect(130, 212, 64, 52, "w"), box(130, 212, 64, 52, "k"), rect(130, 212, 64, 9, "k"),
+  text(162, 214, "DE DEAL", "y", { align: "c" }),
+  text(134, 225, "DUUR", "L"), text(190, 225, "4 JAAR", "k", { align: "r" }),
+  text(134, 235, "NUMMER", "L"), text(190, 235, "10", "k", { align: "r" }),
+  text(134, 245, "BEDRAG", "L"), text(190, 245, "25 MLN", "k", { align: "r" }),
+  text(134, 255, "CLUB", "L"), text(190, 255, "ROOD-WIT", "r", { align: "r" }),
+  // gevouwen hoek
+  poly([KW - 10, 0, KW, 0, KW, 10], "F"), line(KW - 10, 0, KW, 10, "L"),
+)
+
+// Animatie: de krant draait het beeld in en komt tot stilstand (zoals in oude films).
+const KA_W = 300, KA_H = 300
+anim("krant", { w: KA_W, h: KA_H, frames: 24, fps: 12 }, (c) => {
+  c.rect(0, 0, KA_W, KA_H, "K")
+  const t = Math.min(1, c.frame / 15)
+  const hoek = Math.round(690 * (1 - t) * (1 - t) / 15) * 15     // afremmend draaien (start schuin: 690° = 330°), stappen van 15°
+  if (hoek === 0) {
+    c.rect(KA_W / 2 - KW / 2 + 4, KA_H / 2 - KH / 2 + 4, KW, KH, "k")   // schaduw
+    c.stamp("_krant", KA_W / 2 - KW / 2, KA_H / 2 - KH / 2)
+  } else {
+    // gedraaid: het canvas groeit, dus centreren op het midden van de gedraaide sprite
+    const r = (hoek * Math.PI) / 180, bw = Math.abs(KW * Math.cos(r)) + Math.abs(KH * Math.sin(r)), bh = Math.abs(KW * Math.sin(r)) + Math.abs(KH * Math.cos(r))
+    c.stamp("_krant", Math.round(KA_W / 2 - bw / 2), Math.round(KA_H / 2 - bh / 2), { rot: hoek })
+  }
+})

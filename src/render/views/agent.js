@@ -1,16 +1,17 @@
-import { S, club, tmp } from '../../core/state.js';
+import { S, club, ovr, tmp } from '../../core/state.js';
 import { act, knop } from '../../core/ui.js';
 import { clamp, esc } from '../../core/utils.js';
-import { AGENT, DIVS, LAAGSTE, NIVEAU } from '../../data/gegevens.js';
+import { AGENTEN, DIVS, LAAGSTE, NIVEAU } from '../../data/gegevens.js';
 import { SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
-import { agentReset, clubIndex, clubsVanNiveau, doelBod, doelVan, eisenVoor, eliteClubs, eliteLand, infoVan, isHier, kaal, kiesDoel, norm, vraagAgent, wanneerBod, zoekClub } from '../../game/transfers/zaakwaarnemer.js';
+import { agentGewisseld, agentNaam, magAgent, mijnAgent, wisselAgent, agentReset, clubIndex, clubsVanNiveau, doelBod, doelVan, eisenVoor, eliteClubs, eliteLand, infoVan, isHier, kaal, kiesDoel, norm, vraagAgent, wanneerBod, zoekClub } from '../../game/transfers/zaakwaarnemer.js';
 import { rolRij } from './venster.js';
 
 // Hoe ver ligt een club van jouw huidige niveau? (d = {club, land})
 export function stapTag(d){
   const c = infoVan(d), eigen = club(), sprong = eigen.t - c.t;
   if (isHier(d)) return ['Jouw club', ''];
-  if (sprong > 2) return ['Te grote stap', 'teveel'];
+  if (sprong > mijnAgent().bereik) return ['Te grote stap', 'teveel'];
+  if (sprong >= 3) return ['Drie niveaus hoger', 'twee'];
   if (sprong === 2) return ['Twee niveaus hoger', 'twee'];
   if (sprong === 1) return ['Stap omhoog', 'omhoog'];
   if (sprong === 0) return [c.s > eigen.s ? 'Sterker, zelfde niveau' : 'Zelfde niveau', ''];
@@ -52,9 +53,28 @@ export function eisRij(x){
   const pct = x.nu === null ? 0 : x.fmt === 'cijfer' ? clamp((x.nu - 5) / (x.nodig - 5), 0, 1) * 100 : clamp(x.nu / x.nodig, 0, 1) * 100;
   return `<div class="eis ${x.ok ? 'ok' : ''}"><span>${x.ok ? '✓ ' : ''}${x.label}</span><span class="b"><i style="width:${pct}%"></i></span><span class="v">${f(x.nu)} / ${f(x.nodig)}</span></div>`;
 }
+// Wat een zaakwaarnemer kost en doet
+const agentKenmerken = a => `Provisie ${Math.round(a.provisie * 100)}% van je salaris · onderhandelen +${Math.round(a.onderh * 100)}% · clubs tot ${a.bereik} niveaus hoger${a.korting ? ` · eisen −${Math.round(a.korting * 100)}%` : ''}`;
+// De andere zaakwaarnemers: een betere neemt je pas als je goed genoeg bent (klasse en reputatie)
+function vAndereAgent(){
+  const sp = S.sp, nu = mijnAgent(), al = agentGewisseld();
+  const kaart = a => {
+    const m = magAgent(a), hier = a.id === nu.id, terug = a.id === 'rik';
+    const eis = (n, mijn, nodig) => nodig ? `<span class="${mijn >= nodig ? 'goedtxt' : 'fouttxt'}">${n} ${nodig} (jij ${mijn})</span>` : '';
+    const reden = hier ? '' : al ? 'Dit seizoen al gewisseld' : !m.ok && !terug ? `Te vroeg: ${m.reden}` : '';
+    return `<div class="agentkaart ${hier ? 'mijn' : ''}"><div class="rij" style="justify-content:space-between;gap:8px"><b>${esc(a.n)}</b>${hier ? '<span class="tag">Jouw zaakwaarnemer</span>' : ''}</div>
+      <p class="klein-tekst">${esc(a.d)}</p><p class="muted klein-tekst">${agentKenmerken(a)}</p>
+      ${a.klasse || a.rep ? `<p class="klein-tekst">Neemt je vanaf: ${[eis('klasse', ovr(sp), a.klasse), eis('reputatie', Math.round(sp.rep || 0), a.rep)].filter(Boolean).join(' · ')}</p>` : ''}
+      ${hier ? '' : reden ? `<p class="muted klein-tekst">${esc(reden)}</p>` : knop(terug ? 'Terug naar ' + esc(a.n.split(' ')[0]) : 'Overstappen', () => { tmp.agentKiesOpen = true; wisselAgent(a.id); }, 'klein', 'data-blijf data-naar="agentPanel"')}</div>`;
+  };
+  return `<details class="clubs" id="agentKiesPanel" ${tmp.agentKiesOpen ? 'open' : ''}><summary class="label">Andere zaakwaarnemer</summary>
+    <p class="muted klein-tekst">Een betere zaakwaarnemer vraagt meer provisie, maar onderhandelt beter, krijgt lagere eisen los en kan clubs van verder weg halen. Hij neemt je alleen als je goed genoeg bent. Je kunt één keer per seizoen wisselen.</p>
+    <div class="agentkaarten">${AGENTEN.map(kaart).join('')}</div></details>`;
+}
 export function vAgent(){
   const sp = S.sp, ag = sp.agent, d = doelBod();
-  let h = `<section id="agentPanel" class="paneel sectie"><h3 class="sectiekop">Zaakwaarnemer · ${AGENT}${d ? ` · droomclub ${esc(infoVan(d).n)}${d.land ? ` (🌍 ${esc(d.land)})` : ''}` : ''}</h3><div class="agentin">`;
+  let h = `<section id="agentPanel" class="paneel sectie"><h3 class="sectiekop">Zaakwaarnemer · ${esc(agentNaam())}${d ? ` · droomclub ${esc(infoVan(d).n)}${d.land ? ` (🌍 ${esc(d.land)})` : ''}` : ''}</h3><div class="agentin">`;
+  h += `<p class="muted klein-tekst">${agentKenmerken(mijnAgent())}</p>`;
   if (ag.antwoord) h += `<p class="quote">${esc(ag.antwoord)}</p>`;
   if (ag.sugg && ag.sugg.length) h += `<div class="sugglijst">${ag.sugg.map(x => suggKnop(typeof x === 'number' ? doelVan(x) : x)).join('')}</div>`;
   if (d){
@@ -68,6 +88,7 @@ export function vAgent(){
     <div class="sugglijst" id="agentSugg">${suggHtml(tmp.agentQ)}</div>
     ${vClubOverzicht()}
     <p class="muted klein-tekst">Hoe hoger de club, hoe meer je moet laten zien. Je kunt ook een club in een ander land kiezen (vanaf je 18e).</p>
+    ${vAndereAgent()}
     ${d ? `<div>${knop('Doel loslaten', () => agentReset('Prima. Zeg het maar als je een nieuw doel hebt.'), 'klein', 'data-blijf')}</div>` : ''}</div>`;
   return h + '</div></section>';
 }

@@ -1,3 +1,4 @@
+import { hoogtepuntWeek } from './speler/hoogtepunten.js';
 import { S, mod, ovr, tmp, attr as attrN } from '../core/state.js';
 import { clamp, rnd } from '../core/utils.js';
 import { AANTAL_RONDES, TRAINBAAR, weekFactor } from '../data/gegevens.js';
@@ -8,6 +9,8 @@ import { dieren } from './prive/dieren.js';
 import { familieWeek } from './prive/familie.js';
 import { relatieWeek } from './prive/gezin.js';
 import { haalFoutWeg, maakSchoolvraag } from './prive/school.js';
+import { baardWeek } from './prive/schoenen.js';
+import { agentAanbod, mijnAgent } from './transfers/zaakwaarnemer.js';
 import { isProf, maakSponsorEvent } from './prive/sponsors.js';
 import { woning, woningMoraal } from './prive/wonen-auto.js';
 import { kalmData, kalmWeek, kroegEvent, kroegKans } from './speler/kalmte.js';
@@ -27,12 +30,12 @@ import { maakRivaal, raceWeek, rivaalPrikkel } from './speler/rivaal.js';
 import { clubloosWeek } from './speler/clubloos.js';
 import { gbMoment } from './seizoen/gouden-bal.js';
 import { buitenlandWeek } from './prive/buitenland-leven.js';
-import { journeyWeek, vriendWeek } from './speler/journey.js';
+import { verleidingWeek, vriendWeek } from './speler/journey.js';
 
 /* ===================== Week ===================== */
 export function nieuweWeek(eerste){
   const sp = S.sp; S.weekNr = (S.weekNr || 0) + 1;
-  if (!sp.rivaal && !S.trainer && !(sp.journey && sp.journey.h < 4)) maakRivaal(); // je vaste rivaal (in je verhaal pas na de verleiding: misschien wordt je jeugdvriend het)
+  if (!sp.rivaal && !S.trainer && !(sp.journey && !sp.journey.verleiding && S.jaar === sp.journey.jaar && sp.vriend)) maakRivaal(); // je vaste rivaal (in je eerste seizoen pas na de verleiding: misschien wordt je jeugdvriend het)
   if (!eerste){
     const deals = sp.sponsors || [];
     sp.herstel = weekHerstel(sp.fit); // ben je moe, dan herstel je meer (anders zak je in een lang seizoen weg)
@@ -44,7 +47,7 @@ export function nieuweWeek(eerste){
     if (sp.woning === 'villa') mod('fit', 2);
     if (sp.items.matras) mod('fit', 2);
   }
-  sp.geld += sp.salaris / AANTAL_RONDES;
+  sp.geld += sp.salaris / AANTAL_RONDES * (1 - mijnAgent().provisie); // (min de provisie van je zaakwaarnemer)
   if (!eerste){
     sp.focus = clamp(sp.focus + (65 - sp.focus) * (sp.focus < 50 || sp.focus > 80 ? .2 : .1) + (sp.focus < 75 ? (sp.items.meditatie ? 1 : 0) + (sp.items.matras ? 1 : 0) : 0) - (sp.leeftijd < 18 && sp.ouders.boos ? 2 : 0), 0, 100); // laag? dan herstel je sneller
   }
@@ -56,6 +59,8 @@ export function nieuweWeek(eerste){
   }
   if (!sp.o23 && !sp.clubloos && !(sp.rug && sp.rug.club === ck(sp.club))) rugnummer();
   if (sp.rugMelding){ S.week.tekst.push(sp.rugMelding); sp.rugMelding = null; }
+  baardWeek(); // begon je op je 15e: rond je 18e begint je baard te groeien
+  if (!eerste) agentAanbod(); // goed genoeg geworden voor een betere zaakwaarnemer?
   kalmWeek(eerste);
   if (!sp.clubloos) tuchtWeek(eerste);
   relatieWeek(eerste);
@@ -82,8 +87,9 @@ export function nieuweWeek(eerste){
   const st = sp.clubloos ? null : checkStatus(); if (st) S.week.tekst.push(st);
   // Een gebeurtenis die deze week klaarstaat (zoals een jubileum) verschijnt nu
   vriendWeek(eerste); // je jeugdvriend: jullie band, en misschien probeert de zaakwaarnemer het opnieuw
+  hoogtepuntWeek(eerste); // een hoogtepunt van vorige week: met wie deel je het? (hoogtepunten.js)
   if (S.wachtEv){ S.ev = S.wachtEv; S.wachtEv = null; S.fase = 'event'; }
-  journeyWeek(eerste); // tijd voor een nieuw hoofdstuk van je verhaal?
+  verleidingWeek(eerste); // de winter van je eerste seizoen: een zaakwaarnemer wil je vriend weghalen
 }
 // Herstel tussen twee wedstrijden: hoe vermoeider, hoe meer. Elke week trainen en spelen komt zo uit rond 70 fitheid
 export const weekHerstel = fit => Math.round(20 + (100 - fit) * .2);

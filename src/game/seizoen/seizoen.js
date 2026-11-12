@@ -20,7 +20,7 @@ import { europaKrant } from '../competitie/europa.js';
 import { ontwikkelLanden } from '../competitie/landsterkte.js';
 import { rivaalOuder, rivaalSeizoen } from '../speler/rivaal.js';
 import { magAfscheid, maakAfscheid } from './afscheidswedstrijd.js';
-import { verhaalEpiloog, vriendOuder, vriendSeizoen } from '../speler/journey.js';
+import { vriendOuder, vriendSeizoen } from '../speler/journey.js';
 import { galaReacties, goudenBalWinst } from './gouden-bal-winst.js';
 import { historieSeizoen } from './historie.js';
 import { groeiJaar } from '../speler/lichaam.js';
@@ -28,6 +28,7 @@ import { thuisLand } from '../../data/landen.js';
 import { ik } from '../../core/geslacht.js';
 import { eersteClubBod } from '../transfers/transfers.js';
 import { clubInfo } from '../transfers/buitenland.js';
+import { ZWAAR } from '../speler/blessures.js';
 import { herstelRecords, recordsSeizoenEinde } from './records.js';
 
 /* ===================== Seizoen ===================== */
@@ -157,7 +158,13 @@ export function naSeizoen(){
   if (!sp.clubloos) sp.contract--;
   sp.rep = clamp(sp.rep * .92, 0, 100);
   // Een zware blessure loopt door in de zomer (8 weken herstel), een lichte is dan over
-  sp.blessure = Math.max(0, (sp.blessure || 0) - 8); if (!sp.blessure) sp.blesSoort = null; sp.fit = 95;
+  const bs = sp.blesSoort, blesVoor = sp.blessure || 0;
+  sp.blessure = Math.max(0, blesVoor - 8);
+  if (blesVoor > 0 && bs){
+    if (sp.blessure > 0){ bs.zomer = true; S.eind.ontw.push(`Je revalideert de hele zomer door: nog ${sp.blessure} ${sp.blessure === 1 ? 'week' : 'weken'} tot je terug bent.`); }
+    else if (bs.wk >= ZWAAR) S.eind.ontw.push(`Je bent in de zomer hersteld van je ${bs.kort}blessure. Het nieuwe seizoen begin je weer fit.`);
+  }
+  if (!sp.blessure) sp.blesSoort = null; sp.fit = 95;
   // Promotie en degradatie gaan nu in: de nieuwe competities beginnen met een lege stand
   S.vorig = {}; for (let t = 1; t <= LAAGSTE; t++) stand(t).forEach((id, i) => { S.vorig[id] = {t, plek:i + 1}; });
   if (S.eind.wissels){ voerPromotieUit(S.eind.wissels); S.tab = nieuweTabellen(); S.ss.st = {}; S.ss.res = {}; }
@@ -193,5 +200,4 @@ export function stoppen(reden){
   S.fase = 'einde';
   // Een clublegende krijgt een afscheidswedstrijd: zijn club tegen oud-ploeggenoten van al zijn clubs
   if (magAfscheid()){ S.afscheidWed = maakAfscheid(); S.fase = 'afscheid'; }
-  verhaalEpiloog(); // het laatste hoofdstuk van je verhaal
 }

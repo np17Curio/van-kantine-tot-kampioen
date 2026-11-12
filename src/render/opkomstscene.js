@@ -100,13 +100,13 @@ function opkomstInfo(M, ploeg, P){
         const uit = x.jij ? uiterlijkVoor('jij|' + (P.jij || sp.naam), {...(sp.uiterlijk || {}), vrouw:!!sp.vrouw}) : uiterlijkVoor('c' + p.id + '|' + x.n + '|' + (x.nr ?? ''));
         const band = !o23 && x === p.aanv, look = lookVan(uit, tenue, {handschoen:keeper, band});
         return {naam:zonderAccent(x.jij ? sp.naam : achternaam(x)), nr:x.nr ?? '', jij:!!x.jij, xy:xy.get(x), rond:tenue.shirt, cijfer:leesbaar(tenue.shirt, tenue.accent),
-          persoon:{v:{kapsel:look.kapsel, vrouw:look.vrouw, kleding:'tenue', patroon:look.patroon, band}, kleuren:look.kleuren, hand:keeper ? 'q' : undefined}};
+          persoon:{v:{kapsel:look.kapsel, vrouw:look.vrouw, baard:look.baard, kleding:'tenue', patroon:look.patroon, band}, kleuren:look.kleuren, hand:keeper ? 'q' : undefined}};
       })};
   };
   const opp = tegenstander(M);
   const scheids = [['SCHEIDSRECHTER', false], ['ASSISTENT 1', true], ['ASSISTENT 2', true]].map(([naam, vlag], i) => {
     const look = lookVan(uiterlijkVoor('scheids|' + opp + '|' + i), SCHEIDS_TENUE, {kleuren:{y:'#3a3a44', Y:'#24242c', a:'#1a1414', A:'#1a1414'}});
-    return {naam, persoon:{v:{kapsel:look.kapsel, vrouw:look.vrouw, kleding:'tenue', patroon:'effen'}, kleuren:look.kleuren, vlag}};
+    return {naam, persoon:{v:{kapsel:look.kapsel, vrouw:look.vrouw, baard:look.baard, kleding:'tenue', patroon:'effen'}, kleuren:look.kleuren, vlag}};
   });
   const th = ploeg.thuis, ui = ploeg.uit, spons = p => { const s = shirtSponsor(CLUBS[p.id], thuisLand()); return zonderAccent(s && s.naam ? s.naam : p.naam); };
   return {thuis:team(th), uit:team(ui), scheids, leeg:o23,

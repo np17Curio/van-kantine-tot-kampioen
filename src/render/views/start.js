@@ -8,7 +8,7 @@ import { DIVS, LANDEN_LIJST, NIVEAU, POS, zetWereld } from '../../data/gegevens.
 import { SPEEL_LANDEN, zetLand } from '../../data/landen.js';
 import { nieuwSpel } from '../../game/speler/status.js';
 import { LEEFTIJDEN, START } from '../../game/speler/startverhaal.js';
-import { HAAR, HAAR_NAAM, HUID, KAPSEL_KEUZE, willekeurigUiterlijk } from '../../data/uiterlijk.js';
+import { BAARD_KEUZE, HAAR, HAAR_NAAM, HUID, KAPSEL_KEUZE, SCHOENEN, SCHOEN_NAAM, willekeurigUiterlijk } from '../../data/uiterlijk.js';
 import { MAX_PERS, PERS, kanErBij, willekeurigePers, wisselPers } from '../../game/speler/persoonlijkheid.js';
 import { BOUW, gewichtVan, groeiRest, lengteTxt, lengtesVoor, lichaamSamenvatting, standaardLengte } from '../../game/speler/lichaam.js';
 
@@ -28,7 +28,10 @@ export const opgroeiKeuze = () => tmp.opgroei || (SPEEL_LANDEN.includes(tmp.gebo
 // Je speler aanmaken: huidskleur, haarkleur en kapsel, met je pixelspeler ernaast (render/pixel/voorbeeld.js)
 function vUiterlijk(){
   const u = tmp.uiterlijk || (tmp.uiterlijk = willekeurigUiterlijk());
-  if (!u.lengte) u.lengte = standaardLengte(tmp.pos, tmp.vrouw); if (!u.bmi) u.bmi = 22.5; // lengte en bouw (lichaam.js)
+  if (!u.lengte) u.lengte = standaardLengte(tmp.pos, tmp.vrouw); if (!u.bmi) u.bmi = 22.5; if (!SCHOENEN[u.schoen]) u.schoen = 0; // lengte, bouw (lichaam.js) en de kleur van je schoenen
+  // gezichtshaar: alleen jongens van 18 of 23 kiezen het nu (begin je op je 15e, dan groeit het later: game/week.js)
+  const baardKiezen = !tmp.vrouw && (tmp.leeftijd || 15) >= 18;
+  if (!baardKiezen) delete u.baard; else if (!BAARD_KEUZE.some(([b]) => b === u.baard)) u.baard = 'geen';
   const LENGTES = lengtesVoor(tmp.vrouw);
   // Jongen of meisje: een meisje speelt in het vrouwenvoetbal (andere competities, met de vrouwenteams van dezelfde clubs)
   const zetG = v => () => { if (!!tmp.vrouw === v) return; tmp.vrouw = v; u.lengte = standaardLengte(tmp.pos, v); u.kapsel = v ? 'staart' : 'model'; if (tmp.valtOp === undefined) tmp.valtOp = v ? 'm' : 'v'; else tmp.valtOp = tmp.valtOp === 'v' ? 'm' : 'v'; tmp.uitSleutel = Math.random().toString(36).slice(2, 10); };
@@ -37,17 +40,19 @@ function vUiterlijk(){
   if (!tmp.uitSleutel) tmp.uitSleutel = Math.random().toString(36).slice(2, 10);
   const vlak = (lijst, k, label, namen) => `<div class="kleurvlakken" role="group" aria-label="${label}">${lijst.map((kl, i) => `<button class="kleurvlak ${u[k] === i ? 'aan' : ''}" style="--kl:${kl}" aria-pressed="${u[k] === i}" aria-label="${label} ${namen ? namen[i] : `${i + 1} van ${lijst.length}`}" title="${namen ? namen[i] : ''}" data-i="${act(() => { u[k] = i; })}" data-blijf></button>`).join('')}</div>`;
   return `<div class="aanmaken">
-    <figure class="portretfoto"><canvas id="pixelVoorbeeld" data-uit="${u.huid},${u.haar},${u.kapsel},${u.lengte},${u.bmi},${tmp.vrouw ? 1 : 0}" data-sleutel="${tmp.uitSleutel}" role="img" aria-label="Jouw ${tmp.vrouw ? 'speelster' : 'speler'}"></canvas><span class="reellabel" aria-hidden="true"></span></figure>
+    <figure class="portretfoto"><canvas id="pixelVoorbeeld" data-uit="${u.huid},${u.haar},${u.kapsel},${u.lengte},${u.bmi},${tmp.vrouw ? 1 : 0},${u.schoen},${u.baard || ''}" data-sleutel="${tmp.uitSleutel}" role="img" aria-label="Jouw ${tmp.vrouw ? 'speelster' : 'speler'}"></canvas><span class="reellabel" aria-hidden="true"></span></figure>
     <div class="aanmaakkeuzes">
       ${geslacht}
       <div class="invoer"><label class="label" for="naam">Naam van je ${tmp.vrouw ? 'speelster' : 'speler'}</label><input id="naam" maxlength="24" placeholder="bijv. ${tmp.vrouw ? 'Lieke de Raket' : 'Daan de Kanon'}" value="${esc(tmp.naam)}"></div>
       <div><span class="label">Huidskleur</span>${vlak(HUID, 'huid', 'Huidskleur')}</div>
       <div><span class="label">Haarkleur</span>${vlak(HAAR, 'haar', 'Haarkleur', HAAR_NAAM)}</div>
+      <div><span class="label">Voetbalschoenen</span>${vlak(SCHOENEN, 'schoen', 'Voetbalschoenen', SCHOEN_NAAM)}</div>
       <div><span class="label">Kapsel</span><div class="kapsels" role="group" aria-label="Kapsel">${KAPSEL_KEUZE.map(([k, l]) => knop(l, () => { u.kapsel = k; }, 'klein' + (u.kapsel === k ? ' aan' : ''), `data-blijf aria-pressed="${u.kapsel === k}"`)).join('')}</div></div>
+      ${baardKiezen ? `<div><span class="label">Gezichtshaar</span><div class="kapsels" role="group" aria-label="Gezichtshaar">${BAARD_KEUZE.map(([b, l]) => knop(l, () => { u.baard = b; }, 'klein' + (u.baard === b ? ' aan' : ''), `data-blijf aria-pressed="${u.baard === b}"`)).join('')}</div></div>` : !tmp.vrouw ? `<p class="muted klein-tekst">Gezichtshaar: begin je op je 15e, dan groeit je baard later. Rond je 18e kies je bij de kapper wat je ermee doet.</p>` : ''}
       <div><span class="label">${(tmp.leeftijd || 15) < 23 ? 'Lengte nu' : 'Lengte'} · ${lengteTxt(u.lengte)}</span><div class="kapsels" role="group" aria-label="Lengte">${LENGTES.map(l => knop(lengteTxt(l), () => { u.lengte = l; }, 'klein' + (u.lengte === l ? ' aan' : ''), `data-blijf aria-pressed="${u.lengte === l}"`)).join('')}</div>${(() => { const r = groeiRest(tmp.leeftijd || 15, !!tmp.vrouw); return r >= 1 ? `<p class="muted klein-tekst">Je bent nog in de groei: je wordt waarschijnlijk ongeveer ${lengteTxt(Math.round(u.lengte + r * .6))}–${lengteTxt(Math.round(u.lengte + r * 1.4))} (tot je 23e).</p>` : ''; })()}</div>
       <div><span class="label">Bouw · ${gewichtVan(u.lengte, u.bmi)} kg</span><div class="kapsels" role="group" aria-label="Bouw">${BOUW.map(b => knop(b.n, () => { u.bmi = b.bmi; }, 'klein' + (u.bmi === b.bmi ? ' aan' : ''), `data-blijf aria-pressed="${u.bmi === b.bmi}"`)).join('')}</div>
         <p class="muted klein-tekst">${lichaamSamenvatting({...u, vrouw:!!tmp.vrouw})}. Lang = sterk in de lucht, klein en tenger = snel, zwaar = sterk in duels maar sneller moe.</p></div>
-      <div>${knop('🎲 Verras me', () => { tmp.uiterlijk = {...willekeurigUiterlijk(tmp.vrouw), lengte:LENGTES[Math.floor(Math.random() * LENGTES.length)], bmi:BOUW[Math.floor(Math.random() * BOUW.length)].bmi}; tmp.uitSleutel = Math.random().toString(36).slice(2, 10); }, 'klein', 'data-blijf')}</div>
+      <div>${knop('🎲 Verras me', () => { tmp.uiterlijk = {...willekeurigUiterlijk(tmp.vrouw), lengte:LENGTES[Math.floor(Math.random() * LENGTES.length)], bmi:BOUW[Math.floor(Math.random() * BOUW.length)].bmi, baard:BAARD_KEUZE[Math.floor(Math.random() * BAARD_KEUZE.length)][0]}; tmp.uitSleutel = Math.random().toString(36).slice(2, 10); }, 'klein', 'data-blijf')}</div>
     </div></div>`;
 }
 // Wie ben je? Maximaal 3 persoonlijkheden, die bepalen hoe je bent in en buiten het veld

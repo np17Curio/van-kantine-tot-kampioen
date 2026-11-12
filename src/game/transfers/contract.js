@@ -1,7 +1,8 @@
+import { hoogtepunt } from '../speler/hoogtepunten.js';
 import { S, club, gemCijfer, mod, ovr, salarisLabel, salarisVoor, seizoenLabel, tmp } from '../../core/state.js';
 import { knop } from '../../core/ui.js';
 import { clamp, esc, geldTxt, rnd } from '../../core/utils.js';
-import { AGENT } from '../../data/gegevens.js';
+import { agentNaam } from './zaakwaarnemer.js';
 import { krantMelding } from '../media/roddel.js';
 import { statusNiveau, statusPunten } from '../speler/status.js';
 import { OH_SAL, OH_TEKEN, clausuleBedrag, ohLabel } from './onderhandelen.js';
@@ -48,6 +49,7 @@ export function contractVoorstel(){
     mod('moraal', 6); statusPunten(1); S.ss.contractRond = true; tmp.contract = null;
     const tot = S.jaar + x.jaren;
     S.car.hist.push(`${seizoenLabel()}: nieuw contract bij ${c.n} tot ${tot} (${geldTxt(sal)} per jaar)`);
+    hoogtepunt('verlenging', {club:c.n, tot}, true);
     if (c.t <= 3) krantMelding(`${sp.naam} verlengt bij ${c.n} tot ${tot}`, `De club en de speler zijn het eens over een nieuw contract.${sal > b.salaris ? ' ' + ik.Hij + ' gaat er flink op vooruit.' : ''}`);
     S.ss.contractMelding = {goed:true, t:`${c.n} gaat akkoord! Je nieuwe contract: ${geldTxt(sal)} per jaar, ${x.jaren} jaar${teken ? `, plus ${geldTxt(teken)} tekengeld` : ''}${sp.clausule ? `, met een afkoopclausule van ${geldTxt(sp.clausule.bedrag)}` : ''}.`};
     return;
@@ -74,7 +76,7 @@ export function vContract(){
       ${rij(`Contractduur · zij bieden ${b.jaren} jaar`, [1, 2, 3, 4, 5].map(j => `${j} jaar`), x.jaren - 1, i => { x.jaren = i + 1; })}
       ${rij(`Afkoopclausule${x.clausule ? ` · ${geldTxt(clausuleBedrag())}` : ''}`, ['Nee', 'Ja'], x.clausule ? 1 : 0, i => { x.clausule = i === 1; })}
       <p>Kans dat ze akkoord gaan: <span class="risico ${cls}" style="white-space:nowrap">${lab} · ${Math.round(k * 100)}%</span></p>
-      <p class="muted klein-tekst">Goede cijfers, een hoge status en vertrouwen van de trainer helpen. Je zaakwaarnemer ${AGENT} praat mee.${sp.leeftijd >= 30 ? ' Op jouw leeftijd geven clubs niet graag lange contracten.' : ''}</p>
+      <p class="muted klein-tekst">Goede cijfers, een hoge status en vertrouwen van de trainer helpen. Je zaakwaarnemer ${agentNaam()} praat mee.${sp.leeftijd >= 30 ? ' Op jouw leeftijd geven clubs niet graag lange contracten.' : ''}</p>
       <div class="rij">${knop('Voorstel doen', contractVoorstel, 'hoofd middel', 'data-blijf')}${knop('Annuleren', () => { tmp.contract = null; }, 'klein', 'data-blijf')}</div></div>`;
   } else if (reden) h += `<p class="muted">${esc(reden)}</p>`;
   else h += `<p class="muted klein-tekst">Je kunt de club vragen om meer geld of een langer contract. Hoe beter je speelt, hoe groter de kans op een ja. Vraag je te veel, dan vindt de club je hebberig.</p><div class="rij">${knop('Om een nieuw contract vragen', contractStart, 'klein', 'data-blijf')}</div>`;

@@ -365,12 +365,13 @@ export function verderSpelen(){
     else if (e.type === 'inval' && e.nood){ staminaStart(M, e.min); // de eerste keeper valt uit
       const k1 = telt(M) ? selectie(S.sp.club).find(y => y.basis && y.pos === 'K') : null, kn = k1 ? metVoorletter(k1) : 'de eerste keeper';
       M.log.push({m:e.min + "'", t:e.nood === 'rust' ? `In de rust wisselt de bondscoach van keeper. Jij gaat erin!` : e.nood === 'blessure' ? `Jullie keeper ${kn} grijpt naar ${team.zijn} hamstring en kan niet verder. Jij moet erin!` : `ROOD voor jullie keeper ${kn}! ${team.Hij} haalt hun spits neer. Jij moet erin, en het is ook nog penalty.`, k:'ok'});
-      animPush(M, {soort:'wissel', type:'wissel', bord:'Keeperswissel', onder:`${e.min}' · Jij komt erin voor ${kn}`});
+      let ikNr = null; try { ikNr = rugnummer(); } catch (e){}
+      animPush(M, {soort:'wissel', type:'wissel', bord:'Keeperswissel', uit:k1 && k1.nr != null ? k1.nr : null, in:ikNr, onder:`${e.min}' · Jij komt erin voor ${kn}`});
       if (e.nood === 'rood'){ M.tienMan = true; M.log.push({m:e.min + "'", t:'Jullie moeten met tien man verder.', k:'info'}); M.ev.splice(M.idx, 0, {type:'moment', min:e.min, m:'penaltyKeeper'});
         if (e.min < 85 && rnd() < .3){ const x = {type:'them', min:randInt(e.min + 2, 89)}; let j = M.idx + 1; while (j < M.ev.length && M.ev[j].min <= x.min) j++; M.ev.splice(j, 0, x); } } }
     else if (e.type === 'inval'){ staminaStart(M, e.min); const w = wisselUit(M);
       M.log.push({m:e.min + "'", t:`${M.inter ? 'De bondscoach' : 'De trainer'} roept je. Je mag erin${w.naam ? `, voor ${w.naam}` : ''}!`, k:'ok'});
-      animPush(M, {soort:'wissel', type:'wissel', bord:w.nr && w.ik ? `#${w.nr} eruit · #${w.ik} erin` : 'Wissel!', onder:`${e.min}' · Wissel: jij komt erin${w.naam ? ` voor ${w.naam}` : ''}`}); }
+      animPush(M, {soort:'wissel', type:'wissel', bord:w.nr && w.ik ? `#${w.nr} eruit · #${w.ik} erin` : 'Wissel!', uit:w.nr ?? null, in:w.ik ?? null, onder:`${e.min}' · Wissel: jij komt erin${w.naam ? ` voor ${w.naam}` : ''}`}); }
     else if (e.type === 'moment'){
       if (M.rood || M.gewisseld !== undefined) continue;
       const type = (!e.varPen && !e.rivaal && !e.zeker && S.sp.pos !== 'KEEPER' && e.min >= 84 && M.us <= M.them && rnd() < .6) ? 'laatsteMinuut' : e.m;
@@ -573,7 +574,7 @@ export function eindeWedstrijd(){
     if (sp.geschorst > 0) sp.geschorst--;
     sp.vorm *= .5;
     if (M.rol !== 'blessure') mod('fit', 10);
-    if (sp.blessure > 0){ sp.blessure--; const t = terugVanBlessure(); if (t && S.week) S.week.tekst.push(t); }
+    if (sp.blessure > 0){ sp.blessure--; if (sp.blesSoort) sp.blesSoort.gemist = (sp.blesSoort.gemist || 0) + 1; const t = terugVanBlessure(); if (t && S.week) S.week.tekst.push(t); }
   }
   if (M.us > M.them){ mod('moraal', 4); iedereen(1); }
   else if (M.us < M.them) mod('moraal', -4 * pers('nederlaagMoraal'));

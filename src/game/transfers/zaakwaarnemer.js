@@ -1,12 +1,43 @@
-import { S, club, gemCijfer, ovr, tmp } from '../../core/state.js';
+import { S, club, gemCijfer, mod, ovr, tmp } from '../../core/state.js';
 import { clamp, shuffle } from '../../core/utils.js';
-import { CLUBS, CLUBS_LAND, DIVS, ELITE_LAND, MIN, clubsLand, divClubs } from '../../data/gegevens.js';
+import { AGENTEN, CLUBS, CLUBS_LAND, DIVS, ELITE_LAND, MIN, clubsLand, divClubs } from '../../data/gegevens.js';
 import { SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
 import { vreemdeClub } from './buitenland.js';
 import { slotLand } from '../competitie/europa.js';
 import { eersteSeizoen } from './vertrek.js';
 
 /* ===================== Zaakwaarnemer ===================== */
+// ---------- wie is je zaakwaarnemer? (sp.agent.wie, zonder: Rik, je eerste) ----------
+export const mijnAgent = () => { const ag = S && S.sp && S.sp.agent; return AGENTEN.find(a => a.id === (ag && ag.wie)) || AGENTEN[0]; };
+export const agentNaam = () => mijnAgent().n;
+// Wil deze zaakwaarnemer jou hebben? Hij kijkt naar je klasse en je reputatie
+export function magAgent(a){
+  const sp = S.sp, o = ovr(sp), r = Math.round(sp.rep || 0), mis = [];
+  if (o < a.klasse) mis.push(`klasse ${a.klasse} nodig (jij ${o})`);
+  if (r < a.rep) mis.push(`reputatie ${a.rep} nodig (jij ${r})`);
+  return {ok:!mis.length, reden:mis.join(', ')};
+}
+export const agentGewisseld = () => !!(S.sp.agent && S.sp.agent.gewisseld === S.jaar);
+// Overstappen naar een andere zaakwaarnemer: hoogstens één keer per seizoen. Je droomclub en de eisen blijven staan.
+export function wisselAgent(id){
+  const sp = S.sp, ag = sp.agent, a = AGENTEN.find(x => x.id === id), oud = mijnAgent();
+  if (!a || a.id === oud.id || agentGewisseld()) return;
+  const m = magAgent(a);
+  if (!m.ok && a.id !== 'rik'){ ag.antwoord = `${a.n}: ${a.nee || '"Nog niet."'} (${m.reden})`; return; }
+  ag.wie = a.id; ag.gewisseld = S.jaar; (ag.gehad = ag.gehad || []).includes(a.id) || ag.gehad.push(a.id);
+  let t = `Je nieuwe zaakwaarnemer is ${a.n}. ${a.ja}`;
+  if (oud.id === 'rik'){ const vriend = sp.startVerhaal === 'bewijs'; t += ` ${oud.n} begrijpt het, maar je hoort dat hij teleurgesteld is${vriend ? '. Hij regelde je eerste kans, toen niemand je wilde' : ''}.`; if (vriend) mod('moraal', -3); }
+  ag.antwoord = t;
+  if (S.week && S.week.tekst) S.week.tekst.push(t);
+}
+// Eén keer per zaakwaarnemer: een bericht als je goed genoeg bent geworden voor een betere (vanuit nieuweWeek)
+export function agentAanbod(){
+  const sp = S.sp, ag = sp.agent; if (!ag || !S.week || sp.clubloos) return;
+  const nu = mijnAgent(), i = AGENTEN.indexOf(nu);
+  const a = AGENTEN.slice(i + 1).reverse().find(x => magAgent(x).ok && !(ag.gemeld || []).includes(x.id)); if (!a) return;
+  (ag.gemeld = ag.gemeld || []).push(a.id);
+  S.week.tekst.push(`${a.n}, zaakwaarnemer, heeft je zien spelen. ${a.v ? 'Ze' : 'Hij'} wil wel met je praten. Kijk bij je zaakwaarnemer (Andere zaakwaarnemer).`);
+}
 export const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
 export const kaal = s => norm(s).replace(/^(fc|sv|vv|sc|ac|rksv|asv|kv|ksv|rfc|kfc|sk|rc|vk|cd|ud|sd|cf|us|as|ss|og|sl|gd|fk|tsv|vfb|vfl|sg|ol|og) /, '');
 export function afstand(a, b){
@@ -68,12 +99,13 @@ export function zoekClub(q){
 // Wat moet je dit seizoen laten zien voor deze club? Hoe sterker de club en hoe groter de stap, hoe meer
 export function eisenVoor(doel){
   const sp = S.sp, dd = alsDoel(doel), c = infoVan(dd), sprong = club().t - c.t, f = clamp((c.s - 40) / 50, 0, 1);
-  const zwaar = sprong >= 2 ? 1.3 : sprong < 0 ? .5 : 1, r = x => Math.round(x * zwaar), gem = gemCijfer(), e = [];
+  const kort = 1 - mijnAgent().korting; // (een betere zaakwaarnemer krijgt lagere eisen los)
+  const zwaar = (sprong >= 2 ? 1.3 : sprong < 0 ? .5 : 1) * kort, r = x => Math.round(x * zwaar), gem = gemCijfer(), e = [];
   const voeg = (label, nodig, nu, fmt) => { if (nodig > 0) e.push({label, nodig, nu, fmt, ok: nu !== null && nu >= nodig}); };
   const zwakste = Math.min(...(c.t === 0 ? eliteClubs() : clubsVanNiveau(dd.land, c.t)).map(x => infoVan(x).s));
-  voeg('Klasse', Math.round(MIN[c.t] - 2 + (c.s - zwakste) * .5 + (sprong >= 2 ? 2 : 0)), ovr(sp));
+  voeg('Klasse', Math.round(MIN[c.t] - 2 + (c.s - zwakste) * .5 + (sprong >= 2 ? 2 : 0) - mijnAgent().korting * 20), ovr(sp));
   voeg('Wedstrijden gespeeld', sprong > 0 ? 8 : sprong === 0 ? 6 : 0, S.ss.wed);
-  if (sprong >= 0) voeg('Gemiddeld cijfer', Math.round((6.4 + f * 1.1 + (sprong >= 2 ? .3 : 0)) * 10) / 10, S.ss.wed ? Math.round(gem * 10) / 10 : null, 'cijfer');
+  if (sprong >= 0) voeg('Gemiddeld cijfer', Math.round((6.4 + f * 1.1 + (sprong >= 2 ? .3 : 0) - mijnAgent().korting * 2) * 10) / 10, S.ss.wed ? Math.round(gem * 10) / 10 : null, 'cijfer');
   if (sp.pos === 'SPITS'){ voeg('Goals', r(3 + f * 9), S.ss.g); voeg('Assists', r(1 + f * 3), S.ss.a); }
   else if (sp.pos === 'MID'){ voeg('Goals', r(1 + f * 5), S.ss.g); voeg('Assists', r(2 + f * 6), S.ss.a); }
   else { voeg('Wedstrijden zonder tegengoal', r(2 + f * 4), S.ss.cs || 0); voeg('Assists', r(f * 3), S.ss.a); }
@@ -107,15 +139,16 @@ export function kiesDoel(doel){
   ag.sugg = null;
   if (isHier(d)){ ag.antwoord = `Je speelt al bij ${c.n}!`; return; }
   if (d.land && S.sp.leeftijd < 18){ ag.antwoord = `${c.n} uit ${d.land}? Een transfer naar het buitenland kan pas vanaf je 18e. Tot die tijd regel ik alleen clubs in ${thuisLand()}.`; return; }
-  if (sprong > 2){
+  if (sprong > mijnAgent().bereik){
     const stap = clubsVanNiveau(d.land, eigen.t - 1), naam = d.land ? infoVan(stap[0] || d).div : DIVS[eigen.t - 1];
     ag.sugg = shuffle(stap).slice(0, 3);
-    ag.antwoord = `${c.n} speelt in de ${div}. Dat is ${sprong} niveaus hoger dan waar jij nu speelt, en zo'n club kijkt nog niet naar je. Maak eerst een stap naar de ${naam}${d.land ? ` in ${d.land}` : ''}, bijvoorbeeld:`;
+    ag.antwoord = `${c.n} speelt in de ${div}. Dat is ${sprong} niveaus hoger dan waar jij nu speelt, en zo'n club kijkt nog niet naar je.${mijnAgent().bereik < 3 ? ' (Een zaakwaarnemer met een groter netwerk kan verder kijken.)' : ''} Maak eerst een stap naar de ${naam}${d.land ? ` in ${d.land}` : ''}, bijvoorbeeld:`;
     return;
   }
   ag.doel = d.club; ag.doelLand = d.land; ag.gehaald = false;
   const wie = d.land ? `${c.n} uit ${d.land}, in de ${div}` : c.n;
-  const intro = sprong === 2 ? `${wie}? Dat is twee niveaus hoger dan waar je nu speelt. Dan moet je echt uitblinken.`
+  const intro = sprong >= 3 ? `${wie}? Drie niveaus hoger! Via mijn netwerk kan ik daar binnenkomen, maar dan moet je echt uitblinken.`
+    : sprong === 2 ? `${wie}? Dat is twee niveaus hoger dan waar je nu speelt. Dan moet je echt uitblinken.`
     : sprong === 1 ? `${wie}? Mooi doel: een stap omhoog${d.land ? '' : ` naar de ${div}`}.`
     : sprong === 0 && c.s > eigen.s ? `${wie}? Een sterkere club op jouw niveau. Dat kan.`
     : `${wie}? Dat is geen stap omhoog, maar als jij dat wilt, regel ik het.`;

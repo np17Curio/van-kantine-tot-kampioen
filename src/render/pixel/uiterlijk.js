@@ -1,7 +1,7 @@
 /* ===================== Uiterlijk en tenue van een figuur ===================== */
 // Zonder three.js: het veld, de cutscenes, de krantenfoto's en het startscherm gebruiken dit allemaal.
 // (Kwam uit render/spelermodel.js, uit de tijd van de 3D-spelers.)
-import { HAAR, HUID, KAPSELS, KAPSELS_V, KROES_KAPSELS, SCHOENEN } from '../../data/uiterlijk.js';
+import { BAARD_KEUZE, HAAR, HUID, KAPSELS, KAPSELS_V, KROES_KAPSELS, SCHOENEN } from '../../data/uiterlijk.js';
 import { STANDAARD } from '../../data/tenues.js';
 import { vrouwenWereld } from '../../core/geslacht.js';
 
@@ -17,7 +17,7 @@ export function uiterlijkVoor(sleutel, eigen){
   const v = vrouwenWereld(), kroes = huid >= 3 && d(5) < 3;
   const u = {huid, haar: huid >= 4 && d(3) ? 0 : d(HAAR.length), kapsel:kroes ? KROES_KAPSELS[d(KROES_KAPSELS.length)] : v ? KAPSELS_V[d(KAPSELS_V.length)] : d(25) === 0 ? 'vlechten' : GEWOON[d(GEWOON.length)], lengte:(v ? .89 : .93) + d(15) / 100, bouw:(v ? .85 : .9) + d(21) / 100, schoen:d(SCHOENEN.length),
     stijl:{arm:.8 + d(41) / 100, pas:.9 + d(26) / 100, houding:d(11) / 100, veer:.85 + d(31) / 100}};
-  if (eigen){ if (HUID[eigen.huid]) u.huid = eigen.huid; if (HAAR[eigen.haar]) u.haar = eigen.haar; if (KAPSELS.includes(eigen.kapsel)) u.kapsel = eigen.kapsel; if (SCHOENEN[eigen.schoen]) u.schoen = eigen.schoen;
+  if (eigen){ if (HUID[eigen.huid]) u.huid = eigen.huid; if (HAAR[eigen.haar]) u.haar = eigen.haar; if (KAPSELS.includes(eigen.kapsel)) u.kapsel = eigen.kapsel; if (SCHOENEN[eigen.schoen]) u.schoen = eigen.schoen; if (BAARD_KEUZE.some(([b]) => b === eigen.baard)) u.baard = eigen.baard;
     // gekozen lengte (165-200 cm) en bouw (bmi 20-27,5)
     // (een speelster: 155-190 cm en iets slanker)
     const ev = eigen.vrouw ?? v, l0 = ev ? 155 : 165, b0 = ev ? .85 : .9;

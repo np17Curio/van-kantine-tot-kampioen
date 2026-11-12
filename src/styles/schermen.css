@@ -124,8 +124,7 @@ select{background:var(--diep);border:1px solid var(--lijn);border-radius:6px;pad
 .opslag{gap:6px;flex-wrap:wrap}
 .bestandknop{cursor:pointer;display:inline-flex;align-items:center}
 
-/* Jouw verhaal: hoofdstukken, ranglijst van de selectiedagen en de toonmeter */
-.hoofdstuk h2{font-size:1.6rem}
+/* Ranglijst van de selectiedagen en de toonmeter */
 .ranglijst{margin:6px 0 0;padding-left:22px;display:grid;gap:2px;font-size:.88rem}
 .ranglijst li span{display:inline-block;min-width:70%}
 .ranglijst li.mij{color:var(--lamp)}
@@ -162,3 +161,17 @@ select{background:var(--diep);border:1px solid var(--lijn);border-radius:6px;pad
 .aanveisen li .muted{font-family:var(--f-mono);font-size:.72rem}
 .aanveisen .vink{color:var(--mist);font-size:.75rem}
 .aanveisen li.klaar .vink{color:var(--lamp)}
+/* De laatbloeier (views/proef.js): de twee stappen van je proef, en het pixelbeeld van de oefening */
+.proefstappen{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 12px}
+.proefstap{border:1px solid var(--rand, rgba(255,255,255,.15));border-radius:8px;padding:6px 12px;min-width:120px;display:grid;gap:2px}
+.proefstap b{font-size:1.25rem}
+.proefstap.goed{border-color:var(--goed)}.proefstap.goed b{color:var(--goed)}
+.proefstap.fout{border-color:var(--fout)}.proefstap.fout b{color:var(--fout)}
+.proefstap.bezig{border-color:var(--lamp, #c6f432)}
+.proefbeeld{width:200px;max-width:100%;margin:0}
+.proefbeeld canvas{display:block;width:100%;height:auto;image-rendering:pixelated;border-radius:8px}
+/* Andere zaakwaarnemer kiezen (views/agent.js) */
+.agentkaarten{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:8px}
+.agentkaart{border:1px solid var(--rand, rgba(255,255,255,.15));border-radius:8px;padding:10px 12px;display:grid;gap:4px;align-content:start}
+.agentkaart.mijn{border-color:var(--lamp)}
+.agentkaart p{margin:0}

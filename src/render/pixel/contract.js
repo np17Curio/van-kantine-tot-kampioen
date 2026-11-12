@@ -131,9 +131,9 @@ export function maakContract(info = {}){
   // de speler: jouw uiterlijk in vrijetijdskleding (in de stijlbron: het model-uiterlijk)
   const ik = stijl ? {kapsel:'model', kleuren:{...ORIGINEEL, c:STIJL.c, C:STIJL.C, e:STIJL.e, E:STIJL.E, y:'#f4f4f8', Y:'#c4c4d0', a:'#3a3a44', A:'#24242c', w:'#ffffff'}}
     : lookVan(info.uit || {}, {shirt:'#ffffff', accent:'#ffffff', patroon:'effen', broek:'#4a6fb0', sok:'#4a6fb0'}, {kleding:'casual'});
-  const vIk = {kapsel:ik.kapsel, vrouw:!!ik.vrouw, kleding:'casual'}, palIk = {...ik.kleuren, w:'#ffffff', ...shirtKl};
+  const vIk = {kapsel:ik.kapsel, vrouw:!!ik.vrouw, baard:ik.baard, kleding:'casual'}, palIk = {...ik.kleuren, w:'#ffffff', ...shirtKl};
   const shirt = stijl ? shirtToon('10', true) : shirtMetNaam(info.naam || '', info.nr, t.patroon === 'strepen');
-  const spelers = Array.from({length:FRAMES}, (_, f) => inkleuren(spelerBeeld(f, vIk, shirt), palIk));
+  const SP = [], spelerCv = f => SP[f] || (SP[f] = inkleuren(spelerBeeld(f, vIk, shirt), palIk)); // (pas getekend als hij nodig is)
   // de eigenaar: marineblauw pak, rode das, grijs haar en een snor
   const vBaas = {kapsel:'model', kleding:'pak', snor:true};
   const palBaas = {...ORIGINEEL, h:STIJL.l, H:STIJL.L, j:'#ffffff', c:STIJL.P, C:STIJL.D, t:'#c8302c', w:'#ffffff', y:STIJL.d, Y:STIJL.I, a:STIJL.B, A:STIJL.B};
@@ -143,6 +143,10 @@ export function maakContract(info = {}){
     {...STIJL, h:STIJL[haar], j:STIJL[haar === 'h' ? 'j' : haar], v:STIJL[kleding]})}));
   const flitsCv = inkleuren(FLITSBEELD, STIJL);
   const frames = [];
+  // de persfoto voor de krant (stijlbron deel 10): de zaal, de klappende eigenaar en jij met je shirt (beeld 44)
+  const uitsnede = (b = 180, h = 72, bx = 20, by = 28) => { const cv = document.createElement('canvas'); cv.width = b; cv.height = h; const g = cv.getContext('2d');
+    g.drawImage(zaalCv, -bx, -by); g.drawImage(baas.klap1, BX - 36 - bx, DY - 1 - by); g.drawImage(spelerCv(44), SX - 41 - bx, DY - 1 - by); return cv; };
+  if (info.alleenUitsnede) return {frames:[], uitsnede};
   for (let f = 0; f < FRAMES; f++){
     // eerst het beeld zelf (220×124, wat erbuiten valt wordt afgeknipt), dan de omlijning eromheen zoals pxl (hoeken leeg)
     const binnen = document.createElement('canvas'); binnen.width = ZW; binnen.height = ZH;
@@ -150,12 +154,12 @@ export function maakContract(info = {}){
     g.drawImage(zaalCv, 0, 0);
     const bh = f >= 30 && f < 38 ? (f % 2 ? 'hand1' : 'hand2') : f >= 38 ? (f % 2 ? 'klap1' : 'klap2') : 'staan';
     g.drawImage(baas[bh], BX - 35 - 1, DY - 1);
-    g.drawImage(spelers[f], spelerX(f) - 40 - 1, DY - 1);
+    g.drawImage(spelerCv(f), spelerX(f) - 40 - 1, DY - 1);
     g.fillStyle = STIJL.D; for (let i = 0; i < Math.max(0, Math.min(10, f - 17)); i++) g.fillRect(KRABBEL[i][0], KRABBEL[i][1], 1, 1); // de handtekening groeit
     pub.forEach((p, i) => { const y = p.foto ? ZH - 26 + 2 : ZH - 18 + 2; g.drawImage(p.cv, p.x, y); if ((FLITS[f] || []).includes(i)) g.drawImage(flitsCv, p.x + 6, y - 7); });
     const cv = document.createElement('canvas'); cv.width = ZW + 2; cv.height = ZH + 2; const o = cv.getContext('2d');
     o.fillStyle = STIJL.k; o.fillRect(1, 0, ZW, ZH + 2); o.fillRect(0, 1, ZW + 2, ZH); o.drawImage(binnen, 1, 1);
     frames.push(cv);
   }
-  return {frames};
+  return {frames, uitsnede};
 }

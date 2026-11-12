@@ -18,7 +18,7 @@ import { rugnummer } from '../../game/team/rugnummers.js';
 import { fixture } from '../../game/competitie/competitie.js';
 import { clubLogo } from '../../data/logos.js';
 import { PERS, karakter, mijnPers } from '../../game/speler/persoonlijkheid.js';
-import { HOOFDSTUKKEN, KLAAR, bijJou, deelVan, vriendClubNaam, hoofdstukTitel, toonLabel, vriendKlasse, vriendStats } from '../../game/speler/journey.js';
+import { bijJou, vriendClubNaam, toonLabel, vriendKlasse, vriendStats } from '../../game/speler/journey.js';
 import { bandLabel } from '../../game/speler/rivaal.js';
 import { gewichtVan, lengteTxt, lichaam } from '../../game/speler/lichaam.js';
 import { vHistorie } from '../../game/seizoen/historie.js';
@@ -136,15 +136,17 @@ export function vSponsorKaart(){
     ${deals.length ? deals.map(d => `<div class="landrij"><div><b>${esc(d.merk)}</b> <span class="muted">· ${SPONSOR_CAT[d.cat].n.toLowerCase()}</span><div class="muted klein-tekst">${d.levenslang ? '<b>levenslang</b>' : `nog ${d.jaren} ${d.jaren === 1 ? 'seizoen' : 'seizoenen'}`} · ${SPONSOR_CAT[d.cat].perk}</div></div><span class="niv">${geldTxt(d.bedrag)}/jaar</span></div>`).join('') + `<p class="muted klein-tekst">Samen ${geldTxt(totaal)} per jaar, bovenop je salaris.</p>`
       : '<p class="muted klein-tekst">Nog geen sponsors. Hoe bekender je bent (reputatie), hoe vaker merken bij je aankloppen.</p>'}</div>`;
 }
-// Jouw verhaal: welk hoofdstuk, je karakter (rustig of heethoofd) en je band met je jeugdvriend
+// Je karakter (rustig of heethoofd) en je band met de mensen om je heen: je jeugdvriend, je ouders en je partner
+const mensBand = b => b >= 80 ? 'heel hecht' : b >= 60 ? 'hecht' : b >= 40 ? 'goed' : b >= 20 ? 'wat afstand' : 'het schuurt';
 function vVerhaal(){
-  const sp = S.sp, J = sp.journey; if (!J) return '';
+  const sp = S.sp; if (!sp.vriend && !sp.journey) return '';
   const v = sp.vriend, R = sp.rivaal, t = sp.toon || 0, b = v && v.weg && R && R.exVriend ? R.band : v ? v.band : null;
-  return `<div class="verhaalkaart"><span class="label">${J.h < KLAAR ? `Jouw verhaal · deel ${deelVan(J.h).nr} · hoofdstuk ${J.h}: ${esc(hoofdstukTitel(J.h))}` : 'Jouw verhaal · voltooid'}</span>${J.h < KLAAR - 1 && J.h >= 7 ? `<p class="muted klein-tekst">Volgende hoofdstuk: <b>${esc(hoofdstukTitel(J.h + 1))}</b></p>` : ''}
+  return `<div class="verhaalkaart"><span class="label">Jij en je mensen</span>
     <div class="toonmeter" title="Kalme keuzes: de trainer vertrouwt je meer. Felle keuzes: de fans houden van je vuur."><span>🧊 Rustig</span><span class="b"><i style="left:${(t + 100) / 2}%"></i></span><span>Heethoofd 🔥</span></div>
     ${v ? (() => { const st = vriendStats(); return `<p class="muted klein-tekst">Jij ${S.ss.g || 0} G · ${S.ss.a || 0} A · klasse ${ovr(sp)} — ${esc(v.voornaam)} ${st.g} G · ${st.a} A · klasse ${vriendKlasse()}</p>`; })() : ''}
     ${(() => { const k = karakter(); return `<p class="klein-tekst karaktereffect" title="${esc(k.veld + ' ' + k.buiten)}">${k.i} <b>${k.n}</b>: ${esc(k.veld)} ${esc(k.buiten)}</p>`; })()}
-    <p class="muted klein-tekst">Karakter: <b>${toonLabel()}</b>${b !== null ? ` · ${v.weg ? 'ex-' + vr.vriend + '' : '' + vr.jeugdvriend + ''} ${esc(v.voornaam)}: ${v.weg ? bandLabel(b).toLowerCase() : b >= 60 ? 'beste vrienden' : b >= 20 ? 'goede vrienden' : 'het schuurt'}${!v.weg && vriendClubNaam() ? (bijJou() ? ' (jouw club)' : ` (${esc(vriendClubNaam())})`) : ''}` : ''}</p></div>`;
+    <p class="muted klein-tekst">Karakter: <b>${toonLabel()}</b>${b !== null ? ` · ${v.weg ? 'ex-' + vr.vriend + '' : '' + vr.jeugdvriend + ''} ${esc(v.voornaam)}: ${v.weg ? bandLabel(b).toLowerCase() : b >= 60 ? 'beste vrienden' : b >= 20 ? 'goede vrienden' : 'het schuurt'}${!v.weg && vriendClubNaam() ? (bijJou() ? ' (jouw club)' : ` (${esc(vriendClubNaam())})`) : ''}` : ''}</p>
+    <p class="muted klein-tekst">Ouders: ${mensBand(ouders().band)}${sp.relatie ? ` · ${esc(sp.relatie.naam)}: ${mensBand(sp.relatie.band)}` : ''}</p></div>`;
 }
 export function vZij(){
   const sp = S.sp, c = club(), gem = gemCijfer(), st = stand(c.t);

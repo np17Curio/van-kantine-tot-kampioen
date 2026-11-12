@@ -1,3 +1,4 @@
+import { hoogtepunt } from '../speler/hoogtepunten.js';
 import { S, club, gemCijfer, mod, ovr, seizoenLabel } from '../../core/state.js';
 import { sterrenNa } from '../wedstrijd/opdrachten.js';
 import { clamp, pick, randInt, rnd } from '../../core/utils.js';
@@ -88,8 +89,8 @@ export function eindeInterland(){
   M.interTekst = [];
   M.interTekst.push(...vriendNaInterland(M)); // je jeugdvriend in het nationale team
   if (M.bonus) M.interTekst.push(M.bonus.tekst);
-  if (debuut){ S.car.hist.push(`${seizoenLabel()}: debuut voor ${naam} tegen ${M.zij}`); M.interTekst.push(`Je debuut voor ${naam}! Dit vergeet je nooit meer.`); }
-  if (eersteGoal){ S.car.hist.push(`${seizoenLabel()}: eerste interlandgoal voor ${naam}`); M.interTekst.push(`Je eerste interlandgoal voor ${naam}!`); }
+  if (debuut){ S.car.hist.push(`${seizoenLabel()}: debuut voor ${naam} tegen ${M.zij}`); M.interTekst.push(`Je debuut voor ${naam}! Dit vergeet je nooit meer.`); hoogtepunt('interDebuut', {land:naam, zij:M.zij}); }
+  if (eersteGoal){ S.car.hist.push(`${seizoenLabel()}: eerste interlandgoal voor ${naam}`); M.interTekst.push(`Je eerste interlandgoal voor ${naam}!`); hoogtepunt('interGoal', {land:naam, zij:M.zij}); }
   if ([25, 50, 75, 100].includes(st.caps)){ S.car.prijzen.push(`${st.caps} interlands voor ${naam}`); M.interTekst.push(`Dit was je ${st.caps}e interland voor ${naam}!`); }
   if (I.type === 'Kwalificatiewedstrijd' && !sp.land){
     sp.land = naam;

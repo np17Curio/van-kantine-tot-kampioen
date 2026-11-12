@@ -107,9 +107,29 @@ export const sprite = (w, h, ...stappen) => { const img = new Img(w, h), c = new
 // Het hoofd (38×26) met een kapsel. 'model' is het haar uit de stijlbron; de andere kapsels staan in kapsels.js
 import { haarAchter, haarVoor, haarRug, haarZijAchter, haarZijVoor } from './kapsels.js';
 const HOOFDEN = new Map();
-// snor: de eigenaar in de contractscène (stijlbron: _hoofd_baas)
-export function hoofd(kapsel = 'model', vrouw = false, snor = false){
-  const sl = kapsel + (vrouw ? '|v' : '') + (snor ? '|snor' : ''); if (HOOFDEN.has(sl)) return HOOFDEN.get(sl);
+// Gezichtshaar (baard: '', 'geen', 'stoppels', 'snor', 'sikje', 'baard'), in de haarkleur (h, en H voor de schaduw).
+// Van voren: gezicht x 10-31, mond y 22; van opzij (zij): gezicht x 15-31, mond x 28-30. De snor van voren is die van
+// de eigenaar in de contractscène (stijlbron: _hoofd_baas). true = 'snor' (zo riep de contractscène het al aan).
+const baardSoort = b => b === true ? 'snor' : b && b !== 'geen' ? b : '';
+function gezichtshaar(c, baard, zij){
+  if (!baard) return;
+  if (baard === 'stoppels'){
+    const [x0, x1] = zij ? [22, 31] : [11, 30];
+    for (let y = 21; y <= 24; y++) for (let x = x0; x <= x1; x++) if ((x + y) % 2 === 0 && !(y === 22 && x >= (zij ? 28 : 18) && x <= (zij ? 30 : 22))) c.px(x, y, 'H');
+    if (zij) c.px(31, 21, 'H'); else { c.px(18, 21, 'H'); c.px(20, 21, 'H'); c.px(22, 21, 'H'); }
+    return;
+  }
+  if (baard === 'baard'){
+    // (met een donkere rand en wat textuur in H: anders valt een lichte baard weg tegen de huid)
+    if (zij){ c.rect(22, 20, 10, 5, 'h'); c.rect(22, 16, 2, 4, 'h'); c.vline(22, 16, 9, 'H'); c.hline(22, 24, 10, 'H'); for (let x = 23; x < 32; x += 2) c.px(x, 23, 'H'); c.hline(28, 22, 3, 'k'); }
+    else { c.rect(10, 20, 22, 5, 'h'); c.rect(10, 16, 2, 4, 'h'); c.rect(30, 16, 2, 4, 'h'); c.hline(10, 24, 22, 'H'); c.vline(10, 16, 9, 'H'); c.vline(31, 16, 9, 'H'); for (let x = 12; x < 30; x += 2) c.px(x, 23, 'H'); c.hline(18, 22, 5, 'k'); }
+  }
+  if (zij) c.rect(27, 20, 5, 2, 'H'); else c.rect(17, 20, 8, 2, 'H');   // de snor (ook bij sikje en volle baard)
+  if (baard === 'sikje'){ if (zij){ c.rect(28, 23, 4, 2, 'h'); c.hline(28, 24, 4, 'H'); } else { c.rect(18, 23, 5, 2, 'h'); c.hline(18, 24, 5, 'H'); } }
+}
+export function hoofd(kapsel = 'model', vrouw = false, baard = ''){
+  baard = vrouw ? '' : baardSoort(baard);
+  const sl = kapsel + (vrouw ? '|v' : '') + (baard === 'snor' ? '|snor' : baard ? '|' + baard : ''); if (HOOFDEN.has(sl)) return HOOFDEN.get(sl);
   const img = sprite(38, 26, c => {
     haarAchter(c, kapsel);
     c.rect(10, 10, 22, 15, 's');
@@ -126,13 +146,14 @@ export function hoofd(kapsel = 'model', vrouw = false, snor = false){
     c.rect(11, 20, 3, 1, 'p'); c.rect(28, 20, 3, 1, 'p');
     c.px(20, 19, 'S');
     if (vrouw){ c.hline(18, 22, 5, 'k'); c.hline(19, 23, 3, 'p'); } else c.hline(18, 22, 5, 'k');
-    if (snor) c.rect(17, 20, 8, 2, 'H');
+    gezichtshaar(c, baard, false);
   });
   HOOFDEN.set(sl, img); return img;
 }
 // Van opzij (stijlbron: _hoofd_zij): gezicht x 15-31 naar rechts, oor in het midden, haar op het achterhoofd
-export function hoofdZij(kapsel = 'model', vrouw = false){
-  const sl = 'zij|' + kapsel + (vrouw ? '|v' : ''); if (HOOFDEN.has(sl)) return HOOFDEN.get(sl);
+export function hoofdZij(kapsel = 'model', vrouw = false, baard = ''){
+  baard = vrouw ? '' : baardSoort(baard);
+  const sl = 'zij|' + kapsel + (vrouw ? '|v' : '') + (baard ? '|' + baard : ''); if (HOOFDEN.has(sl)) return HOOFDEN.get(sl);
   const img = sprite(38, 26, c => {
     haarZijAchter(c, kapsel);
     c.rect(15, 10, 17, 15, 's');                                                              // gezicht
@@ -145,6 +166,7 @@ export function hoofdZij(kapsel = 'model', vrouw = false){
     if (vrouw) c.px(30, 15, 'k');                                                              // wimper
     c.rect(23, 20, 3, 1, 'p');                                                                 // blos
     c.hline(28, 22, 3, 'k'); if (vrouw) c.px(29, 23, 'p');                                     // mond
+    gezichtshaar(c, baard, true);
   });
   HOOFDEN.set(sl, img); return img;
 }
@@ -319,7 +341,7 @@ export function opGrond(P){ const l = beenPunten(0, 0, P.lL).fy, r = beenPunten(
 // Waar zitten heup en hoofd in deze pose (voor ankerpunten: rugnummer, kaart, iets in de hand)
 export function punten(P){ const hy = P.y ?? opGrond(P) - (P.hoog ?? 0), ox = R(P.x - 21), oy = R(hy - 39 + (P.dy ?? 0)); return {heup:[P.x, hy], hoofd:[ox + 21 + (P.hd ? P.hd[0] : 0), oy + 12 + (P.hd ? P.hd[1] : 0)], handVoor:(() => { const a = armPunten(ox + 30, oy + 28, P.aR, P.arm); return [a.hx, a.hy]; })()}; }
 
-// De hele speler in pose P. v = {kapsel, vrouw, kleding, patroon, band, nr, snor, bal}. Geeft de plek van de voorste hand terug.
+// De hele speler in pose P. v = {kapsel, vrouw, kleding, patroon, band, nr, snor, baard, bal}. Geeft de plek van de voorste hand terug.
 // P (zoals in de stijlbron): x, y of hoog, dy, lL/lR [dij, knie], aL/aR [bovenarm, elleboog], hd [dx, dy], hand ('s' of 'q'), arm (lengte),
 // zij (zijaanzicht), bal [x, y], balRot. Extra: richting 'voor'/'achter' (van voren of van achteren), extra(c, o) tekent iets erbij
 // (een pen, een camera), voor = true tekent dat over de voorste arm
@@ -335,7 +357,7 @@ export function speler(c, P, v = {}){
     tekenArmV(c, ox + 11, oy + 28, P.aL, -1, achterHand, P.arm, T, false);
     tekenArmV(c, ox + 30, oy + 28, P.aR, 1, hand, P.arm, T, true);
     if (v.band){ const kx = rug ? ox + 12 : ox + 29; c.rect(kx - 1, oy + 30, 3, 3, '%'); }
-    c.stamp(rug ? hoofdRug(v.kapsel || 'model') : hoofd(v.kapsel || 'model', !!v.vrouw, !!v.snor), ox + dx, oy + dy);
+    c.stamp(rug ? hoofdRug(v.kapsel || 'model') : hoofd(v.kapsel || 'model', !!v.vrouw, v.snor ? 'snor' : v.baard), ox + dx, oy + dy);
     if (P.bal && v.bal !== false) c.stamp(BAL, R(P.bal[0]) - 5, R(P.bal[1]) - 5, {rot:P.balRot || 0});
     return [ox + 30, oy + 40];
   }
@@ -347,7 +369,7 @@ export function speler(c, P, v = {}){
   tekenBeen(c, ox + hL[0], oy + hL[1], P.lL, false, T);
   tekenBeen(c, ox + hR[0], oy + hR[1], P.lR, true, T);
   c.stamp(zij ? rompZij(kleding, v.patroon || 'strepen') : romp(kleding, v.patroon || 'strepen'), ox, oy);
-  c.stamp(zij ? hoofdZij(v.kapsel || 'model', !!v.vrouw) : hoofd(v.kapsel || 'model', !!v.vrouw, !!v.snor), ox + dx, oy + dy);
+  c.stamp(zij ? hoofdZij(v.kapsel || 'model', !!v.vrouw, v.snor ? 'snor' : v.baard) : hoofd(v.kapsel || 'model', !!v.vrouw, v.snor ? 'snor' : v.baard), ox + dx, oy + dy);
   const voorHand = tekenArm(c, ox + sR[0], oy + sR[1], P.aR, true, hand, P.arm, T, v.band);
   if (P.extra && P.voor) P.extra(c, {ox, oy, hy});
   if (P.bal && v.bal !== false) c.stamp(BAL, R(P.bal[0]) - 5, R(P.bal[1]) - 5, {rot:P.balRot || 0});

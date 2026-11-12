@@ -179,7 +179,23 @@ export const nationS = (n, s) => WERELD === 'v' && LAND_S_V[n] != null ? LAND_S_
 const LANDEN_M = LANDEN.map(l => l.s);
 function zetLandSterkteWereld(){ LANDEN.forEach((l, i) => { l.s = nationS(l.n, LANDEN_M[i]); }); }
 export const landInfo = n => LANDEN.find(l => l.n === n) || {n, s:70};
-export const AGENT = 'Rik Verbeek';
+export const AGENT = 'Rik Verbeek'; // je eerste zaakwaarnemer (bij de laatbloeier: je oude vriend)
+// De zaakwaarnemers waar je later naartoe kunt (game/transfers/zaakwaarnemer.js). Een betere neemt je pas als je goed genoeg
+// bent (klasse en reputatie) en vraagt meer provisie (een deel van je salaris), maar onderhandelt beter (onderh: kans bij het
+// onderhandelen), haalt clubs van verder weg (bereik: zoveel niveaus boven je eigen club) en krijgt lagere eisen los (korting).
+export const AGENTEN = [
+  {id:'rik', n:AGENT, v:false, klasse:0, rep:0, provisie:.03, onderh:.05, bereik:2, korting:0,
+    d:'Je oude vriend. Net begonnen als zaakwaarnemer, maar hij gelooft in je.', ja:'"Ik wist dat je terug zou komen. Welkom thuis."'},
+  {id:'esther', n:'Esther de Groot', v:true, klasse:64, rep:20, provisie:.05, onderh:.10, bereik:2, korting:.05,
+    d:'Kent elke trainer in de eigen competitie. Zakelijk, maar eerlijk.', ja:'"Ik heb je zien spelen. Jij gaat nog een paar stappen maken, en ik help je daarbij."',
+    nee:'"Je bent goed, maar nog niet goed genoeg voor mij. Kom terug als je echt indruk maakt."'},
+  {id:'bellini', n:'Marco Bellini', v:false, klasse:74, rep:40, provisie:.08, onderh:.15, bereik:3, korting:.10,
+    d:'Een internationaal netwerk: van Lissabon tot Londen. Haalt clubs binnen die eigenlijk nog te hoog lijken.', ja:'"Benvenuto! Met jou ga ik Europa veroveren."',
+    nee:'"Ik werk alleen met spelers die Europa kunnen halen. Nog niet, amico."'},
+  {id:'ferraro', n:'Lucas Ferraro', v:false, klasse:83, rep:65, provisie:.10, onderh:.20, bereik:3, korting:.15,
+    d:'De bekendste zaakwaarnemer van de wereld. Werkt alleen met de absolute top.', ja:'"Welkom bij de wereldtop. Vanaf nu gaan we voor de grootste clubs."',
+    nee:'"Ik heb je naam gehoord. Maar ik werk alleen met de beste spelers van de wereld."'},
+];
 export const WINKEL_GROEPEN = ['Training en gezondheid', 'Lifestyle', 'Groot geld'];
 export const WINKEL = [
   {id:'schoenen',   g:'Training en gezondheid', n:'Nieuwe kicksen',              prijs:250,      d:'+2 afwerking, +1 dribbelen'},

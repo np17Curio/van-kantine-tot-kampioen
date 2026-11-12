@@ -1,7 +1,7 @@
 import { S, bewaar, tmp } from './state.js';
 import { vToernooi, vToernooiEinde } from '../game/interlands/toernooi.js';
 import { instel, openAnims, pitchNaRender, vPitch } from '../render/pitch.js';
-import { fotoNaRender } from '../render/krantfoto.js';
+import { fotoNaRender, krantNaRender } from '../render/krantfoto.js';
 import { voorbeeldNaRender } from '../render/pixel/voorbeeld.js';
 import { vHud } from '../render/views/hud.js';
 import { vOproep } from '../render/views/interland.js';
@@ -19,7 +19,7 @@ import { vZij } from '../render/views/zijbalk.js';
 import { vAnalist, vAnalistSeizoen, vAnalistUitslag, vEigenaar, vEigenaarAanbod, vEigenaarSeizoen, vZijNa } from '../render/views/nacarriere.js';
 import { vClubloos } from '../render/views/clubloos.js';
 import { vSelectie, vSelectieKeuze } from '../render/views/selectiedagen.js';
-import { hoofdstukNaRender, vHoofdstuk } from '../render/views/hoofdstuk.js';
+import { proefNaRender, vProef } from '../render/views/proef.js';
 import { vAfscheid } from '../render/views/afscheid.js';
 
 /* ===================== Weergave ===================== */
@@ -41,7 +41,7 @@ export function tabBalk(tabs, actief, kies, cls = 'hubtabs'){
 export function render(){
   resetActs();
   const veld = document.getElementById('veld'), trainerFase = S && (/^(trainer|analist|eigenaar)/.test(S.fase) || (S.fase === 'event' && S.trainer && !S.trainer.gestopt)); // (een privégebeurtenis als trainer)
-  veld.innerHTML = tmp.beweging ? vBeweging() : S && tmp.vrijTrainen ? vVrijTrainen() : S && tmp.stats ? vStats() : S ? ({selectie:vSelectie, selectieKeuze:vSelectieKeuze, hoofdstuk:vHoofdstuk, week:vWeek, oproep:vOproep, event:vEvent, match:vMatch, matchEnd:vMatchEnd, venster:vVenster, clubloos:vClubloos, afscheid:vAfscheid, seizoenEinde:vSeizoenEinde, ontwikkeling:vOntwikkeling, toernooi:vToernooi, toernooiEinde:vToernooiEinde, einde:vEinde, trainerAanbod:vTrainerAanbod, trainerCursus:vTrainerCursus, trainerLive:vTrainerLive, trainer:vTrainer, trainerUitslag:vTrainerUitslag, trainerSeizoen:vTrainerSeizoen, analist:vAnalist, analistUitslag:vAnalistUitslag, analistSeizoen:vAnalistSeizoen, eigenaarAanbod:vEigenaarAanbod, eigenaar:vEigenaar, eigenaarSeizoen:vEigenaarSeizoen}[S.fase] || vStart)() : vStart();
+  veld.innerHTML = tmp.beweging ? vBeweging() : S && tmp.vrijTrainen ? vVrijTrainen() : S && tmp.stats ? vStats() : S ? ({selectie:vSelectie, selectieKeuze:vSelectieKeuze, proef:vProef, week:vWeek, oproep:vOproep, event:vEvent, match:vMatch, matchEnd:vMatchEnd, venster:vVenster, clubloos:vClubloos, afscheid:vAfscheid, seizoenEinde:vSeizoenEinde, ontwikkeling:vOntwikkeling, toernooi:vToernooi, toernooiEinde:vToernooiEinde, einde:vEinde, trainerAanbod:vTrainerAanbod, trainerCursus:vTrainerCursus, trainerLive:vTrainerLive, trainer:vTrainer, trainerUitslag:vTrainerUitslag, trainerSeizoen:vTrainerSeizoen, analist:vAnalist, analistUitslag:vAnalistUitslag, analistSeizoen:vAnalistSeizoen, eigenaarAanbod:vEigenaarAanbod, eigenaar:vEigenaar, eigenaarSeizoen:vEigenaarSeizoen}[S.fase] || vStart)() : vStart();
   document.getElementById('zij').innerHTML = S && /^(analist|eigenaar)/.test(S.fase) ? (vZijNa() || vZijStart()) : S && S.trainer && trainerFase ? vZijTrainer() : S && S.fase !== 'einde' && !trainerFase && !S.selectie ? vZij() : vZijStart();
   const hud = document.getElementById('hud');
   hud.innerHTML = vHud(!!(S && !trainerFase && S.fase !== 'einde' && !S.selectie));
@@ -51,11 +51,12 @@ export function render(){
   if (S && !tmp.beweging && !tmp.vrijTrainen && !tmp.stats && S.fase === 'matchEnd' && S.M && openAnims(S.M).length && instel().anim !== 'uit') veld.insertAdjacentHTML('afterbegin', vPitch());
   const log = veld.querySelector('.log'); if (log) log.scrollTop = log.scrollHeight;
   try { pitchNaRender(); } catch (e){ console.error('veld', e); }
-  try { hoofdstukNaRender(); } catch (e){ console.error('proloogpenalty', e); }
   try { bewegingNaRender(); } catch (e){ console.error('bewegingseditor', e); }
   try { vrijNaRender(); } catch (e){ console.error('vrij trainen', e); }
   try { fotoNaRender(); } catch (e){ console.error('krantenfoto', e); }
+  try { krantNaRender(); } catch (e){ console.error('pixelkrant', e); }
   try { voorbeeldNaRender(); } catch (e){ console.error('pixelspeler', e); }
+  try { proefNaRender(); } catch (e){ console.error('proeftraining', e); }
   markeerSneltoetsen(veld);
   if (S) bewaar();
   // Net getekend bij een nieuwe club? Dan de animatie (over het spel heen; het spel zelf is al bijgewerkt)

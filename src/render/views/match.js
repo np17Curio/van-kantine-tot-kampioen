@@ -24,6 +24,7 @@ import { metVoorletter } from '../../game/media/nieuws.js';
 import { instel, vPitch } from '../pitch.js';
 import { vInterEnd } from './interland.js';
 import { vSelectieEnd } from './selectiedagen.js';
+import { vProefEnd } from './proef.js';
 import { vSeizoenStrip } from './zijbalk.js';
 import { clubLogo } from '../../data/logos.js';
 import { isAanvoerder } from '../../game/team/aanvoerder.js';
@@ -99,6 +100,7 @@ function vElftal(id, titel, metJou, toonBank, opBank){
     ${toonBank ? `<span class="label">Wissels</span><ol class="wissels">${mij.concat(bank.slice().sort((x, y) => (y.vriend || y.rivaal ? 1 : 0) - (x.vriend || x.rivaal ? 1 : 0)).slice(0, 6)).map(spelerRij).join('')}</ol>` : ''}</div>`;
 }
 export function introSoort(M){
+  if (M.proef) return `Oefenwedstrijd bij ${M.wij}`;
   if (M.selectie) return `Selectiewedstrijd ${S.selectie ? S.selectie.cijfers.length + 1 : ''} van 3`;
   if (M.inter) return 'Interland';
   if (M.o23) return 'O23';
@@ -169,6 +171,7 @@ function vVriendNa(M){
 export function vMatchEnd(){
   const M = S.M, sp = S.sp;
   if (M.inter) return vInterEnd();
+  if (M.proef) return vProefEnd();
   if (M.selectie) return vSelectieEnd();
   if (M.o23) return vO23End();
   if (M.beker) return vBekerEnd();

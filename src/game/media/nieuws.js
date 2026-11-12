@@ -10,6 +10,7 @@ import { clubLogo } from '../../data/logos.js';
 import { vormBolletjes } from '../competitie/vorm.js';
 import { historieKnop } from '../seizoen/historie.js';
 import { ik } from '../../core/geslacht.js';
+import { registreer } from '../../render/pixel/krant.js';
 
 /* ===================== Het nieuws ===================== */
 // Na elke clubwedstrijd verschijnen krantenkoppen over je ploeg en over jou, op basis van wat er echt gebeurde
@@ -107,9 +108,11 @@ function vFoto(f){
   const door = 'Studio Doorbraak';
   return `<figure class="krantfoto"><div class="lijst"><img data-foto="${esc(f.soort)}" alt="${esc(S.sp.naam + ' ' + (FOTO_ALT[f.soort] || ''))}" width="720" height="480"><span class="ontwikkel">Foto wordt ontwikkeld…</span></div><figcaption>${esc(f.onder)} <span>Foto: ${door}</span></figcaption></figure>`;
 }
+// Elk artikel als een voorpagina in pixels (render/pixel/krant.js, naar de stijlbron deel 10). De pagina zelf wordt na de
+// weergave getekend (render/krantfoto.js: krantNaRender); de tekst staat er ook in gewone letters bij, voor schermlezers.
 export function vKrant(items, titel = 'In de krant'){
   if (!items || !items.length) return '';
-  return `<div class="krantblok"><span class="label">${esc(titel)}</span>${items.map(n => `<article class="krant${n.foto ? ' metfoto' : ''}"><span class="bron">${esc(n.bron)}</span>${n.foto ? vFoto(n.foto) : ''}<h4>${esc(n.kop)}</h4><p>${esc(n.tekst)}</p></article>`).join('')}</div>`;
+  return `<div class="krantblok"><span class="label">${esc(titel)}</span><div class="pixelkranten">${items.map(n => `<figure class="pixelkrant" data-krant="${registreer(n)}"><canvas aria-hidden="true"></canvas><figcaption class="sr-only">${esc(n.bron || '')}: <b>${esc(n.kop)}</b>. ${esc(n.tekst || '')}${n.foto ? ` (Foto: ${esc(n.foto.onder || '')})` : ''}</figcaption></figure>`).join('')}</div></div>`;
 }
 // Ranglijst van de competitie op niveau t: k = 'g' (goals) of 'a' (assists)
 export function ranglijst(t, k){

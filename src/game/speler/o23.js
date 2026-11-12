@@ -1,3 +1,4 @@
+import { hoogtepunt } from './hoogtepunten.js';
 import { S, club, mod, ovr, seizoenLabel, tmp } from '../../core/state.js';
 import { sterrenNa } from '../wedstrijd/opdrachten.js';
 import { seizoenDeel } from '../seizoen/seizoen.js';
@@ -156,6 +157,7 @@ export function gaHuren(x){
   let tekst = `Je bent verhuurd aan ${naam}${waar} tot het einde van het seizoen. Hier krijg je speeltijd. Laat zien wat je kan!`;
   if (bl){ const t = startBuitenland(o.land); if (t) tekst += ' ' + t; if (V.soort === 'winter') tekst += ' ' + winterInhalen(); }
   S.verhuisTekst = tekst;
+  hoogtepunt('transfer', {club:naam, oud:ouder.n, huur:true, buitenland:bl}, true); // (hoogtepunten.js)
   sluitVenster();
 }
 // Einde huurperiode (zomer): terug naar je eigen club, met een plek die past bij hoe je het deed

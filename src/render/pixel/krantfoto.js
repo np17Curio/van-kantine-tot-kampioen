@@ -9,7 +9,7 @@ import { fans } from './opkomst.js';
 import { tekst, zonderAccent } from './font.js';
 import { uiterlijkVoor } from './uiterlijk.js';
 
-const FW = 120, FH = 80, Z = 6, X0 = 48; // het beeld, de vergroting, waar de heup van de speler staat
+const Z = 6, X0 = 48; // de vergroting, waar de heup van de speler staat (het beeld: standaard 120×80, zie maakPixelFoto)
 const R = Math.round;
 
 // ---------- de prijzen (goud: < licht, > donker, ^ glans; ~ zwarte voet) ----------
@@ -54,17 +54,17 @@ function spelerBeeld(soort, v){
 // de clubschildjes (sleutels 1-3: de clubkleuren)
 const SCHILD = ['RRRRRRRRR', 'RrwrwrwrR', 'RrwrwrwrR', 'RrwrwrwrR', '.RrwrwrR.', '..RrwrR..', '...RrR...', '....R....'];
 const schild = sprite(9, 8, c => SCHILD.forEach((rij, y) => [...rij].forEach((k, x) => { if (k !== '.') c.px(x, y, {R:'2', r:'1', w:'3'}[k]); })));
-function persmuur(naam){
+function persmuur(naam, FW, FH){
   return sprite(FW, FH, c => {
     c.rect(0, 0, FW, FH, 'M');
     for (let r = 0, y = 3; y < 66; r++, y += 13){
       if (r % 2 === 0) for (let x = (r % 4 ? 10 : -2); x < FW; x += 26) c.stamp(schild, x, y);
       else { const w = naam.length * 4 + 10; for (let x = (r % 4 === 1 ? -6 : 8); x < FW; x += w) tekst(c, x, y + 2, naam, '4'); }
     }
-    c.rect(0, 66, FW, FH - 66, 'F'); c.hline(0, 66, FW, 'f');
+    c.rect(0, FH - 14, FW, 14, 'F'); c.hline(0, FH - 14, FW, 'f');
   });
 }
-function stadion(naam){
+function stadion(naam, FW, FH){
   return sprite(FW, FH, c => {
     c.rect(0, 0, FW, 12, 'K');
     for (const x of [14, 100]){ c.rect(x, 0, 2, 10, 'b'); c.rect(x - 5, 1, 12, 4, 'M'); c.hline(x - 5, 1, 12, 'w'); }   // lichtmasten
@@ -77,17 +77,18 @@ function stadion(naam){
 }
 
 // ctx (krantfoto.js fotoCtx): {sleutel, uiterlijk, club, muur, accent, tenue, band, sponsor}. Geeft een PNG-dataURL van 720×480
-export function maakPixelFoto(soort, ctx = {}){
+// opties: {w, h} (het pixelbeeld, standaard 120×80) en canvas (dan het kleine canvas zelf, niet vergroot: voor de pixelkrant)
+export function maakPixelFoto(soort, ctx = {}, {w:FW = 120, h:FH = 80, canvas:alleenCanvas = false} = {}){
   const tenue = ctx.tenue || STANDAARD, muur = ctx.muur || '#0f1a33', accent = ctx.accent || '#c6f432';
   const uit = uiterlijkVoor('jij|' + (ctx.sleutel || 'nieuw'), ctx.uiterlijk || undefined);
   const look = lookVan(uit, tenue, {band:!!ctx.band});
-  const v = {kapsel:look.kapsel, vrouw:look.vrouw, kleding:'tenue', patroon:look.patroon, band:look.band};
+  const v = {kapsel:look.kapsel, vrouw:look.vrouw, kleding:'tenue', patroon:look.patroon, band:look.band, baard:look.baard};
   const sp = inkleuren(spelerBeeld(soort, v), {...look.kleuren, ...GOUD});
   // de achtergrond met de clubkleuren
   const naam = zonderAccent(ctx.sponsor && ctx.sponsor.naam ? ctx.sponsor.naam : ctx.club || 'PERS').slice(0, 16);
   const clubKl = {1:tenue.shirt, 2:donker(tenue.shirt, .3), 3:tenue.accent || '#ffffff', 4:'#38bdf8', 5:'#e8ecf5'};
   const ererondje = soort === 'ererondje';
-  const achter = inkleuren(ererondje ? stadion(zonderAccent(ctx.club || 'KAMPIOEN').slice(0, 16)) : persmuur(naam),
+  const achter = inkleuren(ererondje ? stadion(zonderAccent(ctx.club || 'KAMPIOEN').slice(0, 16), FW, FH) : persmuur(naam, FW, FH),
     ererondje ? {K:'#0f1424', b:'#3c4a6e', M:'#ffe9a8', w:'#ffffff', C:'#22222a', c:'#34343e', g:'#2f7d3f', G:'#378c48', h:'#b5541c', s:'#f7c9a8', R:'#a3161b',
       v:'#2b3f9e', i:'#a8744f', n:'#2a1f1c', y:'#ffd21a', d:'#7a4a2a', ...clubKl}
       : {...clubKl, M:muur, F:donker(muur, .45), f:donker(muur, .2), 4:accent});
@@ -95,7 +96,8 @@ export function maakPixelFoto(soort, ctx = {}){
   const klein = document.createElement('canvas'); klein.width = FW; klein.height = FH;
   const g = klein.getContext('2d'); g.imageSmoothingEnabled = false;
   g.drawImage(achter, 0, 0);
-  g.drawImage(sp, FW / 2 - (X0 + 1), ererondje ? 4 : 0);
+  g.drawImage(sp, FW / 2 - (X0 + 1), FH - 80 + (ererondje ? 4 : 0)); // (de voeten net boven de onderrand)
+  if (alleenCanvas) return klein;
   // 6× vergroot, met een lichte vignet (zoals een krantenfoto; de pixels blijven scherp)
   const cv = document.createElement('canvas'); cv.width = FW * Z; cv.height = FH * Z;
   const G = cv.getContext('2d'); G.imageSmoothingEnabled = false; G.drawImage(klein, 0, 0, cv.width, cv.height);

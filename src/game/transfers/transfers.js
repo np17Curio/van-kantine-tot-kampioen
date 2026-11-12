@@ -1,6 +1,7 @@
+import { hoogtepunt } from '../speler/hoogtepunten.js';
 import { S, club, gemCijfer, mod, ovr, salarisVoor, seizoenLabel, tmp, waarde } from '../../core/state.js';
 import { geldTxt, randInt, rnd, shuffle } from '../../core/utils.js';
-import { AANV, AGENT, CLUBS, DIVS, LAAGSTE, LEGENDE, MIN, NIVEAU } from '../../data/gegevens.js';
+import { AANV, CLUBS, DIVS, LAAGSTE, LEGENDE, MIN, NIVEAU } from '../../data/gegevens.js';
 import { thuisLand } from '../../data/landen.js';
 import { eindRelatie } from '../gebeurtenissen.js';
 import { KRANTEN } from '../media/nieuws.js';
@@ -11,7 +12,7 @@ import { seizoenDeel, startNieuwSeizoen } from '../seizoen/seizoen.js';
 import { huurClubs, huurNodig, huurOuder, terugVanHuur } from '../speler/o23.js';
 import { startStatus, statusNaam, statusNiveau, statusPunten } from '../speler/status.js';
 import { buitenlandseBods, ck, clubInfo, isBuitenland, wisselLand, winterInhalen } from './buitenland.js';
-import { agentReset, doelBod, doelInfo, doelVan, infoVan, isDoel, isHier, sleutel } from './zaakwaarnemer.js';
+import { agentNaam, agentReset, doelBod, doelInfo, doelVan, infoVan, isDoel, isHier, sleutel } from './zaakwaarnemer.js';
 import { fans, modFans, rivaal, zetFans } from '../wedstrijd/fans-pers.js';
 import { bewaarVertrek } from '../wedstrijd/reunie.js';
 import { nieuweWeek } from '../week.js';
@@ -251,6 +252,7 @@ export function wissel(o, hoe){
   }
   if (sp.agent && naarDoel) agentReset(`Gelukt! Je speelt nu bij ${nieuw.n}${landWissel ? ` in ${o.land}` : ''}. Heb je een nieuw doel? Zeg het maar.`);
   tmp.ondertekening = {clubId:o.club, jaren:o.jaren, salaris:o.salaris, som:o.som || 0}; // de animatie (contract tekenen) na de volgende weergave
+  hoogtepunt('transfer', {club:nieuw.n, oud:los ? null : oud.n, buitenland:landWissel}, true); // (hoogtepunten.js)
   return teksten.join(' ');
 }
 export function transferNieuws(hoe, oud, nieuw, o){
@@ -258,7 +260,7 @@ export function transferNieuws(hoe, oud, nieuw, o){
   let kop, tekst;
   if (hoe === 'geforceerd'){ kop = `${naam} forceert transfer naar ${nieuw.n}`; tekst = `${oud.n} gaf uiteindelijk toe${som ? ` voor ${som}` : ''}. De supporters van ${oud.n} zijn woedend.`; }
   else if (hoe === 'gekocht'){ kop = som ? `${nieuw.n} betaalt ${som} voor ${naam}` : `${nieuw.n} haalt ${naam} bij ${oud.n}`; tekst = `${naam} komt over van ${oud.n}${o.jaren ? ` en tekent voor ${jaren}` : ''}`; }
-  else if (hoe === 'droom'){ kop = `Droomtransfer: ${naam} tekent bij ${nieuw.n}`; tekst = `${ik.Zijn} zaakwaarnemer ${AGENT} regelde de overstap van ${oud.n}${som ? ` voor ${som}` : ''}`; }
+  else if (hoe === 'droom'){ kop = `Droomtransfer: ${naam} tekent bij ${nieuw.n}`; tekst = `${ik.Zijn} zaakwaarnemer ${agentNaam()} regelde de overstap van ${oud.n}${som ? ` voor ${som}` : ''}`; }
   else if (hoe === 'weg'){ kop = `${oud.n} zet ${naam} op straat`; tekst = `${ik.Hij} vindt een nieuwe club: ${nieuw.n} (${DIVS[nieuw.t]}).`; }
   else { kop = `${naam} verruilt ${oud.n} voor ${nieuw.n}`; tekst = `${o.jaren ? `${ik.Hij} tekent voor ${jaren}` : '' + ik.Hij + ' tekent een contract'}${som ? `, de transfersom is ${som}` : ''}`; }
   krantMelding(kop, tekst, KRANTEN[Math.min(nieuw.t, oud.t)]);
@@ -272,6 +274,7 @@ export function teken(o){
     sp.salaris = o.salaris; sp.contract = o.jaren;
     S.car.hist.push(`${seizoenLabel()}: contract verlengd bij ${club().n}`);
     S.verhuisTekst = `Je contract bij ${club().n} loopt nu nog ${o.jaren} jaar (tot ${S.jaar + 1 + o.jaren}).`;
+    hoogtepunt('verlenging', {club:club().n, tot:S.jaar + 1 + o.jaren}, true);
   }
   if (o.laatsteDans){ S.car.hist.push(`${seizoenLabel()}: terug naar ${club().n} voor ${ik.zijn} laatste seizoen`);
     krantMelding(`${sp.naam} sluit carrière af bij ${club().n}`, `Terug waar het allemaal begon. ${ik.Hij} levert flink in op ${ik.zijn} salaris: "Dit ben ik deze club verschuldigd."`, KRANTEN[0]); }
