@@ -252,7 +252,7 @@ export function vriendStats(){
   // Speelt hij in een ander land dan jij, dan zit zijn competitie niet in het spel: een schatting uit zijn klasse en de speelronde
   if (!v.weg && !vriendHier() && v.club != null){
     const k = v.k || 60, pos = LINIE_VAN[vriendPos()] || 'M', gemist = v.blesSz && v.blesSz.jaar === S.jaar ? v.blesSz.wk : 0, ronde = Math.max(0, Math.min(S.ronde || 0, 34) - gemist) * .85, vorm = .8 + ((S.jaar * 37 + v.n.length * 11) % 40) / 100;
-    const rg = pos === 'A' ? .3 + (k - 65) * .012 : pos === 'M' ? .12 + (k - 65) * .004 : pos === 'K' ? 0 : .04, ra = pos === 'A' ? .12 : pos === 'M' ? .2 + (k - 65) * .004 : pos === 'K' ? .01 : .06;
+    const rg = pos === 'A' ? .42 + (k - 65) * .015 : pos === 'M' ? .17 + (k - 65) * .005 : pos === 'K' ? 0 : .06, ra = pos === 'A' ? .16 : pos === 'M' ? .26 + (k - 65) * .005 : pos === 'K' ? .01 : .09; // (per gespeelde ronde; net zoveel als een basisspeler in de gesimuleerde competitie)
     return {g:Math.max(0, Math.round(rg * ronde * vorm)), a:Math.max(0, Math.round(ra * ronde * vorm))};
   }
   for (const x of Object.values((S.ss && S.ss.st) || {})) if (!x.jij && x.n === v.n && x.v === v.v){ g += x.g || 0; a += x.a || 0; }
@@ -267,7 +267,7 @@ export function vriendKlasse(){
 // ---------- hij wordt ook beter ----------
 // Net als je rivaal groeit hij tot zijn talent (v.pot): de helft in de winterstop, de rest in de zomer. Raakt hij ver achter
 // op jou, dan zet hij een tandje bij. v.k en v.lft zijn de echte waarden; zijn speler in de selectie volgt mee.
-const zetVriendK = k => { const v = S.sp.vriend; v.k = clamp(Math.round(k), 30, 95); const x = vriendSpeler(); if (x){ x.k = v.k; x.lft = v.lft; } };
+const zetVriendK = k => { const v = S.sp.vriend; v.k = clamp(Math.round(k), 30, 95); const x = vriendSpeler(); if (x){ x.k = v.k; x.lft = v.lft; if (!v.o23) herschik(selectie(v.club)); } }; // (wordt hij beter, dan speelt hij ook: de basis volgt de klasse)
 function vriendGroei(n){ const v = S.sp.vriend; if (n > 0) n = Math.min(n, Math.max(0, v.pot - v.k)); zetVriendK(v.k + n); }
 // Oude opslag: hij is nooit gegroeid, dus haalt hij de gemiste seizoenen één keer in
 function vriendInhalen(){

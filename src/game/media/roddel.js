@@ -14,4 +14,4 @@ export function krantMelding(kop, tekst, bronnen, foto){
   S.nieuws = [it].concat(S.nieuws || []).slice(0, 12);
   return it;
 }
-export function roddel(kop, tekst){ if (isProf()) krantMelding(kop, tekst, RODDELBLADEN); }
+export function roddel(kop, tekst, foto){ if (isProf()) krantMelding(kop, tekst, RODDELBLADEN, foto); }

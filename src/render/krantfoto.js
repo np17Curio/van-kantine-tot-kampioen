@@ -20,6 +20,8 @@ export const FOTO_SOORTEN = {
   topscorer:{alt:'met de Gouden Schoen voor de topscorer', prijs:'de Gouden Schoen'},
   portret:{alt:'op de persfoto', prijs:null},
   get ererondje(){ return {alt:`tijdens ${ik.zijn} ererondje`, prijs:null}; },
+  huis:{alt:'voor het nieuwe huis', prijs:null},
+  bruiloft:{alt:'op de bruiloft', prijs:null},
 };
 const KLAAR = new Map();
 
@@ -46,7 +48,7 @@ const PAGINA = new Map(), GEZIEN = new Set();
 function krantFoto(item){
   if (!(S && S.sp)) return null;
   const ctx = fotoCtx();
-  if (item.foto && FOTO_SOORTEN[item.foto.soort]) return {cv:maakPixelFoto(item.foto.soort, ctx, {w:180, h:72, canvas:true}), onder:item.foto.onder, door:'Studio Doorbraak'};
+  if (item.foto && FOTO_SOORTEN[item.foto.soort]) return {cv:maakPixelFoto(item.foto.soort, {...ctx, foto:item.foto}, {w:180, h:72, canvas:true}), onder:item.foto.onder, door:['huis', 'bruiloft'].includes(item.foto.soort) ? 'Paparazzo' : 'Studio Doorbraak'};
   if (rubriekVan(item) === 'TRANSFERNIEUWS' && String(item.kop).includes(S.sp.naam) && !S.sp.clubloos && S.sp.club != null){
     let nr = null; try { nr = shirtNummer(); } catch (e){}
     const delen = String(S.sp.naam).trim().split(/\s+/), naam = delen.length > 1 ? delen.slice(1).join(' ') : delen[0];

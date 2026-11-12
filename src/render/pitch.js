@@ -1,10 +1,12 @@
 import { S, bewaar } from '../core/state.js';
 import { knop } from '../core/ui.js';
 import { rnd } from '../core/utils.js';
+import { vertaal } from '../core/taal.js';
 import { rugnummer } from '../game/team/rugnummers.js';
 import { clubTenue, landTenue, wedstrijdTenues } from '../data/tenues.js';
 import { isAanvoerder } from '../game/team/aanvoerder.js';
 import { rivaalNaam } from '../game/speler/rivaal.js';
+import { speeltTegenVriend, vriendInTeam, vriendNaam, vriendPos } from '../game/speler/journey.js';
 
 /* ===================== 2,5D-veld: je acties in beeld ===================== */
 // Een schuin veld (alsof je vanaf de tribune kijkt). De uitkomst wordt berekend zoals altijd; het veld laat zien wat er gebeurde.
@@ -116,7 +118,7 @@ export function animAnderen(M, e, v){
   const ingevallen = M.rol === 'invaller' && M.ev.slice(0, M.idx).some(x => x.type === 'inval');
   const inVeld = (M.rol === 'basis' || ingevallen) && M.gewisseld === undefined && !M.rood;
   const bank = !inVeld && (['bank', 'invaller', 'rust'].includes(M.rol) || M.gewisseld !== undefined), tribune = !inVeld && !bank;
-  const t = v.t, kort0 = t.length > 70 ? t.slice(0, 67) + '...' : t, kort = bank ? `Vanaf de bank: ${kort0}` : tribune ? `Vanaf de tribune: ${kort0}` : kort0;
+  const t = v.t, tv = vertaal(t), kort0 = tv.length > 70 ? tv.slice(0, 67) + '...' : tv, kort = bank ? `Vanaf de bank: ${kort0}` : tribune ? `Vanaf de tribune: ${kort0}` : kort0;
   let soort = null, variant = 'combi', einde = null;
   if (e.type === 'us'){ soort = 'teamGoal'; variant = /kopt/.test(t) ? 'kop' : /strafschop/.test(t) ? 'pen' : /afstand/.test(t) ? 'afstand' : 'combi'; }
   else if (e.type === 'them'){ soort = 'tegenGoal'; variant = /kopt/.test(t) ? 'kop' : /fstandsschot|vrije trap/.test(t) ? 'afstand' : 'combi'; }
@@ -680,6 +682,8 @@ export function tekenVeld(cv, toestand){
       ctx.fillStyle = '#111'; ctx.font = `bold ${Math.max(8, w * .55)}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.fillText(String(toestand.nr || ''), q.x, shirt + (broek - shirt) * .72); }
     if (toestand.bord && d.id === 'R' && d.pose === 'kaart'){ const bw = w * 2.6, bh = w * 2; ctx.fillStyle = '#111'; ctx.fillRect(q.x - bw / 2, hoofd - h * .35 - bh, bw, bh);
       ctx.font = `bold ${Math.max(7, bh * .38)}px ui-monospace,monospace`; ctx.textAlign = 'center'; ctx.fillStyle = '#ff3b30'; ctx.fillText(String(toestand.bord.uit ?? '–'), q.x, hoofd - h * .35 - bh * .55); ctx.fillStyle = '#3cff5a'; ctx.fillText(String(toestand.bord.in ?? '–'), q.x, hoofd - h * .35 - bh * .08); } // het wisselbord
+    for (const [lb, ic, kl] of [[toestand.vriend, '♥ ', '#5be7ff']]) if (lb && d.id === lb.id){ const t = ic + lb.naam; ctx.font = `800 ${Math.max(9, w * .8)}px system-ui,sans-serif`; ctx.textAlign = 'center';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.75)'; ctx.strokeText(t, q.x, hoofd - h * .2); ctx.fillStyle = kl; ctx.fillText(t, q.x, hoofd - h * .2); }
     if (toestand.rivaal && d.id === toestand.rivaal.id){ const t = '★ ' + toestand.rivaal.naam; ctx.font = `800 ${Math.max(9, w * .8)}px system-ui,sans-serif`; ctx.textAlign = 'center';
       ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.75)'; ctx.strokeText(t, q.x, hoofd - h * .2); ctx.fillStyle = '#ff8a3d'; ctx.fillText(t, q.x, hoofd - h * .2); }
     if (toestand.kaart && d.id === (toestand.kaartOp || 'J')){ ctx.fillStyle = toestand.kaart === 'rood' ? '#e23b3b' : '#ffd400'; ctx.fillRect(q.x + w * .6, hoofd - h * .35, w * .5, w * .7); }
@@ -713,7 +717,7 @@ export function pitchCanvas(el){
 }
 // Jouw keuzemoment: in 2D één plaatje, in 3D staan de spelers rustig te ademen tot je kiest
 export function pitchStatisch(el, type){
-  const cv = pitchCanvas(el), sc = pitchScene(type), T = {ents:sc.ents, bal:sc.bal, cam:sc.cam, zoom:sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(), rivaal:rivaalInBeeld(sc.ents)};
+  const cv = pitchCanvas(el), sc = pitchScene(type), T = {ents:sc.ents, bal:sc.bal, cam:sc.cam, zoom:sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(), rivaal:rivaalInBeeld(sc.ents)}; T.vriend = vriendInBeeld(sc.ents, T.rivaal && T.rivaal.id);
   if (!cv._3d) return tekenVeld(cv, T);
   const id = (PITCH = {stop:false, klaar:() => {}}), gen = GEN; let vorige = 0;
   const frame = nu => {
@@ -731,13 +735,23 @@ export function rivaalInBeeld(ents){
   const id = ['X', 'Y', 'Z'].find(k => ents[k] && ents[k].rol === 'zij'); if (!id) return null;
   let naam = ''; try { naam = rivaalNaam(); } catch (e){} return naam ? {id, naam} : null;
 }
+// Je jeugdvriend in beeld: speelt hij mee (de teamgenoot die het dichtst bij jou staat, of jullie keeper) of tegen je
+// (de tegenstander naast je rivaal, of hun keeper). veld3d.js zet zijn naam met een hartje boven zijn hoofd
+export function vriendInBeeld(ents, bezet){
+  const M = S && S.M, v = S && S.sp && S.sp.vriend; if (!M || !v || !ents) return null;
+  let mee = false, tegen = false; try { mee = vriendInTeam(M); tegen = !mee && !M.inter && M.opp != null && speeltTegenVriend(M.opp); } catch (e){ return null; }
+  if (!mee && !tegen) return null;
+  const keeper = vriendPos() === 'KEEPER', rol = mee ? 'wij' : 'zij';
+  const id = keeper ? (mee ? 'k' : 'K') : (mee ? ['A', 'B', 'C'] : ['X', 'Y', 'Z']).find(k => k !== bezet && ents[k] && ents[k].rol === rol);
+  return id && ents[id] ? {id, naam:vriendNaam(), mee} : null;
+}
 export function ploegen(){ const sp = S && S.sp; if (!sp) return {}; if (!sp.uitSleutel) sp.uitSleutel = Math.random().toString(36).slice(2, 10); return {wij:sp.club, zij:S.M ? S.M.opp : null, jij:sp.uitSleutel, jijUit:sp.uiterlijk || null, tenues:tenuesVanWedstrijd(), band:!S.trainer && !sp.clubloos && isAanvoerder() && !(S.M && (S.M.inter || S.M.selectie))}; }
 // De tenues van deze wedstrijd: landen bij een interland, anders de clubs (bij een kleurconflict speelt de uitploeg in het uittenue)
 export function tenuesVanWedstrijd(){
   const M = S && S.M, sp = S && S.sp; if (!M || !sp) return null;
   if (M.inter) return wedstrijdTenues(landTenue(M.inter.land), landTenue(M.zij), M.thuis !== false);
   const opp = M.opp ?? (M.eerste && M.eerste.opp);
-  return wedstrijdTenues(clubTenue(sp.club), opp != null ? clubTenue(opp) : landTenue(''), M.thuis !== false);
+  return wedstrijdTenues(clubTenue(sp.club), opp != null ? clubTenue(opp) : landTenue(''), true); // (bij een kleurconflict past de tegenstander zich aan: jouw ploeg speelt altijd in het eigen tenue)
 }
 // Shirtkleur per rol, voor het 2D-veld en de eenvoudige poppen
 export const kleurenVan = T => { const t = T && T.ploegen && T.ploegen.tenues; if (!t) return PITCH_KLEUR; const k = {R:'#222'}; for (const r in t) k[r] = t[r].shirt; return k; };
@@ -748,6 +762,7 @@ export function pitchSpeel(el, a, klaar, opt = {}){
   const cv = pitchCanvas(el), {sc, st} = animScript(a), snel = (instel().anim === 'snel' ? .5 : 1) * (opt.herhaling ? HERHALING_TRAAG : 1) * ((typeof window !== 'undefined' && window.__pitchTraag) || 1);
   const T = {geenJuichJ:!!a.dansNa, bord:a.soort === 'wissel' ? {uit:a.uit ?? null, in:a.in ?? null} : null, ents:sc.ents, bal:{...sc.bal}, cam:sc.cam, zoom:opt.herhaling && sc.ents.J ? .55 : sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(), rivaal:rivaalInBeeld(sc.ents),
     onder:opt.herhaling ? `⟲ HERHALING · ${a.min ?? ''}' · ${S.sp.naam}` : a.onder || (a.soort === 'shootout' ? 'Strafschoppen' : null)};
+  T.vriend = vriendInBeeld(sc.ents, T.rivaal && T.rivaal.id);
   let i = -1, t0 = 0, van = null, fx = null, fxT = 0, eind = 0, aanzet = 0;
   const id = (PITCH = {stop:false, klaar}), gen = GEN;
   const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
@@ -797,7 +812,7 @@ export function vPitch(overlay = ''){
   const open = openAnims(M), nieuwAnim = open.length && instel().anim !== 'uit';
   if (!nieuwAnim && !M.pending) return '';
   if (instel().anim === 'uit' && !M.pending) return '';
-  const zet = v => knop(v === 'normaal' ? 'Normaal' : v === 'snel' ? 'Snel' : 'Uit', () => { instel().anim = v; if (v === 'uit') openAnims(M).forEach(a => a.gezien = true); }, instel().anim === v ? 'klein aan' : 'klein', 'data-blijf');
+  const zet = v => knop(v === 'normaal' ? 'Normaal' : v === 'snel' ? 'Snel' : '<span data-en="Off">Uit</span>', () => { instel().anim = v; if (v === 'uit') openAnims(M).forEach(a => a.gezien = true); }, instel().anim === v ? 'klein aan' : 'klein', 'data-blijf');
   const veld = v => knop(v.toUpperCase(), () => { instel().veld = v; }, (instel().veld || '3d') === v ? 'klein aan' : 'klein', 'data-blijf');
   return `<div id="pitch25" class="pitch25"><div class="pitchvak"><canvas aria-label="Het veld van bovenaf, schuin gezien"></canvas>${overlay ? `<div class="pitchkeuze">${overlay}</div>` : ''}</div>
     <div class="rij pitchknop" style="gap:6px;align-items:center;flex-wrap:wrap"><span class="muted klein-tekst" title="Versie van de veldanimaties">Animatie <small style="opacity:.55">v4</small>:</span>${zet('normaal')}${zet('snel')}${zet('uit')}<span class="muted klein-tekst" style="margin-left:8px">Veld:</span>${veld('3d')}${veld('2d')}${nieuwAnim ? knop(open.length > 1 ? `Overslaan (${open.length}) ⏭` : 'Overslaan ⏭', () => { openAnims(M).forEach(a => a.gezien = true); }, 'klein', 'data-blijf id="pitchSkip"') : ''}</div></div>`;

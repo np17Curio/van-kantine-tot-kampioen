@@ -88,7 +88,7 @@ export function verhuis(id){
   S.week.tekst.push(id === 'ouders' ? 'Je trekt weer in bij je ouders. Je moeder heeft je kamer nog precies zo gelaten.'
     : id === 'studio' ? 'Je hebt je eigen studio! Klein, maar van jou. Je moeder komt wel elke week met een pan soep langs.'
     : `Je woont nu in je nieuwe ${nw.n.replace(/ (kopen|huren)$/, '').toLowerCase()}.${opbrengst ? ` Je oude woning is verkocht voor ${geldTxt(opbrengst)}.` : ''}`);
-  if ((nw.prijs || 0) >= 350000) roddel(`${sp.naam} koopt ${id === 'villa' ? 'villa' : id === 'huis' ? 'groot huis' : 'penthouse'} van ${geldTxt(nw.prijs)}`, id === 'villa' ? 'Met een eigen voetbalveldje in de tuin. De buren hopen dat ' + ik.hij + ' niet te hard schiet.' : 'De kranten hebben foto\'s van de verhuiswagen. Volgens de buren is hij "heel aardig".');
+  if ((nw.prijs || 0) >= 350000) roddel(`${sp.naam} koopt ${id === 'villa' ? 'villa' : id === 'huis' ? 'groot huis' : 'penthouse'} van ${geldTxt(nw.prijs)}`, id === 'villa' ? 'Met een eigen voetbalveldje in de tuin. De buren hopen dat ' + ik.hij + ' niet te hard schiet.' : 'De kranten hebben foto\'s van de verhuiswagen. Volgens de buren is hij "heel aardig".', {soort:'huis', type:id, onder:`${sp.naam} voor ${ik.zijn} nieuwe ${id === 'villa' ? 'villa' : id === 'huis' ? 'huis' : 'penthouse'}, met de sleutels in de hand.`});
 }
 export function koopAuto(id){
   const sp = S.sp, a = AUTOS.find(x => x.id === id); if (!a || !sp.rijbewijs || sp.auto === id) return;

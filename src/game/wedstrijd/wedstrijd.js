@@ -116,7 +116,8 @@ export function planWedstrijd(M, T, O, vast){
   // (als keeper: hij schiet op jouw doel)
   // (de momenten met je vriend passen bij jullie posities: is hij keeper, dan staat hij in het doel)
   const ikK = sp.pos === 'KEEPER', hijK = vriendPos() === 'KEEPER';
-  if (speeltTegenVriend(M.opp) && !(ikK && hijK) && rnd() < .9){ M.ev.push(ikK ? {type:'moment', min:randInt(start + 1, 89), m:'eenOpEenKeeper', vriendSchiet:true} : {type:'moment', min:randInt(start + 1, 89), m:hijK ? 'vriendKeeperTegen' : 'vriendTegen'}); extra -= 1; }
+  // (zit hij bij zijn club op de bank, dan valt hij de helft van de keren in: ook dan krijg je een moment met hem)
+  if ((speeltTegenVriend(M.opp) || (vriendBijTegenstander(M.opp) && rnd() < .5)) && !(ikK && hijK) && rnd() < .9){ M.ev.push(ikK ? {type:'moment', min:randInt(start + 1, 89), m:'eenOpEenKeeper', vriendSchiet:true} : {type:'moment', min:randInt(start + 1, 89), m:hijK ? 'vriendKeeperTegen' : 'vriendTegen'}); extra -= 1; }
   if (!ikK && vriendInTeam(M) && rnd() < (M.selectie ? .8 : .6)){ M.ev.push({type:'moment', min:randInt(start + 1, 89), m:hijK ? 'vriendKeeperUit' : 'vriendVrij'}); extra -= 1; }
   // tegen je rivaal: een gewoon moment minder, de duels met hem komen ervoor in de plaats
   for (let i = 0; i < Math.max(1, nn + extra - (M.rivaal ? 1 : 0)); i++) M.ev.push({type:'moment', min:randInt(start + 1, 89), m:kiesMomentType()});
@@ -604,7 +605,7 @@ export function eindeWedstrijd(){
   // en dan vaker na een opvallende wedstrijd (bescheiden/zelfverzekerd/uitdagend = kalm/gebalanceerd/fel)
   if (speelde){ S.ss.persNa = (S.ss.persNa || 0) + 1;
     const opvallend = M.cijfer != null && (M.cijfer >= 8.5 || M.cijfer <= 5);
-    if (M.rivaal || M.derby || (S.ss.persNa > 3 && rnd() < (opvallend ? .45 : .2))){ M.pers = maakPers(M); S.ss.persNa = 0; } }
+    if (M.rivaal || M.derby || vriendBijTegenstander(M.opp) || (S.ss.persNa > 3 && rnd() < (opvallend ? .45 : .2))){ M.pers = maakPers(M); S.ss.persNa = 0; } }
   if (speelde) volgersNaWedstrijd(M);
   if (speelde){ if (sp.huur) sp.huur.cijfers.push(M.cijfer); M.o23Tekst = checkO23(); }
   const o = ovr(sp); if (o > S.car.maxOvr) S.car.maxOvr = o;

@@ -161,10 +161,10 @@ function bordSprite(uit, erin){
   const s = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true})); s.scale.set(1.3, 1.52, 1); return s;
 }
 // Boven je rivaal: een oranje ster met zijn naam, zodat je meteen ziet dat hij het is
-function rivaalSprite(naam){
-  const t = '★ ' + naam, w = Math.min(1024, 60 + t.length * 34);
+function rivaalSprite(naam, icoon = '★ ', kleur = '#ff8a3d'){
+  const t = icoon + naam, w = Math.min(1024, 60 + t.length * 34);
   const tex = canvasTex(w, 72, (g, W, H) => { g.font = '900 50px system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.lineWidth = 9; g.strokeStyle = 'rgba(0,0,0,.75)'; g.strokeText(t, W / 2, H / 2 + 2); g.fillStyle = '#ff8a3d'; g.fillText(t, W / 2, H / 2 + 2); });
+    g.lineWidth = 9; g.strokeStyle = 'rgba(0,0,0,.75)'; g.strokeText(t, W / 2, H / 2 + 2); g.fillStyle = kleur; g.fillText(t, W / 2, H / 2 + 2); });
   const s = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, depthTest:false, transparent:true})); s.scale.set(w / 72 * .85, .85, 1); s.renderOrder = 5; return s;
 }
 function nummerSprite(nr){
@@ -209,6 +209,7 @@ function sleutelVan(e, T){
   if (e.id === 'J' && (e.rol === 'wij' || e.rol === 'k' || !e.rol)) return 'jij|' + (p.jij || 'x') + (p.jijUit ? '|' + [p.jijUit.huid, p.jijUit.haar, p.jijUit.kapsel, p.jijUit.lengte || '', p.jijUit.bmi || '', p.jijUit.schoen ?? '', p.jijUit.baard || ''].join(',') : '') + (p.band ? '|C' : '');
   if (e.rol === 'R') return 'scheids|' + (p.zij ?? '');
   if (T.rivaal && e.id === T.rivaal.id) return 'rivaal|' + T.rivaal.naam; // (je rivaal ziet er altijd hetzelfde uit)
+  if (T.vriend && e.id === T.vriend.id) return 'vriend|' + T.vriend.naam; // (en je jeugdvriend ook)
   const club = e.rol === 'wij' || e.rol === 'k' ? p.wij : p.zij;
   return 'c' + club + '|' + e.id;
 }
@@ -359,12 +360,15 @@ export function teken3D(T, nu){
   for (const id in R.spelers) if (!gezien.has(id)){ R.spelers[id].root.visible = false; R.spelers[id].schaduw.visible = false; }
   tekenBanken(T, tijd);
   if (!gezien.has('J')){ R.ring.visible = false; if (R.nrSprite) R.nrSprite.visible = false; }
-  // je rivaal: ster en naam boven zijn hoofd
-  const rv = T.rivaal && gezien.has(T.rivaal.id) ? R.spelers[T.rivaal.id] : null;
-  if (rv){ if (R.rivNaam !== T.rivaal.naam){ if (R.rivSprite){ R.scene.remove(R.rivSprite); R.rivSprite.material.map.dispose(); R.rivSprite.material.dispose(); } R.rivSprite = rivaalSprite(T.rivaal.naam); R.scene.add(R.rivSprite); R.rivNaam = T.rivaal.naam; }
-    const ligt = ['sliding', 'balen', 'val', 'duikStrek', 'kniel'].includes(rv.naam); // (ligt hij op de grond, dan zakt de naam mee)
-    R.rivSprite.visible = true; R.rivSprite.position.set(rv.sprite.position.x, rv.sprite.position.y + (ligt ? 1.3 : HOOGTE * (rv.look.lengte || 1) + .45), rv.sprite.position.z); }
-  else if (R.rivSprite) R.rivSprite.visible = false;
+  // je rivaal (oranje ster) en je jeugdvriend (blauw hartje): de naam boven zijn hoofd
+  R.labels = R.labels || {};
+  for (const [sl, info, icoon, kleur] of [['rivaal', T.rivaal, '★ ', '#ff8a3d'], ['vriend', T.vriend, '♥ ', '#5be7ff']]){
+    const L = R.labels[sl] = R.labels[sl] || {}, sp = info && gezien.has(info.id) ? R.spelers[info.id] : null;
+    if (!sp){ if (L.sprite) L.sprite.visible = false; continue; }
+    if (L.naam !== info.naam){ if (L.sprite){ R.scene.remove(L.sprite); L.sprite.material.map.dispose(); L.sprite.material.dispose(); } L.sprite = rivaalSprite(info.naam, icoon, kleur); R.scene.add(L.sprite); L.naam = info.naam; }
+    const ligt = ['sliding', 'balen', 'val', 'duikStrek', 'kniel'].includes(sp.naam); // (ligt hij op de grond, dan zakt de naam mee)
+    L.sprite.visible = true; L.sprite.position.set(sp.sprite.position.x, sp.sprite.position.y + (ligt ? 1.3 : HOOGTE * (sp.look.lengte || 1) + .45), sp.sprite.position.z);
+  }
   // wisselbord: de vierde official (R) houdt het omhoog zolang hij in de houding 'kaart' staat (pitch.js, soort 'wissel')
   const Rf = T.bord && T.ents.R, bordOp = !!(Rf && Rf.pose === 'kaart');
   if (bordOp){ const sl = `${T.bord.uit}|${T.bord.in}`;

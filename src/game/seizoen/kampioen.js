@@ -1,4 +1,3 @@
-import { hoogtepunt } from '../speler/hoogtepunten.js';
 import { S, club, mod, ovr, salarisVoor, seizoenLabel } from '../../core/state.js';
 import { clamp, pick } from '../../core/utils.js';
 import { CLUBS, DIVS, LAAGSTE, ligaVan, rondesVan, rondesVoor } from '../../data/gegevens.js';
@@ -20,7 +19,6 @@ export function checkKampioen(M){
   const voorsprong = S.tab[st[0]].pt - S.tab[st[1]].pt;
   if (over > 0 && voorsprong <= over * 3) return;
   S.ss.kampioen = S.ronde + 1; M.kampioen = true;
-  hoogtepunt('eersteTitel', {club:club().n, div:DIVS[t]}); // (hoogtepunten.js: alleen de eerste keer)
   mod('moraal', 12);
   const volgende = t >= 2 && t <= LAAGSTE ? DIVS[t - 1] : null;
   M.kampioenTekst = `${club().n} is kampioen van de ${DIVS[t]}!${over > 0 ? ` Met nog ${over} ${over === 1 ? 'wedstrijd' : 'wedstrijden'} te gaan kan niemand jullie meer inhalen.` : ''} De spelers rennen het veld op, de trainer wordt in de lucht gegooid en jij staat met de schaal in je handen.${volgende ? ` Volgend seizoen speelt ${club().n} in de ${volgende}!` : t === 1 ? ' Volgend seizoen spelen jullie Champions League!' : ''}`;

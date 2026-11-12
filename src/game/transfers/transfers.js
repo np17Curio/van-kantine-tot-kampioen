@@ -150,21 +150,28 @@ export function openVenster(soort){
   if (sp.transferlijst && modus === 'normaal') intro += ' Je staat op de transferlijst: je club laat je gaan als je een club kiest.';
   // Je eerste seizoen bij deze club (vertrek.js): nog geen biedingen. De droomclub en het bod via je vriend wachten tot de zomer
   const eerste = modus === 'normaal' && !terug && eersteSeizoen();
-  let bods = eerste ? [] : maakAanbiedingen(modus), agentBod = null;
+  // Net terug van een huurperiode: je eigen club beslist (o23.js terugVanHuur). Wil die je terug of verhuurt die je opnieuw,
+  // dan komen er geen andere clubs langs; alleen de huurclub kan je via een koopoptie overnemen. Bij verkoop: de transferlijst
+  const naHuur = terug && modus === 'normaal' ? terug.oordeel : null;
+  // Nog lang geblesseerd (meer dan 8 weken): geen club durft het aan, en verhuren kan ook niet. Je eigen club kan wel verlengen
+  const blesWk = sp.clubloos ? 0 : (sp.blessure || 0), zwaar = blesWk > 8;
+  const stil = naHuur === 'terug' || naHuur === 'verhuur' || zwaar;
+  if (naHuur === 'verkoop' && !zwaar) sp.transferlijst = true;
+  let bods = eerste || stil ? [] : maakAanbiedingen(modus), agentBod = null;
   // De droomclub van je zaakwaarnemer (een club in het buitenland komt in de zomer, met een overstap naar dat land)
   const ag = sp.agent, dd = doelBod();
-  if (!eerste && dd && ag.gehaald && !isHier(dd) && wilJouDoel(dd)){
+  if (!eerste && !stil && dd && ag.gehaald && !isHier(dd) && wilJouDoel(dd)){
     const dc = infoVan(dd), key = sleutel(dd);
     bods = bods.filter(b => sleutel(doelVan(b.club, b.land)) !== key);
     bods.unshift({club:dd.club, ...(dd.land ? {land:dd.land} : {}), salaris:Math.round(salarisVoor(dc.t, ovr(sp), dc.s) * 1.05 / 100) * 100, jaren: sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4), som: waarde(sp), viaAgent:true});
     agentBod = key;
   }
   // Je jeugdvriend heeft zijn trainer overgehaald (journey.js)
-  const vb = modus !== 'weg' && !eerste ? vriendBodVenster(soort) : null;
+  const vb = modus !== 'weg' && !eerste && !stil ? vriendBodVenster(soort) : null;
   if (vb && vb.bod){ bods = bods.filter(b => !(b.club === vb.bod.club && (b.land || null) === (vb.bod.land || null))); bods.unshift(vb.bod); }
   if (terug && terug.koop != null && !bods.some(b => b.club === terug.koop.club && (b.land || null) === (terug.koop.land || null))){
     const hc = clubInfo(terug.koop);
-    bods.unshift({...terug.koop, salaris:Math.round(salarisVoor(hc.t, ovr(sp), hc.s) / 100) * 100, jaren:randInt(2, 3), som:waarde(sp), huurKoop:true});
+    bods.unshift({...terug.koop, salaris:Math.round(salarisVoor(hc.t, ovr(sp), hc.s) / 100) * 100, jaren:randInt(2, 3), som:Math.round(waarde(sp) * .9), huurKoop:true}); // (de koopoptie: een vooraf afgesproken prijs)
   }
   let verlenging = null, blijven = false;
   if (modus === 'normaal'){
@@ -179,14 +186,16 @@ export function openVenster(soort){
   // Zelf om een huurperiode gevraagd (vertrek.js): niet als je contract nu afloopt
   const eigenHuur = !!sp.huurWens && modus === 'normaal' && !sp.transferlijst && !verlenging;
   if (sp.huurWens && !eigenHuur) intro += ' Je huurverzoek vervalt: eerst moet je contract geregeld zijn.';
-  const huurOpties = modus === 'normaal' && (huurNodig() || eigenHuur) && !sp.transferlijst ? huurClubs() : null;
+  const huurOpties = !zwaar && modus === 'normaal' && (huurNodig() || eigenHuur || naHuur === 'verhuur') && !sp.transferlijst ? huurClubs() : null;
+  if (naHuur === 'verhuur' && huurOpties && huurOpties.length) blijven = false; // (je club heeft geen plek voor je: je gaat weer op huur)
   sp.huurWens = false;
   if (huurOpties && huurOpties.length) intro = (eigenHuur ? `Je vroeg om een huurperiode. ${club().n} heeft deze clubs gevonden. ` : `${club().n} wil je verhuren, zodat je elders wedstrijden speelt en jezelf kunt bewijzen. `) + intro;
-  if (terug) intro = terug.tekst + (terug.koop != null ? ` ${clubInfo(terug.koop).n}${terug.koop.land ? ` uit ${terug.koop.land}` : ''} wil je definitief overnemen!` : '') + ' ' + intro;
-  if (modus !== 'clubloos' && !eerste){ const bl = buitenlandseBods(modus, soort === 'winter'); if (bl.length){ bods = bods.concat(bl); const gs = bl.find(b => b.gescout); intro += `${gs ? ` ${clubInfo(gs).n} uit ${gs.land} heeft je het hele seizoen gevolgd en doet een bod!` : ''} Er is ook interesse uit het buitenland: ${[...new Set(bl.map(b => b.land))].join(' en ')}!`; } sp.scout = null; }
+  if (zwaar) intro = (modus === 'normaal' ? '' : intro + ' ') + `Je bent nog ${blesWk} weken geblesseerd${sp.blesSoort && sp.blesSoort.kort ? ` (${sp.blesSoort.kort})` : ''}. Geen enkele club durft een bod te doen op een ${ik.speler} die nog zo lang uit de roulatie is. ${modus === 'normaal' ? (verlenging ? `${club().n} wil je contract wel verlengen.` : `Je blijft bij ${club().n} en werkt aan je herstel.`) : 'Eerst herstellen, dan zien we verder.'}`;
+  if (terug) intro = terug.tekst + (terug.koop != null ? ` ${clubInfo(terug.koop).n}${terug.koop.land ? ` uit ${terug.koop.land}` : ''} wil de koopoptie lichten en je definitief overnemen!` : '') + ' ' + (stil ? '' : intro);
+  if (modus !== 'clubloos' && !eerste && !stil){ const bl = buitenlandseBods(modus, soort === 'winter'); if (bl.length){ bods = bods.concat(bl); const gs = bl.find(b => b.gescout); intro += `${gs ? ` ${clubInfo(gs).n} uit ${gs.land} heeft je het hele seizoen gevolgd en doet een bod!` : ''} Er is ook interesse uit het buitenland: ${[...new Set(bl.map(b => b.land))].join(' en ')}!`; } sp.scout = null; }
   if (rvTekst) intro += ' ' + rvTekst;
   if (vb) intro += ' ' + vb.tekst;
-  const eb = soort === 'zomer' ? eersteClubBod() : null;
+  const eb = soort === 'zomer' && !zwaar ? eersteClubBod() : null;
   if (eb){ bods = bods.filter(b => !(b.club === eb.club && (b.land || null) === (eb.land || null))); bods.unshift(eb);
     intro = `${clubInfo(eb).n} belt: "Kom je laatste seizoen spelen waar het allemaal begon." Ze kunnen je maar een fractie betalen van wat je nu verdient. ` + intro; }
   if (sp.relatie) bods.forEach(b => { if (isBuitenland(b) && b.partnerMee === undefined) b.partnerMee = b.land === thuisStart() || rnd() < partnerKans(); });

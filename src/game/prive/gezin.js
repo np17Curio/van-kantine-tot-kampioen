@@ -57,7 +57,8 @@ export function trouwen(){
   const bruiloft = (prijs, tekst, extra) => () => { if (sp.geld < prijs) return `Daar heb je niet genoeg geld voor (${geldTxt(prijs)}). Jullie stellen de bruiloft nog even uit.`;
     sp.geld -= prijs; r.getrouwd = true; r.verloofd = false; r.band = clamp(r.band + 15, 0, 100); mod('moraal', 18); mod('fit', -5); if (extra) extra();
     S.car.hist.push(`${seizoenLabel()}: getrouwd met ${r.naam}`); S.car.prijzen.push(`Getrouwd met ${r.naam}`);
-    roddel(`${sp.naam} en ${r.naam} zijn getrouwd`, prijs >= 200000 ? 'Een sprookjesbruiloft in Italië. De halve selectie was erbij.' : 'Een mooie dag, met veel familie en vrienden.');
+    roddel(`${sp.naam} en ${r.naam} zijn getrouwd`, prijs >= 200000 ? 'Een sprookjesbruiloft in Italië. De halve selectie was erbij.' : 'Een mooie dag, met veel familie en vrienden.',
+      {soort:'bruiloft', partner:r.naam, partnerVrouw:partnerVrouw(), onder:`${sp.naam} en ${r.naam} onder de bloemenboog.`});
     return tekst; };
   S.ev = {soort:'prive', tekst:`De grote dag komt eraan! Wat voor bruiloft willen jij en ${r.naam}?`, opts:[
     {l:`Klein, met familie (${geldTxt(5000)})`, f: bruiloft(5000, `Een kleine, warme bruiloft. Je opa houdt een speech en iedereen huilt. Jij en ${r.naam} zijn getrouwd!`)},

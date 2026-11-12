@@ -39,6 +39,8 @@ import { simuleer, startWedstrijd, rustWeek } from '../../game/wedstrijd/wedstri
 import { simuleerSeizoen } from '../../game/seizoensim.js';
 import { doeActiviteit, plafond, trainXP } from '../../game/week.js';
 import { eisRij, vAgent } from './agent.js';
+import { vriendSpeler } from '../../game/speler/journey.js';
+import { vriendBijTegenstander } from '../../game/speler/journey.js';
 import { TOON, VRIEND_ACTIES, bijJou, kanVragen, vriendRolTxt, vriendClubNaam, vriendHier, vriendLand, kanUitpraten, kanVriendActie, speeltTegenVriend, vriendKlasse, vriendStats, uitpraten, vriendActie, vriendDuelAntwoord, vriendDuelVraag } from '../../game/speler/journey.js';
 import { herkomstUitTmp, vHerkomstKeuze } from './start.js';
 import { balk, vSeizoenStrip } from './zijbalk.js';
@@ -84,17 +86,19 @@ function vVriendVergelijk(){
   jij.ic = Object.values(S.car.int || {}).reduce((t, x) => t + (x.caps || 0), 0); // (na het seizoensein zitten zijn cijfers al in zijn carrière)
   const cel = (x, y) => `<td class="${x > y ? 'goedtxt' : ''}"><b>${x}</b></td>`, rij = (l, k) => `<tr><td class="muted">${l}</td>${cel(jij[k], hij[k])}${cel(hij[k], jij[k])}</tr>`;
   const hoofd = sp.pos === 'SPITS' ? 'g' : 'a', w = hoofd === 'g' ? 'goals' : 'assists';
-  const zin = jij[hoofd] > hij[hoofd] ? `Dit seizoen heb jij meer ${w} dan ${vn}.` : jij[hoofd] < hij[hoofd] ? `${vn} heeft dit seizoen meer ${w} dan jij.` : `Jullie staan gelijk in ${w}.`;
+  const vx = !rv && vriendSpeler(), bankTip = vx && !vx.basis && !v.o23 ? ` ${vn} zit bij ${vr.zijn} club vaak op de bank (er staan betere spelers op ${vr.zijn} plek), dus ${vr.hij} scoort minder.` : '';
+  const zin = (jij[hoofd] > hij[hoofd] ? `Dit seizoen heb jij meer ${w} dan ${vn}.` : jij[hoofd] < hij[hoofd] ? `${vn} heeft dit seizoen meer ${w} dan jij.` : `Jullie staan gelijk in ${w}.`) + bankTip;
   return `<span class="label winkelkop">Jij tegen ${esc(vn)}</span>
     <table class="tabel vergelijk"><thead><tr><th></th><th>Jij</th><th>${esc(vn)}</th></tr></thead><tbody>
       ${rij('Klasse', 'k')}
       <tr><td class="muted">Club</td><td>${esc(club().n)}${sp.o23 ? ' O23' : ''}</td><td>${clNaam ? esc(clNaam) + (v.o23 && !rv ? ' O23' : '') + (!rv && !vriendHier() ? ` (${esc(vriendLand())})` : '') : '–'}</td></tr>
+      ${(() => { const x = !rv && vriendSpeler(); return x ? `<tr><td class="muted">Bij ${vr.zijn} club</td><td></td><td>${v.o23 ? 'O23' : x.bles > 0 ? 'geblesseerd' : x.basis ? 'basisspeler' : '<span class="fouttxt">bankspeler</span>'}</td></tr>` : ''; })()}
       ${rij('Goals dit seizoen', 'g')}${rij('Assists dit seizoen', 'a')}${rij('Goals carrière', 'cg')}${rij('Assists carrière', 'ca')}${jij.ic || hij.ic ? rij('Interlands', 'ic') : ''}
     </tbody></table><p class="muted klein-tekst">${esc(zin)} ${jk > hk ? 'Jij bent de betere speler (klasse).' : jk < hk ? `${esc(vn)} is nu nog beter (klasse).` : 'Jullie zijn even goed.'}</p>
     ${(v.hist || []).length ? `<details class="paneel"><summary class="label">Vorige seizoenen</summary>${v.hist.slice().reverse().map(h => `<p class="muted klein-tekst">${esc(h)}</p>`).join('')}</details>` : ''}`;
 }
 function vVriendInterview(fx){
-  if (!fx || !speeltTegenVriend(fx.opp)) return '';
+  if (!fx || !vriendBijTegenstander(fx.opp)) return ''; // (ook als hij op de bank zit: hij appt je toch)
   const P = vriendDuelVraag(); if (!P) return '';
   const kop = `<span class="label">Zondag tegen je beste ${vr.vriend} ${esc(S.sp.vriend.voornaam)} 🤝</span>`;
   if (P.klaar) return `<div class="paneel">${kop}<p class="muted">${esc(S.sp.vriend.voornaam)}: ${esc(P.vraag)}</p><p><b>Jij:</b> ${esc(P.opts[P.keuze].l)}</p><p class="melding">${esc(P.uit)}</p></div>`;
@@ -119,7 +123,8 @@ function vSpeelvrij(){
 function vVooruitblik(fx, opp, vo){
   const sp = S.sp, c = club(), wij = sp.o23 ? `${c.n} O23` : c.n, zij = sp.o23 ? `${opp.n} O23` : opp.n;
   const aandeel = Math.round(clamp(c.s / (c.s + opp.s), .1, .9) * 100);
-  const tags = [fx.thuis ? '<span class="tag">Thuis</span>' : '<span class="tag">Uit</span>', reunieMet(fx.opp) ? '<span class="tag twee">Je oude club!</span>' : '', isDerby(fx.opp) ? '<span class="tag teveel">Derby tegen je aartsrivaal</span>' : '', speeltTegenRivaal(fx.opp) ? `<span class="tag teveel">Je rivaal ${esc(rivaalNaam())} speelt mee</span>` : ''];
+  const tags = [fx.thuis ? '<span class="tag">Thuis</span>' : '<span class="tag">Uit</span>', reunieMet(fx.opp) ? '<span class="tag twee">Je oude club!</span>' : '', isDerby(fx.opp) ? '<span class="tag teveel">Derby tegen je aartsrivaal</span>' : '', speeltTegenRivaal(fx.opp) ? `<span class="tag teveel">Je rivaal ${esc(rivaalNaam())} speelt mee</span>` : '',
+    vriendBijTegenstander(fx.opp) ? `<span class="tag twee">Je ${vr.vriend} ${esc(S.sp.vriend.voornaam)} speelt bij ${esc(opp.n)}</span>` : ''];
   // Wie is favoriet? Jullie kracht (met jou, de sfeer en de tactiek) tegen die van de tegenstander
   if (!sp.o23){ const T = teamKracht(c.s, {speelt:true, thuis:fx.thuis, tactiek:matchup(clubTactiek(sp.club), clubTactiek(fx.opp))}), O = opp.s + (fx.thuis ? 0 : 2) + vormBonus(fx.opp), d = T - O;
     tags.unshift(d <= -3 ? '<span class="tag teveel">Jullie zijn de underdog</span>' : d >= 3 ? '<span class="tag omhoog">Jullie zijn favoriet</span>' : '<span class="tag">Gelijkwaardig</span>'); }
@@ -132,7 +137,7 @@ function vVooruitblik(fx, opp, vo){
   return blok({cls:'vooruit', sleutel:'vooruit', meerLabel:'Meer over deze wedstrijd',
     label:`Volgende wedstrijd · ${rondesVoor(c.t, S.ronde) + 1} van ${rondesVan(c.t)}${sp.o23 ? ' · O23' : ''}`,
     inhoud:`<div class="vs"><div class="ploeg ${fx.thuis ? 'mij' : ''}">${clubLogo(fx.thuis ? sp.club : fx.opp, 40)}<b>${esc(fx.thuis ? wij : zij)}</b></div><span class="vsteken">vs</span><div class="ploeg r ${fx.thuis ? '' : 'mij'}"><b>${esc(fx.thuis ? zij : wij)}</b>${clubLogo(fx.thuis ? fx.opp : sp.club, 40)}</div></div>
-      ${chips([...bijzonder, ...kern], bijzonder.length ? 4 : 3)}
+      ${chips([...bijzonder, ...kern], bijzonder.length + 3)}
       ${vBankVraag()}`,
     meer:`<div class="kracht" title="Sterkte ${c.s} tegen ${opp.s}"><span class="niv">${esc(c.n)} ${c.s}</span><span class="krachtbalk"><i style="width:${aandeel}%"></i></span><span class="niv">${opp.s} ${esc(opp.n)}</span></div>
       ${sp.o23 ? `<p class="muted klein-tekst">Het 1e elftal speelt ${fx.thuis ? 'thuis' : 'uit'} tegen ${esc(opp.n)}.</p>` : vVormDuel(fx)}

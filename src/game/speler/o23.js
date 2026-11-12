@@ -120,10 +120,12 @@ export function huurNodig(){
 // Huuropties: {club, land?}. Twee clubs uit je eigen land, en vanaf je 18e meestal ook een club uit het buitenland
 export function huurClubs(){
   const eigen = club();
-  const kand = (eigen.t < LAAGSTE ? divClubs(eigen.t + 1) : []).concat(divClubs(eigen.t).filter(i => i !== S.sp.club && CLUBS[i].s <= eigen.s - 6));
+  let kand = (eigen.t < LAAGSTE ? divClubs(eigen.t + 1) : []).concat(divClubs(eigen.t).filter(i => i !== S.sp.club && CLUBS[i].s <= eigen.s - 6));
+  // (in de laagste league, bij een van de zwakkere clubs: dan elke club die iets zwakker is)
+  if (!kand.length) kand = divClubs(eigen.t).filter(i => i !== S.sp.club && CLUBS[i].s < eigen.s);
   const uit = shuffle(kand).slice(0, 2).map(id => ({club:id}));
-  // (zelf gevraagd: altijd een buitenlandse optie)
-  const bl = S.sp.leeftijd >= 18 && rnd() < (S.sp.huurWens ? 1 : .6) ? buitenlandseHuur() : null; if (bl) uit.push(bl);
+  // (zelf gevraagd, of er is geen club in eigen land: altijd een buitenlandse optie)
+  const bl = S.sp.leeftijd >= 18 && (!uit.length || rnd() < (S.sp.huurWens ? 1 : .6)) ? buitenlandseHuur() : null; if (bl) uit.push(bl);
   return uit;
 }
 // Een club in een ander land: zwakker dan je eigen club, maar van jouw niveau (daar speel je)
@@ -175,5 +177,10 @@ export function terugVanHuur(){
   sp.statusNiveau = statusNiveau();
   S.car.hist.push(`${seizoenLabel()}: terug van huur bij ${huurNaam} naar ${ouder.n}`);
   if (weg) tekst = `${h.ouderLand === thuisStart() ? 'Terug thuis' : `Terug in ${h.ouderLand}`} na een seizoen in ${huurLand}. ` + tekst;
-  return {tekst, koop: g !== null && g >= 7.2 && c.length >= 5 ? {club:huurId, ...(weg ? {land:huurLand} : {})} : null};
+  // Wat wil je eigen club? Ging het goed of redelijk: terug in de selectie. Zo niet: opnieuw verhuren (nog een lang contract)
+  // of verkopen (je contract loopt bijna af). En ging het heel goed, dan wil de huurclub je kopen (een koopoptie)
+  const oordeel = g === null || g >= 6.4 ? 'terug' : (sp.contract ?? 0) >= 2 ? 'verhuur' : 'verkoop';
+  if (oordeel === 'verhuur') tekst += ` Er is nu geen plek voor je in de selectie. Je contract loopt nog ${sp.contract} jaar, dus ${ouder.n} verhuurt je opnieuw.`;
+  if (oordeel === 'verkoop') tekst += ` ${ouder.n} wil verder zonder jou en zet je op de transferlijst.`;
+  return {tekst, oordeel, koop: g !== null && g >= 7 && c.length >= 5 ? {club:huurId, ...(weg ? {land:huurLand} : {})} : null};
 }

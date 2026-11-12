@@ -93,3 +93,5 @@ details.meer .meerinhoud{display:grid;gap:10px;padding-top:10px;margin-top:8px;b
 .seizoenregel{margin:0;font-size:.85rem}
 .kaart details.meer .meerinhoud{gap:8px}
 @media (max-width:520px){.activiteiten .keuzes{grid-template-columns:1fr 1fr}.sblok{padding:12px}}
+/* de taalknop in de bovenbalk */
+.hudknop.taalknop{width:auto;padding:0 10px;font-family:var(--f-mono);font-size:.75rem;letter-spacing:.04em;white-space:nowrap}

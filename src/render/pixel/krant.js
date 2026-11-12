@@ -5,6 +5,7 @@
 // draait het beeld in, zoals in oude films (anim 'krant'). Geen three.js.
 import { Doek, Img, inkleuren, sprite } from './rig.js';
 import { regelBreedte, tekst, zonderAccent } from './font.js';
+import { taal, vertaal, vertaalPixel } from '../../core/taal.js';
 
 export const KW = 200, KH = 272;
 const KLEUR = {f:'#efe4cc', F:'#dccdae', k:'#1a1414', L:'#8e8e9a', G:'#55525e', r:'#e0262b', w:'#ffffff', y:'#ffd21a', K:'#0f1424'};
@@ -54,6 +55,13 @@ function afbrekenEcht(s, breed, font){
 // De voorpagina. item = {bron, kop, tekst, wanneer, rubriek?, feiten? [[label, waarde], ...], plaats?}
 // foto = {cv (canvas 180×72), onder (onderschrift), door} of null. Geeft een canvas van KW·KF breed (de hoogte volgt de inhoud)
 export function krantPagina(item, foto = null){
+  // In het Engels: het artikel eerst vertalen (de rubriek kiezen we nog op de Nederlandse tekst), daarna pas afbreken en tekenen
+  if (taal() === 'en'){
+    const rub = item.rubriek || rubriekVan(item);
+    item = {...item, rubriek:vertaalPixel(rub), bron:vertaalPixel(item.bron || 'DE PIXEL KRANT'), kop:vertaal(item.kop || ''), tekst:vertaal(item.tekst || ''), feitenKop:vertaalPixel(item.feitenKop || 'DE DEAL'),
+      feiten:item.feiten && item.feiten.map(([l, w]) => [vertaal(String(l)), vertaal(String(w))])};
+    if (foto) foto = {...foto, onder:vertaal(foto.onder || '')};
+  }
   const BIG = 600, img = new Img(KW, BIG), c = new Doek(img), echt = [];
   const schrijf = (x, y, t, k, o = {}) => echt.push({x, y, t, k, o});
   c.rect(0, 0, KW, BIG, 'f');
@@ -81,7 +89,7 @@ export function krantPagina(item, foto = null){
     c.rect(8, y, 184, 76, 'k'); fotoY = y + 2; y += 79;
     const fOnder = {maat:5.6, schuin:true};
     afbrekenEcht(foto.onder || '', KW - 16, lettertype(fOnder)).slice(0, 2).forEach(r => { schrijf(8, y, r, 'k', fOnder); y += 7; });
-    schrijf(8, y, 'Foto: ' + (foto.door || 'Pixel Pers'), 'G', {maat:4.8, sans:true}); y += 8;
+    schrijf(8, y, (taal() === 'en' ? 'Photo: ' : 'Foto: ') + (foto.door || 'Pixel Pers'), 'G', {maat:4.8, sans:true}); y += 8;
     c.hline(6, y, KW - 12, 'L'); y += 5;
   }
   // het artikel, met rechts een kader met feiten (als die er zijn)

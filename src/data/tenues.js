@@ -13,9 +13,31 @@ const PALET = [['rood', 'wit'], ['blauw', 'wit'], ['wit', 'marine'], ['oranje', 
 const WOORDEN = {rood:'rood', rode:'rood', wit:'wit', witte:'wit', zwart:'zwart', zwarte:'zwart', blauw:'blauw', blauwe:'blauw', groen:'groen', groene:'groen', geel:'geel', gele:'geel', oranje:'oranje', paars:'paars', paarse:'paars'};
 const tenue = (shirt, accent, patroon, broek, sok) => ({shirt, accent, patroon, broek:broek || (patroon === 'effen' || patroon === 'bies' ? accent : K.zwart), sok:sok || shirt});
 // Elke club een vast tenue, op naam (dezelfde naam = hetzelfde tenue, ook na promotie of in een ander seizoen)
+const kaleNaam = n => n.replace(/ O19$/, '').replace(/ Vrouwen$/, '');
 export function clubTenue(id){
   const c = CLUBS[id]; if (!c) return tenue(K.wit, K.zwart, 'effen');
-  const naam = c.n.replace(/ O19$/, '').replace(/ Vrouwen$/, ''), h = hash('tenue|' + naam);
+  const naam = kaleNaam(c.n);
+  return uniekeTenues()[naam] || basisTenue(naam);
+}
+// Elke club een eigen tenue: geen twee clubs met precies dezelfde kleuren en hetzelfde patroon. Botst het tenue van een club
+// met dat van een andere, dan krijgt hij (op alfabet, dus altijd hetzelfde) een ander patroon, omgedraaide kleuren of een andere kleurcombinatie
+let UNIEK = null, UNIEK_N = 0;
+const sleutelVan = t => [t.shirt, t.accent, t.patroon].join(',');
+function uniekeTenues(){
+  const namen = [...new Set(Object.values(CLUBS).map(c => kaleNaam(c.n)))].sort();
+  const sl = namen.join('|'); if (UNIEK && UNIEK_N === sl) return UNIEK; // (een club met een nieuwe naam: opnieuw verdelen)
+  UNIEK = {}; UNIEK_N = sl; const bezet = new Set();
+  for (const naam of namen){
+    const t0 = basisTenue(naam), h = hash('variant|' + naam);
+    const kandidaten = [t0, ...PATRONEN.map(p => tenue(t0.shirt, t0.accent, p)), ...PATRONEN.map(p => tenue(t0.accent, t0.shirt, p)),
+      ...PALET.flatMap((_, i) => { const [sh, ac] = PALET[(h + i) % PALET.length]; return PATRONEN.map(p => tenue(sh, ac, p)); })];
+    const t = kandidaten.find(x => x.shirt !== x.accent && !bezet.has(sleutelVan(x))) || t0;
+    bezet.add(sleutelVan(t)); UNIEK[naam] = t;
+  }
+  return UNIEK;
+}
+function basisTenue(naam){
+  const h = hash('tenue|' + naam);
   const kleuren = (naam.toLowerCase().match(/[a-zë]+/g) || []).map(w => WOORDEN[w]).filter(Boolean);
   const pat = PATRONEN[(h >>> 5) % PATRONEN.length];
   if (kleuren.length >= 2) return tenue(K[kleuren[0]], K[kleuren[1]], pat === 'effen' ? 'strepen' : pat);

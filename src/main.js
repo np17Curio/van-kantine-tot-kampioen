@@ -2,6 +2,7 @@ import './styles/index.css';
 import { bevestig, momentopname, openModal, sneltoetsen, toonVerschil } from './core/feedback.js';
 import { S, SLOTS, bewaar, exporteer, importeer, resetTmp, setS, tmp } from './core/state.js';
 import { krantNaRender } from './render/krantfoto.js';
+import { startVertaler, taal, zetTaal } from './core/taal.js';
 import { herstel } from './core/migratie.js';
 import { herstelSeizoenDelen } from './game/seizoen/seizoen.js';
 import { ACTS, render, speelOndertekening } from './core/ui.js';
@@ -10,6 +11,9 @@ import { suggHtml } from './render/views/agent.js';
 import { HERKOMST_IDS, hulpInhoud, opslagKnoppen } from './render/views/start.js';
 
 /* ===================== Invoer ===================== */
+// De taalknop (bovenbalk): Nederlands of Engels (core/taal.js vertaalt de tekst op het scherm)
+document.addEventListener('click', e => { const k = e.target.closest('[data-taal]'); if (!k) return; e.preventDefault(); e.stopPropagation(); const naar = taal() === 'en' ? 'nl' : 'en'; zetTaal(naar); if (naar === 'nl'){ if (S) bewaar(); location.reload(); } else render(); }, true); // (terug naar Nederlands: opnieuw laden, zodat ook vertaalde vensters weer Nederlands zijn)
+startVertaler();
 document.addEventListener('click', async e => {
   if (e.target.closest('[data-hulp]')) return toonHulp();
   const b = e.target.closest('[data-i]'); if (!b || b.disabled) return;

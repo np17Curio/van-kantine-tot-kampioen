@@ -1,3 +1,4 @@
+import { hoogtepunt } from '../speler/hoogtepunten.js';
 import { spelerVanHetSeizoen } from './verkiezing.js';
 import { S, club, gemCijfer, mod, ovr, seizoenLabel } from '../../core/state.js';
 import { clamp, rnd } from '../../core/utils.js';
@@ -111,6 +112,9 @@ export function seizoenEinde(){
   S.car.hist.push(los ? `${seizoenLabel()}: seizoen zonder club${S.ss.wed ? ` (${S.ss.wed} wedstrijden, ${S.ss.g} goals, ${S.ss.a} assists)` : ''}` : `${seizoenLabel()}: ${plek}e met ${club().n} · ${nu.wed} wedstrijden, ${nu.g} goals, ${nu.a} assists${eerderTxt}`);
   const wissels = bepaalPromotie(), mijnWissel = los ? null : wissels.find(w => w.id === sp.club);
   if (mijnWissel && mijnWissel.naar < mijnWissel.van) prijzen.push(`Promotie naar de ${DIVS[mijnWissel.naar]}${mijnWissel.po ? ' via de nacompetitie' : ''} ${seizoenLabel()}`);
+  // hoogtepunten pas bij de eindstand: echt kampioen (de eerste titel), of gepromoveerd zonder titel (als nummer 2, 3 of via de nacompetitie)
+  if (!los && plek === 1) hoogtepunt('eersteTitel', {club:club().n, div:DIVS[t]});
+  else if (mijnWissel && mijnWissel.naar < mijnWissel.van) hoogtepunt('promotie', {club:club().n, plek, naar:DIVS[mijnWissel.naar], po:!!mijnWissel.po}, true);
   if (mijnWissel && !mijnWissel.po) S.car.hist.push(`${seizoenLabel()}: ${mijnWissel.naar < mijnWissel.van ? 'gepromoveerd' : 'gedegradeerd'} met ${club().n} naar de ${DIVS[mijnWissel.naar]}`);
   // Seizoen voor seizoen: een rij per club (bij een wissel in de winter: de oude club "tot de winter"; de beker telt bij je huidige club)
   for (const d of eerder) (S.car.seizoenen = S.car.seizoenen || []).push({s:seizoenLabel(), club:d.club, div:d.div, wed:d.wed, g:d.g, a:d.a, nul:0, gem:d.gem, plek:null, beker:null, deel:true});

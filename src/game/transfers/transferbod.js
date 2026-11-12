@@ -12,7 +12,7 @@ import { ik } from '../../core/geslacht.js';
 /* ===================== Transferbod tijdens het seizoen ===================== */
 export function maakBodEvent(){
   const sp = S.sp, eigen = club();
-  if (sp.o23 || sp.huur || sp.clubloos) return null;
+  if (sp.o23 || sp.huur || sp.clubloos || (sp.blessure || 0) > 8) return null; // (ook niet als je nog lang geblesseerd bent)
   if (eigen.t > 3 || (S.ss.bods || 0) >= 2 || (sp.sindsTransfer || 0) < 3 || S.ronde === WINTER - 1 || S.ronde >= AANTAL_RONDES - 1) return null;
   const kand = kandidaatClubs(); if (!kand.length) return null;
   const cl = sp.clausule && sp.clausule.club === sp.club ? sp.clausule : null;

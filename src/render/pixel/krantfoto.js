@@ -43,6 +43,8 @@ const POSE = {
   topscorer:{...BASIS, aL:[-25, 40], aR:[118, 12], arm:1.35},
   svs:{...BASIS, aL:[-125, -25], aR:[125, 25], arm:1.3},             // de bokaal boven het hoofd
   ererondje:{...BASIS, aL:[-15, 20], aR:[120, 30], arm:1.25},        // zwaaien naar het publiek
+  huis:{...BASIS, aL:[-20, 30], aR:[118, 12], arm:1.35},             // de sleutels omhoog
+  bruiloft:{...BASIS, aL:[-12, 18], aR:[28, 55]},                     // arm in arm
 };
 function spelerBeeld(soort, v){
   const P = POSE[soort] || POSE.portret, img = new Img(96, 90), c = new Doek(img);
@@ -51,10 +53,51 @@ function spelerBeeld(soort, v){
   else if (soort === 'motm'){ c.stamp(TROFEE, hand[0] - 6, hand[1] - 12); vuist(c, hand[0], hand[1] - 3, 's'); } // (de vuist om de steel: dan houdt hij hem echt vast)
   else if (soort === 'topscorer'){ c.stamp(SCHOEN, hand[0] - 6, hand[1] - 9); vuist(c, hand[0] - 1, hand[1] - 2, 's'); } // (de schoen omhoog, de vuist om de hak)
   else if (soort === 'svs') c.stamp(BOKAAL, X0 - 7, oy - 12);
+  else if (soort === 'huis'){ c.stamp(SLEUTELS, hand[0] - 3, hand[1] - 10); vuist(c, hand[0], hand[1] - 1, 's'); }
+  else if (soort === 'bruiloft' && !v.vrouw){ c.rect(X0 + 3, oy + 28, 3, 3, 'G'); c.px(X0 + 4, oy + 29, 'g'); } // (een bloem op je revers)
   return img.outline(107); // ('k')
 }
 
+const SLEUTELS = sprite(7, 11, c => { c.circ(3, 2, 2, '<'); c.px(3, 2, '~'); c.rect(3, 5, 1, 6, '>'); c.rect(4, 8, 2, 1, '>'); c.rect(4, 10, 2, 1, '>'); c.px(2, 1, '^'); });
+
 // ---------- de achtergronden ----------
+// Je nieuwe huis (type: villa, huis of penthouse) met een "VERKOCHT"-bord, blauwe lucht en een gazon
+function huisAchter(FW, FH, type){
+  return sprite(FW, FH, c => {
+    c.rect(0, 0, FW, FH, 'L'); c.rect(0, 0, FW, 10, 'l');
+    for (const [x, y, w] of [[18, 7, 9], [FW - 30, 5, 11]]){ c.ellipse(x, y, w, 3, 'W'); c.ellipse(x + 5, y - 2, 5, 2, 'W'); }
+    const gras = FH - 16; c.rect(0, gras, FW, 16, 'g'); for (let x = 0; x < FW; x += 12) c.rect(x, gras, 6, 16, 'G');
+    const hw = type === 'penthouse' ? 46 : type === 'villa' ? Math.min(FW - 50, 90) : 60, hx = Math.round(FW * .5 - hw / 2 + 18), wand = type === 'villa' ? 'V' : 'B';
+    if (type === 'penthouse'){                                                                   // een hoge toren met glas
+      c.rect(hx, 6, hw, gras - 6, 'V'); for (let y = 10; y < gras - 6; y += 8) for (let x = hx + 4; x < hx + hw - 6; x += 10) c.rect(x, y, 6, 5, 'w');
+      c.rect(hx - 2, 4, hw + 4, 3, 'k');
+    } else {
+      const top = type === 'villa' ? 22 : 18, dak = type === 'villa' ? 14 : 18;
+      c.poly([hx - 4, top, hx + hw / 2, top - dak, hx + hw + 4, top], 'D'); c.hline(hx - 4, top, hw + 8, 'k');
+      c.rect(hx, top, hw, gras - top, wand);
+      if (wand === 'B') for (let y = top + 2; y < gras; y += 3) for (let x = hx + ((y >> 1) % 2) * 3; x < hx + hw; x += 6) c.px(x, y, 'b');   // bakstenen
+      for (const x of [hx + 6, hx + hw - 18]) { c.rect(x, top + 6, 12, 9, 'k'); c.rect(x + 1, top + 7, 10, 7, 'w'); c.vline(x + 6, top + 7, 7, 'k'); }
+      c.rect(hx + hw / 2 - 5, gras - 16, 10, 16, 'd'); c.px(hx + hw / 2 + 3, gras - 8, '<');      // de voordeur
+      if (type === 'villa'){ c.rect(hx + hw / 2 - 12, top + 5, 24, 4, 'w'); c.hline(hx + hw / 2 - 12, top + 9, 24, 'k'); }
+    }
+    // het bord VERKOCHT, links op het gras
+    c.rect(10, gras - 18, 2, 18, 'd'); c.rect(3, gras - 22, 34, 9, 'w'); c.hline(3, gras - 22, 34, 'k'); c.hline(3, gras - 14, 34, 'k');
+    tekst(c, 20, gras - 20, 'VERKOCHT', 'r', {align:'c'});
+  });
+}
+// De bruiloft: een zachte muur, een boog van bloemen en een witte loper
+function bruiloftAchter(FW, FH){
+  return sprite(FW, FH, c => {
+    c.rect(0, 0, FW, FH, 'P'); for (let x = 4; x < FW; x += 10) c.vline(x, 0, FH, 'p');
+    const loper = FH - 14; c.rect(0, loper, FW, 14, 'g'); c.poly([FW / 2 - 18, loper, FW / 2 + 18, loper, FW / 2 + 30, FH, FW / 2 - 30, FH], 'w');
+    // de bloemenboog
+    const cx = FW / 2, rx = Math.min(46, FW * .3), ry = loper - 5; // (breder en hoger dan jullie twee: de boog staat om jullie heen)
+    for (let a = 0; a <= 180; a += 6){ const t = a * Math.PI / 180, x = Math.round(cx + Math.cos(t) * rx), y = Math.round(loper - Math.sin(t) * ry);
+      c.circ(x, y, 3, 'G'); c.px(x, y, ['r', 'w', 'y'][(a / 6) % 3]); c.px(x + 1, y - 1, ['w', 'y', 'r'][(a / 6) % 3]); }
+    for (const x of [cx - rx, cx + rx]) c.rect(Math.round(x) - 1, loper - 4, 3, 4, 'G');
+    for (let i = 0; i < 26; i++){ const x = (i * 37) % FW, y = (i * 23) % (loper - 6); c.px(x, y, i % 2 ? 'w' : 'y'); }     // confetti
+  });
+}
 // de clubschildjes (sleutels 1-3: de clubkleuren)
 const SCHILD = ['RRRRRRRRR', 'RrwrwrwrR', 'RrwrwrwrR', 'RrwrwrwrR', '.RrwrwrR.', '..RrwrR..', '...RrR...', '....R....'];
 const schild = sprite(9, 8, c => SCHILD.forEach((rij, y) => [...rij].forEach((k, x) => { if (k !== '.') c.px(x, y, {R:'2', r:'1', w:'3'}[k]); })));
@@ -85,14 +128,26 @@ function stadion(naam, FW, FH){
 export function maakPixelFoto(soort, ctx = {}, {w:FW = 120, h:FH = 80, canvas:alleenCanvas = false} = {}){
   const tenue = ctx.tenue || STANDAARD, muur = ctx.muur || '#0f1a33', accent = ctx.accent || '#c6f432';
   const uit = uiterlijkVoor('jij|' + (ctx.sleutel || 'nieuw'), ctx.uiterlijk || undefined);
-  const look = lookVan(uit, tenue, {band:!!ctx.band});
-  const v = {kapsel:look.kapsel, vrouw:look.vrouw, kleding:'tenue', patroon:look.patroon, band:look.band, baard:look.baard};
-  const sp = inkleuren(spelerBeeld(soort, v), {...look.kleuren, ...GOUD});
+  const F = ctx.foto || {}, prive = soort === 'huis' || soort === 'bruiloft';
+  const JURK = {shirt:'#fbfbff', accent:'#e8e2f2', patroon:'effen', broek:'#fbfbff', sok:'#fbfbff'};
+  const kleed = (u, vrouw) => soort === 'huis' ? ['casual', tenue, {}] : soort === 'bruiloft' ? (vrouw ? ['tenue', JURK, {}] : ['pak', null, {pak:'#1b1d24', pak2:'#0f1016', das:'#c9a227'}]) : ['tenue', tenue, {band:!!ctx.band}];
+  const [kl, tn, opt] = kleed(uit, uit.vrouw);
+  const look = lookVan(uit, tn, {...opt, kleding:kl});
+  const v = {kapsel:look.kapsel, vrouw:look.vrouw, kleding:kl, patroon:look.patroon, band:prive ? false : look.band, baard:look.baard};
+  const sp = inkleuren(spelerBeeld(soort, v), {...look.kleuren, ...GOUD, G:'#2f9e4f', g:'#ffffff'});
+  // op de bruiloft: je partner naast je (gespiegeld, arm in arm)
+  let partner = null;
+  if (soort === 'bruiloft'){
+    const pv = !!F.partnerVrouw, pu = uiterlijkVoor('partner|' + (F.partner || 'x'), {vrouw:pv}), [pk, pt, po] = kleed(pu, pv), pl = lookVan(pu, pt, {...po, kleding:pk});
+    partner = inkleuren(spelerBeeld('bruiloft', {kapsel:pl.kapsel, vrouw:pl.vrouw, kleding:pk, patroon:'effen', baard:pl.baard}).flipX(), {...pl.kleuren, ...GOUD, G:'#2f9e4f', g:'#ffffff'});
+  }
   // de achtergrond met de clubkleuren
   const naam = zonderAccent(ctx.sponsor && ctx.sponsor.naam ? ctx.sponsor.naam : ctx.club || 'PERS').slice(0, 16);
   const clubKl = {1:tenue.shirt, 2:donker(tenue.shirt, .3), 3:tenue.accent || '#ffffff', 4:'#38bdf8', 5:'#e8ecf5'};
   const ererondje = soort === 'ererondje';
-  const achter = inkleuren(ererondje ? stadion(zonderAccent(ctx.club || 'KAMPIOEN').slice(0, 16), FW, FH) : persmuur(naam, FW, FH),
+  const achter = soort === 'huis' ? inkleuren(huisAchter(FW, FH, F.type || 'huis'), {L:'#8fd3ff', l:'#b8e4ff', W:'#ffffff', g:'#3f9a4a', G:'#4caf55', B:'#b5603f', b:'#8e4630', V:'#efe9df', D:'#7a2e2a', k:'#2a2430', w:'#bfe6ff', d:'#6b4226', r:'#d62828', '<':'#f3c44f'})
+    : soort === 'bruiloft' ? inkleuren(bruiloftAchter(FW, FH), {P:'#f6dfe6', p:'#f1d2db', g:'#cfc4b6', w:'#ffffff', G:'#3f8a4a', r:'#e05a7a', y:'#ffd34d'})
+    : inkleuren(ererondje ? stadion(zonderAccent(ctx.club || 'KAMPIOEN').slice(0, 16), FW, FH) : persmuur(naam, FW, FH),
     ererondje ? {K:'#0f1424', b:'#3c4a6e', M:'#ffe9a8', w:'#ffffff', C:'#22222a', c:'#34343e', g:'#2f7d3f', G:'#378c48', h:'#b5541c', s:'#f7c9a8', R:'#a3161b',
       v:'#2b3f9e', i:'#a8744f', n:'#2a1f1c', y:'#ffd21a', d:'#7a4a2a', ...clubKl}
       : {...clubKl, M:muur, F:donker(muur, .45), f:donker(muur, .2), 4:accent});
@@ -100,7 +155,8 @@ export function maakPixelFoto(soort, ctx = {}, {w:FW = 120, h:FH = 80, canvas:al
   const klein = document.createElement('canvas'); klein.width = FW; klein.height = FH;
   const g = klein.getContext('2d'); g.imageSmoothingEnabled = false;
   g.drawImage(achter, 0, 0);
-  g.drawImage(sp, FW / 2 - (X0 + 1), FH - 80 + (ererondje ? 4 : 0)); // (de voeten net boven de onderrand)
+  if (partner){ g.drawImage(sp, FW / 2 - 11 - (X0 + 1), FH - 80); g.drawImage(partner, FW / 2 + 11 - (96 - X0 - 1), FH - 80); }
+  else g.drawImage(sp, (soort === 'huis' ? FW * .3 : FW / 2) - (X0 + 1), FH - 80 + (ererondje ? 4 : 0)); // (de voeten net boven de onderrand; voor het huis iets naar links)
   if (alleenCanvas) return klein;
   // 6× vergroot, met een lichte vignet (zoals een krantenfoto; de pixels blijven scherp)
   const cv = document.createElement('canvas'); cv.width = FW * Z; cv.height = FH * Z;

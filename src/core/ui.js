@@ -72,6 +72,9 @@ function persOpenNu(){
 function persCheck(){
   const P = persOpenNu(); if (!P) return;
   // eerst de laatste actie van de wedstrijd op het veld laten uitspelen
+  // (een gesimuleerde wedstrijd: niet eerst alle acties afspelen; anders hooguit de laatste, zodat je niet lang hoeft te wachten)
+  if (S.fase === 'matchEnd'){ const open = openAnims(S.M); P.wachtSinds = P.wachtSinds || Date.now(); const lang = Date.now() - P.wachtSinds > 5000; // (hooguit 5 seconden wachten)
+    (S.M.gesimuleerd || lang ? open : open.slice(0, -1)).forEach(a => { a.gezien = true; }); }
   if (S.fase === 'matchEnd' && openAnims(S.M).length && instel().anim !== 'uit'){ clearTimeout(persWacht); persWacht = setTimeout(() => { if (S && persOpenNu() === P) persCheck(); }, 600); return; }
   P.getoond = true; bewaar();
   (PERS || (PERS = import('../render/persscene.js'))).then(m => m.speelPersconferentie()).catch(e => console.warn('persconferentie', e)).finally(() => { if (S) render(); });
