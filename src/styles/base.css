@@ -1,8 +1,10 @@
-/* Layout: nachtwedstrijd in het stadion — scorebord bovenaan, speelveld (verhaal + keuzes) links, spelerskaart en stand rechts */
+/* Layout: neon tegels (diep paars-blauw, verlopen van turquoise naar roze; de vormen staan in thema.css) — scorebord bovenaan,
+   speelveld (verhaal + keuzes) links, spelerskaart en stand rechts */
 :root{
-  --gras:#0b1020; --gras2:#11182b; --paneel:#172036; --lijn:#26304a; --diep:#070b16; --hover:#1d2843;
-  --krijt:#e8ecf5; --mist:#8c97b0; --lamp:#c6f432; --lamp-zacht:rgba(198,244,50,.12); --op-lamp:#0b1020;
-  --info:#38bdf8; --goed:#4ade80; --fout:#fb7185; --fout-zacht:#fda4af; --kaart:#facc15;
+  --gras:#1b1440; --gras2:#231a52; --paneel:#2a1f5c; --lijn:#3d3180; --diep:#140f33; --diep-rgb:20,15,51; --hover:#342775;
+  --krijt:#f5f3ff; --mist:#b7b0de; --lamp:#19e3c4; --lamp-zacht:rgba(25,227,196,.14); --op-lamp:#140f33;
+  --info:#38bdf8; --goed:#5af0a0; --fout:#fb7185; --fout-zacht:#fda4af; --kaart:#facc15;
+  --roze:#ff3d8b; --geel:#ffd400; --paars:#7a5cff; --verloop:linear-gradient(100deg,#19e3c4,#7a5cff 55%,#ff3d8b);
   --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
   --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-mono:"DM Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
@@ -14,7 +16,9 @@ html,body{min-height:100%}
 html{font-size:clamp(16px,calc(10px + .3vw),19px)}
 body{
   background:var(--gras);
-  background-image:radial-gradient(ellipse 70% 40% at 15% -10%,rgba(56,189,248,.10),transparent 70%),radial-gradient(ellipse 70% 40% at 85% -10%,rgba(198,244,50,.07),transparent 70%);
+  background-image:radial-gradient(ellipse 60% 50% at 0% 0%,rgba(25,227,196,.20),transparent 70%),radial-gradient(ellipse 60% 55% at 100% 100%,rgba(255,61,139,.18),transparent 70%),
+    radial-gradient(ellipse 50% 40% at 70% 10%,rgba(122,92,255,.18),transparent 70%),
+    repeating-linear-gradient(115deg,rgba(255,255,255,.022) 0 2px,transparent 2px 46px);
   background-attachment:fixed;
   color:var(--krijt);font-family:var(--f-body);font-size:.94rem;line-height:1.45;
   margin:0;padding-inline:clamp(10px,1.5vw,24px);padding-block:10px 24px;

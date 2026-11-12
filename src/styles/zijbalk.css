@@ -19,7 +19,7 @@
 .feiten div{display:grid}
 .feiten b{font-family:var(--f-mono);font-weight:500;font-variant-numeric:tabular-nums}
 .tabel{width:100%;border-collapse:collapse;font-size:.8rem;font-variant-numeric:tabular-nums}
-.tabel td,.tabel th{padding:3px 4px;text-align:right;border-bottom:1px solid rgba(38,48,74,.7)}
+.tabel td,.tabel th{padding:3px 4px;text-align:right;border-bottom:1px solid rgba(58,114,89,.7)}
 .tabel th{font-family:var(--f-mono);font-weight:400;font-size:.66rem;color:var(--mist);text-transform:uppercase}
 .tabel td:nth-child(2),.tabel th:nth-child(2){text-align:left}
 .tabel tr.mij td{color:var(--lamp);font-weight:700}

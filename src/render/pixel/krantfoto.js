@@ -3,7 +3,7 @@
 // clublogo's en de sponsor, of in het stadion bij een ererondje, met de prijs in de handen. Een pixelbeeld van 120×80,
 // 6× vergroot (720×480, net als de oude 3D-foto). Geen three.js.
 import { STANDAARD } from '../../data/tenues.js';
-import { BAL, Doek, Img, inkleuren, opGrond, speler, sprite } from './rig.js';
+import { BAL, Doek, Img, inkleuren, opGrond, speler, sprite, vuist } from './rig.js';
 import { donker, lookVan } from './atlas.js';
 import { fans } from './opkomst.js';
 import { tekst, zonderAccent } from './font.js';
@@ -20,9 +20,13 @@ const BOKAAL = sprite(15, 14, c => {   // Speler van het Seizoen: een bokaal met
   c.rect(6, 8, 3, 3, '>'); c.vline(7, 8, 3, '<');
   c.rect(4, 11, 7, 1, '<'); c.rect(3, 12, 9, 2, '~');
 });
-const TROFEE = sprite(9, 13, c => {    // Man/Speelster van de Wedstrijd: een kleine trofee op een zwarte voet
-  c.rect(1, 0, 7, 1, '^'); c.rect(1, 1, 7, 4, '<'); c.rect(6, 1, 1, 4, '>'); c.rect(2, 5, 5, 1, '<'); c.rect(3, 6, 3, 1, '>');
-  c.rect(4, 7, 1, 3, '>'); c.rect(1, 10, 7, 3, '~');
+const TROFEE = sprite(13, 17, c => {   // Man/Speelster van de Wedstrijd: een gouden beker met oren op een zwarte voet met een plaatje
+  c.rect(1, 0, 11, 1, '^'); c.rect(1, 1, 11, 3, '<'); c.rect(2, 4, 9, 1, '<'); c.rect(3, 5, 7, 1, '<'); c.rect(4, 6, 5, 1, '<');
+  c.rect(9, 1, 2, 4, '>'); c.px(8, 5, '>'); c.px(7, 6, '>'); c.rect(3, 1, 1, 3, '^');                 // schaduw rechts, glans links
+  c.vline(0, 1, 3, '<'); c.px(0, 4, '>'); c.vline(12, 1, 3, '>'); c.px(12, 4, '>');                  // de oren
+  c.rect(5, 7, 3, 3, '>'); c.vline(6, 7, 3, '<');                                                     // de steel (daar zitten de handen)
+  c.rect(3, 10, 7, 2, '<'); c.hline(3, 11, 7, '>');
+  c.rect(2, 12, 9, 5, '~'); c.rect(4, 14, 5, 1, '<');                                                 // de voet met een gouden plaatje
 });
 const SCHOEN = sprite(12, 7, c => {    // De Gouden Schoen (topscorer)
   c.rect(1, 0, 4, 2, '<'); c.rect(0, 2, 9, 2, '<'); c.rect(0, 4, 11, 1, '<'); c.rect(9, 3, 2, 1, '<'); c.rect(0, 5, 12, 1, '>'); c.rect(1, 6, 10, 1, '~');
@@ -35,8 +39,8 @@ const BASIS = {x:X0, lL:[-5, 10], lR:[10, 15]};
 const POSE = {
   portret:{...BASIS, aL:[30, 100], aR:[40, 100]},                   // armen voor de borst
   hattrick:{...BASIS, aL:[-20, 30], aR:[130, 20], arm:1.3},          // de bal hoog in de hand
-  motm:{...BASIS, aL:[30, 95], aR:[35, 95]},                        // de trofee voor de borst
-  topscorer:{...BASIS, aL:[30, 95], aR:[35, 95]},
+  motm:{...BASIS, aL:[-25, 40], aR:[118, 12], arm:1.35},           // de trofee omhoog in de hand, naast het hoofd
+  topscorer:{...BASIS, aL:[-25, 40], aR:[118, 12], arm:1.35},
   svs:{...BASIS, aL:[-125, -25], aR:[125, 25], arm:1.3},             // de bokaal boven het hoofd
   ererondje:{...BASIS, aL:[-15, 20], aR:[120, 30], arm:1.25},        // zwaaien naar het publiek
 };
@@ -44,8 +48,8 @@ function spelerBeeld(soort, v){
   const P = POSE[soort] || POSE.portret, img = new Img(96, 90), c = new Doek(img);
   const hand = speler(c, P, v), oy = R(opGrond(P) - 39);
   if (soort === 'hattrick') c.stamp(BAL, hand[0] - 5, hand[1] - 12);
-  else if (soort === 'motm') c.stamp(TROFEE, X0 - 3, oy + 24);       // midden voor de borst, de handen eromheen
-  else if (soort === 'topscorer') c.stamp(SCHOEN, X0 - 4, oy + 27);
+  else if (soort === 'motm'){ c.stamp(TROFEE, hand[0] - 6, hand[1] - 12); vuist(c, hand[0], hand[1] - 3, 's'); } // (de vuist om de steel: dan houdt hij hem echt vast)
+  else if (soort === 'topscorer'){ c.stamp(SCHOEN, hand[0] - 6, hand[1] - 9); vuist(c, hand[0] - 1, hand[1] - 2, 's'); } // (de schoen omhoog, de vuist om de hak)
   else if (soort === 'svs') c.stamp(BOKAAL, X0 - 7, oy - 12);
   return img.outline(107); // ('k')
 }

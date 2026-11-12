@@ -42,6 +42,7 @@ import { eisRij, vAgent } from './agent.js';
 import { TOON, VRIEND_ACTIES, bijJou, kanVragen, vriendRolTxt, vriendClubNaam, vriendHier, vriendLand, kanUitpraten, kanVriendActie, speeltTegenVriend, vriendKlasse, vriendStats, uitpraten, vriendActie, vriendDuelAntwoord, vriendDuelVraag } from '../../game/speler/journey.js';
 import { herkomstUitTmp, vHerkomstKeuze } from './start.js';
 import { balk, vSeizoenStrip } from './zijbalk.js';
+import { blok, chips, meer, regels, tegel } from './sjablonen.js';
 import { vBankVraag } from '../../game/team/bankverzoek.js';
 import { vSelectie } from './selectie.js';
 import { clubLogo } from '../../data/logos.js';
@@ -113,8 +114,7 @@ function vRivaalInterview(fx){
 // Een week zonder competitiewedstrijd voor jouw league (een kortere league dan de andere van je land)
 function vSpeelvrij(){
   const c = club(), t = c.t, ander = t === 1 ? 2 : 1;
-  return `<div class="vooruit"><span class="label">Speelvrije week · ${rondesVoor(t, S.ronde)} van ${rondesVan(t)} wedstrijden gespeeld</span>
-    <p>De ${esc(DIVS[t])} heeft deze week geen speelronde (de ${esc(DIVS[ander])} speelt wel: die heeft meer clubs). Train goed, rust uit of doe iets leuks.</p></div>`;
+  return blok({cls:'vooruit', label:`Speelvrije week · ${rondesVoor(t, S.ronde)} van ${rondesVan(t)} gespeeld`, inhoud:`<p class="muted">Geen wedstrijd deze week: de ${esc(DIVS[t])} heeft geen speelronde. Train, rust uit of doe iets leuks.</p>`});
 }
 function vVooruitblik(fx, opp, vo){
   const sp = S.sp, c = club(), wij = sp.o23 ? `${c.n} O23` : c.n, zij = sp.o23 ? `${opp.n} O23` : opp.n;
@@ -125,16 +125,20 @@ function vVooruitblik(fx, opp, vo){
     tags.unshift(d <= -3 ? '<span class="tag teveel">Jullie zijn de underdog</span>' : d >= 3 ? '<span class="tag omhoog">Jullie zijn favoriet</span>' : '<span class="tag">Gelijkwaardig</span>'); }
   { const rs = actiefRivaal() ? raceStand() : null; if (rs) tags.push(`<span class="tag ${rs.verschil > 0 ? 'omhoog' : rs.verschil < 0 ? 'teveel' : ''}">Race met ${esc(rivaalNaam())}: jij ${rs.jij}, ${team.hij} ${rs.hij} ${rs.woord}</span>`); }
   for (const k of bekersVan(sp.club)){ const b = S.ss.bekers[k]; if (b && b.levend.includes(sp.club) && b.winnaar === null && bekerSchema(k)[b.rondes.length] === S.ronde + 1) tags.push(`<span class="tag omhoog">Daarna: ${esc(BEKERS[k].naam)}, ${esc(bekerRondeNaam(k, b.rondes.length).toLowerCase())}</span>`); }
-  return `<div class="vooruit">
-    <span class="label">Wedstrijd ${rondesVoor(c.t, S.ronde) + 1} van ${rondesVan(c.t)}${sp.o23 ? ` · het 1e elftal speelt ${fx.thuis ? 'thuis' : 'uit'} tegen ${esc(opp.n)}` : ''}</span>
-    <div class="vs"><div class="ploeg ${fx.thuis ? 'mij' : ''}">${clubLogo(fx.thuis ? sp.club : fx.opp, 40)}<b>${esc(fx.thuis ? wij : zij)}</b></div><span class="vsteken">vs</span><div class="ploeg r ${fx.thuis ? '' : 'mij'}"><b>${esc(fx.thuis ? zij : wij)}</b>${clubLogo(fx.thuis ? fx.opp : sp.club, 40)}</div></div>
-    <div class="kracht" title="Sterkte ${c.s} tegen ${opp.s}"><span class="niv">${esc(c.n)} ${c.s}</span><span class="krachtbalk"><i style="width:${aandeel}%"></i></span><span class="niv">${opp.s} ${esc(opp.n)}</span></div>
-    ${sp.o23 ? '' : vVormDuel(fx)}
-    ${vTactiekDuel(fx.opp)}
-    <div class="rij">${tags.filter(Boolean).join('')}</div>
-    <p class="opst"><span class="label">Verwachte opstelling</span><span class="risico ${vo.cls}">${vo.k}</span><span class="muted">${esc(vo.reden)}</span></p>
-    ${vBankVraag()}
-  </div>`;
+  // zichtbaar: de ploegen en drie labeltjes (thuis/uit, favoriet of niet, jouw verwachte rol); bijzonder (derby, oude club, je rivaal) gaat voor
+  const bijzonder = tags.slice(1).filter(t => t && /twee|teveel/.test(t) && !/underdog|Lastig/.test(t));
+  const kern = [tags.find(t => /favoriet|underdog|Gelijkwaardig/.test(t)), `<span class="tag">${fx.thuis ? 'Thuis' : 'Uit'}</span>`, `<span class="risico ${vo.cls}">${vo.k}</span>`];
+  const rest = tags.filter(t => t && !kern.includes(t) && !bijzonder.includes(t) && !/^<span class="tag">(Thuis|Uit)</.test(t));
+  return blok({cls:'vooruit', sleutel:'vooruit', meerLabel:'Meer over deze wedstrijd',
+    label:`Volgende wedstrijd · ${rondesVoor(c.t, S.ronde) + 1} van ${rondesVan(c.t)}${sp.o23 ? ' · O23' : ''}`,
+    inhoud:`<div class="vs"><div class="ploeg ${fx.thuis ? 'mij' : ''}">${clubLogo(fx.thuis ? sp.club : fx.opp, 40)}<b>${esc(fx.thuis ? wij : zij)}</b></div><span class="vsteken">vs</span><div class="ploeg r ${fx.thuis ? '' : 'mij'}"><b>${esc(fx.thuis ? zij : wij)}</b>${clubLogo(fx.thuis ? fx.opp : sp.club, 40)}</div></div>
+      ${chips([...bijzonder, ...kern], bijzonder.length ? 4 : 3)}
+      ${vBankVraag()}`,
+    meer:`<div class="kracht" title="Sterkte ${c.s} tegen ${opp.s}"><span class="niv">${esc(c.n)} ${c.s}</span><span class="krachtbalk"><i style="width:${aandeel}%"></i></span><span class="niv">${opp.s} ${esc(opp.n)}</span></div>
+      ${sp.o23 ? `<p class="muted klein-tekst">Het 1e elftal speelt ${fx.thuis ? 'thuis' : 'uit'} tegen ${esc(opp.n)}.</p>` : vVormDuel(fx)}
+      ${vTactiekDuel(fx.opp)}
+      ${rest.length ? `<div class="rij">${rest.join('')}</div>` : ''}
+      <p class="opst"><span class="label">Opstelling</span><span class="muted">${esc(vo.reden)}</span></p>`});
 }
 
 // Teamvorm van beide ploegen: de laatste 5 uitslagen
@@ -177,8 +181,11 @@ function activiteit(id, t, s, fn, extra = ''){
 function vActiviteiten(){
   const sp = S.sp, fitKost = sp.items.fitness ? 5 : 8;
   const tid = clubTactiek(sp.club), iz = inzicht(tid);
-  const train = TRAINBAAR.map(k => keuzeKnop(`Train ${attr(k).toLowerCase()}`, `<span class="mini"><i style="width:${clamp(sp.a[k], 0, 100)}%"></i></span> ${sp.a[k]} · ${sp.a[k] >= plafond() ? 'plafond bereikt (groeit met sterke wedstrijden)' : `fitheid −${fitKost} · voortgang ${Math.round(trainXP(k) * 100)}% naar +1`}`, () => doeActiviteit('train', k))).join('')
-    + activiteit('tactiek', `Tactiek: ${TACTIEKEN[tid].n.toLowerCase()}`, `<span class="mini"><i style="width:${iz}%"></i></span> inzicht ${iz} · fitheid −${TRAIN_FIT}`, () => doeActiviteit('tactiek'));
+  const mini = v => `<span class="mini"><i style="width:${clamp(v, 0, 100)}%"></i></span>`;
+  const train = TRAINBAAR.map(k => { const max = sp.a[k] >= plafond();
+    return tegel(`${attr(k)} <span class="waarde">${sp.a[k]}</span>`, `${mini(sp.a[k])} ${max ? 'plafond' : `fitheid −${fitKost}`}`, () => doeActiviteit('train', k),
+      {uitleg:max ? 'Plafond bereikt: groeit nu alleen nog met sterke wedstrijden.' : `Train ${attr(k).toLowerCase()} · voortgang ${Math.round(trainXP(k) * 100)}% naar +1`}); }).join('')
+    + tegel(`Tactiek <span class="waarde">${iz}</span>${advies() === 'tactiek' ? ' <span class="tip">Tip</span>' : ''}`, `${mini(iz)} fitheid −${TRAIN_FIT}`, () => doeActiviteit('tactiek'), {uitleg:`Tactiektraining: ${TACTIEKEN[tid].n.toLowerCase()} · je inzicht in het systeem van de trainer`});
   const extra = heeft('voetbalgek') ? activiteit('extra', '⚽ Extra trainen na de training', 'Kans op +1 bij je zwakste eigenschap · vertrouwen +1 · fitheid −6', () => doeActiviteit('extra')) : '';
   const herstel = activiteit('rust', 'Rustig aan', `Fitheid +22 · focus +${focusWinst(8)} · vorm iets beter`, () => doeActiviteit('rust'))
     + activiteit('mentaal', 'Mentale training', `Focus +${focusWinst(12)} · fitheid +4 · geen training`, () => doeActiviteit('mentaal'))
@@ -187,9 +194,9 @@ function vActiviteiten(){
     + (sp.leeftijd < 18 && sp.ouders.boos ? keuzeKnop('Afspreken met vrienden', 'Mag niet van je ouders', () => {}, 'disabled') : activiteit('uit', sp.leeftijd < 18 ? 'Afspreken met vrienden' : 'Avondje uit', 'Moraal +10 · focus −3 · kans op gedoe', () => doeActiviteit('uit')))
     + (sp.leeftijd < 18 ? keuzeKnop('Huiswerk maken', sp.ouders.boos ? 'Focus +6 · je ouders en de onderwijscoach van de club zijn tevreden' : 'Focus +6 · beter voorbereid op school', () => doeActiviteit('huiswerk')) : '');
   const va = verhaalActiviteiten(), verhaal = va.length ? `<div class="actgroep verhaal"><span class="label">Jouw verhaal · ${esc(verhaalTitel(sp))}</span><div class="keuzes">${va.map(a => keuzeKnop(a.l, a.s, () => doeActiviteit(a.id))).join('')}</div></div>` : '';
-  return `<section class="activiteiten"><h3 class="sectiekop">Wat doe je deze week? <span class="niv">1 keuze</span></h3>
+  return `<section class="activiteiten sblok"><div class="blokkop"><span class="label">Wat doe je deze week? · 1 keuze</span>${knop('⚽ Vrij trainen', () => { tmp.vrijTrainen = true; }, 'klein', 'data-blijf title="Zelf je speler besturen · telt niet als activiteit"')}</div>
     <div class="actgroepen">
-    <div class="actgroep"><span class="label">Trainen</span><div class="keuzes">${train}${extra}${keuzeKnop('⚽ Vrij trainen', 'zelf je speler besturen · telt niet als activiteit', () => { tmp.vrijTrainen = true; }, 'data-blijf')}</div></div>
+    <div class="actgroep"><span class="label">Trainen</span><div class="keuzes">${train}${extra}</div></div>
     <div class="actgroep"><span class="label">Herstel en mentaal</span><div class="keuzes">${herstel}</div></div>
     <div class="actgroep"><span class="label">Club en sociaal</span><div class="keuzes">${sociaal}</div></div>${verhaal}</div></section>`;
 }
@@ -198,17 +205,22 @@ function vDezeWeek(){
   const sp = S.sp, w = S.week, fx = fixture(S.ronde), opp = fx ? CLUBS[fx.opp] : null;
   const eersteKeer = S.ronde === 0 && S.car.wed === 0;
   const vo = sp.o23 && sp.blessure <= 0 && !(sp.geschorst > 0) ? {k:'O23 · basis', cls:'r-gem', reden:'Je speelt bij de O23 tot de trainer je terughaalt.'} : verwachteOpstelling();
-  let html = vSeizoenStrip() + `<div class="verhaal"><span class="label">Week ${S.ronde + 1} van ${AANTAL_RONDES} · ${S.ronde === 0 ? 'Nieuw seizoen' : S.ronde === WINTER ? 'Na de winterstop' : 'Trainingsweek'}</span>
+  let html = vSeizoenStrip() + `<div class="verhaal"><span class="label">Week ${S.ronde + 1} van ${AANTAL_RONDES} · ${S.ronde === 0 ? 'Nieuw seizoen' : S.ronde === WINTER ? '❄ Na de winterstop' : S.ronde === WINTER - 1 ? '❄ Laatste week voor de winterstop' : 'Trainingsweek'}</span>
     ${S.ronde === 0 ? `<h2>${eersteKeer ? `Welkom bij ${esc(club().n)}` : 'Nieuw seizoen'}</h2>` : ''}`;
   if (eersteKeer) html += `<p>${esc(welkomTekst(sp))}</p>`;
   else if (S.ronde === 0) html += `<p>Een nieuw seizoen bij ${esc(club().n)} in de ${DIVS[club().t]}. Alles begint weer bij nul.</p>`;
-  html += `</div>` + (fx ? vVooruitblik(fx, opp, vo) : vSpeelvrij()) + vRivaalInterview(fx) + vVriendInterview(fx);
-  html += fx ? vReunie() : '';
+  html += `</div>` + (fx ? vVooruitblik(fx, opp, vo) : vSpeelvrij());
+  // interviews en een weerzien: niet verplicht, dus ingeklapt (met één zin erboven)
+  const iv = (kop, zin, inhoud, sl) => inhoud ? blok({label:kop, inhoud:`<p class="muted klein-tekst">${zin}</p>`, meer:inhoud, meerLabel:'Lees en reageer', sleutel:sl + '-' + S.jaar + '-' + S.ronde}) : '';
+  const ivRiv = vRivaalInterview(fx);
+  html += (ivRiv ? iv('Interview', `Een verslaggever wil je spreken voor het duel met ${esc(rivaalNaam())}.`, ivRiv, 'ivr') : '')
+    + iv(`Bericht van ${esc(sp.vriend ? sp.vriend.voornaam : '')}`, 'Je speelt zondag tegen je beste vriend. Er staat een appje voor je klaar.', vVriendInterview(fx), 'ivv')
+    + (fx ? iv('Weerzien', 'Je speelt tegen je oude club.', vReunie(), 'reunie') : '');
   if (sp.o23){ const c = sp.o23.cijfers; html += `<div class="paneel"><span class="label">Bij de O23</span><p>${O23_EIS}</p><p class="muted">${c.length ? 'Je cijfers bij de O23: ' + c.map(fmt1).join(' · ') : 'Je hebt nog geen wedstrijd gespeeld bij de O23.'}</p></div>`; }
   if (sp.huur){ const c = sp.huur.cijfers; html += `<div class="paneel"><span class="label">Op huurbasis tot de zomer</span><p>Je speelt bij ${esc(club().n)} en gaat in de zomer terug naar ${esc(huurOuder().n)}. Hoe beter je hier speelt, hoe beter je plek daar. Gemiddeld een 7,0 of hoger en ze rekenen op je.</p><p class="muted">${c.length ? `Gemiddeld cijfer hier: ${fmt1(gemiddelde(c))} (${c.length} ${c.length === 1 ? 'wedstrijd' : 'wedstrijden'})` : 'Je hebt hier nog niet gespeeld.'}</p></div>`; }
   if (!sp.herkomst) html += `<div class="paneel"><span class="label">Nieuw: interlands</span><p>Uit welke landen kom je? Daarmee bepaal je voor welke landen je later interlands kunt spelen.</p>${vHerkomstKeuze()}<div>${knop('Opslaan', () => { sp.herkomst = herkomstUitTmp(); }, 'hoofd middel', 'data-blijf')}</div></div>`;
-  if (w.tekst.length) html += `<div class="verhaal">${w.tekst.map(t => `<p class="moment">${esc(t)}</p>`).join('')}</div>`;
-  if (S.krantWacht && S.krantWacht.length) html += vKrant(S.krantWacht);
+  if (w.tekst.length) html += blok({label:'Wat er gebeurde', inhoud:regels(w.tekst.map(esc), 2, 'tekst-' + S.jaar + '-' + S.ronde)});
+  if (S.krantWacht && S.krantWacht.length) html += vKrantBlok(S.krantWacht);
   if (sp.geboorte) html += `<div class="kampioen"><span class="label">Je bent ${ik.vader}!</span><h2>Het is een ${sp.geboorte.jongen ? 'jongen' : 'meisje'}</h2><p>Hoe ga je ${sp.geboorte.jongen ? 'hem' : 'haar'} noemen?</p><div class="keuzes">${sp.geboorte.opties.map(n => keuzeKnop(esc(n), '', () => geefNaam(n), 'data-blijf')).join('')}</div></div>`;
   if (sp.leeftijd < 18 && sp.ouders.boos && !w.huiswerk) html += `<p class="melding">Je ouders zijn boos om je cijfers, en de onderwijscoach van ${esc(club().n)} kijkt mee. Maak je deze week huiswerk, dan is de club tevreden. Anders hoort de trainer het en kost het je vertrouwen.</p>`;
   html += vSchool();
@@ -225,6 +237,13 @@ function vDezeWeek(){
   const rest = teamOpen();
   html += `<div class="ctabalk">${cta}${w.gedaan && rest ? `<span class="niv">Nog ${rest} ${rest === 1 ? 'teamactie' : 'teamacties'} open bij <b>Team</b></span>` : ''}</div>`;
   return html;
+}
+
+function vKrantBlok(items){
+  const naam = S.sp.naam, overJou = n => String(n.kop || '').includes(naam);
+  const lijst = items.slice().sort((a, b) => overJou(b) - overJou(a));
+  const koppen = lijst.slice(0, 3).map(n => `<li>${overJou(n) ? '⭐ ' : ''}<span class="bron">${esc(n.bron || '')}</span> ${esc(n.kop)}</li>`).join('');
+  return blok({label:`In de krant · ${items.length}`, sleutel:'kranten-' + S.jaar + '-' + S.ronde, meerLabel:'Lees de kranten', inhoud:`<ul class="koppen">${koppen}</ul>${items.length > 3 ? `<p class="muted klein-tekst">en nog ${items.length - 3}</p>` : ''}`, meer:vKrant(lijst, '')});
 }
 
 function vTeamTab(){

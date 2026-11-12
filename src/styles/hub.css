@@ -40,7 +40,7 @@
 .sectiekop .niv{text-transform:none;letter-spacing:0;font-weight:400}
 
 /* Vooruitblik op de wedstrijd */
-.vooruit{display:grid;gap:6px;background:linear-gradient(180deg,#131c33,var(--diep));border:1px solid var(--lijn);border-radius:10px;padding:10px 12px}
+.vooruit{display:grid;gap:6px;background:linear-gradient(180deg,var(--gras2),var(--diep));border:1px solid var(--lijn);border-radius:10px;padding:10px 12px}
 .vs{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px}
 .vs .ploeg b{font-family:var(--f-display);font-weight:800;font-size:clamp(1rem,2.6vw,1.25rem);text-transform:uppercase;line-height:1.05;overflow-wrap:anywhere}
 .vs .ploeg.r{text-align:right}
@@ -106,7 +106,7 @@
 @keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
 /* Modal: bevestigen, hulp en instellingen */
-.modal{position:fixed;inset:0;z-index:60;background:rgba(5,8,18,.75);display:grid;place-items:center;padding:16px}
+.modal{position:fixed;inset:0;z-index:60;background:rgba(10,30,22,.75);display:grid;place-items:center;padding:16px}
 .modal[hidden]{display:none}
 .modalvak{background:var(--gras2);border:1px solid var(--lamp);border-radius:12px;padding:16px;max-width:580px;width:100%;max-height:calc(100vh - 32px);overflow:auto;display:grid;gap:14px;animation:toastIn .2s ease-out both}
 .modaltekst{display:grid;gap:10px}

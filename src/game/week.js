@@ -87,9 +87,9 @@ export function nieuweWeek(eerste){
   const st = sp.clubloos ? null : checkStatus(); if (st) S.week.tekst.push(st);
   // Een gebeurtenis die deze week klaarstaat (zoals een jubileum) verschijnt nu
   vriendWeek(eerste); // je jeugdvriend: jullie band, en misschien probeert de zaakwaarnemer het opnieuw
+  verleidingWeek(eerste); // de winterstop van je eerste seizoen: een zaakwaarnemer wil je vriend weghalen (deze week nog, niet een week later)
   hoogtepuntWeek(eerste); // een hoogtepunt van vorige week: met wie deel je het? (hoogtepunten.js)
   if (S.wachtEv){ S.ev = S.wachtEv; S.wachtEv = null; S.fase = 'event'; }
-  verleidingWeek(eerste); // de winter van je eerste seizoen: een zaakwaarnemer wil je vriend weghalen
 }
 // Herstel tussen twee wedstrijden: hoe vermoeider, hoe meer. Elke week trainen en spelen komt zo uit rond 70 fitheid
 export const weekHerstel = fit => Math.round(20 + (100 - fit) * .2);

@@ -1,6 +1,7 @@
 import './styles/index.css';
 import { bevestig, momentopname, openModal, sneltoetsen, toonVerschil } from './core/feedback.js';
 import { S, SLOTS, bewaar, exporteer, importeer, resetTmp, setS, tmp } from './core/state.js';
+import { krantNaRender } from './render/krantfoto.js';
 import { herstel } from './core/migratie.js';
 import { herstelSeizoenDelen } from './game/seizoen/seizoen.js';
 import { ACTS, render, speelOndertekening } from './core/ui.js';
@@ -61,7 +62,7 @@ document.addEventListener('change', async e => {
   const m = document.getElementById('modal'); if (m && m.open) m.close();
   const st = herstel(r.d); st.slot = r.slot; setS(st); herstelSeizoenDelen(); render();
 });
-document.addEventListener('toggle', e => { if (e.target.id === 'clubLijstPanel') tmp.clubLijstOpen = e.target.open; if (e.target.id === 'hulpPanel') tmp.hulpOpen = e.target.open; if (e.target.id === 'programmaPanel') tmp.programmaOpen = e.target.open; if (e.target.id === 'focusPanel' && tmp.focusOpen !== e.target.open){ tmp.focusOpen = e.target.open; render(); } }, true);
+document.addEventListener('toggle', e => { if (e.target.dataset && e.target.dataset.meer){ (tmp.meer || (tmp.meer = {}))[e.target.dataset.meer] = e.target.open; if (e.target.open) try { krantNaRender(); } catch (x){} } if (e.target.id === 'clubLijstPanel') tmp.clubLijstOpen = e.target.open; if (e.target.id === 'hulpPanel') tmp.hulpOpen = e.target.open; if (e.target.id === 'programmaPanel') tmp.programmaOpen = e.target.open; if (e.target.id === 'focusPanel' && tmp.focusOpen !== e.target.open){ tmp.focusOpen = e.target.open; render(); } }, true);
 window.addEventListener('resize', () => { const h = document.getElementById('hud'); if (h) document.documentElement.style.setProperty('--hud-h', h.offsetHeight + 'px'); });
 
 /* ===================== Hulp en instellingen ===================== */

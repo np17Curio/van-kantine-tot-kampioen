@@ -650,8 +650,14 @@ function vosOpnieuw(){
 export function verleidingWeek(eerste){
   const sp = S.sp, J = journey(); if (!J || J.verleiding || S.trainer || eerste || sp.clubloos || !sp.vriend) return;
   if (S.jaar !== J.jaar){ J.verleiding = true; return; } // (het eerste seizoen is voorbij: geen verleiding meer)
-  if (S.ronde < WINTER || S.wachtEv || !vriendActief()) return;
+  if (S.ronde < WINTER) return;
+  if (S.ronde > WINTER){ J.verleiding = true; return; } // (de winterstop is voorbij: dan komt dit gesprek niet meer)
+  if (!vriendActief()) return;
   J.verleiding = true;
   const d = breukDoel(); if (d.naar == null) return;
-  const ev = verleidingEvent({...d, band:Math.round(sp.vriend.band)}); if (ev) S.wachtEv = ev;
+  const ev = verleidingEvent({...d, band:Math.round(sp.vriend.band)}); if (!ev) return;
+  // in de winterstop zelf; staat er al iets anders klaar, dan komt dat erna
+  const ander = S.wachtEv; // (kiesEvent wist S.volgEv eerst: daarom hangt het andere bericht aan de antwoorden)
+  if (ander) ev.opts = ev.opts.map(o => ({...o, f(){ const t = o.f.call(this); if (!S.volgEv) S.volgEv = ander; return t; }}));
+  S.wachtEv = ev;
 }

@@ -119,6 +119,8 @@ const pen = (c, o) => { const hx = o.ox + 30 + 8, hy = o.oy + 28 + 4; c.line(hx,
 // ---------- de animaties van het spel ----------
 const SPEL = {
   // basis
+  // zitten op de bank (van voren, de handen op de knieën; de benen vallen weg achter het schot van de dug-out: veld3d.js)
+  zit:{fps:1, loop:true, frames:[met({aL:[-28, 70], aR:[28, 70], hd:[0, 1]})]},
   sta:{fps:3, loop:true, frames:[met({}), met({aL:[-20, 34], aR:[20, 34]}), met({aL:[-18, 36], aR:[18, 36], hd:[0, 1]}), met({aL:[-20, 34], aR:[20, 34]})]},
   keeperKlaar:{fps:4, loop:true, frames:[{...klaar, x:ANKER_X}, {...klaar, x:ANKER_X, hoog:1, hd:[0, 0]}]},
   ren:{fps:12, loop:true, frames:renCyclus(ANKER_X)},

@@ -2,13 +2,14 @@ import * as THREE from 'three';
 import { hashGetal, tenueVoor, uiterlijkVoor } from './pixel/uiterlijk.js';
 import { anker, FIGUUR_PX, frame, frameOp, lookVan } from './pixel/atlas.js';
 import { BAL_VOOR } from './pixel/animaties.js';
+import { BAL as BAL_PX, inkleuren } from './pixel/rig.js';
 
 /* ===================== 3D-veld ===================== */
 // Tekent dezelfde toestand als het 2D-veld (spelers en bal in meters: x 0-105, y 0-68, z = hoogte), maar dan in 3D.
 // Er is één WebGL-renderer met één canvas. Bij elke weergave wordt dat canvas in het nieuwe veld gehangen:
 // browsers staan maar een handvol WebGL-contexten toe, dus elke keer een nieuwe maken zou het spel laten vastlopen.
 const SCHAAL = 1.45;          // spelers iets groter dan echt, anders zijn ze vanaf de tribune te klein
-const BAL_R = .2;
+const BAL_R = .2, BAL_S = .62; // (de bal is een pixelsprite van BAL_S meter, iets groter dan echt: anders zie je hem niet)
 let R = null;                  // null = nog niet geprobeerd, false = geen WebGL
 const wx = x => x - 52.5, wz = y => 34 - y; // veldmeters naar wereld
 
@@ -55,13 +56,6 @@ export function publiekTex(){
 function netTex(){
   return canvasTex(128, 128, (g, w, h) => { g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 2; for (let i = 0; i <= 8; i++){ g.beginPath(); g.moveTo(i * w / 8, 0); g.lineTo(i * w / 8, h); g.moveTo(0, i * h / 8); g.lineTo(w, i * h / 8); g.stroke(); } });
 }
-export function balTex(){
-  return canvasTex(256, 128, (g, w, h) => {
-    g.fillStyle = '#f4f4f4'; g.fillRect(0, 0, w, h); g.fillStyle = '#1b1b1b';
-    for (let i = 0; i < 12; i++){ const x = (i % 6) * w / 6 + (i < 6 ? 0 : w / 12), y = i < 6 ? h * .3 : h * .72; g.beginPath(); for (let k = 0; k < 5; k++){ const a = k / 5 * Math.PI * 2; g.lineTo(x + Math.cos(a) * 13, y + Math.sin(a) * 13); } g.fill(); }
-  });
-}
-
 function maak(){
   const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'low-power'});
   renderer.setClearColor(0x0b1020);
@@ -105,14 +99,34 @@ function maak(){
   }
   // bal en schaduwen
   const schaduwM = new THREE.MeshBasicMaterial({color:0x000000, transparent:true, opacity:.32, depthWrite:false});
-  const bal = new THREE.Mesh(new THREE.SphereGeometry(BAL_R, 20, 14), new THREE.MeshLambertMaterial({map:balTex()}));
+  // de bal: dezelfde pixelvoetbal als in de animaties (rig.js BAL); hij draait mee als hij rolt
+  const balTex = new THREE.CanvasTexture(inkleuren(BAL_PX.outline(107), {}));
+  balTex.colorSpace = THREE.SRGBColorSpace; balTex.magFilter = THREE.NearestFilter; balTex.minFilter = THREE.NearestFilter;
+  const bal = new THREE.Sprite(new THREE.SpriteMaterial({map:balTex, alphaTest:.5})); bal.scale.set(BAL_S, BAL_S, 1); // (rolt via material.rotation)
   const balSchaduw = new THREE.Mesh(new THREE.CircleGeometry(BAL_R * 1.2, 16), schaduwM.clone()); balSchaduw.rotation.x = -Math.PI / 2;
   scene.add(bal, balSchaduw);
   const ring = new THREE.Mesh(new THREE.RingGeometry(.95, 1.15, 32), new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:.9, depthWrite:false}));
   ring.rotation.x = -Math.PI / 2; ring.position.y = .02; scene.add(ring);
   const kaartM = new THREE.MeshBasicMaterial({color:0xffd400, side:THREE.DoubleSide});
   const kaart = new THREE.Mesh(new THREE.PlaneGeometry(.45, .62), kaartM); kaart.visible = false; scene.add(kaart);
-  return {renderer, scene, camera, doelen, bal, balSchaduw, ring, kaart, kaartM, schaduwM, spelers:{}, vorigeBal:null, vorigeNu:0, nr:null, nrSprite:null, camX:null};
+  // twee dug-outs langs de zijlijn (wij links, zij rechts van de middenlijn): een schot aan de voorkant (daar vallen de benen van wie zit
+  // achter weg), een achterwand, stoeltjes en een plexiglas dakje
+  const dugM = {frame:new THREE.MeshLambertMaterial({color:0x2b3140}), stoel:new THREE.MeshLambertMaterial({color:0x3a4a6a}),
+    glas:new THREE.MeshLambertMaterial({color:0xcfe6ff, transparent:true, opacity:.28, depthWrite:false}), wand:new THREE.MeshLambertMaterial({color:0x1d2230})};
+  for (const x0 of [44, 54]){
+    const g = new THREE.Group(), L = 7, cx = wx(x0 + L / 2), zv = wz(72.0), za = wz(73.7);
+    const doos = (w, h, d, m, x, y, z) => { const me = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); me.position.set(x, y, z); g.add(me); return me; };
+    doos(L, .62, .08, dugM.wand, cx, .31, zv);                                // het schot aan de voorkant: dicht (daar vallen de benen achter weg)
+    doos(L, .3, .08, dugM.glas, cx, .77, zv);                                 // met plexiglas erboven
+    doos(L, .08, .1, dugM.frame, cx, .94, zv);                                 // en een rand erop
+    doos(L, 2.5, .1, dugM.wand, cx, 1.25, za);                                 // de achterwand
+    for (const dx of [-L / 2, L / 2]) doos(.1, 2.5, za - zv, dugM.frame, cx + dx, 1.25, (zv + za) / 2); // de zijkanten
+    const dak = doos(L + .2, .06, za - zv + .5, dugM.glas, cx, 2.5, (zv + za) / 2 + .2); dak.rotation.x = -.12;
+    doos(L - .2, .12, .5, dugM.stoel, cx, .5, wz(73.05));                      // de bank (de zitting; wie zit, staat er vóór: veld3d tekent sprites plat)
+    doos(L - .2, .6, .08, dugM.stoel, cx, .85, wz(73.4));                      // de rugleuning
+    scene.add(g);
+  }
+  return {renderer, scene, camera, doelen, bal, balSchaduw, bankjes:{}, ring, kaart, kaartM, schaduwM, spelers:{}, vorigeBal:null, vorigeNu:0, nr:null, nrSprite:null, camX:null};
 }
 
 // Een speler: een platte pixelsprite (pixel/rig.js, in de stijl van art/chibi_anims.px.js) die altijd naar de camera kijkt,
@@ -146,6 +160,13 @@ function bordSprite(uit, erin){
   tex.magFilter = THREE.LinearFilter;
   const s = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true})); s.scale.set(1.3, 1.52, 1); return s;
 }
+// Boven je rivaal: een oranje ster met zijn naam, zodat je meteen ziet dat hij het is
+function rivaalSprite(naam){
+  const t = '★ ' + naam, w = Math.min(1024, 60 + t.length * 34);
+  const tex = canvasTex(w, 72, (g, W, H) => { g.font = '900 50px system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.lineWidth = 9; g.strokeStyle = 'rgba(0,0,0,.75)'; g.strokeText(t, W / 2, H / 2 + 2); g.fillStyle = '#ff8a3d'; g.fillText(t, W / 2, H / 2 + 2); });
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, depthTest:false, transparent:true})); s.scale.set(w / 72 * .85, .85, 1); s.renderOrder = 5; return s;
+}
 function nummerSprite(nr){
   const tex = canvasTex(128, 64, (g, w, h) => { g.font = '900 52px system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = 8; g.strokeStyle = 'rgba(0,0,0,.7)'; g.strokeText(String(nr), w / 2, h / 2 + 2); g.fillStyle = '#fff'; g.fillText(String(nr), w / 2, h / 2 + 2); });
   const s = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, depthTest:false, transparent:true})); s.scale.set(1.3, .65, 1); return s;
@@ -174,6 +195,7 @@ const POSE = {
   kaart:{boven:true}, sorry:{boven:true, vast:true}, kniel:{vast:true}, ssst:{boven:true, vast:true}, juich:{boven:true}, klap:{boven:true}, praat:{boven:true},
   vang:{boven:true}, blok:{}, omhaal:{vast:true}, volley:{duur:700}, spreid:{vast:true}, jockey:{boven:true},
   // juichdansen (game/wedstrijd/dansen.js; script in pitch.js, soort 'dans')
+  zit:{vast:true, camera:true},
   heupwieg:{camera:true}, vliegtuig:{loopt:true}, kracht:{camera:true}, knieslide:{vast:true}, robot:{camera:true}, kangoeroe:{camera:true},
   pirouette:{camera:true}, boogschutter:{camera:true}, polonaise:{loopt:true},
   // voorbij dribbelen (stijlbron 'voorbij'): over de sliding springen, en de verdediger die balend blijft liggen
@@ -186,6 +208,7 @@ function sleutelVan(e, T){
   const p = T.ploegen || {};
   if (e.id === 'J' && (e.rol === 'wij' || e.rol === 'k' || !e.rol)) return 'jij|' + (p.jij || 'x') + (p.jijUit ? '|' + [p.jijUit.huid, p.jijUit.haar, p.jijUit.kapsel, p.jijUit.lengte || '', p.jijUit.bmi || '', p.jijUit.schoen ?? '', p.jijUit.baard || ''].join(',') : '') + (p.band ? '|C' : '');
   if (e.rol === 'R') return 'scheids|' + (p.zij ?? '');
+  if (T.rivaal && e.id === T.rivaal.id) return 'rivaal|' + T.rivaal.naam; // (je rivaal ziet er altijd hetzelfde uit)
   const club = e.rol === 'wij' || e.rol === 'k' ? p.wij : p.zij;
   return 'c' + club + '|' + e.id;
 }
@@ -215,6 +238,31 @@ export function fotoRender(scene, camera, w, h){
     g.putImageData(img, 0, 0);
     return c;
   } finally { r.setRenderTarget(oud); rt.dispose(); }
+}
+// De wisselspelers in de dug-outs (zittend), en de trainers langs de lijn bij hun dug-out
+const BANK_Z = 72.5; // (net vóór de zitting: een sprite is plat, anders snijdt de bank door hem heen)
+function tekenBanken(T, tijd){
+  const p = T.ploegen || {};
+  const sprite = (cv, look, naam) => { const ank = anker(naam), mpp = HOOGTE * (look.lengte || 1) / FIGUUR_PX;
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({map:texVan(cv), alphaTest:.5})); s.center.set(ank.x, ank.y); s.scale.set(ank.w * mpp, ank.h * mpp, 1); R.scene.add(s); return s; };
+  for (const [kant, x0, rol] of [['wij', 44, 'wij'], ['zij', 54, 'zij']]){
+    const club = p[kant], tenue = tenueVoor(rol, p.tenues), sl = kant + '|' + club + '|' + JSON.stringify(tenue);
+    let b = R.bankjes[kant];
+    if (!b || b.sl !== sl){
+      if (b){ b.sprites.forEach(s => R.scene.remove(s)); R.scene.remove(b.trainer); }
+      const sprites = [0, 1, 2, 3].map(i => { const look = lookVan(uiterlijkVoor('bank|' + club + '|' + i), tenue); return sprite(frame(look, 'zit', 0, false), look, 'zit'); });
+      // de trainer: in pak, met een das in de clubkleur
+      const tl = lookVan(uiterlijkVoor('trainer|' + club), null, {kleding:'pak', nr:hashGetal('tr' + club) % 6, das:tenue.shirt});
+      b = R.bankjes[kant] = {sl, sprites, tlook:tl, trainer:sprite(frame(tl, 'sta', 0, false), tl, 'sta'), rust:(hashGetal('trr' + club) % 100) / 10};
+    }
+    const zicht = club != null;
+    // vier plekken; in het midden (x0 + 3, pitch.js DUGOUT) blijft een stoeltje vrij voor jou
+    [.8, 1.7, 4.3, 5.2].forEach((d, i) => { const s = b.sprites[i]; s.visible = zicht; s.position.set(wx(x0 + d), -.42, wz(BANK_Z)); });
+    // de trainer staat in zijn vak langs de lijn: meestal rustig, af en toe roept of wijst hij
+    const t = tijd + b.rust, fase = t % 9, naam = fase > 7.4 ? 'roep' : fase > 6 ? 'wijs' : 'sta', cv = frame(b.tlook, naam, frameOp(naam, t), kant === 'zij');
+    const tex = texVan(cv); if (b.trainer.material.map !== tex){ b.trainer.material.map = tex; const ank = anker(naam, kant === 'zij'); b.trainer.center.set(ank.x, ank.y); }
+    b.trainer.visible = zicht; b.trainer.position.set(wx(x0 + (kant === 'wij' ? 1.2 : 5.8)), 0, wz(70.2)); // (aan de buitenkant van zijn dug-out: in het midden staat de vierde official)
+  }
 }
 export const kwaliteit = () => 0; // (er is geen automatische kwaliteit meer: pixelsprites zijn licht)
 // Handig bij debuggen en voor de automatische speltest (net als window.__S): welk plaatje elke speler nu laat zien
@@ -295,6 +343,7 @@ export function teken3D(T, nu){
     }
     else if (!actief && ((juichWij && e.rol === 'wij') || (juichZij && e.rol === 'zij')) && !keeper && !(T.geenJuichJ && e.id === 'J')){ naam = 'juich'; i = frameOp(naam, tijd + s.rust); } // (na jouw goal kies je zelf je juichdans)
     else { naam = keeper ? 'keeperKlaar' : 'sta'; i = frameOp(naam, tijd + s.rust); }
+    if (naam === 'zit') lift = -.42;
     s.naam = naam; s.i = i; s.mat.rotation = rot;
     if (naam.startsWith('dribbel')){ const d = BAL_VOOR[i] * HOOGTE * (s.look.lengte || 1) / FIGUUR_PX; balAanVoet = {x:wx(e.x) + Math.sin(s.kijk) * d, z:wz(e.y) + Math.cos(s.kijk) * d}; }
     const cv = frame(s.look, naam, i, s.flip), tex = texVan(cv);
@@ -308,7 +357,14 @@ export function teken3D(T, nu){
       if (R.nrSprite){ R.nrSprite.visible = !!T.nr; R.nrSprite.position.set(wx(e.x), lift + HOOGTE * (s.look.lengte || 1) + .45, wz(e.y)); } }
   }
   for (const id in R.spelers) if (!gezien.has(id)){ R.spelers[id].root.visible = false; R.spelers[id].schaduw.visible = false; }
+  tekenBanken(T, tijd);
   if (!gezien.has('J')){ R.ring.visible = false; if (R.nrSprite) R.nrSprite.visible = false; }
+  // je rivaal: ster en naam boven zijn hoofd
+  const rv = T.rivaal && gezien.has(T.rivaal.id) ? R.spelers[T.rivaal.id] : null;
+  if (rv){ if (R.rivNaam !== T.rivaal.naam){ if (R.rivSprite){ R.scene.remove(R.rivSprite); R.rivSprite.material.map.dispose(); R.rivSprite.material.dispose(); } R.rivSprite = rivaalSprite(T.rivaal.naam); R.scene.add(R.rivSprite); R.rivNaam = T.rivaal.naam; }
+    const ligt = ['sliding', 'balen', 'val', 'duikStrek', 'kniel'].includes(rv.naam); // (ligt hij op de grond, dan zakt de naam mee)
+    R.rivSprite.visible = true; R.rivSprite.position.set(rv.sprite.position.x, rv.sprite.position.y + (ligt ? 1.3 : HOOGTE * (rv.look.lengte || 1) + .45), rv.sprite.position.z); }
+  else if (R.rivSprite) R.rivSprite.visible = false;
   // wisselbord: de vierde official (R) houdt het omhoog zolang hij in de houding 'kaart' staat (pitch.js, soort 'wissel')
   const Rf = T.bord && T.ents.R, bordOp = !!(Rf && Rf.pose === 'kaart');
   if (bordOp){ const sl = `${T.bord.uit}|${T.bord.in}`;
@@ -319,9 +375,10 @@ export function teken3D(T, nu){
   // kaart: de scheidsrechter (of anders de speler) houdt hem omhoog
   if (T.kaart){ const wie = T.ents.R || T.ents[T.kaartOp || 'J']; if (wie){ R.kaart.visible = true; R.kaartM.color.set(T.kaart === 'rood' ? 0xe23b3b : 0xffd400); R.kaart.position.set(wx(wie.x) + .5, 2.75 * SCHAAL, wz(wie.y)); R.kaart.lookAt(R.camera.position); } } else R.kaart.visible = false;
   // bal: rolt mee met de beweging
-  const bx = balAanVoet ? balAanVoet.x : wx(bal.x), bz = balAanVoet ? balAanVoet.z : wz(bal.y), by = BAL_R + (bal.z || 0);
+  const bx = balAanVoet ? balAanVoet.x : wx(bal.x), bz = balAanVoet ? balAanVoet.z : wz(bal.y), by = BAL_S / 2 + (bal.z || 0);
   if (R.vorigeBal){ const dx = bx - R.vorigeBal.x, dz = bz - R.vorigeBal.z, d = Math.hypot(dx, dz);
-    if (d > 1e-4 && d < 20){ const as = new THREE.Vector3(dz, 0, -dx).normalize(); R.bal.rotateOnWorldAxis(as, d / BAL_R); } }
+    // rollen: de bal draait precies zo ver als hij over het gras gaat (afstand / straal); naar rechts met de klok mee
+    if (d > 1e-4 && d < 20 && !(bal.z > .3)){ const naarRechts = Math.abs(dx) > Math.abs(dz) * .25 ? dx >= 0 : dz < 0; R.bal.material.rotation -= Math.min(.35, d / (BAL_S / 2)) * (naarRechts ? 1 : -1); } } // (hooguit .35 per beeld: sneller zie je het niet meer draaien, alleen flikkeren)
   R.vorigeBal = {x:bx, z:bz};
   R.bal.position.set(bx, by, bz);
   R.balSchaduw.position.set(bx, .016, bz); R.balSchaduw.material.opacity = .32 * Math.max(.25, 1 - (bal.z || 0) / 4);

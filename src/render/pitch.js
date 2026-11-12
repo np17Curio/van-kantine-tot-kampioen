@@ -4,6 +4,7 @@ import { rnd } from '../core/utils.js';
 import { rugnummer } from '../game/team/rugnummers.js';
 import { clubTenue, landTenue, wedstrijdTenues } from '../data/tenues.js';
 import { isAanvoerder } from '../game/team/aanvoerder.js';
+import { rivaalNaam } from '../game/speler/rivaal.js';
 
 /* ===================== 2,5D-veld: je acties in beeld ===================== */
 // Een schuin veld (alsof je vanaf de tribune kijkt). De uitkomst wordt berekend zoals altijd; het veld laat zien wat er gebeurde.
@@ -106,6 +107,8 @@ export function reeksStrafschoppen(kansJij, M){
   while (wij === zij){ const a = rnd() < .75, b = rnd() < .75; lijst.push({w:1, r:a}, {w:0, r:b}); if (a) wij++; if (b) zij++; }
   return {lijst, wij, zij};
 }
+// De dug-out van jouw ploeg langs de zijlijn (veld3d.js tekent hem; x 44-51, de stoeltjes op y 72,8)
+export const DUGOUT = {x:44.6, y:72.5};
 // Goals en grote kansen van teamgenoten en tegenstanders (alleen als jij meespeelt of op de bank wacht om in te vallen)
 export function animAnderen(M, e, v){
   // Sta je (nog) niet in het veld, dan zie je het vanaf de bank of de tribune: jij staat dan bij de dug-out of buiten beeld
@@ -178,7 +181,7 @@ function animScriptBasis(a){
   // Keeper in de opbouw: jij staat op de doellijn met de bal (je eigen keeper is er dan niet)
   if (a.keeperUit && E.J){ Object.assign(E.J, {x:4, y:34, rol:'k'}); delete E.k; sc.bal = {x:5, y:34, z:0}; }
   // Vanaf de bank: jij staat langs de lijn bij de dug-out; vanaf de tribune: buiten beeld
-  if ((a.bank || a.tribune) && E.J){ Object.assign(E.J, a.bank ? {x:52.5, y:71.5} : {x:-30, y:90}); }
+  if ((a.bank || a.tribune) && E.J){ Object.assign(E.J, a.bank ? {x:DUGOUT.x + 2.4, y:DUGOUT.y, pose:'zit', poseT0:0} : {x:-30, y:90}); }
   // Je vriend neemt de penalty (proloog): hij staat bij de stip, jij kijkt toe
   if (a.schutter === 'A' && E.A && E.J){ Object.assign(E.A, {x:92, y:34}); Object.assign(E.J, {x:86, y:42}); }
   const J = E.J, maat = E.A || E.B, tegen = E.X, K = E.K || E.k, v = a.variant || 'normaal';
@@ -537,7 +540,9 @@ function animScriptBasis(a){
     else if (a.ok || a.assist){
       const plek = v === 'door' ? {x:Math.min(98, J.x + 9), y:J.y + (34 - J.y) * .4} : {x:J.x - 3, y:J.y + 3};
       stap(600, {J:{z:0}, X:{z:0}, B:{...plek}}, {to:{...plek, z:0}, boog:1.2});
-      if (a.assist || a.team){ scoort(); juich('B'); } else stap(500, {B:{x:plek.x + 3}}, {volg:'B'});
+      if (a.assist || a.team){ scoort(); juich('B'); }
+      else if (v === 'door' && a.type === 'kopduel'){ stap(350, {B:{x:plek.x + 1.5}}, {volg:'B'}); const d = naast(); stap(550, {}, {to:d, boog:.8}, d.z > 3 ? 'over' : 'naast'); } // (doorgekopt: hij schiet, maar mist)
+      else stap(500, {B:{x:plek.x + 3}}, {volg:'B'});
     } else { stap(550, {J:{z:0}, X:{z:0}}, {to:{x:J.x + 3, y:J.y + 4, z:0}, boog:1}, 'onderschept'); stap(450, {X:{x:cur.J.x - 5}}, {volg:'X'}); }
     return {sc, st};
   }
@@ -661,7 +666,9 @@ export function tekenVeld(cv, toestand){
     const gnd = p(d.x, d.y, 0), k = gnd.k;
     if (gnd.x < -30 || gnd.x > W + 30) continue;
     ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(gnd.x, gnd.y, (d.soort === 'bal' ? .45 : 1.1) * k * 1.6, (d.soort === 'bal' ? .18 : .4) * k * 1.6, 0, 0, Math.PI * 2); ctx.fill();
-    if (d.soort === 'bal'){ const q = p(d.x, d.y, d.z || 0), rr = Math.max(2.2, .5 * k * 1.4); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(q.x, q.y - rr, rr, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#333'; ctx.lineWidth = 1; ctx.stroke(); continue; }
+    if (d.soort === 'bal'){ const q = p(d.x, d.y, d.z || 0), rr = Math.max(2.2, .5 * k * 1.4); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(q.x, q.y - rr, rr, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#1a1414'; ctx.lineWidth = 1; ctx.stroke();
+      // een zwarte vijfhoek in het midden, zodat het een voetbal is
+      ctx.fillStyle = '#1a1414'; ctx.beginPath(); for (let k = 0; k < 5; k++){ const h = -Math.PI / 2 + k * Math.PI * 2 / 5; ctx.lineTo(q.x + Math.cos(h) * rr * .45, q.y - rr + Math.sin(h) * rr * .45); } ctx.fill(); continue; }
     const kl = kleurenVan(toestand)[d.rol] || '#ccc', h = 1.85 * k * 2.1, q = p(d.x, d.y, d.z || 0), w = Math.max(5, .75 * k * 2.1);
     const voet = q.y, broek = voet - h * .38, shirt = voet - h * .8, hoofd = voet - h * .9;
     ctx.strokeStyle = '#1b1b1b'; ctx.lineWidth = Math.max(1.5, w * .22); ctx.beginPath(); ctx.moveTo(q.x - w * .22, broek); ctx.lineTo(q.x - w * .25, voet); ctx.moveTo(q.x + w * .22, broek); ctx.lineTo(q.x + w * .25, voet); ctx.stroke();
@@ -673,6 +680,8 @@ export function tekenVeld(cv, toestand){
       ctx.fillStyle = '#111'; ctx.font = `bold ${Math.max(8, w * .55)}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.fillText(String(toestand.nr || ''), q.x, shirt + (broek - shirt) * .72); }
     if (toestand.bord && d.id === 'R' && d.pose === 'kaart'){ const bw = w * 2.6, bh = w * 2; ctx.fillStyle = '#111'; ctx.fillRect(q.x - bw / 2, hoofd - h * .35 - bh, bw, bh);
       ctx.font = `bold ${Math.max(7, bh * .38)}px ui-monospace,monospace`; ctx.textAlign = 'center'; ctx.fillStyle = '#ff3b30'; ctx.fillText(String(toestand.bord.uit ?? '–'), q.x, hoofd - h * .35 - bh * .55); ctx.fillStyle = '#3cff5a'; ctx.fillText(String(toestand.bord.in ?? '–'), q.x, hoofd - h * .35 - bh * .08); } // het wisselbord
+    if (toestand.rivaal && d.id === toestand.rivaal.id){ const t = '★ ' + toestand.rivaal.naam; ctx.font = `800 ${Math.max(9, w * .8)}px system-ui,sans-serif`; ctx.textAlign = 'center';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.75)'; ctx.strokeText(t, q.x, hoofd - h * .2); ctx.fillStyle = '#ff8a3d'; ctx.fillText(t, q.x, hoofd - h * .2); }
     if (toestand.kaart && d.id === (toestand.kaartOp || 'J')){ ctx.fillStyle = toestand.kaart === 'rood' ? '#e23b3b' : '#ffd400'; ctx.fillRect(q.x + w * .6, hoofd - h * .35, w * .5, w * .7); }
   }
   // onderschrift (wat er gebeurt)
@@ -704,7 +713,7 @@ export function pitchCanvas(el){
 }
 // Jouw keuzemoment: in 2D één plaatje, in 3D staan de spelers rustig te ademen tot je kiest
 export function pitchStatisch(el, type){
-  const cv = pitchCanvas(el), sc = pitchScene(type), T = {ents:sc.ents, bal:sc.bal, cam:sc.cam, zoom:sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen()};
+  const cv = pitchCanvas(el), sc = pitchScene(type), T = {ents:sc.ents, bal:sc.bal, cam:sc.cam, zoom:sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(), rivaal:rivaalInBeeld(sc.ents)};
   if (!cv._3d) return tekenVeld(cv, T);
   const id = (PITCH = {stop:false, klaar:() => {}}), gen = GEN; let vorige = 0;
   const frame = nu => {
@@ -715,6 +724,13 @@ export function pitchStatisch(el, type){
   requestAnimationFrame(frame);
 }
 // Welke clubs staan er op het veld, en wie ben jij (voor een vast uiterlijk in 3D; jouw uiterlijk wordt één keer gekozen en bewaard)
+// Speelt je rivaal mee (wedstrijd tegen zijn club), dan is hij in elke scène de tegenstander die het dichtst bij jou staat (X, anders Y of Z).
+// veld3d.js zet een ster met zijn naam boven zijn hoofd, en hij heeft steeds hetzelfde uiterlijk
+export function rivaalInBeeld(ents){
+  const M = S && S.M; if (!M || !M.rivaal || M.inter || !ents) return null;
+  const id = ['X', 'Y', 'Z'].find(k => ents[k] && ents[k].rol === 'zij'); if (!id) return null;
+  let naam = ''; try { naam = rivaalNaam(); } catch (e){} return naam ? {id, naam} : null;
+}
 export function ploegen(){ const sp = S && S.sp; if (!sp) return {}; if (!sp.uitSleutel) sp.uitSleutel = Math.random().toString(36).slice(2, 10); return {wij:sp.club, zij:S.M ? S.M.opp : null, jij:sp.uitSleutel, jijUit:sp.uiterlijk || null, tenues:tenuesVanWedstrijd(), band:!S.trainer && !sp.clubloos && isAanvoerder() && !(S.M && (S.M.inter || S.M.selectie))}; }
 // De tenues van deze wedstrijd: landen bij een interland, anders de clubs (bij een kleurconflict speelt de uitploeg in het uittenue)
 export function tenuesVanWedstrijd(){
@@ -730,7 +746,7 @@ export const rugnummerVeilig = () => { try { return S.M && (S.M.inter || S.M.o23
 export function pitchSpeel(el, a, klaar, opt = {}){
   // (window.__pitchTraag: alleen voor tests, om een trage headless browser elk moment te laten vastleggen)
   const cv = pitchCanvas(el), {sc, st} = animScript(a), snel = (instel().anim === 'snel' ? .5 : 1) * (opt.herhaling ? HERHALING_TRAAG : 1) * ((typeof window !== 'undefined' && window.__pitchTraag) || 1);
-  const T = {geenJuichJ:!!a.dansNa, bord:a.soort === 'wissel' ? {uit:a.uit ?? null, in:a.in ?? null} : null, ents:sc.ents, bal:{...sc.bal}, cam:sc.cam, zoom:opt.herhaling && sc.ents.J ? .55 : sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(),
+  const T = {geenJuichJ:!!a.dansNa, bord:a.soort === 'wissel' ? {uit:a.uit ?? null, in:a.in ?? null} : null, ents:sc.ents, bal:{...sc.bal}, cam:sc.cam, zoom:opt.herhaling && sc.ents.J ? .55 : sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(), rivaal:rivaalInBeeld(sc.ents),
     onder:opt.herhaling ? `⟲ HERHALING · ${a.min ?? ''}' · ${S.sp.naam}` : a.onder || (a.soort === 'shootout' ? 'Strafschoppen' : null)};
   let i = -1, t0 = 0, van = null, fx = null, fxT = 0, eind = 0, aanzet = 0;
   const id = (PITCH = {stop:false, klaar}), gen = GEN;

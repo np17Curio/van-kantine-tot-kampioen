@@ -32,21 +32,41 @@ export function rubriekVan(item){
   return 'SPORT';
 }
 
+// De kleine teksten (datum, rubriek, onderschrift, artikel, feiten) in gewone letters in plaats van het 3×5-pixelfont:
+// beter leesbaar. De naam van de krant en de kop blijven pixels. De pagina wordt F× zo groot getekend, de pixels blokkerig opgeschaald.
+// KF: 2 op een gewoon scherm (400 px breed, zoals de css), 4 op een scherp scherm
+const kf = () => (typeof devicePixelRatio === 'number' && devicePixelRatio > 1.2) ? 4 : 2;
+const SERIF = "Georgia, 'Times New Roman', serif", SANS = "Arial, Helvetica, sans-serif";
+let MEET = null;
+const meet = (t, font) => { if (!MEET){ const m = typeof document !== 'undefined' ? document.createElement('canvas') : new OffscreenCanvas(1, 1); MEET = m.getContext('2d'); } MEET.font = font; return MEET.measureText(t).width; };
+const lettertype = (o = {}) => `${o.vet ? 'bold ' : ''}${o.schuin ? 'italic ' : ''}${o.maat || 6}px ${o.sans ? SANS : SERIF}`;
+// Op hele woorden afbreken voor de gewone letters (breedte in paginapixels)
+function afbrekenEcht(s, breed, font){
+  const regels = []; let r = '';
+  for (const w of String(s).split(/\s+/).filter(Boolean)){
+    const t = r ? r + ' ' + w : w;
+    if (meet(t, font) <= breed) r = t; else { if (r) regels.push(r); r = w; }
+  }
+  if (r) regels.push(r);
+  return regels;
+}
+
 // De voorpagina. item = {bron, kop, tekst, wanneer, rubriek?, feiten? [[label, waarde], ...], plaats?}
-// foto = {cv (canvas 180×72), onder (onderschrift), door} of null. Geeft een canvas van KW breed (de hoogte volgt de inhoud)
+// foto = {cv (canvas 180×72), onder (onderschrift), door} of null. Geeft een canvas van KW·KF breed (de hoogte volgt de inhoud)
 export function krantPagina(item, foto = null){
-  const BIG = 600, img = new Img(KW, BIG), c = new Doek(img);
+  const BIG = 600, img = new Img(KW, BIG), c = new Doek(img), echt = [];
+  const schrijf = (x, y, t, k, o = {}) => echt.push({x, y, t, k, o});
   c.rect(0, 0, KW, BIG, 'f');
   // de naam van de krant, datum en prijs
   const bron = zonderAccent(item.bron || 'DE PIXEL KRANT'), groot = regelBreedte(bron, {scale:2}) <= KW - 12;
   tekst(c, KW / 2, groot ? 6 : 10, bron, 'k', {scale:groot ? 2 : 1, align:'c'});
   c.hline(6, 22, KW - 12, 'k'); c.hline(6, 24, KW - 12, 'k');
-  tekst(c, 8, 27, zonderAccent(item.wanneer || '').slice(0, 34), 'G'); tekst(c, KW - 8, 27, item.prijs || 'EUR 2.50', 'G', {align:'r'});
+  schrijf(8, 26.6, String(item.wanneer || '').slice(0, 40), 'G', {maat:5.6, schuin:true}); schrijf(KW - 8, 26.6, item.prijs || '€ 2,50', 'G', {maat:5.6, align:'right'});
   c.hline(6, 33, KW - 12, 'k');
   // rubriek
-  const rub = item.rubriek || rubriekVan(item), rb = regelBreedte(rub);
-  c.rect(6, 37, rb + 7, 9, 'r'); tekst(c, 9, 39, rub, 'w');
-  tekst(c, KW - 8, 39, 'SPORT', 'r', {align:'r'});
+  const rub = item.rubriek || rubriekVan(item), fRub = {maat:5.4, vet:true, sans:true}, rb = Math.ceil(meet(rub, lettertype(fRub)));
+  c.rect(6, 37, rb + 7, 9, 'r'); schrijf(9.5, 38.4, rub, 'w', fRub);
+  schrijf(KW - 8, 38.4, 'SPORT', 'r', {...fRub, align:'right'});
   // de kop: groot (drie regels, de laatste rood) of iets kleiner als hij lang is
   const kop = zonderAccent(item.kop || '');
   let regels = afbreken(kop, KW - 12, 3), scale = 3, stap = 20;
@@ -58,32 +78,41 @@ export function krantPagina(item, foto = null){
   // de foto met een zwarte lijst (de foto zelf komt er hieronder als plaatje overheen)
   let fotoY = null;
   if (foto && foto.cv){
-    c.rect(8, y, 184, 76, 'k'); fotoY = y + 2; y += 78;
-    const onder = afbreken(zonderAccent(foto.onder || ''), KW - 16).slice(0, 2);
-    onder.forEach(r => { tekst(c, 8, y + 3, r, 'k'); y += 7; });
-    tekst(c, 8, y + 3, 'FOTO: ' + zonderAccent(foto.door || 'PIXEL PERS'), 'G'); y += 10;
+    c.rect(8, y, 184, 76, 'k'); fotoY = y + 2; y += 79;
+    const fOnder = {maat:5.6, schuin:true};
+    afbrekenEcht(foto.onder || '', KW - 16, lettertype(fOnder)).slice(0, 2).forEach(r => { schrijf(8, y, r, 'k', fOnder); y += 7; });
+    schrijf(8, y, 'Foto: ' + (foto.door || 'Pixel Pers'), 'G', {maat:4.8, sans:true}); y += 8;
     c.hline(6, y, KW - 12, 'L'); y += 5;
   }
   // het artikel, met rechts een kader met feiten (als die er zijn)
   const feiten = item.feiten && item.feiten.length ? item.feiten : null, kolom = feiten ? 116 : KW - 16;
-  const plaats = zonderAccent(item.plaats || '');
-  const lijnen = afbreken((plaats ? plaats + ' - ' : '') + zonderAccent(item.tekst || ''), kolom);
+  const fTekst = {maat:6.2}, plaats = String(item.plaats || '');
+  const lijnen = afbrekenEcht((plaats ? plaats.toUpperCase() + ' – ' : '') + (item.tekst || ''), kolom, lettertype(fTekst));
   const y0 = y;
-  lijnen.forEach((r, i) => { const eerste = plaats && i === 0; tekst(c, 8, y, r, eerste ? 'k' : 'k'); y += 7; });
+  lijnen.forEach(r => { schrijf(8, y, r, 'k', fTekst); y += 7.6; });
   if (feiten){
-    const h = 13 + feiten.length * 10, fy = y0 - 1;
+    const h = 13 + feiten.length * 10, fy = Math.round(y0 - 1);
     c.rect(130, fy, 64, h, 'w'); box(c, 130, fy, 64, h, 'k'); c.rect(130, fy, 64, 9, 'k');
-    tekst(c, 162, fy + 2, item.feitenKop || 'DE DEAL', 'y', {align:'c'});
-    feiten.forEach(([l, w], i) => { tekst(c, 134, fy + 13 + i * 10, zonderAccent(l), 'G'); tekst(c, 190, fy + 13 + i * 10, zonderAccent(w), 'k', {align:'r'}); });
+    schrijf(162, fy + 1.6, item.feitenKop || 'DE DEAL', 'y', {maat:5.4, vet:true, sans:true, align:'center'});
+    feiten.forEach(([l, w], i) => { schrijf(134, fy + 11.8 + i * 10, l, 'G', {maat:5.2, sans:true}); schrijf(190, fy + 11.8 + i * 10, w, 'k', {maat:5.2, vet:true, sans:true, align:'right'}); });
     y = Math.max(y, fy + h + 2);
   }
-  const H = Math.max(160, Math.min(BIG, y + 6));
+  const H = Math.max(160, Math.min(BIG, Math.ceil(y + 6)));
   // de omgevouwen hoek
   c.poly([KW - 10, 0, KW, 0, KW, 10], 'F'); c.line(KW - 10, 0, KW, 10, 'L');
   // bijsnijden en inkleuren, dan de foto erin
   const o = new Img(KW, H); o.d.set(img.d.subarray(0, KW * H));
-  const cv = inkleuren(o, KLEUR);
-  if (fotoY !== null){ const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(foto.cv, 0, 0, 180, 72, 10, fotoY, 180, 72); }
+  const klein = inkleuren(o, KLEUR);
+  if (fotoY !== null){ const g = klein.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(foto.cv, 0, 0, 180, 72, 10, fotoY, 180, 72); }
+  // opschalen (blokkerig) en de gewone letters erop. cv.klein: dezelfde pagina op ware grootte (voor het indraaien)
+  const opDoek = F => {
+    const cv = document.createElement('canvas'); cv.width = KW * F; cv.height = H * F;
+    const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(klein, 0, 0, KW * F, H * F);
+    g.scale(F, F); g.textBaseline = 'top';
+    for (const e of echt){ if (e.y > H - 4) continue; g.font = lettertype(e.o); g.fillStyle = KLEUR[e.k] || e.k; g.textAlign = e.o.align || 'left'; g.fillText(e.t, e.x, e.y); }
+    return cv;
+  };
+  const cv = opDoek(kf()); cv.klein = opDoek(1);
   return cv;
 }
 

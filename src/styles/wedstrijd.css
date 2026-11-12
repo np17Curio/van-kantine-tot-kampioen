@@ -25,20 +25,20 @@
 /* 3D-veld: grote tekst bij een actie ("GOAL!") en een onderschrift met wat er gebeurt */
 .pitchfx{position:absolute;left:50%;top:24%;transform:translate(-50%,-50%);font-family:var(--f-display);font-weight:900;font-size:clamp(2rem,7vw,4.6rem);text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;pointer-events:none;opacity:0;text-shadow:0 3px 0 rgba(0,0,0,.55),0 0 24px rgba(0,0,0,.5);transition:opacity .12s}
 /* melding als de spelers automatisch eenvoudiger worden */
-.pitchmelding{position:absolute;left:10px;top:10px;max-width:calc(100% - 20px);padding:6px 10px;border-radius:8px;background:rgba(7,11,22,.85);border:1px solid var(--info);color:var(--krijt);font-size:.8rem;pointer-events:none}
+.pitchmelding{position:absolute;left:10px;top:10px;max-width:calc(100% - 20px);padding:6px 10px;border-radius:8px;background:rgba(var(--diep-rgb),.85);border:1px solid var(--info);color:var(--krijt);font-size:.8rem;pointer-events:none}
 .pitchfx.lang{font-size:clamp(1.3rem,4vw,2.6rem)}
-.pitchonder{position:absolute;left:0;right:0;bottom:0;padding:6px 12px;background:rgba(7,11,22,.7);color:#fff;font-size:.88rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:0 0 10px 10px;pointer-events:none}
+.pitchonder{position:absolute;left:0;right:0;bottom:0;padding:6px 12px;background:rgba(var(--diep-rgb),.7);color:#fff;font-size:.88rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:0 0 10px 10px;pointer-events:none}
 /* Jouw actie: een balk onderin over het veld, zodat je niet hoeft te scrollen */
 .pitchvak{position:relative;width:fit-content;max-width:100%;margin-inline:auto}
-.pitchkeuze{position:absolute;left:0;right:0;bottom:0;padding:28px 12px 10px;display:grid;gap:5px;background:linear-gradient(0deg,rgba(7,11,22,.96) 62%,rgba(7,11,22,0));border-radius:0 0 10px 10px}
+.pitchkeuze{position:absolute;left:0;right:0;bottom:0;padding:28px 12px 10px;display:grid;gap:5px;background:linear-gradient(0deg,rgba(var(--diep-rgb),.96) 62%,rgba(var(--diep-rgb),0));border-radius:0 0 10px 10px}
 .pitchkeuze .moment{background:none;border-left:none;padding:0;font-size:.92rem;max-width:none;text-shadow:0 1px 2px #000}
 .pitchkeuze .opst{gap:6px}
 .pitchkeuze .keuzes{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-.pitchkeuze .keuze{background:rgba(23,32,54,.92);backdrop-filter:blur(3px)}
+.pitchkeuze .keuze{background:rgba(40,90,69,.92);backdrop-filter:blur(3px)}
 .pitchkeuze .keuze:hover{background:var(--hover)}
 @media (max-width:640px){.pitchkeuze{position:static;background:none;padding:8px 0 0}
   /* Meldingen bovenin tijdens de wedstrijd, zodat ze niet over je keuzes vallen */
-  body[data-fase="match"] .toasts{top:8px;bottom:auto}}.pitch25 canvas{width:100%;display:block;margin-inline:auto;border-radius:10px;background:#0d1324;border:1px solid var(--lijn)}
+  body[data-fase="match"] .toasts{top:8px;bottom:auto}}.pitch25 canvas{width:100%;display:block;margin-inline:auto;border-radius:10px;background:var(--diep);border:1px solid var(--lijn)}
 .log div{display:grid;grid-template-columns:38px minmax(0,1fr);gap:8px;font-size:.9rem}
 .log .m{font-family:var(--f-mono);color:var(--mist);font-variant-numeric:tabular-nums;text-align:right}
 .log .ok{color:var(--goed)}.log .mis{color:var(--fout-zacht)}

@@ -58,6 +58,7 @@ function krantFoto(item){
 export function krantNaRender(){
   const rustig = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   document.querySelectorAll('figure.pixelkrant[data-krant]:not([data-klaar])').forEach(fig => {
+    if (fig.closest('details:not([open])')) return; // (ingeklapt: pas tekenen als hij opengaat, dan draait hij ook in)
     const item = krantItem(fig.dataset.krant); if (!item) return; fig.dataset.klaar = '1';
     const sl = [item.bron, item.kop, item.wanneer || '', item.foto ? item.foto.soort : ''].join('|');
     let pagina = PAGINA.get(sl);
@@ -66,12 +67,12 @@ export function krantNaRender(){
     if (GEZIEN.has(sl) || rustig){ GEZIEN.add(sl); return; }
     GEZIEN.add(sl);
     // nieuw artikel: de krant draait het beeld in (stijlbron, anim 'krant'), over de stilstaande pagina heen
-    const maat = Math.ceil(Math.hypot(pagina.width, pagina.height)) + 8, ov = document.createElement('canvas');
+    const klein = pagina.klein || pagina, maat = Math.ceil(Math.hypot(klein.width, klein.height)) + 8, ov = document.createElement('canvas');
     ov.className = 'krantdraai'; ov.width = ov.height = maat; ov.setAttribute('aria-hidden', 'true');
-    const f = cv.clientWidth / pagina.width || 1; Object.assign(ov.style, {width:maat * f + 'px', height:maat * f + 'px', left:(cv.offsetLeft + cv.clientWidth / 2 - maat * f / 2) + 'px', top:(cv.offsetTop + cv.clientHeight / 2 - maat * f / 2) + 'px'});
+    const f = cv.clientWidth / klein.width || 1; Object.assign(ov.style, {width:maat * f + 'px', height:maat * f + 'px', left:(cv.offsetLeft + cv.clientWidth / 2 - maat * f / 2) + 'px', top:(cv.offsetTop + cv.clientHeight / 2 - maat * f / 2) + 'px'});
     fig.appendChild(ov); cv.style.visibility = 'hidden';
     const g = ov.getContext('2d'); g.imageSmoothingEnabled = false; let n = 0;
-    const tik = () => { if (!ov.isConnected){ return; } g.clearRect(0, 0, maat, maat); g.drawImage(draaiBeeld(pagina, n, maat), 0, 0);
+    const tik = () => { if (!ov.isConnected){ return; } g.clearRect(0, 0, maat, maat); g.drawImage(draaiBeeld(klein, n, maat), 0, 0);
       if (++n < DRAAI_FRAMES && n < 16) setTimeout(tik, 1000 / DRAAI_FPS); else { ov.remove(); cv.style.visibility = ''; } };
     tik();
   });

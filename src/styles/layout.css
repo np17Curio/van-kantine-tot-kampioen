@@ -1,6 +1,6 @@
 /* Scorebord-balk */
 .bord{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 18px;
-  background:rgba(7,11,22,.92);border:1px solid var(--lijn);border-radius:10px;padding:8px 14px;backdrop-filter:blur(6px)}
+  background:rgba(var(--diep-rgb),.92);border:1px solid var(--lijn);border-radius:10px;padding:8px 14px;backdrop-filter:blur(6px)}
 .merk{font-family:var(--f-display);font-weight:900;font-size:clamp(1.3rem,3.4vw,1.8rem);letter-spacing:.02em;text-transform:uppercase;line-height:1;color:var(--lamp);text-wrap:balance}
 .merk small{display:block;font-family:var(--f-mono);font-size:.68rem;font-weight:400;color:var(--mist);letter-spacing:.08em;margin-top:3px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}

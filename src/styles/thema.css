@@ -1,0 +1,95 @@
+/* ===================== Thema: neon tegels ===================== */
+/* Bovenop de rest (als laatste geïmporteerd): glanzende panelen met een verlooprand, schuine keuzetegels, een hoofdknop in
+   het verloop van turquoise naar roze, en strakke witte koppen. De kleuren zelf staan als tokens in base.css. */
+
+/* ---------- panelen: een glans van boven, een dunne verloopstreep bovenaan ---------- */
+.veld,.kaart,.paneel,.zijtabs,.bord{
+  position:relative;border-radius:14px;border-color:rgba(255,255,255,.08);
+  background-image:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,0) 45%);
+  box-shadow:0 10px 30px rgba(8,4,30,.35);
+}
+.veld::before,.kaart::before,.bord::before{
+  content:"";position:absolute;left:14px;right:14px;top:-1px;height:3px;border-radius:0 0 3px 3px;background:var(--verloop);opacity:.9;pointer-events:none;
+}
+.paneel{background-color:rgba(255,255,255,.03)}
+
+/* ---------- koppen ---------- */
+h1,h2{color:#fff;font-style:italic;letter-spacing:.01em}
+h1{text-shadow:0 2px 0 rgba(0,0,0,.25)}
+.verhaal > .label:first-child,.veld > .label:first-child{color:var(--lamp)}
+.merk{color:#fff;font-style:italic}
+
+/* ---------- tabs ---------- */
+.hubtab{font-style:italic}
+.hubtab.aan{color:#fff;border-bottom-color:transparent;background:linear-gradient(0deg,rgba(122,92,255,.22),transparent)}
+.hubtab.aan::after{content:"";position:absolute;left:6px;right:6px;bottom:-3px;height:3px;border-radius:3px;background:var(--verloop)}
+
+/* ---------- keuzetegels: schuin afgesneden hoeken, een verloopstreep links ---------- */
+.keuze{
+  position:relative;border-radius:4px;border-color:rgba(255,255,255,.1);
+  background:linear-gradient(135deg,#33276e,#271d58);
+  clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);
+  padding-left:14px;transition:transform .15s,background .15s,box-shadow .15s,border-color .15s;
+}
+.keuze::before{content:"";position:absolute;left:0;top:12px;bottom:0;width:4px;background:var(--verloop);background-size:100% 300%;opacity:.85}
+.keuze:hover{background:linear-gradient(135deg,#3f3088,#2e2268);border-color:var(--lamp);box-shadow:inset 0 0 0 1px var(--lamp),inset 0 -30px 40px -30px rgba(25,227,196,.35);transform:translateY(-2px)}
+.keuze[disabled]:hover{transform:none;background:linear-gradient(135deg,#33276e,#271d58);box-shadow:none}
+.keuze .t{font-style:italic;color:#fff}
+
+/* ---------- de hoofdknop: het verloop, schuin ---------- */
+.hoofd{
+  background:var(--verloop);color:#fff;border-radius:4px;font-style:italic;text-shadow:0 1px 2px rgba(0,0,0,.35);
+  clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);padding-inline:24px;
+  box-shadow:none;filter:drop-shadow(0 0 10px rgba(122,92,255,.55));
+}
+.hoofd:hover{filter:drop-shadow(0 0 14px rgba(25,227,196,.7)) brightness(1.08)}
+
+/* ---------- kleine knoppen en chips ---------- */
+.klein{border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.03)}
+.klein:hover{border-color:var(--lamp);background:var(--lamp-zacht)}
+.klein.aan{border-color:var(--lamp);color:#fff;background:linear-gradient(100deg,rgba(25,227,196,.25),rgba(255,61,139,.2))}
+.chip{background:rgba(122,92,255,.18);border-color:rgba(255,255,255,.12)}
+
+/* ---------- tabellen in de zijbalk ---------- */
+.tabel tr.mij td,.tabel tr.mij{background:linear-gradient(90deg,rgba(25,227,196,.18),rgba(255,61,139,.08))}
+.keuze.aan{background:linear-gradient(135deg,#3f3088,#2e2268);box-shadow:inset 0 0 0 2px var(--lamp)}
+
+/* ===================== Sjablonen (render/views/sjablonen.js): rustige blokken met "Meer" ===================== */
+.hubinhoud{display:grid;gap:14px}
+.sblok{position:relative;display:grid;gap:10px;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.07);
+  background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.015) 50%),var(--gras2)}
+.blokkop{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.bloktitel{font-size:1.05rem;color:#fff}
+.sblok > p,.sblok .moment{margin:0}
+.chiprij{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chiprij .tag,.chiprij .risico{font-size:.78rem;padding:3px 9px;border-radius:999px}
+/* "Meer": een rustig knopje rechtsonder, de inhoud schuift eronder open */
+details.meer{display:grid}
+details.meer > summary{list-style:none;cursor:pointer;justify-self:end;font-family:var(--f-mono);font-size:.72rem;color:var(--mist);padding:2px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.1)}
+details.meer > summary::-webkit-details-marker{display:none}
+details.meer > summary::after{content:" ▾"}
+details.meer[open] > summary::after{content:" ▴"}
+details.meer > summary:hover{color:var(--krijt);border-color:var(--lamp)}
+details.meer .meerinhoud{display:grid;gap:10px;padding-top:10px;margin-top:8px;border-top:1px dashed rgba(255,255,255,.1)}
+/* de volgende wedstrijd: groot en duidelijk */
+.sblok.vooruit .vs{margin:2px 0}
+/* krantenkoppen */
+.koppen{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.koppen li{font-size:.92rem;line-height:1.3}
+.koppen .bron{font-family:var(--f-mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--lamp);margin-right:6px}
+/* compacte activiteitentegels */
+.activiteiten .actgroepen{display:grid;gap:12px}
+.activiteiten .keuzes{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.keuze.tegel{padding:8px 10px 8px 14px;gap:4px}
+.keuze.tegel .t{font-size:.95rem}
+.keuze.tegel .waarde{float:right;font-family:var(--f-mono);font-style:normal;font-weight:500;font-size:.8rem;color:var(--lamp)}
+.keuze.tegel .s{font-size:.72rem}
+/* de seizoensstrip in één rij */
+.strip.compact .blokken.een{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.strip.compact .blokken.een > .blok{flex:0 0 34px}
+.strip.compact .blokken.een .winter{padding:2px 0;width:20px}
+.strip.compact .blokken.een .winter b{display:none}
+/* zijbalk */
+.seizoenregel{margin:0;font-size:.85rem}
+.kaart details.meer .meerinhoud{gap:8px}
+@media (max-width:520px){.activiteiten .keuzes{grid-template-columns:1fr 1fr}.sblok{padding:12px}}

@@ -270,12 +270,21 @@ export function rompRug(kleding = 'tenue', patroon = 'strepen', nr = ''){
   });
   ROMPEN.set(sl, img); return img;
 }
-export const BAL = sprite(11, 11, c => {
-  c.circ(5, 5, 5, 'b');
-  c.rect(4, 3, 3, 4, 'g'); c.rect(3, 4, 5, 2, 'g');
-  c.rect(1, 1, 2, 2, 'G'); c.rect(8, 1, 2, 2, 'G'); c.rect(1, 7, 2, 2, 'G'); c.rect(8, 7, 2, 2, 'G');
-  c.px(9, 5, 'B'); c.px(8, 8, 'B'); c.px(5, 10, 'B');
-});
+// Een echte voetbal: wit met zwarte vijfhoeken (één in het midden, halve aan de randen), naden ertussen en schaduw rechtsonder
+// (b wit, B schaduw, k de zwarte vlakken; de omlijning komt er bij het tekenen van de speler omheen)
+const BAL_KAART = [
+  '...bbkbb...',
+  '..bbbkbbb..',
+  '.kbbBbBbbk.',
+  'kkbBbbbBbkk',
+  'bbBbbkbbBbb',
+  'bbbbkkkbbbb',
+  'bbbbkkkbbbB',
+  'bbbBbbbBbBB',
+  '.bkkbbbkkB.',
+  '..bkbbbkB..',
+  '...bBBBB...'];
+export const BAL = sprite(11, 11, c => BAL_KAART.forEach((rij, y) => [...rij].forEach((k, x) => { if (k !== '.') c.px(x, y, k); })));
 
 // ---------- de rig ----------
 export const GROND = 74;               // y van de grond (onderkant schoenen)

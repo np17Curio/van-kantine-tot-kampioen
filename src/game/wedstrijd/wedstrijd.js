@@ -391,6 +391,9 @@ export function kies(i){
   const M = S.M, opt = pOpts(M.pending)[i];
   const ok = rnd() < kans(opt);
   let out = (ok ? opt.ok : opt.mis)();
+  // Vangnet: ben je met een dribbel langs je man gegaan (de animatie laat dat zien), dan loopt de aanval door met een schietkans
+  { const pt = M.pending.type, soortNu = opt.anim ? opt.anim[0] : animSoort(pt, opt.l);
+    if (ok && soortNu === 'dribbel' && !out.next && !out.goal && !out.assist && !out.teamGoal && !out.tegen && !(MOMENTS[pt] && MOMENTS[pt].keeper) && !['opbouw', 'tackle', 'verdedigen'].includes(pt)) out = {...out, next:'rand'}; }
   if (out.vriend) zetVriendBand(out.vriend);
   if (opt.toon && !M.gesimuleerd) toonMeter(opt.toon); // je karakter: rustig of heethoofd (niet bij een gesimuleerde wedstrijd)
   if (out.vriendGoal) M.vriendGoals = (M.vriendGoals || 0) + 1;
@@ -442,8 +445,8 @@ export function kies(i){
   if (varWacht && !M.rood){ M.log.push({m, t:'📺 VAR-check! De scheidsrechter legt zijn hand bij zijn oor en loopt naar het scherm...', k:'var'}); M.varKeuze = {uitslag:varWacht, m}; return; }
   if (out.goal && M.reunie && !M.juichGekozen && !M.rood){ M.juichGekozen = true; M.pending = bouwMoment('juichen'); return; }
   // jouw goal: hoe vier je hem? (de eventuele vervolgactie komt daarna)
-  if (out.goal && !M.rood){ openDans(M, m, out.next && M.us - M.them < 4 ? out.next : null); return; }
-  if (out.next && !M.rood && M.us - M.them < 4){ // (bij een ruime voorsprong geen extra scoremoment meer)
+  if (out.goal && !M.rood){ openDans(M, m, out.next && (M.us - M.them < 4 || ['eenOpEen', 'penalty'].includes(out.next)) ? out.next : null); return; }
+  if (out.next && !M.rood && (M.us - M.them < 4 || ['eenOpEen', 'penalty'].includes(out.next))){ // (bij een ruime voorsprong geen extra scoremoment meer, behalve als je al door bent)
     // Vervolgactie in dezelfde aanval: zelfde minuut, zodat het verslag op volgorde blijft
     M.pending = bouwMoment(out.next);
     return;

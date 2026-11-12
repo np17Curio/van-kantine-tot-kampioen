@@ -110,6 +110,27 @@ const HOOG = {
     tekst:d => `${d.club} wint de ${d.beker}! Je eerste prijs als prof. Je mag de beker vasthouden en hij is zwaarder dan je dacht.`,
     volgorde:['ouders', 'partner', 'vriend', 'opa', 'exVriend'], sociaal:'fans',
     fansL:() => 'De beker naar het vak brengen', fans:() => 'Je loopt met de beker naar het vak van de fans en tilt hem boven je hoofd. Het geluid is oorverdovend.'},
+  hattrick:{titel:'Hattrick!', wat:() => 'je hattrick',
+    tekst:d => `${d.n >= 4 ? `${d.n} goals` : 'Drie goals'} in één wedstrijd${d.zij ? `, tegen ${d.zij}` : ''}! Na het laatste fluitsignaal krijg je de wedstrijdbal mee naar huis. Met wie deel je dit?`,
+    volgorde:['vriend', 'ouders', 'partner', 'opa', 'exVriend'], sociaal:'fans',
+    oudersL:() => 'De wedstrijdbal aan je ouders geven', ouders:() => 'Je geeft de wedstrijdbal aan je ouders. Je vader zet hem in de vitrinekast, met een briefje erbij: datum, tegenstander, drie goals. Je moeder fotografeert hem vanuit tien hoeken.',
+    vriendL:(d, n) => `De bal laten signeren voor ${n}`, vriend:(d, n) => `Je laat de bal door de hele selectie signeren en geeft hem aan ${n}. "Die gaat naast mijn bed," zegt ${vr.hij}. "Zodat ik elke ochtend zie wat ik moet halen."`,
+    fansL:() => 'De bal het vak in schieten', fans:() => 'Je schiet de wedstrijdbal hoog het vak in. Een jongetje van acht vangt hem en houdt hem boven zijn hoofd alsof hij zelf gescoord heeft. Het filmpje gaat het hele land rond.'},
+  vasteWaarde:{titel:'Vaste waarde', wat:d => `je basisplaats bij ${d.club}`,
+    tekst:d => `Je bent een vaste waarde bij ${d.club}! Elke week staat je naam als eerste op het bord in de kleedkamer. Je hebt je plek veroverd. Met wie vier je het?`,
+    volgorde:['ouders', 'partner', 'vriend', 'opa', 'exVriend'], sociaal:'team',
+    teamL:() => 'Je ploeggenoten trakteren', team:() => 'Je neemt na de training gebak mee voor de hele groep. "Vaste waarde, vaste traktatie," roept de keeper. Je hoort er nu echt bij.'},
+  fanfavoriet:{titel:'Fanfavoriet', wat:d => `je eigen lied bij ${d.club}`,
+    tekst:d => `De fans van ${d.club} hebben een lied over jou gemaakt! Het hele stadion zingt je naam als je de bal krijgt.`,
+    volgorde:['ouders', 'vriend', 'partner', 'opa', 'exVriend'], sociaal:'fans',
+    fansL:() => 'Naar het vak om mee te zingen', fans:() => 'Na de wedstrijd loop je naar het vak en zing je je eigen lied mee, vals en uit volle borst. De fans lachen en zingen nog harder.'},
+  aanvoerder:{titel:'Aanvoerder', wat:d => `de aanvoerdersband van ${d.club}`,
+    tekst:d => `De trainer geeft je de aanvoerdersband van ${d.club}. Jij loopt vanaf nu als eerste het veld op. Wie bel je als eerste?`,
+    volgorde:['opa', 'ouders', 'partner', 'vriend', 'exVriend'], sociaal:'team',
+    teamL:() => 'Een speech in de kleedkamer', team:() => 'Je staat op in de kleedkamer en houdt je eerste speech als aanvoerder. Je stem trilt een beetje, maar iedereen luistert. Daarna klapt de hele groep.'},
+  clublegende:{titel:'Clublegende', wat:d => `je plek in de geschiedenis van ${d.club}`,
+    tekst:d => `Je bent een clublegende van ${d.club}! Je naam komt op de muur bij de ingang van het stadion, tussen de grootste namen van de club.`,
+    volgorde:['ouders', 'opa', 'partner', 'vriend', 'exVriend'], sociaal:'fans'},
   wed100:{titel:'Honderd wedstrijden', wat:() => 'je honderdste wedstrijd',
     tekst:d => `Je ${nr(100)} wedstrijd als prof! Voor de aftrap krijg je bloemen van het bestuur en een ingelijst shirt met het nummer 100.`,
     volgorde:['ouders', 'partner', 'opa', 'vriend', 'exVriend'], sociaal:'team'},
@@ -169,6 +190,7 @@ export function hoogtepuntenNaWedstrijd(M, debuut){
   if (M.goals > 0 && S.car.g - M.goals <= 0) hoogtepunt('eersteGoal', {zij});
   if (sp.pos === 'KEEPER' && M.rol === 'basis' && M.them === 0) hoogtepunt('eersteNul', {zij});
   if (S.car.wed === 100) hoogtepunt('wed100', {});
+  if (M.goals >= 3) hoogtepunt('hattrick', {zij, n:M.goals}, true); // (hooguit eens per seizoen)
   if (sp.pos !== 'KEEPER' && S.car.g >= 50 && S.car.g - M.goals < 50) hoogtepunt('goal50', {});
   if (sp.pos === 'KEEPER' && (S.car.nul || 0) === 50 && M.them === 0 && M.rol === 'basis') hoogtepunt('nul50', {});
 }

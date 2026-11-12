@@ -1,5 +1,6 @@
 import { S, club, gemCijfer, ovr, salarisLabel, seizoenLabel, sterren, tmp, waarde, attr } from '../../core/state.js';
 import { knop, tabBalk } from '../../core/ui.js';
+import { meer } from './sjablonen.js';
 import { clamp, esc, geldTxt } from '../../core/utils.js';
 import { AANV, AANTAL_RONDES, CLUBS, DIVS, LEGENDE, POS, SPONSOR_CAT, STATUS, STATUS_KORT, TRAINBAAR, landInfo, STATUS_ROL, STATUS_UITLEG, WINTER, rondeInWeek, rondesVan, rondesVoor } from '../../data/gegevens.js';
 import { bekerAgenda, vBekerKaart } from '../../game/competitie/beker.js';
@@ -46,12 +47,10 @@ export function vStatus(){
   const namen = STATUS_KORT.map((s, i) => `<span class="${i === n ? 'nu' : i < n ? 'bereikt' : ''}">${i === 0 && sp.leeftijd >= 21 ? 'Nieuw&shy;komer' : s}</span>`).join('');
   return `<div class="status">
     <div class="rij" style="justify-content:space-between"><span class="label">Status bij ${esc(club().n)}</span><span class="label">${sp.clubWed} wed · ${sp.clubSz} ${sp.clubSz === 1 ? 'seizoen' : 'seizoenen'}</span></div>
-    <div class="statusnaam">${sp.o23 ? 'Bij de O23' : statusNaam(n)}</div>
-    ${sp.o23 ? '' : `<p class="muted klein-tekst statusrol">${STATUS_UITLEG[n]}</p>`}
-    <div class="segs">${segs}</div>
-    <div class="treden">${namen}</div>
+    <div class="statusnaam" title="${esc(sp.o23 ? '' : STATUS_UITLEG[n])}">${sp.o23 ? 'Bij de O23' : statusNaam(n)}</div>
+    <div class="segs" title="${esc(STATUS_KORT.join(' → '))}">${segs}</div>
     ${!sp.o23 && n >= 2 && n < AANV ? vAanvoerderEisen() : ''}
-    <p class="muted klein-tekst">${sp.o23 ? 'Bewijs jezelf bij de O23 om terug te komen bij de selectie.' : d ? `Volgende stap omhoog: ${d.naam} (${STATUS_ROL[n + 1]}) · nog ${d.nodig.join(' en ')}` : 'Hoger kan niet. Je naam staat voor altijd in de clubboeken.'}</p>
+    <p class="muted klein-tekst">${sp.o23 ? 'Bewijs jezelf bij de O23 om terug te komen bij de selectie.' : d ? `Volgende: <b>${d.naam}</b> · nog ${d.nodig.join(' en ')}` : 'Hoger kan niet. Je naam staat voor altijd in de clubboeken.'}</p>
   </div>`;
 }
 // De seizoenskalender: per week het logo van je tegenstander (T = thuis, U = uit), gespeelde wedstrijden in de kleur van de uitslag
@@ -79,11 +78,19 @@ export function vSeizoenStrip(){
   const bekerBlok = x => { const ic = x.europa ? '⭐' : '🏆', naam = x.opp != null && CLUBS[x.opp] ? CLUBS[x.opp].n : null;
     const titel = `${x.naam} · ${x.ronde}${x.vrij ? ' · vrije doorgang' : naam ? ` · ${x.thuis ? 'thuis' : 'uit'} tegen ${naam}` : ''}${x.score ? ` · ${x.score} ${UITSLAG[x.r]}` : x.loting ? ' · loting volgt' : x.nu ? ' · deze week' : ''}`;
     return `<span class="blok beker${x.r ? ` u-${x.r}` : ''}${x.loting ? ' loting' : ''}${x.nu ? ' u-nu' : ''}" title="${esc(titel)}">${naam ? clubLogo(x.opp, 16) : ic}${x.r ? `<b class="ul">${x.r}</b>` : ''}</span>`; };
-  const helft = (a, b) => `<div class="helft">${Array.from({length:b - a}, (_, k) => blok(a + k) + ag.filter(x => x.week === a + k + 1).map(bekerBlok).join('')).join('')}</div>`;
+  const helft = (a, b, extra = '') => `<div class="helft${extra}">${Array.from({length:b - a}, (_, k) => blok(a + k) + ag.filter(x => x.week === a + k + 1).map(bekerBlok).join('')).join('')}</div>`;
   const t = club().t, tot = rondesVan(t), gespeeld = Math.min(rondesVoor(t, S.ronde + (S.fase === 'matchEnd' ? 1 : 0)), tot);
-  return `<div class="strip"><div class="rij" style="justify-content:space-between"><span class="label">Seizoen ${seizoenLabel()} · ${tot} wedstrijden in ${AANTAL_RONDES} weken</span><span class="label">${gespeeld} gespeeld · nog ${tot - gespeeld}</span></div>
-    <div class="blokken" title="T = thuis, U = uit · W = gewonnen, G = gelijk, V = verloren · – = speelvrije week">${helft(0, WINTER)}<span class="winter" title="Winterstop"></span>${helft(WINTER, AANTAL_RONDES)}</div>
-    ${los ? '' : vProgramma()}</div>`;
+  const winterKol = `<span class="winter${S.ronde === WINTER ? ' nu' : ''}" title="Winterstop na week ${WINTER}: het transfervenster gaat open"><i aria-hidden="true">❄</i><b>Winterstop</b></span>`;
+  // standaard één korte rij: de laatste drie weken, deze week en de volgende vier (het hele seizoen klapt uit)
+  if (!tmp.seizoenOpen){
+    const van = Math.max(0, Math.min(S.ronde - 3, AANTAL_RONDES - 8)), totW = Math.min(AANTAL_RONDES, van + 8);
+    let rij = ''; for (let i = van; i < totW; i++){ if (i === WINTER && i > van) rij += winterKol; rij += blok(i) + ag.filter(x => x.week === i + 1).map(bekerBlok).join(''); }
+    return `<div class="strip compact"><div class="rij" style="justify-content:space-between"><span class="label">Seizoen ${seizoenLabel()} · ${gespeeld} van ${tot} gespeeld${S.ronde < WINTER ? ` · <span class="wintertxt">❄ winterstop na week ${WINTER}</span>` : ''}</span>${knop('Hele seizoen ▾', () => { tmp.seizoenOpen = true; }, 'klein', 'data-blijf')}</div>
+      <div class="blokken een" title="T = thuis, U = uit · W = gewonnen, G = gelijk, V = verloren · – = speelvrije week">${rij}</div></div>`;
+  }
+  return `<div class="strip"><div class="rij" style="justify-content:space-between"><span class="label">Seizoen ${seizoenLabel()} · ${tot} wedstrijden in ${AANTAL_RONDES} weken · <span class="wintertxt">❄ winterstop na week ${WINTER}</span></span><span class="label">${gespeeld} gespeeld · nog ${tot - gespeeld}</span></div>
+    <div class="blokken" title="T = thuis, U = uit · W = gewonnen, G = gelijk, V = verloren · – = speelvrije week">${helft(0, WINTER)}${winterKol}${helft(WINTER, AANTAL_RONDES, ' nawinter')}</div>
+    <div class="rij" style="justify-content:space-between">${los ? '<span></span>' : vProgramma()}${knop('Inklappen ▴', () => { tmp.seizoenOpen = false; }, 'klein', 'data-blijf')}</div></div>`;
 }
 // Het hele programma als lijst (uitklapbaar): week, tegenstander, thuis/uit en de uitslag
 function vProgramma(){
@@ -95,7 +102,7 @@ function vProgramma(){
     const r = w.r, nu = i === S.ronde && S.fase !== 'matchEnd';
     regels.push(`<li class="${nu ? 'nu' : ''}${r ? ` u-${r.r}` : ''}"><span class="wk">${i + 1}</span>${clubLogo(w.opp, 18)}<span class="cn">${esc(CLUBS[w.opp].n)}</span><span class="tu">${w.thuis ? 'thuis' : 'uit'}</span><span class="res">${r ? `${esc(r.s.split(' tegen ')[0])} ${r.r}` : nu ? 'deze week' : ''}</span></li>`);
     for (const x of ag.filter(x => x.week === i + 1)) regels.push(bekerRegel(x));
-    if (i === WINTER - 1) regels.push('<li class="winterregel">Winterstop</li>');
+    if (i === WINTER - 1) regels.push('<li class="winterregel">❄ Winterstop · het transfervenster gaat open</li>');
   }
   return `<details id="programmaPanel" class="programma" ${tmp.programmaOpen ? 'open' : ''}><summary class="label">Programma</summary><ol>${regels.join('')}</ol></details>`;
 }
@@ -157,21 +164,23 @@ export function vZij(){
       <div>${knop(tmp.stats ? 'Terug naar het spel' : '📊 Mijn carrière', () => { tmp.stats = !tmp.stats; }, 'klein')}</div>
       <div class="speler"><div class="ovr">${ovr(sp)}<small>KLASSE</small></div>
         <div><div class="naam">${sp.o23 || sp.clubloos ? '' : `<span class="muted">#${rugnummer()}</span> `}${esc(sp.naam)}</div><div class="muted">${POS[sp.pos].n} · ${sp.leeftijd} jaar · ${lengteTxt(lichaam().lengte)} · ${gewichtVan(lichaam().lengte, lichaam().bmi)} kg · ${sp.clubloos ? 'zonder club' : esc(c.n)}${sp.o23 ? ' O23' : ''}${sp.huur ? ` (gehuurd van ${esc(huurOuder().n)})` : ''}</div><div class="label" title="Verwachting van scouts">Talent ${sterren(sp.pot)}</div>${(() => { const M = mijnLeague(); if (!M) return ''; const b = besteLeagues()[0], beter = M.oordeel === 'tegoed' || M.oordeel === 'tehoog'; return `<div class="muted klein-tekst" title="Zie Carrière: Jouw niveau">Niveau: ${OORDEEL[M.oordeel].n.toLowerCase()} ${M.oordeel === 'past' ? 'in' : 'voor'} de ${esc(M.naam)}${beter && b ? ` · beter: ${esc(b.naam)}` : ''}</div>`; })()}</div></div>
-      ${mijnPers().length ? `<div class="perschips">${mijnPers().map(id => `<span class="tag pers" title="In het veld: ${esc(PERS[id].veld)} Buiten het veld: ${esc(PERS[id].buiten)}">${PERS[id].i} ${PERS[id].n}</span>`).join('')}</div>` : ''}
       ${vStatus()}
-      ${vVerhaal()}
-      <div class="balken">${TRAINBAAR.map(k => balk(attr(k), sp.a[k])).join('')}</div>
-      <div class="balken2">${balk('Fitheid', sp.fit, 'st')}${balk('Moraal', sp.moraal, 'st')}${balk('Focus', sp.focus ?? 65, 'st')}${vKalmte()}${balk('Vertrouwen', sp.vert, 'st')}${balk('Reputatie', sp.rep, 'st')}</div>
-      <div class="feiten">
-        <div><span class="label">Vorm</span><b>${vorm}</b></div>
-        <div><span class="label">Marktwaarde</span><b>${geldTxt(waarde(sp))}</b></div>
-        <div><span class="label">${salarisLabel(c.t)}</span><b>${geldTxt(sp.salaris)}</b></div>
-        <div><span class="label">Contract</span><b>${Math.max(sp.contract, 0)} jaar${sp.clausule && sp.clausule.club === sp.club ? `<br><span class="muted klein-tekst">afkoopsom ${geldTxt(sp.clausule.bedrag)}</span>` : ''}</b></div>
-        <div><span class="label">Dit seizoen</span><b>${S.ss.wed} wed · ${S.ss.g} G · ${S.ss.a} A${S.ss.geel ? ` · ${S.ss.geel} geel` : ''}${S.ss.rood ? ` · ${S.ss.rood} rood` : ''}</b></div>
-        <div><span class="label">Gem. cijfer</span><b>${gem === null ? '–' : gem.toFixed(1).replace('.', ',')}</b></div>
-      </div>
-      <div><span class="label">Privé</span><div>${prive}</div></div>
+      <div class="balken2">${balk('Fitheid', sp.fit, 'st')}${balk('Moraal', sp.moraal, 'st')}${balk('Focus', sp.focus ?? 65, 'st')}${balk('Vertrouwen', sp.vert, 'st')}</div>
+      <p class="seizoenregel"><span class="label">Dit seizoen</span> <b>${S.ss.wed} wed · ${S.ss.g} G · ${S.ss.a} A</b>${gem === null ? '' : ` · gem. <b>${gem.toFixed(1).replace('.', ',')}</b>`}</p>
       ${sp.blessure > 0 ? `<p style="color:var(--fout)">${sp.verlof ? 'Zwangerschapsverlof' : `Geblesseerd${sp.blesSoort && sp.blesSoort.kort ? ` (${esc(sp.blesSoort.kort)})` : ''}`}: nog ${sp.blessure} ${sp.blessure === 1 ? 'week' : 'weken'}</p>` : ''}
+      ${meer('overjou', 'Meer over jou', `
+        ${mijnPers().length ? `<div class="perschips">${mijnPers().map(id => `<span class="tag pers" title="In het veld: ${esc(PERS[id].veld)} Buiten het veld: ${esc(PERS[id].buiten)}">${PERS[id].i} ${PERS[id].n}</span>`).join('')}</div>` : ''}
+        <div class="balken">${TRAINBAAR.map(k => balk(attr(k), sp.a[k])).join('')}</div>
+        <div class="balken2">${vKalmte()}${balk('Reputatie', sp.rep, 'st')}</div>
+        <div class="feiten">
+          <div><span class="label">Vorm</span><b>${vorm}</b></div>
+          <div><span class="label">Marktwaarde</span><b>${geldTxt(waarde(sp))}</b></div>
+          <div><span class="label">${salarisLabel(c.t)}</span><b>${geldTxt(sp.salaris)}</b></div>
+          <div><span class="label">Contract</span><b>${Math.max(sp.contract, 0)} jaar${sp.clausule && sp.clausule.club === sp.club ? `<br><span class="muted klein-tekst">afkoopsom ${geldTxt(sp.clausule.bedrag)}</span>` : ''}</b></div>
+          ${S.ss.geel || S.ss.rood ? `<div><span class="label">Kaarten</span><b>${S.ss.geel || 0} geel · ${S.ss.rood || 0} rood</b></div>` : ''}
+        </div>
+        ${vVerhaal()}
+        <div><span class="label">Privé</span><div>${prive}</div></div>`)}
     </div>`;
   const leeg = t => `<div class="kaart"><p class="muted">${t}</p></div>`;
   const tabs = {

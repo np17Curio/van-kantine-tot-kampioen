@@ -15,6 +15,7 @@ import { zetWereld } from '../../data/gegevens.js';
 import { ik } from '../../core/geslacht.js';
 import { eindLengte } from './lichaam.js';
 import { chemie } from '../team/kleedkamer.js';
+import { hoogtepunt } from './hoogtepunten.js';
 
 /* ===================== Status bij de club ===================== */
 // Startstatus bij een nieuwe club: hoe beter je bent dan de club en hoe bekender je bent, hoe hoger
@@ -85,6 +86,9 @@ export function statusKrant(oud, n){
   const sp = S.sp, c = club().n, naam = sp.naam;
   let sleutel = null, kop, tekst, foto = null;
   if (n > oud){
+    // een stap omhoog is een hoogtepunt (eens per seizoen per soort: bij een nieuwe club kan het weer)
+    const hid = n === 2 ? 'vasteWaarde' : n === 3 ? 'fanfavoriet' : n === AANV ? 'aanvoerder' : n === LEGENDE ? 'clublegende' : null;
+    if (hid && !sp.o23) hoogtepunt(hid, {club:c}, true);
     if (n === 2){ sleutel = 'basis'; kop = `${naam} verovert een basisplaats bij ${c}`; tekst = 'De trainer rekent elke week op ' + ik.hem + '. "' + ik.Hij + ' heeft het verdiend."'; }
     else if (n === 3){ sleutel = 'fans'; kop = `Fanfavoriet: ${c} zingt de naam van ${naam}`; tekst = 'Op de tribune hangt al een spandoek met ' + ik.zijn + ' naam. De fans hebben een nieuwe ' + ik.held + '.'; }
     else if (n === AANV){ sleutel = 'aanv'; kop = `${naam} is de nieuwe aanvoerder van ${c}`; tekst = `De trainer geeft ${ik.hem} de band. "${ik.Hij} gaat voorop in de strijd, op en naast het veld."`; foto = fotoVan('portret', `${naam}, de nieuwe aanvoerder van ${c}.`); }
