@@ -22,6 +22,7 @@ import { staminaNaWedstrijd } from '../wedstrijd/stamina.js';
 import { talentNaWedstrijd } from './talent.js';
 import { teamKracht } from '../team/kleedkamer.js';
 import { ik } from '../../core/geslacht.js';
+import { vriendInSelectie } from './journey.js';
 
 /* ===================== O23 en verhuur ===================== */
 export const gemiddelde = l => l.reduce((a, b) => a + b, 0) / l.length;
@@ -170,6 +171,7 @@ export function terugVanHuur(){
   const ouder = CLUBS[h.ouder], c = h.cijfers, g = c.length ? gemiddelde(c) : null;
   sp.club = h.ouder; sp.huur = null; sp.o23 = null; sp.recent = []; sp.gewaarschuwd = false;
   sp.clubWed = h.clubWed; sp.clubSz = h.clubSz; sp.legendeHier = h.legende; sp.sindsTransfer = 10; sp.huurTerug = true; // (geen 'eerste seizoen' meer bij je eigen club)
+  vriendInSelectie(); // je jeugdvriend(in) bij je eigen club: weer in de selectie (journey.js)
   let tekst;
   // Een goede huurperiode maakt je nog geen basisspeler bij je eigen club: je komt terug als bankspeler die dicht tegen een
   // basisplaats aan zit (een jonkie stond eerst nog onderaan). Alleen als je klasse echt goed genoeg is voor de club (die je

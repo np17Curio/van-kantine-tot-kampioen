@@ -2,6 +2,7 @@ import { S, mod } from '../../core/state.js';
 import { clamp, pick, randInt, rnd, shuffle } from '../../core/utils.js';
 import { NL_VRAAG, nietNL } from '../../data/landen.js';
 import { fmt1, gemiddelde } from '../speler/o23.js';
+import { taal } from '../../core/taal.js';
 
 /* ===================== School (tot je 18e) ===================== */
 export const VAKKEN = ['Wiskunde', 'Nederlands', 'Engels', 'Aardrijkskunde', 'Geschiedenis', 'Biologie'];
@@ -122,7 +123,7 @@ export function wiskundeVraag(){
 export function maakSchoolvraag(sp){
   const sch = sp.school = sp.school || {cijfers:[]};
   const gehad = sch.gehad = sch.gehad || [];
-  const vak = pick(VAKKEN);
+  const vak = pick(VAKKEN.filter(v => !((v === 'Nederlands' || v === 'Engels') && taal() === 'en'))); // (in het Engels: geen taalvragen over Nederlandse spelling of Engelse woordjes)
   let rij;
   if (vak === 'Wiskunde') rij = wiskundeVraag();
   else {

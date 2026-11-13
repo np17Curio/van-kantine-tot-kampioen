@@ -18,7 +18,7 @@ import { team } from '../../core/geslacht.js';
 // zwakker. Jouw eigen club doet meestal ook mee: nieuwe teamgenoten komen binnen, of een maat vertrekt. Alles komt in de krant.
 const MAX_DELTA = 2; // per club per periode hooguit ±2 sterkte
 // Over welke competitie gaat het: jouw niveau
-const isRivaal = x => !!(S.sp && S.sp.rivaal && x.n === S.sp.rivaal.n && x.v === S.sp.rivaal.v);
+const isRivaal = x => !!(S.sp && [S.sp.rivaal, ...(S.sp.rivalen || [])].some(R => R && x.n === R.n && x.v === R.v)); // (al je rivalen)
 export function marktComp(){
   return {t:club().t, mijn:S.sp.club, jeugd:false};
 }
@@ -45,7 +45,7 @@ function neemOp(naar, speler){
   const selN = selectie(naar);
   const zelfde = selN.filter(x => x.pos === speler.pos);
   const zwakBasis = zelfde.filter(x => x.basis).sort((a, b) => a.g + a.a - b.g - b.a)[0];
-  const zwakBank = zelfde.filter(x => !x.basis).sort((a, b) => a.g + a.a - b.g - b.a)[0];
+  const zwakBank = zelfde.filter(x => !x.basis && !x.vriend && !isRivaal(x)).sort((a, b) => a.g + a.a - b.g - b.a)[0];
   if (zwakBank) selN.splice(selN.indexOf(zwakBank), 1);
   if (zwakBasis){ zwakBasis.basis = false; [zwakBasis.g, zwakBasis.a] = [zwakBasis.g * .5, zwakBasis.a * .5]; }
   selN.push({v:speler.v, n:speler.n, pos:speler.pos, basis:true, nieuwWeek:S.weekNr || 0, k:speler.k, lft:speler.lft, kVorig:speler.kVorig, jeugd:speler.jeugd, sindsWeek:speler.sindsWeek, g:Math.max(speler.g, zwakBasis ? zwakBasis.g * 2 : 0), a:Math.max(speler.a, zwakBasis ? zwakBasis.a * 2 : 0)});
@@ -283,7 +283,7 @@ export function herschik(sel){
 export function jeugdDoorstroom(clubs){
   for (const id of clubs){
     const sel = selectie(id), weg = randInt(1, 2);
-    const bank = sel.filter(x => !x.basis && x.pos !== 'K').sort((a, b) => (a.k ?? 0) - (b.k ?? 0)).slice(0, weg);
+    const bank = sel.filter(x => !x.basis && x.pos !== 'K' && !x.vriend && !isRivaal(x)).sort((a, b) => (a.k ?? 0) - (b.k ?? 0)).slice(0, weg);
     for (const x of bank){ sel.splice(sel.indexOf(x), 1); if (id === S.sp.club) delete kleedkamer().rel[x.n]; }
     selectie(id); // aanvullen: de jeugdspelers
   }

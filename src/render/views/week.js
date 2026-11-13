@@ -50,7 +50,7 @@ import { vSelectie } from './selectie.js';
 import { clubLogo } from '../../data/logos.js';
 import { laatsteUitslagen, vormBolletjes, vormBonus, vormLabel } from '../../game/competitie/vorm.js';
 import { heeft } from '../../game/speler/persoonlijkheid.js';
-import { voorDuelAntwoord, voorDuelVraag, RIVAAL_ACTIES, actiefRivaal, bandLabel as rivaalBand, doeRivaalActie, kanRivaalActie, raceStand, rivaal, rivaalNaam, rivaalPrikkel, rivaalSpeler, rivaalStats, speeltTegenRivaal, volgendDuel } from '../../game/speler/rivaal.js';
+import { voorDuelAntwoord, voorDuelVraag, RIVAAL_ACTIES, actiefRivaal, bandLabel as rivaalBand, doeRivaalActie, kanRivaalActie, raceStand, rivaal, rivaalNaam, rivaalPrikkel, rivaalSpeler, rivaalStats, speeltTegenRivaal, volgendDuel, rivaalTegen, overigeRivalen, rivaalSoort, kanHoofdRivaal, maakHoofdRivaal, sleutel } from '../../game/speler/rivaal.js';
 import { PERS } from '../../game/speler/persoonlijkheid.js';
 import { fmtPunt, goudenBalStand } from '../../game/seizoen/gouden-bal.js';
 import { BUITENLAND_ACTIES, TAAL, doeBuitenlandActie, inBuitenland, kanBuitenlandActie, lesPrijs, taalLabel, taalNiveau, taalStraf, vluchtPrijs } from '../../game/prive/buitenland-leven.js';
@@ -107,9 +107,9 @@ function vVriendInterview(fx){
     <p class="muted klein-tekst">Je hoeft niet te antwoorden.</p></div>`;
 }
 function vRivaalInterview(fx){
-  if (!fx || S.sp.o23 || !speeltTegenRivaal(fx.opp)) return '';
-  const P = voorDuelVraag(); if (!P) return '';
-  const kop = `<span class="label">Interview voor het duel met ${esc(rivaalNaam())}</span>`;
+  const R = fx && !S.sp.o23 ? rivaalTegen(fx.opp) : null; if (!R) return '';
+  const P = voorDuelVraag(R); if (!P) return '';
+  const kop = `<span class="label">Interview voor het duel met ${esc(rivaalNaam(R))}</span>`;
   if (P.klaar) return `<div class="paneel">${kop}<p class="muted">"${esc(P.vraag)}"</p><p><b>Jij:</b> ${esc(P.opts[P.keuze].t)}</p><p class="melding">${esc(P.uit)}</p></div>`;
   return `<div class="paneel" id="rivaalInterview">${kop}<p>Een verslaggever wacht je op na de training: <b>"${esc(P.vraag)}"</b></p>
     <div class="keuzes">${P.opts.map((o, i) => keuzeKnop(o.l, `${esc(o.t)} · ${o.e}`, () => voorDuelAntwoord(i), 'data-blijf')).join('')}</div>
@@ -123,7 +123,7 @@ function vSpeelvrij(){
 function vVooruitblik(fx, opp, vo){
   const sp = S.sp, c = club(), wij = sp.o23 ? `${c.n} O23` : c.n, zij = sp.o23 ? `${opp.n} O23` : opp.n;
   const aandeel = Math.round(clamp(c.s / (c.s + opp.s), .1, .9) * 100);
-  const tags = [fx.thuis ? '<span class="tag">Thuis</span>' : '<span class="tag">Uit</span>', reunieMet(fx.opp) ? '<span class="tag twee">Je oude club!</span>' : '', isDerby(fx.opp) ? '<span class="tag teveel">Derby tegen je aartsrivaal</span>' : '', speeltTegenRivaal(fx.opp) ? `<span class="tag teveel">Je rivaal ${esc(rivaalNaam())} speelt mee</span>` : '',
+  const tags = [fx.thuis ? '<span class="tag">Thuis</span>' : '<span class="tag">Uit</span>', reunieMet(fx.opp) ? '<span class="tag twee">Je oude club!</span>' : '', isDerby(fx.opp) ? '<span class="tag teveel">Derby tegen je aartsrivaal</span>' : '', speeltTegenRivaal(fx.opp) ? `<span class="tag teveel">Je rivaal ${esc(rivaalNaam(rivaalTegen(fx.opp)))} speelt mee</span>` : '',
     vriendBijTegenstander(fx.opp) ? `<span class="tag twee">Je ${vr.vriend} ${esc(S.sp.vriend.voornaam)} speelt bij ${esc(opp.n)}</span>` : ''];
   // Wie is favoriet? Jullie kracht (met jou, de sfeer en de tactiek) tegen die van de tegenstander
   if (!sp.o23){ const T = teamKracht(c.s, {speelt:true, thuis:fx.thuis, tactiek:matchup(clubTactiek(sp.club), clubTactiek(fx.opp))}), O = opp.s + (fx.thuis ? 0 : 2) + vormBonus(fx.opp), d = T - O;
@@ -218,7 +218,7 @@ function vDezeWeek(){
   // interviews en een weerzien: niet verplicht, dus ingeklapt (met één zin erboven)
   const iv = (kop, zin, inhoud, sl) => inhoud ? blok({label:kop, inhoud:`<p class="muted klein-tekst">${zin}</p>`, meer:inhoud, meerLabel:'Lees en reageer', sleutel:sl + '-' + S.jaar + '-' + S.ronde}) : '';
   const ivRiv = vRivaalInterview(fx);
-  html += (ivRiv ? iv('Interview', `Een verslaggever wil je spreken voor het duel met ${esc(rivaalNaam())}.`, ivRiv, 'ivr') : '')
+  html += (ivRiv ? iv('Interview', `Een verslaggever wil je spreken voor het duel met ${esc(rivaalNaam(rivaalTegen(fx.opp)))}.`, ivRiv, 'ivr') : '')
     + iv(`Bericht van ${esc(sp.vriend ? sp.vriend.voornaam : '')}`, 'Je speelt zondag tegen je beste vriend. Er staat een appje voor je klaar.', vVriendInterview(fx), 'ivv')
     + (fx ? iv('Weerzien', 'Je speelt tegen je oude club.', vReunie(), 'reunie') : '');
   if (sp.o23){ const c = sp.o23.cijfers; html += `<div class="paneel"><span class="label">Bij de O23</span><p>${O23_EIS}</p><p class="muted">${c.length ? 'Je cijfers bij de O23: ' + c.map(fmt1).join(' · ') : 'Je hebt nog geen wedstrijd gespeeld bij de O23.'}</p></div>`; }
@@ -311,7 +311,7 @@ function vRivaal(){
   const race = rs ? `<div class="race"><span class="label">Race om de meeste ${rs.woord}</span><div class="rij" style="justify-content:space-between"><b>Jij ${rs.jij}</b><span class="${rs.verschil > 0 ? 'omhoog' : rs.verschil < 0 ? 'omlaag' : 'muted'}">${rs.verschil > 0 ? `jij staat ${rs.verschil} voor` : rs.verschil < 0 ? `${team.hij} staat ${-rs.verschil} voor` : 'gelijk'}</span><b>${esc(rivaalNaam())} ${rs.hij}</b></div>${rivaalPrikkel() ? '<p class="muted klein-tekst">Hij jaagt je op: je traint feller (meer kans op groei).</p>' : ''}</div>` : '';
   const acties = kanRivaalActie() ? `<div class="keuzes">${Object.entries(RIVAAL_ACTIES).map(([id, x]) => keuzeKnop(x.n, x.s, () => doeRivaalActie(id), 'data-blijf')).join('')}</div>`
     : actiefRivaal() && !sp.clubloos ? `<p class="muted klein-tekst">${S.week && S.week.rivaalActie ? 'Je hebt deze week al iets met je rivaal gedaan.' : ''}</p>` : '';
-  return `<section id="rivaalPanel" class="paneel sectie rivaal"><h3 class="sectiekop">Je rivaal · ${esc(rivaalNaam())} <span class="niv">${esc(rivaalBand(band))}</span></h3>
+  return `<section id="rivaalPanel" class="paneel sectie rivaal"><h3 class="sectiekop">${overigeRivalen().length ? 'Je hoofdrivaal' : 'Je rivaal'} · ${esc(rivaalNaam())} <span class="niv">${esc(rivaalBand(band))}</span></h3>
     <p class="muted">${esc(R.achtergrond)}${p ? ` ${team.Hij} is een ${p.i} ${p.n.toLowerCase()}.` : ''}</p>
     ${status ? `<div class="rij">${status}</div>` : ''}
     <div class="balk st"><span>Jullie band</span><span class="b"><i style="width:${bandPct}%"></i></span><span class="v">${esc(rivaalBand(band))}</span></div>
@@ -320,7 +320,21 @@ function vRivaal(){
       <div><span class="label">Klasse</span><b>${R.k}${R.kVorig != null && R.k !== R.kVorig ? ` <span class="${R.k > R.kVorig ? 'omhoog' : 'omlaag'}">${R.k > R.kVorig ? '↑' : '↓'}${Math.abs(R.k - R.kVorig)}</span>` : ''} <span class="muted">(jij ${ik})</span></b>${ik - R.k >= 6 ? '<span class="muted klein-tekst">Je loopt op ' + team.hem + ' uit</span>' : R.k - ik >= 6 ? '<span class="muted klein-tekst">Hij is je ver vooruit</span>' : ''}</div><div><span class="label">Dit seizoen</span><b>${st.g} G · ${st.a} A <span class="muted">(jij ${S.ss.g || 0} G · ${S.ss.a || 0} A)</span></b></div>
       <div><span class="label">Onderling</span><b>${R.onderling.w}W ${R.onderling.g}G ${R.onderling.v}V</b></div><div><span class="label">Cijferduels</span><b>${R.cijferDuels ? `${R.cijferDuels.w} gewonnen · ${R.cijferDuels.v} verloren` : '–'}</b></div><div><span class="label">Volgende duel</span><b>${d ? `week ${d.ronde + 1} · ${d.thuis ? 'thuis' : 'uit'}` : '–'}</b></div></div>
     ${acties ? `<span class="label">Wat doe je met je rivaal? <span class="niv">1 keer per week</span></span>${acties}` : ''}
-    ${R.hist.length ? `<p class="muted klein-tekst">Vorige seizoenen: ${R.hist.slice(-4).map(esc).join(' · ')}</p>` : ''}</section>`;
+    ${R.hist.length ? `<p class="muted klein-tekst">Vorige seizoenen: ${R.hist.slice(-4).map(esc).join(' · ')}</p>` : ''}</section>${vAndereRivalen()}`;
+}
+// Je andere rivalen (naast je hoofdrivaal): kort, met de race, jullie band en de knop om er je hoofdrivaal van te maken
+function vAndereRivalen(){
+  const l = overigeRivalen(); if (!l.length) return '';
+  const sp = S.sp, ik = ovr(sp);
+  const kaart = R => { const r = rivaalSpeler(R), rs = raceStand(R), d = volgendDuel(R), band = R.band ?? -20, o = R.onderling;
+    return `<div class="paneel"><h4>${esc(rivaalNaam(R))} <span class="niv">${esc(rivaalSoort(R))} · ${esc(rivaalBand(band))}</span></h4>
+      <p class="muted klein-tekst">${esc(R.achtergrond)}</p>
+      <div class="balk st"><span>Jullie band</span><span class="b"><i style="width:${(band + 100) / 2}%"></i></span><span class="v">${esc(rivaalBand(band))}</span></div>
+      <div class="feiten"><div><span class="label">Club</span><b>${r ? `${clubLogo(r.id, 16)} ${esc(CLUBS[r.id].n)}${r.id === sp.club ? ' (jouw club!)' : ''}` : '–'}</b></div><div><span class="label">Klasse</span><b>${R.k} <span class="muted">(jij ${ik})</span></b></div>
+        ${rs ? `<div><span class="label">Race (${rs.woord})</span><b>Jij ${rs.jij} · ${team.hij} ${rs.hij}</b></div>` : ''}<div><span class="label">Onderling</span><b>${o.w}W ${o.g}G ${o.v}V</b></div>
+        <div><span class="label">Volgende duel</span><b>${d ? `week ${d.ronde + 1} · ${d.thuis ? 'thuis' : 'uit'}` : '–'}</b></div>${R.blessure > 0 ? `<div><span class="label">Blessure</span><b>nog ${R.blessure} wk</b></div>` : ''}</div>
+      ${kanHoofdRivaal(R) ? `<div class="keuzes">${keuzeKnop('Maak hoofdrivaal', 'Je acties in de week en het interview gaan dan over ' + team.hem, () => maakHoofdRivaal(sleutel(R)), 'data-blijf')}</div>` : ''}</div>`; };
+  return `<section id="rivalenPanel" class="paneel sectie rivaal"><h3 class="sectiekop">Je andere rivalen <span class="niv">${l.length}</span></h3>${l.map(kaart).join('')}</section>`;
 }
 function vWinkel(){
   const sp = S.sp;

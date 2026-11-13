@@ -6,7 +6,7 @@ import { STANDAARD } from '../../data/tenues.js';
 import { BAL, Doek, Img, inkleuren, opGrond, speler, sprite, vuist } from './rig.js';
 import { donker, lookVan } from './atlas.js';
 import { fans } from './opkomst.js';
-import { tekst, zonderAccent } from './font.js';
+import { regelBreedte, tekst, zonderAccent } from './font.js';
 import { uiterlijkVoor } from './uiterlijk.js';
 import { pixelLogo, zetLogo } from './clublogo.js';
 
@@ -33,6 +33,14 @@ const SCHOEN = sprite(12, 7, c => {    // De Gouden Schoen (topscorer)
   c.rect(1, 0, 4, 2, '<'); c.rect(0, 2, 9, 2, '<'); c.rect(0, 4, 11, 1, '<'); c.rect(9, 3, 2, 1, '<'); c.rect(0, 5, 12, 1, '>'); c.rect(1, 6, 10, 1, '~');
   c.px(2, 1, '^'); c.px(4, 3, '^'); c.px(7, 3, '^'); c.rect(2, 2, 1, 1, '>');
 });
+const GBAL = sprite(13, 13, c => {    // De Gouden Bal: een gouden voetbal met donkere vlakken, glans linksboven
+  c.circ(6, 6, 6, '<');
+  c.rect(5, 5, 3, 3, '>'); c.px(6, 4, '>'); c.px(4, 6, '>'); c.px(8, 6, '>');                         // de vijfhoek in het midden
+  c.rect(0, 5, 1, 3, '>'); c.rect(12, 5, 1, 3, '>'); c.rect(5, 0, 3, 1, '>'); c.rect(4, 12, 5, 1, '>'); // halve vlakken aan de rand
+  c.line(6, 1, 6, 3, '>'); c.line(2, 5, 3, 6, '>'); c.line(10, 5, 9, 6, '>'); c.line(4, 9, 3, 11, '>'); c.line(8, 9, 9, 11, '>'); // naden
+  c.px(10, 9, '>'); c.px(9, 10, '>'); c.px(11, 8, '>');                                                 // schaduw rechtsonder
+  c.px(3, 3, '^'); c.px(4, 2, '^'); c.px(2, 4, '^'); c.px(3, 2, '^');                                   // glans
+});
 const GOUD = {'<':'#f3c44f', '>':'#b58a25', '^':'#fff2b0', '~':'#15161c'};
 
 // ---------- de houding per soort foto (van voren) ----------
@@ -45,6 +53,7 @@ const POSE = {
   svs:{...BASIS, aL:[-125, -25], aR:[125, 25], arm:1.3},             // de bokaal boven het hoofd
   ererondje:{...BASIS, aL:[-15, 20], aR:[120, 30], arm:1.25},        // zwaaien naar het publiek
   huis:{...BASIS, aL:[-20, 30], aR:[118, 12], arm:1.35},             // de sleutels omhoog
+  goudenbal:{...BASIS, aL:[-25, 40], aR:[118, 12], arm:1.35},        // de Gouden Bal omhoog in de hand, naast het hoofd
   bruiloft:{...BASIS, aL:[-12, 18], aR:[28, 55]},                     // arm in arm
 };
 function spelerBeeld(soort, v){
@@ -54,6 +63,7 @@ function spelerBeeld(soort, v){
   else if (soort === 'motm'){ c.stamp(TROFEE, hand[0] - 6, hand[1] - 12); vuist(c, hand[0], hand[1] - 3, 's'); } // (de vuist om de steel: dan houdt hij hem echt vast)
   else if (soort === 'topscorer'){ c.stamp(SCHOEN, hand[0] - 6, hand[1] - 9); vuist(c, hand[0] - 1, hand[1] - 2, 's'); } // (de schoen omhoog, de vuist om de hak)
   else if (soort === 'svs') c.stamp(BOKAAL, X0 - 7, oy - 12);
+  else if (soort === 'goudenbal'){ c.stamp(GBAL, hand[0] - 6, hand[1] - 14); vuist(c, hand[0], hand[1] - 2, 's'); } // (de vuist onder de bal: hij houdt hem echt vast)
   else if (soort === 'huis'){ c.stamp(SLEUTELS, hand[0] - 3, hand[1] - 10); vuist(c, hand[0], hand[1] - 1, 's'); }
   else if (soort === 'bruiloft' && !v.vrouw){ c.rect(X0 + 3, oy + 28, 3, 3, 'G'); c.px(X0 + 4, oy + 29, 'g'); } // (een bloem op je revers)
   return img.outline(107); // ('k')
@@ -112,6 +122,16 @@ function persmuur(naam, FW, FH, echtLogo){
     c.rect(0, FH - 14, FW, 14, 'F'); c.hline(0, FH - 14, FW, 'f');
   });
 }
+// Het gala van de Gouden Bal: een donker podium met spotlichten, sterretjes, gouden letters en een gouden podiumrand
+function galaAchter(FW, FH){
+  return sprite(FW, FH, c => {
+    c.rect(0, 0, FW, FH, 'M');
+    for (const x of [FW * .2, FW * .5, FW * .8]) c.poly([x - 4, 0, x + 4, 0, x + 20, FH - 14, x - 20, FH - 14], 'l');   // spotlichten van boven
+    for (let r = 0, y = 6; y < FH - 24; r++, y += 22){ const w = regelBreedte('GOUDEN BAL') + 18; for (let x = r % 2 ? -20 : 4; x < FW; x += w) tekst(c, x, y, 'GOUDEN BAL', 'y'); }
+    for (let i = 0; i < 30; i++){ const x = (i * 41 + 7) % FW, y = (i * 29 + 3) % (FH - 18); c.px(x, y, i % 3 ? 'w' : 'Y'); }           // sterretjes
+    c.rect(0, FH - 14, FW, 14, 'F'); c.hline(0, FH - 14, FW, 'f'); c.hline(0, FH - 12, FW, 'y');                       // het podium
+  });
+}
 function stadion(naam, FW, FH){
   return sprite(FW, FH, c => {
     c.rect(0, 0, FW, 12, 'K');
@@ -129,12 +149,12 @@ function stadion(naam, FW, FH){
 export function maakPixelFoto(soort, ctx = {}, {w:FW = 120, h:FH = 80, canvas:alleenCanvas = false} = {}){
   const tenue = ctx.tenue || STANDAARD, muur = ctx.muur || '#0f1a33', accent = ctx.accent || '#c6f432';
   const uit = uiterlijkVoor('jij|' + (ctx.sleutel || 'nieuw'), ctx.uiterlijk || undefined);
-  const F = ctx.foto || {}, prive = soort === 'huis' || soort === 'bruiloft';
+  const F = ctx.foto || {}, prive = soort === 'huis' || soort === 'bruiloft', gala = soort === 'goudenbal';
   const JURK = {shirt:'#fbfbff', accent:'#e8e2f2', patroon:'effen', broek:'#fbfbff', sok:'#fbfbff'};
-  const kleed = (u, vrouw) => soort === 'huis' ? ['casual', tenue, {}] : soort === 'bruiloft' ? (vrouw ? ['tenue', JURK, {}] : ['pak', null, {pak:'#1b1d24', pak2:'#0f1016', das:'#c9a227'}]) : ['tenue', tenue, {band:!!ctx.band}];
+  const kleed = (u, vrouw) => soort === 'huis' ? ['casual', tenue, {}] : gala ? ['pak', null, {pak:'#1b1d24', pak2:'#0f1016', das:'#c9a227'}] : soort === 'bruiloft' ? (vrouw ? ['tenue', JURK, {}] : ['pak', null, {pak:'#1b1d24', pak2:'#0f1016', das:'#c9a227'}]) : ['tenue', tenue, {band:!!ctx.band}];
   const [kl, tn, opt] = kleed(uit, uit.vrouw);
   const look = lookVan(uit, tn, {...opt, kleding:kl});
-  const v = {kapsel:look.kapsel, vrouw:look.vrouw, kleding:kl, patroon:look.patroon, band:prive ? false : look.band, baard:look.baard};
+  const v = {kapsel:look.kapsel, vrouw:look.vrouw, kleding:kl, patroon:look.patroon, band:prive || gala ? false : look.band, baard:look.baard};
   const sp = inkleuren(spelerBeeld(soort, v), {...look.kleuren, ...GOUD, G:'#2f9e4f', g:'#ffffff'});
   // op de bruiloft: je partner naast je (gespiegeld, arm in arm)
   let partner = null;
@@ -147,13 +167,14 @@ export function maakPixelFoto(soort, ctx = {}, {w:FW = 120, h:FH = 80, canvas:al
   const clubKl = {1:tenue.shirt, 2:donker(tenue.shirt, .3), 3:tenue.accent || '#ffffff', 4:'#38bdf8', 5:'#e8ecf5'};
   const ererondje = soort === 'ererondje';
   const achter = soort === 'huis' ? inkleuren(huisAchter(FW, FH, F.type || 'huis'), {L:'#8fd3ff', l:'#b8e4ff', W:'#ffffff', g:'#3f9a4a', G:'#4caf55', B:'#b5603f', b:'#8e4630', V:'#efe9df', D:'#7a2e2a', k:'#2a2430', w:'#bfe6ff', d:'#6b4226', r:'#d62828', '<':'#f3c44f'})
+    : gala ? inkleuren(galaAchter(FW, FH), {M:'#140f26', l:'#211a3b', y:'#8a6b1e', Y:'#f3c44f', w:'#ffffff', F:'#0b0816', f:'#f3c44f'})
     : soort === 'bruiloft' ? inkleuren(bruiloftAchter(FW, FH), {P:'#f6dfe6', p:'#f1d2db', g:'#cfc4b6', w:'#ffffff', G:'#3f8a4a', r:'#e05a7a', y:'#ffd34d'})
     : inkleuren(ererondje ? stadion(zonderAccent(ctx.club || 'KAMPIOEN').slice(0, 16), FW, FH) : persmuur(naam, FW, FH, !!ctx.logo),
     ererondje ? {K:'#0f1424', b:'#3c4a6e', M:'#ffe9a8', w:'#ffffff', C:'#22222a', c:'#34343e', g:'#2f7d3f', G:'#378c48', h:'#b5541c', s:'#f7c9a8', R:'#a3161b',
       v:'#2b3f9e', i:'#a8744f', n:'#2a1f1c', y:'#ffd21a', d:'#7a4a2a', ...clubKl}
       : {...clubKl, M:muur, F:donker(muur, .45), f:donker(muur, .2), 4:accent});
   // het echte clublogo op de persmuur (scherp pixellogo, data/logos.js), op de plekken van de schildjes
-  if (ctx.logo && !prive && !ererondje){ const pl = pixelLogo(ctx.logo, 12); for (const [x, y] of muurLogos(FW)) zetLogo(achter, pl, x - 2, y - 2, [0, 0, FW, FH - 14]); }
+  if (ctx.logo && !prive && !ererondje && !gala){ const pl = pixelLogo(ctx.logo, 12); for (const [x, y] of muurLogos(FW)) zetLogo(achter, pl, x - 2, y - 2, [0, 0, FW, FH - 14]); }
   // samenstellen: het beeld van 120×80, de speler met zijn voeten net op de vloer
   const klein = document.createElement('canvas'); klein.width = FW; klein.height = FH;
   const g = klein.getContext('2d'); g.imageSmoothingEnabled = false;

@@ -10,7 +10,7 @@ import { krantMelding } from '../media/roddel.js';
 import { social } from '../prive/social.js';
 import { modFans, rivaal as derbyVan } from '../wedstrijd/fans-pers.js';
 import { PERS, karakter } from './persoonlijkheid.js';
-import { groeiSeizoen, plaats as plaatsRivaal } from './rivaal.js';
+import { groeiSeizoen, plaats as plaatsRivaal, degradeerHoofdRivaal } from './rivaal.js';
 import { iedereen, zetBand as kleedBand } from '../team/kleedkamer.js';
 import { BLESSURES, ZWAAR } from './blessures.js';
 import { eersteSeizoen } from '../transfers/vertrek.js';
@@ -150,6 +150,20 @@ export function plaatsVriend(id, o23){
   const bank = sel.filter(y => y.pos === linie && !y.basis).sort((a, b) => a.k - b.k)[0]; if (bank) sel.splice(sel.indexOf(bank), 1);
   sel.push({v:v.v, n:v.n, pos:linie, basis:!o23, g:linie === 'A' ? 4 : linie === 'M' ? 2.2 : linie === 'K' ? 0 : 1, a:linie === 'M' ? 2.6 : linie === 'K' ? .1 : 1.4, k:v.k, lft:v.lft, vriend:true, bles:v.blessure > 0 ? v.blessure : 0});
 }
+// Herstel: staat je vriend(in) (nog) bij een club in jouw competitie, dan hoort die precies één keer in de selectie van
+// die club. Na een huurperiode (of een oude opslag) kon die plek kwijt zijn: dan zetten we hem er weer in, met zijn klasse
+export function vriendInSelectie(){
+  const sp = S.sp, v = sp && sp.vriend; if (!v || S.trainer || !vriendActief() || !vriendHier()) return;
+  const sel = selectie(v.club), x = sel.find(y => y.vriend);
+  // (een achtergebleven markering bij een andere club, van een overstap terwijl jij in het buitenland zat: die speler is weg)
+  for (const lijst of Object.values(S.sel || {})) if (lijst !== sel && Array.isArray(lijst)){ const z = lijst.find(y => y.vriend); if (z){ lijst.splice(lijst.indexOf(z), 1); herschik(lijst); } }
+  if (x) return;
+  // (stond hij er nog zonder markering, bijvoorbeeld na een herstel van een oude opslag: die regel eerst weg)
+  const oud = sel.find(y => y.n === v.n && y.v === v.v && !y.rivaal); if (oud) sel.splice(sel.indexOf(oud), 1);
+  plaatsVriend(v.club, v.o23);
+  const y = vriendSpeler(); if (y){ y.k = v.k; y.lft = v.lft; y.bles = v.blessure > 0 ? v.blessure : 0; }
+  if (!v.o23) herschik(sel);
+}
 // Je eigen club: die van je contract (op huur in eigen land: je eigen club, niet de huurclub)
 const mijnVasteClub = () => { const sp = S.sp; return sp.huur && (!sp.huur.ouderLand || sp.huur.ouderLand === thuisLand()) ? sp.huur.ouder : sp.club; };
 // Speelt je vriend(in) niet in de competitie waar jij nu zit? (een ander land, de andere wereld, of jij bent in het buitenland op huur)
@@ -195,8 +209,8 @@ export function breukUitkomst(soort, band, naar){
 }
 export function vriendWordtRivaal(band, naar, breuk = false){
   const sp = S.sp, v = sp.vriend, vanClub = v.club; if (naar == null || opAfstand()) return;
-  // Had je al een (andere) rivaal, dan neemt je ex-vriend die plaats in
-  if (sp.rivaal && !sp.rivaal.exVriend){ const r = sp.rivaal, sel = CLUBS[r.club] ? selectie(r.club) : null; if (sel){ const x = sel.find(y => y.n === r.n && y.v === r.v); if (x) x.rivaal = false; } sp.rivaal = null; }
+  // Had je al een (andere) rivaal, dan wordt je ex-vriend je hoofdrivaal; de oude blijft (als er plek is) een van je andere rivalen
+  if (sp.rivaal && !sp.rivaal.exVriend) degradeerHoofdRivaal();
   if (sp.rivaal) return;
   if (sp.journey) sp.journey.route = 'rivaal'; // (je ex-vriend houdt als rivaal zijn eigen positie: pos)
   const oud = v.club != null ? selectie(v.club) : null; if (oud){ const x = oud.find(y => y.vriend); if (x) oud.splice(oud.indexOf(x), 1); }
@@ -317,6 +331,8 @@ export function vriendOuder(){
 // ---------- zijn carrière: hij wisselt van club als hij te goed (of te zwak) is voor zijn club ----------
 export function vriendTransfer(){
   const sp = S.sp, v = sp.vriend; if (!v || !vriendActief() || bijJou() || v.club == null || v.komt) return null;
+  // Ben jij verhuurd en speelt hij bij jouw eigen club? Dan blijft hij daar: na je huurperiode zijn jullie weer ploeggenoten
+  if (sp.huur && v.club === sp.huur.ouder && vriendLand() === (sp.huur.ouderLand || thuisLand())) return null;
   const land = vriendLand(), hier = vriendHier(), info = id => vriendClubInfo(id), cur = info(v.club);
   if (!cur) return null;
   const omhoog = v.k >= cur.s + 5, omlaag = v.k <= cur.s - 8; if (!omhoog && !omlaag) return null;
@@ -603,6 +619,19 @@ export function vriendEvents(){
     ['Gaan, met een mooi cadeau', 'kalm', 6, `Je geeft ${vr.hem} een ingelijste foto van jullie twee op het jeugdtoernooi. ${vr.Hij} is er stil van.`],
     ['Even langs voor een taartje', 'bal', 3, '' + vr.Hij + ' is blij dat je er even was.'],
     ['Een appje: "Gefeliciteerd!"', 'fel', -4, '' + vr.Hij + ' reageert met een duimpje. Meer niet.']]));
+  // Speelt hij/zij in een ander land dan jij: "Kom je langs?" (hooguit eens per seizoen)
+  const zijnLand = vriendLand();
+  if (zijnLand !== thuisLand() && v.club != null && !sp.clubloos && mag('bezoek', 1) && rnd() < .6){
+    const klaar = (d, uit) => { gezien.bezoek = j; zetBand(d); return uit; };
+    L.push({soort:'prive', titel:'Kom je langs?', tekst:`${vn} belt je vanuit ${zijnLand}. "Ik mis je, ${ik.knul}. Het is hier mooi, maar ik ken bijna niemand. Kom je een weekend langs?"`, opts:[
+      {l:'Ja, ik kom dit weekend naar je toe', toon:'kalm', f(){ mod('moraal', 4);
+        if (sp.geld >= 250){ sp.geld -= 250; mod('fit', -5); return klaar(8, `Je vliegt zaterdag na de training naar ${zijnLand}. ${vn} haalt je op van het vliegveld en laat je alles zien. Maandag ben je moe, maar je bent blij dat je ging. (band +8, moraal +4, fitheid −5, −€250)`); }
+        sp.geld = Math.max(0, sp.geld - 60); mod('fit', -10); return klaar(8, `Een vlucht is te duur, dus je neemt de nachtbus naar ${zijnLand}. Een lange reis, maar ${vn} staat je op te wachten met een enorme grijns. (band +8, moraal +4, fitheid −10, −€60)`); }},
+      {l:`"Kom jij maar naar mij toe!"`, toon:'bal', f(){
+        if (rnd() < .6){ sp.geld = Math.max(0, sp.geld - 80); mod('moraal', 3); return klaar(5, `${vn} boekt meteen een ticket. Jullie hebben een heerlijk weekend: gamen, uit eten en praten tot diep in de nacht. Het eten trakteer jij. (band +5, moraal +3, −€80)`); }
+        return klaar(1, `"Ik wil wel, maar we spelen zondag," zegt ${vn}. "Ik kom zodra het kan." (band +1)`); }},
+      {l:'"Sorry, het past nu echt niet. Na het seizoen?"', toon:'fel', f(){ mod('focus', 2); return klaar(-3, `"Snap ik," zegt ${vn}. "Druk, hè. Na het seizoen dan." Het klinkt een beetje teleurgesteld. (band −3, focus +2)`); }}]});
+  }
   if ((S.ronde <= 2 || S.ronde >= AANTAL_RONDES - 3) && mag('vakantie', 2)) L.push(ev('vakantie', `${vn} stelt voor: na het seizoen samen een week op vakantie, net als vroeger met jullie ouders.`, [
     ['Ja! Een week zon en zee', 'kalm', 8, 'Een week vol lachen, slechte zonnebrand en goede herinneringen.'],
     ['Een lang weekend', 'bal', 4, 'Kort, maar heerlijk.'],
@@ -640,7 +669,7 @@ function vriendBlessureWeek(){
 export const vriendGeblesseerd = () => { const v = S.sp && S.sp.vriend; return !!(v && v.blessure > 0); };
 export function vriendWeek(eerste){
   const sp = S.sp, v = sp.vriend, J = sp.journey; if (!v || S.trainer) return;
-  vriendInhalen(); vriendTalent();
+  vriendInhalen(); vriendTalent(); vriendInSelectie(); // (zijn plek in de selectie: na een huurperiode weer terug)
   if (v.komt && (eerste || (v.komt.na === 'winter' && S.ronde >= WINTER))) vriendKomt(); // hij komt naar jouw club
   if (!eerste && S.ronde >= WINTER && !sp.clubloos) vriendWinter();
   if (eerste) return;

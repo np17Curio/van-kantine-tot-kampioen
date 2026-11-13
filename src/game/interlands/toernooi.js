@@ -153,6 +153,7 @@ export function eindeToernooi(){
   (C.toernooien = C.toernooien || []).push(`${tw.titel}: ${resTekst} (${c.length} wed, ${tw.goals} G, ${tw.assists} A)`);
   C.hist.push(`${tw.titel}: ${resTekst}`);
   if (tw.res === 'winst'){
+    S.huldiging = {soort:'toernooi', prijs:tw.titel, lidw:lw, land:tw.land}; // de huldiging (render/huldigingscene.js)
     tw.prijzen.push(`${tw.titel} met ${tw.land}`); mod('moraal', 15); mod('rep', 10); sp.bonds[tw.land] = clamp((sp.bonds[tw.land] ?? 40) + 10, 0, 100); social().volgers = Math.round(social().volgers * 1.15);
     tw.kop = {kop:`${tw.land} wint ${lw} ${tw.titel}!`, tekst:`Het hele land staat op zijn kop.${tw.goals ? ` ${sp.naam} scoorde ${tw.goals} keer op het toernooi.` : ''} De ${team.spelers} worden als helden onthaald.`};
   } else if (tw.res === 'Finale') tw.kop = {kop:`Finale verloren: ${tw.land} net niet`, tekst:`Zo dichtbij. Toch is het land trots op de spelers.`};

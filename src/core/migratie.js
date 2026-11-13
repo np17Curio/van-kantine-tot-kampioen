@@ -45,5 +45,7 @@ export function herstel(st){
   if (st && st.fase === 'event' && !(st.ev && st.ev.opts && typeof st.ev.opts[0].f === 'function')){ st.ev = null; st.fase = 'week';
     if (st.hoogNu){ (st.hoogWacht = st.hoogWacht || []).unshift(st.hoogNu); } } // (een hoogtepunt komt volgende week terug)
   if (st) st.hoogNu = null;
+  // Meerdere rivalen: sp.rivaal blijft je hoofdrivaal, sp.rivalen zijn je andere rivalen (oude opslag: nog geen lijst)
+  if (st && st.sp){ if (!Array.isArray(st.sp.rivalen)) st.sp.rivalen = []; st.sp.rivalen = st.sp.rivalen.filter(R => R && R.n && !(st.sp.rivaal && R.n === st.sp.rivaal.n && R.v === st.sp.rivaal.v)); }
   return st;
 }

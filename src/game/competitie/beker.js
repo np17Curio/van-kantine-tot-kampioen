@@ -200,7 +200,8 @@ export function eindeBeker(){
   } else M.cijfer = null;
   mod('moraal', winst ? 4 : -4);
   if (winst && B.winnaar === sp.club){
-    M.bekerWinst = true; hoogtepunt('eersteBeker', {club:club().n, beker:BEKERS[k].naam}); mod('moraal', 12); mod('rep', 4); statusPunten(5); modFans(8);
+    M.bekerWinst = true; S.huldiging = {soort:'beker', prijs:BEKERS[k].naam, clubId:sp.club}; // de huldiging (render/huldigingscene.js, na de wedstrijd)
+    hoogtepunt('eersteBeker', {club:club().n, beker:BEKERS[k].naam}); mod('moraal', 12); mod('rep', 4); statusPunten(5); modFans(8);
     if (k === 'cl'){ S.ss.clWinst = true; mod('rep', 6); social().volgers = Math.round(social().volgers * 1.1); }
     const prijs = `${BEKERS[k].naam} ${seizoenLabel()}`; S.car.prijzen.push(prijs); S.car.hist.push(`${seizoenLabel()}: ${BEKERS[k].naam} gewonnen met ${club().n}`); S.ss.bekerWinst = BEKERS[k].naam;
     krantMelding(`${club().n} wint de ${BEKERS[k].naam}!`, `${M.pens ? 'Na strafschoppen' : `Met ${stand2()}`} werd ${CLUBS[M.opp].n} verslagen in de finale.${speelde && M.goals ? ` ${sp.naam} scoorde.` : ''}`);

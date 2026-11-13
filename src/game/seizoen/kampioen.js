@@ -19,6 +19,7 @@ export function checkKampioen(M){
   const voorsprong = S.tab[st[0]].pt - S.tab[st[1]].pt;
   if (over > 0 && voorsprong <= over * 3) return;
   S.ss.kampioen = S.ronde + 1; M.kampioen = true;
+  S.huldiging = {soort:'titel', prijs:DIVS[t], clubId:mijn}; // de huldiging met de schaal (render/huldigingscene.js, na de wedstrijd)
   mod('moraal', 12);
   const volgende = t >= 2 && t <= LAAGSTE ? DIVS[t - 1] : null;
   M.kampioenTekst = `${club().n} is kampioen van de ${DIVS[t]}!${over > 0 ? ` Met nog ${over} ${over === 1 ? 'wedstrijd' : 'wedstrijden'} te gaan kan niemand jullie meer inhalen.` : ''} De spelers rennen het veld op, de trainer wordt in de lucht gegooid en jij staat met de schaal in je handen.${volgende ? ` Volgend seizoen speelt ${club().n} in de ${volgende}!` : t === 1 ? ' Volgend seizoen spelen jullie Champions League!' : ''}`;

@@ -189,7 +189,17 @@ function animScriptBasis(a){
   const J = E.J, maat = E.A || E.B, tegen = E.X, K = E.K || E.k, v = a.variant || 'normaal';
   // waar staat iedereen na de vorige stap (zodat een volgende stap daarop kan voortbouwen)
   const cur = {}; for (const k in E) cur[k] = {x:E[k].x, y:E[k].y};
-  const stap = (d, moves, bal, fx) => { moves = moves || {}; for (const k in moves){ const m = moves[k]; if (m && cur[k]){ if (m.x !== undefined) cur[k].x = m.x; if (m.y !== undefined) cur[k].y = m.y; } } st.push({d, moves, bal, fx}); };
+  const stap = (d, moves, bal, fx) => { moves = moves || {};
+    // Een goal gaat altijd ónder de lat door: de bal (een sprite van .62 m, z = onderkant) eindigt hooguit op 1,5 m en tussen de palen
+    if (bal && bal.to && (fx === 'goal' || fx === 'tegen' || (fx && fx.net)) && (bal.to.x > 104.9 || bal.to.x < .1)){
+      bal = {...bal, to:{...bal.to, z:Math.min(bal.to.z || 0, 1.5), y:Math.max(30.9, Math.min(37.1, bal.to.y))}, boog:Math.min(bal.boog || 0, 1.2)}; }
+    for (const k in moves){ const m = moves[k]; if (m && cur[k]){ if (m.x !== undefined) cur[k].x = m.x; if (m.y !== undefined) cur[k].y = m.y; if ('pose' in m) cur[k].pose = m.pose; } } st.push({d, moves, bal, fx}); };
+  // Blessure in het veld (wedstrijd.js: a.blessure = 'J' of 'X'): hij blijft liggen, de scheids zwaait de verzorger erbij, en hij strompelt naar de kant
+  const blessureStap = () => { const wie = a.blessure; if (!wie || !cur[wie]) return;
+    const p = {...cur[wie]}, jij = wie === 'J', maatje = jij && E.A && cur.A ? 'A' : null;
+    if (cur[wie].pose !== 'val') stap(350, {[wie]:{pose:'val'}}, null);
+    stap(1400, {R:E.R ? {x:p.x - 1.2, y:p.y - 1.4, pose:'wuif'} : undefined, ...(maatje ? {A:{x:p.x + 1, y:p.y + .8, pose:'kniel'}} : {})}, null, jij ? 'blessureJij' : 'geblesseerd');
+    stap(1300, {[wie]:{x:p.x - 1, y:68.5, pose:null}, R:E.R ? {pose:null} : undefined, ...(maatje ? {A:{pose:null}} : {})}, null, jij ? 'eraf' : 'blesWissel'); };
   const doelR = () => ({x:105.8, y:31 + r() * 6, z:.3 + r() * 1.7}), doelL = () => ({x:-.8, y:31 + r() * 6, z:.3 + r() * 1.5});
   const naast = () => r() < .5 ? {x:107, y:r() < .5 ? 28 : 40, z:.4 + r()} : {x:107, y:31 + r() * 6, z:3.3};
   const scoort = () => { const d = doelR(); stap(650, {K:{y: d.y > 34 ? 31 : 37, z:.4}}, {to:d, boog:.6}, 'goal'); };
@@ -302,8 +312,12 @@ function animScriptBasis(a){
     const X = E.X, Rf = E.R || {x:J.x - 3, y:J.y - 6};
     if (v === 'duw'){
       stap(380, {J:{x:X.x - 1.1, y:X.y - .2}}, null);
-      stap(320, {J:{x:X.x - .7, pose:'duw'}, X:{x:X.x + 1.6, y:X.y + .4, pose: a.rood ? 'val' : 'struikel'}}, null, 'geduwd');
-      if (!kaartStap('J')) stap(700, {J:{x:X.x - 2.5, pose:null}, X:{pose:'roep'}}, null);
+      // hij gaat echt onderuit: even struikelen, dan op de grond, blijft liggen en krabbelt weer overeind
+      stap(260, {J:{x:X.x - .7, pose:'duw'}, X:{x:X.x + 1.1, y:X.y + .3, pose:'struikel'}}, null);
+      stap(300, {X:{x:X.x + 1.9, y:X.y + .5, pose:'val'}}, null, 'geduwd');
+      stap(900, {J:{x:X.x - 1.6, pose:null}}, null);
+      if (!kaartStap('J')) stap(500, {J:{x:X.x - 2.5, pose:null}}, null);
+      if (a.blessure !== 'X'){ stap(380, {X:{pose:'kniel'}}, null); stap(500, {X:{pose:'roep'}}, null); }
     } else if (v === 'neus'){
       stap(500, {J:{x:X.x - .6, y:X.y, pose:'borst'}, X:{pose:'borst'}}, null);
       if (a.rood){ stap(280, {J:{x:X.x - .35, pose:'kopstoot'}, X:{x:X.x + 1.3, pose:'val'}}, null); kaartStap('J'); }
@@ -329,6 +343,7 @@ function animScriptBasis(a){
       stap(450, {J:{x:J.x - .5, pose:'kalm'}, X:{pose:'roep'}}, null);
       if (!kaartStap('J')) stap(800, {X:{x:X.x + 3, y:X.y + 2, pose:null}}, null, a.ok ? 'rustig' : null);
     }
+    blessureStap();
     return {sc, st};
   }
   // ===== Tackles: sliding, staand, schouder, shirt, overtreding =====
@@ -357,6 +372,7 @@ function animScriptBasis(a){
         else stap(450, {X:{pose:null}, J:{pose:null}}, {to:{x:xx - 6, y:xy + 3, z:0}, boog:.3, trap:'geen'}, 'gewonnen');
       }
     }
+    blessureStap();
     return {sc, st};
   }
   // ===== Verdedigen zonder tackle =====
@@ -452,7 +468,7 @@ function animScriptBasis(a){
     if (v === 'krul'){ stap(280, {J:{x:J.x + .6, y:J.y + 1.3}}, {volg:'J'}); stap(260, {J:{x:J.x + 1.4, y:J.y + .4}}, {volg:'J'}); }
     else stap(380, {J:{x:J.x + 1.4}}, {volg:'J'});
     const krul = cur.J.y > 34 ? -3.5 : 3.5, hoek = cur.J.y > 34 ? 30.9 : 37.1;
-    if (a.goal) stap(850, {K:{y:hoek > 34 ? 36.5 : 31.5, z:.55}}, {to:{x:105.8, y:hoek, z:1.6 + r() * .6}, boog:1.2, krul, trap:'binnenkant'}, 'goal');
+    if (a.goal) stap(850, {K:{y:hoek > 34 ? 36.5 : 31.5, z:.55}}, {to:{x:105.8, y:hoek, z:.9 + r() * .55}, boog:1, krul, trap:'binnenkant'}, 'goal');
     else if (a.ok) stap(850, {K:{x:103.6, y:hoek > 34 ? 36.4 : 31.6, z:.6}}, {to:{x:103.6, y:hoek > 34 ? 36.4 : 31.6, z:1.6}, boog:1, krul, trap:'binnenkant'}, 'redding');
     else stap(850, {}, {to:{x:107, y:hoek > 34 ? 40 : 28, z:1.5}, boog:1.4, krul, trap:'binnenkant'}, 'naast');
     if (a.goal) juich('J');
@@ -698,7 +714,7 @@ export function tekenVeld(cv, toestand){
 }
 export const FX = {paal:['Paal!', '#fff'], lijn:['Van de lijn!', '#fff'], onzeRedding:['Redding!', '#b9ff9c'], goal:['GOAL!', '#ffd84a'], tegen:['Tegengoal', '#ff7b7b'], redding:['Redding!', '#fff'], naast:['Naast!', '#fff'], over:['Over!', '#fff'], onderschept:['Onderschept', '#ff9b9b'], afgepakt:['Afgepakt', '#ff9b9b'],
   gewonnen:['Bal veroverd!', '#b9ff9c'], langs:['Hij is erlangs', '#ff9b9b'], weg:['Weggewerkt!', '#b9ff9c'], geel:['Gele kaart', '#ffd400'], rood:['Rode kaart!', '#ff5a5a'], rustig:['Rustig gebleven', '#b9ff9c'],
-  geduwd:['Geduwd!', '#ff9b9b'], overtreding:['Overtreding!', '#ffd400'], buitenspel:['Buitenspel!', '#b9ff9c'], weggelopen:['Weggelopen', '#b9ff9c'], klaar:['Klaar voor de 2e helft!', '#c6f432'], respect:['Respect', '#b9ff9c'], ssst:['Ssst…', '#ffd84a'], feest:['Feest!', '#ffd84a'], uit:['Bal uit', '#b9ff9c'], gevangen:['Gevangen!', '#b9ff9c'], geblokt:['Geblokt', '#ff9b9b'], uitgekapt:['Uitgekapt!', '#b9ff9c']};
+  geduwd:['Geduwd!', '#ff9b9b'], geblesseerd:['Geblesseerd!', '#ff9b9b'], blessureJij:['Au! Geblesseerd…', '#ff7b7b'], eraf:['Je moet eraf', '#ff9b9b'], blesWissel:['Hij moet eraf', '#ffd84a'],overtreding:['Overtreding!', '#ffd400'], buitenspel:['Buitenspel!', '#b9ff9c'], weggelopen:['Weggelopen', '#b9ff9c'], klaar:['Klaar voor de 2e helft!', '#c6f432'], respect:['Respect', '#b9ff9c'], ssst:['Ssst…', '#ffd84a'], feest:['Feest!', '#ffd84a'], uit:['Bal uit', '#b9ff9c'], gevangen:['Gevangen!', '#b9ff9c'], geblokt:['Geblokt', '#ff9b9b'], uitgekapt:['Uitgekapt!', '#b9ff9c']};
 export let PITCH = null; // lopende animatie
 // Het 3D-veld wordt op de achtergrond geladen; tot het klaar is (of als WebGL niet werkt) tekenen we 2D
 let V3 = null, GEN = 0;

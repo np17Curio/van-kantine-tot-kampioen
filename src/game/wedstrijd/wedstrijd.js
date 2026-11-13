@@ -1,6 +1,6 @@
 import { S, club, mod, ovr, tmp, waarde } from '../../core/state.js';
 import { maakOpdrachten, sterrenNa } from './opdrachten.js';
-import { blesseer, blessureKans, terugVanBlessure } from '../speler/blessures.js';
+import { DUEL_KANS, blesseer, blessureKans, kiesContactBlessure, terugVanBlessure } from '../speler/blessures.js';
 import { clamp, pick, poisson, randInt, rnd } from '../../core/utils.js';
 import { AANTAL_RONDES, AANV, CLUBS, POS, TEAMGENOTEN, TEGENSTANDERS, WINTER, INTER_WEKEN, weekFactor } from '../../data/gegevens.js';
 import { eindeBeker, naWedstrijd } from '../competitie/beker.js';
@@ -46,7 +46,7 @@ export const BG = {wij:.5, zij:.85};
 // Bij "seizoen simuleren": minder achtergrondgoals voor jullie en meer voor de tegenstander, zodat een middenmoter niet vanzelf kampioen wordt
 export const SIM_BG = {wij:.8, zij:1.1};
 import { pers } from '../speler/persoonlijkheid.js';
-import { naRivaalDuel, rivaalNaam, speeltTegenRivaal, rivaal, RIVAAL_MOMENTEN, rivaalVoorzet } from '../speler/rivaal.js';
+import { naRivaalDuel, rivaalNaam, rivaalTegen, sleutel, rivaal, RIVAAL_MOMENTEN, rivaalVoorzet } from '../speler/rivaal.js';
 import { ik, team, vr } from '../../core/geslacht.js';
 // Hoe vaak de keeper van een veel sterkere ploeg jouw goal hooguit voorkomt
 export const KEEPER_MAX = .3;
@@ -157,7 +157,7 @@ export function verslag(e, M){
   // Bij een doelpunt: de maker volgens wie vaak scoort, de aangever volgens wie vaak assists geeft
   const tmS = P ? (e.type === 'us' ? gewogen(P, 'g') : pick(inVeld(P))) : null, tm2S = P ? gewogen(P.filter(x => x !== tmS), 'a') : null;
   const tm = P ? tmS.n : pick(TEAMGENOTEN), tm2 = P ? tm2S.n : pick(TEAMGENOTEN.filter(n => n !== tm));
-  const rivX = M.rivaal && e.type === 'them' && T ? T.find(x => x.rivaal && x.pos !== 'K') : null, hijScoort = !!(rivX && rnd() < .35); // (een keeper scoort niet)
+  const rivX = M.rivaal && e.type === 'them' && T ? (rv => T.find(x => x.rivaal && x.pos !== 'K' && (!rv || (x.n === rv.n && x.v === rv.v))))(rivaal()) : null, hijScoort = !!(rivX && rnd() < .35); // (een keeper scoort niet)
   // je beste vriend (als hij in hun basis staat) scoort ook vaker tegen je
   const vrX = !hijScoort && e.type === 'them' && T && speeltTegenVriend(M.opp) ? T.find(x => x.vriend && x.pos !== 'K') : null, zijScoort = !!(vrX && rnd() < .3);
   const opS = T ? (hijScoort ? rivX : zijScoort ? vrX : e.type === 'them' ? gewogen(T, 'g') : pick(inVeld(T))) : null, op = T ? opS.n : pick(TEGENSTANDERS);
@@ -283,7 +283,7 @@ export function startWedstrijd(){
   const M = {opp:fx.opp, oppS:opp.s, wij:c.n, zij:opp.n, thuis:fx.thuis, rol, us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' || sp.pos === 'KEEPER' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false, derby:isDerby(fx.opp), fel:!!S.ss.rivaalFel};
   S.M = M;
   { const r = onderwijsCoach(); if (r) M.log.push(r); }
-  if (speeltTegenRivaal(fx.opp)) M.rivaal = true; // ook als je zelf niet speelt
+  { const R = rivaalTegen(fx.opp); if (R){ M.rivaal = true; M.rivaalSl = sleutel(R); } } // ook als je zelf niet speelt (bij meer rivalen: wie er bij deze tegenstander speelt)
   const derbyRegel = M.derby ? {m:'', t:`DERBY tegen aartsrivaal ${opp.n}! Het stadion kookt, overal vuurwerk en spandoeken.${M.fel ? ' Na de woorden in de krant is de sfeer extra vijandig.' : ''}`, k:'info'} : null;
 
   if (rol === 'blessure' || rol === 'rust' || rol === 'tribune' || rol === 'bank' || rol === 'ouders' || rol === 'geschorst'){
@@ -410,6 +410,7 @@ export function kies(i){
   // VAR bij jouw goal: de bal ligt erin, maar de scheids gaat kijken. Jij kiest wat je doet (varKeuze)
   const ruwGoal = !!out.goal, varWacht = out.goal ? varCheck('jij') : null;
   if (varWacht) out = {...out, goal:false};
+  const animVoor = M.anim; // (zo weten we straks of er voor deze keuze een animatie bij kwam)
   if (MOMENTS[M.pending.type] && MOMENTS[M.pending.type].keeper){ // keeper: een redding of een tegengoal, of een uittrap vanaf je doellijn
     const pt = M.pending.type, schot = pt !== 'uittrap' && pt !== 'terugspeel';
     if (out.redding){ S.ss.red = (S.ss.red || 0) + 1; S.car.red = (S.car.red || 0) + 1; M.reddingen = (M.reddingen || 0) + 1; }
@@ -421,6 +422,7 @@ export function kies(i){
   const fVoor = S.sp.focus ?? 65; if (ok){ if (!keeperM || rnd() < .35) focusBoost(1); } else mod('focus', -1 * pers('focusMis'));
   const m = M.min + "'";
   M.log.push({m, t:`[${opt.l}] ${out.t}`, k: ok ? 'ok' : 'mis'});
+  out = veldBlessure(M, out, M.anim !== animVoor ? M.anim : null, m);
   if (fVoor < FLOW && S.sp.focus >= FLOW) M.log.push({m, t:'Alles lukt! Je zit helemaal in de flow.', k:'info'});
   if (fVoor >= SLECHTE_FOCUS && S.sp.focus < SLECHTE_FOCUS) M.log.push({m, t:'Je hoofd zit vol. Je raakt je concentratie kwijt.', k:'info'});
   M.cijfer += (out.d || 0) * (M.rol === 'invaller' ? 1.5 : 1); // invallers moeten het in weinig minuten laten zien
@@ -458,6 +460,29 @@ export function kies(i){
     return;
   }
   verderSpelen();
+}
+
+// Blessures in het veld: na een harde tackle of een duw blijft er soms iemand liggen (je tegenstander of jijzelf).
+// De animatie (pitch.js, a.blessure) laat hem liggen en naar de kant strompelen; jouw blessure gaat via blessures.js mee in je carrière.
+const HARD_CONTACT = {tackle:['sliding', 'hard', 'tactisch', 'schouder', 'shirt', 'steek', 'tik'], duel:['duw', 'neus']};
+function veldBlessure(M, out, a, m){
+  if (!a || !HARD_CONTACT[a.soort] || !HARD_CONTACT[a.soort].includes(a.variant) || out.goal || out.tegen || out.rood || M.gesimuleerd) return out;
+  if (a.soort === 'duel' && a.variant === 'neus' && !out.geel) return out; // (neus tegen neus zonder kaart: niemand raakt iemand)
+  const zwaar = ['sliding', 'hard', 'tactisch', 'duw', 'neus'].includes(a.variant);
+  const raak = a.soort === 'duel' || a.ok || out.geel; // (een tackle die mist, raakt niemand)
+  if (raak && rnd() < DUEL_KANS.tegen[zwaar ? 'zwaar' : 'licht']){
+    a.blessure = 'X';
+    M.log.push({m, t:pick([`Je tegenstander blijft liggen en grijpt naar ${team.zijn} enkel. De verzorger komt erbij, maar het gaat niet meer: ${team.hij} wordt gewisseld.`,
+      `Au. Je tegenstander staat niet meer op. ${team.Hij} wordt verzorgd langs de lijn en moet gewisseld worden.`,
+      `Je tegenstander houdt ${team.zijn} knie vast en schudt het hoofd. Wissel bij de tegenstander.`]), k:'info'});
+    if (a.soort === 'duel' && !out.geel && rnd() < .5){ M.log.push({m, t:'De fans van de tegenstander fluiten je uit.', k:'info'}); }
+    return out;
+  }
+  if (!jijInVeld(M) || !(rnd() < DUEL_KANS.jij[zwaar ? 'zwaar' : 'licht'] * pers('blessure'))) return out;
+  const b = blesseer(kiesContactBlessure()); if (!b) return out;
+  a.blessure = 'J'; M.blessureNieuw = b.wk; M.blesSoort = b; M.blessureVeld = true; M.gewisseld = M.min;
+  M.log.push({m, t:`Au! Je komt verkeerd neer en voelt meteen dat het mis is. De verzorger schudt het hoofd. ${b.n}: je kunt niet verder en wordt gewisseld.`, k:'mis'});
+  return {...out, next:null};
 }
 
 // Wat doe je terwijl de VAR naar jouw goal kijkt?
@@ -571,7 +596,8 @@ export function eindeWedstrijd(){
       if (ovr(sp) < sp.pot + 3){ verhoog(k, 1); M.groei = k; }
     }
     M.talent = rnd() < weekFactor() ? talentNaWedstrijd(M.cijfer) : null;
-    if (sp.fit < 30 && rnd() < .12 * pers('blessure')){ sp.blessure = Math.max(1, randInt(1, 4) - pers('herstel')); sp.blesSoort = {id:'moe', n:'Overbelasting', kort:'overbelasting', wk:sp.blessure}; M.blessureNieuw = sp.blessure; }
+    if (M.blessureVeld){} // (al geblesseerd uit het veld gegaan: blessures.js heeft het al verwerkt)
+    else if (sp.fit < 30 && rnd() < .12 * pers('blessure')){ sp.blessure = Math.max(1, randInt(1, 4) - pers('herstel')); sp.blesSoort = {id:'moe', n:'Overbelasting', kort:'overbelasting', wk:sp.blessure}; M.blessureNieuw = sp.blessure; }
     else if (!M.inter && rnd() < blessureKans(sp.fit)){ const b = blesseer(); if (b){ M.blessureNieuw = b.wk; M.blesSoort = b; } } // (blessures.js: van hamstring tot kruisband)
   } else {
     M.cijfer = null;

@@ -23,6 +23,15 @@ export function kiesBlessure(){
   for (const [id, b] of Object.entries(BLESSURES)){ r -= b.kans; if (r <= 0) return id; }
   return 'hamstring';
 }
+// Een blessure door een duel of tackle in het veld (wedstrijd.js): vooral enkels en knieën, zelden iets heel zwaars
+const CONTACT = {enkel:48, hamstring:12, meniscus:16, voet:16, kruisband:5, achilles:3};
+export function kiesContactBlessure(){
+  let r = rnd() * Object.values(CONTACT).reduce((s, k) => s + k, 0);
+  for (const [id, k] of Object.entries(CONTACT)){ r -= k; if (r <= 0) return id; }
+  return 'enkel';
+}
+// Kans op een blessure in een duel: tegenstander en jij (zwaar = sliding, keihard, duw, ...). Bewust klein.
+export const DUEL_KANS = {tegen:{zwaar:.05, licht:.02}, jij:{zwaar:.025, licht:.01}};
 // Een blessure in een wedstrijd die je speelde: altijd een kleine kans, groter als je moe bent (en naar je lichaam)
 export const KANS_PER_WED = .022;
 export const blessureKans = fit => KANS_PER_WED * (fit < 50 ? 1.6 : fit < 70 ? 1.2 : 1) * pers('blessure');

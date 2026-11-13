@@ -67,9 +67,23 @@ export function render(){
   if (S) bewaar();
   // Net getekend bij een nieuwe club? Dan de animatie (over het spel heen; het spel zelf is al bijgewerkt)
   if (S && tmp.ondertekening){ const o = tmp.ondertekening; tmp.ondertekening = null; if (instel().transferAnim !== 'uit') speelOndertekening(o); }
-  // Een persconferentie die nog open staat? Dan meteen de animatie (als speler na de wedstrijd, als trainer ervoor)
-  if (S && !tmp.beweging && !tmp.vrijTrainen && !tmp.stats && !tmp.simBezig) persCheck();
+  // Een prijs gewonnen? Dan eerst de huldiging; een persconferentie die nog open staat komt daarna (als speler na de wedstrijd, als trainer ervoor)
+  if (S && !tmp.beweging && !tmp.vrijTrainen && !tmp.stats && !tmp.simBezig){ if (S.huldiging || HULD_BEZIG) huldigingCheck(); else persCheck(); }
 }
+// De huldiging (render/huldigingscene.js): S.huldiging = {soort, prijs, clubId of land}, gezet bij de winst van een beker, de titel of een toernooi.
+// Na een wedstrijd pas als de laatste actie op het veld is uitgespeeld (zoals de persconferentie hieronder)
+let HULD = null, HULD_BEZIG = false, huldWacht = 0, huldSinds = 0;
+function huldigingCheck(){
+  if (HULD_BEZIG || !S.huldiging || S.fase === 'match') return;
+  if (S.fase === 'matchEnd' && S.M){ const open = openAnims(S.M); huldSinds = huldSinds || Date.now(); const lang = Date.now() - huldSinds > 5000; // (hooguit 5 seconden wachten)
+    (S.M.gesimuleerd || lang ? open : open.slice(0, -1)).forEach(a => { a.gezien = true; }); }
+  if (S.fase === 'matchEnd' && S.M && openAnims(S.M).length && instel().anim !== 'uit'){ clearTimeout(huldWacht); huldWacht = setTimeout(() => { if (S && S.huldiging) huldigingCheck(); }, 600); return; }
+  const o = S.huldiging; S.huldiging = null; huldSinds = 0; bewaar();
+  if (instel().huldigingAnim === 'uit'){ render(); return; }
+  HULD_BEZIG = true;
+  speelHuldigingNu(o).finally(() => { HULD_BEZIG = false; if (S) render(); });
+}
+export function speelHuldigingNu(o){ return (HULD || (HULD = import('../render/huldigingscene.js'))).then(m => m.speelHuldiging(o)).catch(e => console.warn('huldiging', e)); }
 let PERS = null, persWacht = 0;
 function persOpenNu(){
   const P = S.fase === 'matchEnd' && S.M ? S.M.pers : S.fase === 'trainer' && S.trainer ? S.trainer.pers : null;

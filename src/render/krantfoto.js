@@ -20,6 +20,7 @@ export const FOTO_SOORTEN = {
   svs:{alt:'met de bokaal voor Speler van het Seizoen', prijs:'de bokaal'},
   topscorer:{alt:'met de Gouden Schoen voor de topscorer', prijs:'de Gouden Schoen'},
   portret:{alt:'op de persfoto', prijs:null},
+  goudenbal:{alt:'met de Gouden Bal', prijs:'de Gouden Bal'},
   get ererondje(){ return {alt:`tijdens ${ik.zijn} ererondje`, prijs:null}; },
   huis:{alt:'voor het nieuwe huis', prijs:null},
   bruiloft:{alt:'op de bruiloft', prijs:null},

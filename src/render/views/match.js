@@ -62,7 +62,7 @@ export function scorebord(){
 // Hoeveel energie heb je nog? Alleen zolang jij in het veld staat (of net gewisseld bent)
 export function vStamina(M){
   if (!M.stam || M.klaar || M.rood) return '';
-  if (M.gewisseld !== undefined) return `<div class="stamina uit"><span class="label">Gewisseld (${M.gewisseld}')</span><span class="muted klein-tekst">Je stamina was op.</span></div>`;
+  if (M.gewisseld !== undefined) return `<div class="stamina uit"><span class="label">Gewisseld (${M.gewisseld}')</span><span class="muted klein-tekst">${M.blessureVeld ? 'Geblesseerd van het veld.' : 'Je stamina was op.'}</span></div>`;
   const st = Math.round(stamina(M)), kl = st > 50 ? 'hoog' : st >= 25 ? 'mid' : 'laag', alarm = M.rol === 'basis' && st < M.wisselGrens + WAARSCHUW;
   return `<div class="stamina ${kl}${alarm ? ' alarm' : ''}" title="Elke minuut en elke actie kost stamina. Moeilijke acties kosten meer. Is hij op, dan wisselt de trainer je.${isRoutinier() ? ` Op jouw leeftijd (${S.sp.leeftijd}) raak je sneller leeg, vooral na een uur; een goede conditie helpt.` : ''}"><span class="label">Stamina</span><div class="stambalk"><i style="width:${st}%"></i></div><b>${st}</b>${alarm ? '<span class="klein-tekst">Wisselgevaar</span>' : ''}</div>`;
 }
@@ -71,7 +71,7 @@ export function vStamina(M){
 export function vFit(M){ return vSterren(M) + vStaminaNa(M); }
 function vStaminaNa(M){
   if (M.fitVoor === undefined) return '';
-  return (M.gewisseld !== undefined ? `<p class="fouttxt">De trainer wisselde je in de ${M.gewisseld}e minuut: je stamina was op${isRoutinier() ? `. Op je ${S.sp.leeftijd}e gaat de stamina sneller op; met conditietraining hou je het langer vol` : ''}.</p>` : '') + `<p class="muted">Fitheid: ${M.fitVoor} → ${S.sp.fit}.</p>`;
+  return (M.gewisseld !== undefined && M.blessureVeld ? `<p class="fouttxt">Je moest in de ${M.gewisseld}e minuut geblesseerd van het veld.</p>` : M.gewisseld !== undefined ? `<p class="fouttxt">De trainer wisselde je in de ${M.gewisseld}e minuut: je stamina was op${isRoutinier() ? `. Op je ${S.sp.leeftijd}e gaat de stamina sneller op; met conditietraining hou je het langer vol` : ''}.</p>` : '') + `<p class="muted">Fitheid: ${M.fitVoor} → ${S.sp.fit}.</p>`;
 }
 // Nieuwe regels sinds de vorige weergave verschijnen één voor één, alsof je de wedstrijd live volgt
 export const REGEL_TEMPO = .22;

@@ -18,8 +18,24 @@ export function zetTaal(t){
   TAAL = t === 'en' ? 'en' : 'nl';
   try { localStorage.setItem('taal', TAAL); } catch (e){}
   zetTitel();
-  if (typeof document !== 'undefined'){ document.documentElement.lang = TAAL; if (TAAL === 'en') vertaalDom(document.body); }
+  if (typeof document !== 'undefined'){ document.documentElement.lang = TAAL; if (TAAL === 'en') vertaalDom(document.body); else herstelDom(document.body); }
 }
+// Wat we vertaald hebben, onthouden we (de Nederlandse tekst en de Engelse): terug naar Nederlands zet dat zonder herladen
+// terug, ook in een venster dat nog open staat. Tekst die intussen door het spel is veranderd, laten we staan
+const ORIG = new WeakMap(); // tekstknoop → [nl, en]; element → {attribuut: [nl, en]} en '#tekst' voor data-en
+function herstelDom(root){
+  if (!root) return;
+  const zet = n => {
+    const o = ORIG.get(n); if (!o) return; ORIG.delete(n);
+    if (n.nodeType === 3){ if (n.nodeValue === o[1]) n.nodeValue = o[0]; return; }
+    for (const [a, [nl, en]] of Object.entries(o)){ if (a === '#tekst'){ if (n.textContent === en) n.textContent = nl; } else if (n.getAttribute(a) === en) n.setAttribute(a, nl); }
+  };
+  zet(root);
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT), lijst = [];
+  let n; while ((n = w.nextNode())) lijst.push(n); // (eerst verzamelen: '#tekst' vervangt de kinderen van een element)
+  lijst.forEach(zet);
+}
+const onthoud = (el, a, nl, en) => { const o = ORIG.get(el) || {}; o[a] = o[a] && o[a][1] === nl ? o[a] : [nl, en]; ORIG.set(el, o); };
 
 // ---------- het woordenboek: exacte zinnen en patronen ----------
 const EXACT = new Map(), PATRONEN = [];
@@ -53,12 +69,15 @@ function zoek(t, streng = false){
   let reserve = null;
   for (const lijst of [BAKJE.get(t.slice(0, 2)), VRIJ]) if (lijst) for (const [re, en, n, vast, , open] of lijst){
     if (t.length < n || !t.includes(vast)) continue; const m = t.match(re);
-    if (!m || (vast.length > 3 && m.slice(1).some(x => x && x.includes(vast))) || (open && m.slice(1).some(x => x && /[.!?] \S/.test(x)))) continue;
+    // (een gat dat over een opsomming heen gaat, "A (keeper, van X), B", niet: die wordt per item vertaald, zoekMeer)
+    if (!m || (vast.length > 3 && m.slice(1).some(x => x && x.includes(vast))) || (vast.startsWith(' (') && m.slice(1).some(x => x && x.includes('), '))) ||(open && m.slice(1).some(x => x && /(?<!\b[A-Z])[.!?] \S/.test(x)))) continue;
     const vorig = VOL; VOL = true; const r = vul(en, m), ok = VOL; VOL = vorig;
     if (ok) return r; if (reserve === null) reserve = r;
   }
   return streng ? null : reserve;
 }
+// Een opsomming splitsen op ", ", maar niet binnen haakjes: "J. Moreno (middenvelder, van SC Regenjas), H. Samaras (keeper)"
+function splitKomma(t){ const uit = []; let d = 0, b = 0; for (let i = 0; i < t.length; i++){ const c = t[i]; if (c === '(') d++; else if (c === ')') d = Math.max(0, d - 1); else if (d === 0 && c === ',' && t[i + 1] === ' '){ uit.push(t.slice(b, i)); b = i + 2; i++; } } uit.push(t.slice(b)); return uit; }
 // Ook met een kopje ervoor ("Vanaf de bank: ...") of "(jij)" erachter
 function zoekMeer(t){
   const z = zoek(t, true); if (z !== null) return z;
@@ -72,7 +91,7 @@ function zoekMeer(t){
   // een emoji ervoor ("💃 Heupen los!")
   const e = t.match(/^(\p{Extended_Pictographic}\uFE0F?\s+)([\s\S]+)$/u); if (e){ const z = zoek(e[2]); if (z !== null) return e[1] + z; }
   // een paar losse zinnen achter elkaar: per zin (of per groepje zinnen) vertalen
-  const zin = t.split(/(?<=[.!?]["')]?)\s+(?=[A-Z"'(])/);
+  const zin = t.split(/(?<=(?<!\b[A-Z])[.!?]["')]?)\s+(?=[A-Z"'(])/); // (niet na een voorletter: "O. Dubois")
   if (zin.length > 1 && zin.length <= 10){
     const uit = []; let raak = false;
     for (let i = 0; i < zin.length; ){
@@ -83,12 +102,12 @@ function zoekMeer(t){
     if (raak) return uit.join(' ');
   }
   // een opsomming met komma's ("klasse 64 (jij 50), reputatie 20 nodig (jij 8)" of "FC Bierbuik, tegen SV Grenswacht")
-  if (t.includes(', ')){ const delen = t.split(', '), v = delen.map(d => zoek(d, true) ?? d); if (v.some((x, i) => x !== delen[i])){ if (v.some((x, i) => x === delen[i] && nogNl(x))) VOL = false; return v.join(', '); } }
+  if (t.includes(', ')){ const delen = splitKomma(t), v = delen.map(d => zoek(d, true) ?? d); if (v.some((x, i) => x !== delen[i])){ if (v.some((x, i) => x === delen[i] && nogNl(x))) VOL = false; return v.join(', '); } }
   return zoek(t); // (dan maar een vertaling met een stukje Nederlands erin)
 }
 // Eén stuk tekst vertalen (de witruimte eromheen blijft staan). Lukt het niet in één keer, dan per stukje tussen de " · "
 // Vaste woorden in het pixelfont (bordjes, rubrieken, krantennamen). Dat zijn hoofdletters zonder zinsbouw, dus een eigen lijstje
-const PIXEL = {'PERSCONFERENTIE':'PRESS CONFERENCE', 'OPSTELLING':'LINE-UPS', 'DIT IS ONS HUIS':'THIS IS OUR HOME', 'VELD':'PITCH', 'VERKOCHT':'SOLD',
+const PIXEL = {'PERSCONFERENTIE':'PRESS CONFERENCE', 'OPSTELLING':'LINE-UPS', 'DIT IS ONS HUIS':'THIS IS OUR HOME', 'VELD':'PITCH', 'VERKOCHT':'SOLD', 'KAMPIOENEN':'CHAMPIONS', 'WINNAARS':'WINNERS', 'GOUDEN BAL':'GOLDEN BALL',
   'TRANSFERNIEUWS':'TRANSFER NEWS', 'RODDEL':'GOSSIP', 'INTERLAND':'INTERNATIONAL', 'DE DEAL':'THE DEAL', 'DE PIXEL KRANT':'THE PIXEL TIMES',
   'DE SPORTKRANT':'THE SPORTS PAPER', 'VOETBAL VANDAAG':'FOOTBALL TODAY', 'STUDIO VOETBAL':'FOOTBALL STUDIO', 'EUROPEES VOETBALNIEUWS':'EUROPEAN FOOTBALL NEWS',
   'De Sportkrant':'The Sports Paper', 'Voetbal Vandaag':'Football Today', 'Studio Voetbal':'Football Studio', 'Europees Voetbalnieuws':'European Football News'};
@@ -118,19 +137,19 @@ function vertaal1(tekst){
 }
 const ATTR = ['title', 'aria-label', 'placeholder', 'data-bevestig', 'data-ja'];
 function vertaalEl(el){
-  if (el.dataset && el.dataset.en != null && el.textContent !== el.dataset.en){ el.textContent = el.dataset.en; return; } // (een eigen Engelse tekst, voor woorden met twee betekenissen: 'Uit' = Off of Away)
-  for (const a of ATTR){ const v = el.getAttribute && el.getAttribute(a); if (v){ const n = vertaal(v); if (n !== v) el.setAttribute(a, n); } }
+  if (el.dataset && el.dataset.en != null && el.textContent !== el.dataset.en){ onthoud(el, '#tekst', el.textContent, el.dataset.en); el.textContent = el.dataset.en; return; } // (een eigen Engelse tekst, voor woorden met twee betekenissen: 'Uit' = Off of Away)
+  for (const a of ATTR){ const v = el.getAttribute && el.getAttribute(a); if (v){ const n = vertaal(v); if (n !== v){ onthoud(el, a, v, n); el.setAttribute(a, n); } } }
 }
 // Alle tekst in een stuk van de pagina
 export function vertaalDom(root){
   if (TAAL !== 'en' || !root) return;
-  if (root.nodeType === 3){ const n = vertaal(root.nodeValue); if (n !== root.nodeValue) root.nodeValue = n; return; }
+  if (root.nodeType === 3){ const n = vertaal(root.nodeValue); if (n !== root.nodeValue){ ORIG.set(root, [root.nodeValue, n]); root.nodeValue = n; } return; }
   if (root.nodeType !== 1) return;
   if (/^(SCRIPT|STYLE|TEXTAREA)$/.test(root.nodeName)) return;
   vertaalEl(root);
   const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
   let n; while ((n = w.nextNode())){
-    if (n.nodeType === 3){ if (n.parentNode && /^(SCRIPT|STYLE|TEXTAREA)$/.test(n.parentNode.nodeName)) continue; const v = vertaal(n.nodeValue); if (v !== n.nodeValue) n.nodeValue = v; }
+    if (n.nodeType === 3){ if (n.parentNode && /^(SCRIPT|STYLE|TEXTAREA)$/.test(n.parentNode.nodeName)) continue; const v = vertaal(n.nodeValue); if (v !== n.nodeValue){ ORIG.set(n, [n.nodeValue, v]); n.nodeValue = v; } }
     else vertaalEl(n);
   }
 }
@@ -138,7 +157,8 @@ export function vertaalDom(root){
 export function startVertaler(){
   if (typeof MutationObserver === 'undefined') return;
   // Tekst die op een canvas wordt getekend (bordjes op het veld, de letters in de krant) ziet de observer niet: die vertalen we bij het tekenen
-  if (TAAL === 'en' && typeof CanvasRenderingContext2D !== 'undefined'){
+  // (altijd inhaken: vertaal() doet in het Nederlands niets, en zo werkt ook een wissel naar Engels zonder herladen)
+  if (typeof CanvasRenderingContext2D !== 'undefined'){
     const P = CanvasRenderingContext2D.prototype;
     for (const f of ['fillText', 'strokeText']){ const oud = P[f]; P[f] = function(t, ...r){ return oud.call(this, typeof t === 'string' ? vertaal(t) : t, ...r); }; }
   }

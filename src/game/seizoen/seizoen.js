@@ -128,7 +128,7 @@ export function seizoenEinde(){
   if (ik && ik.g > 0 && ik.g >= rs[0].g) krant.push({bron:bron[1 % bron.length], kop:`Gouden Schoen voor ${sp.naam}`, tekst:`Met ${ik.g} goals is ${sp.naam} de topscorer van de ${DIVS[t]}. Niemand scoorde vaker.`, wanneer, foto:fotoVan('topscorer', `Topscorer ${sp.naam} met de Gouden Schoen.`)});
   historieSeizoen(); // kampioenen en bekerwinnaars in de clubhistorie
   vriendSeizoen(); // de cijfers van je jeugdvriend bij zijn carrière
-  const rv = rivaalSeizoen(); if (rv){ krant.push({bron:bron[0], kop:rv.kop, tekst:rv.tekst, wanneer}); S.eind.rivaal = rv; if (rv.prijs){ S.car.prijzen.push(rv.prijs); S.eind.prijzen.push(rv.prijs); } }
+  const rv = rivaalSeizoen(); if (rv){ S.eind.rivaal = rv; for (const x of [rv, ...(rv.overig || [])]){ krant.push({bron:bron[0], kop:x.kop, tekst:x.tekst, wanneer}); if (x.prijs){ S.car.prijzen.push(x.prijs); S.eind.prijzen.push(x.prijs); } } } // (ook de races met je andere rivalen)
   for (const k of europaKrant(wissels).slice(0, 3)) krant.push({bron:KRANTEN[0][0], kop:k.kop, tekst:k.tekst, wanneer});
   for (const k of ontwikkelLanden().slice(0, 2)) krant.push({bron:KRANTEN[0][0], kop:k.kop, tekst:k.tekst, wanneer}); // de landen worden sterker of zwakker
   // Wat bij het seizoenseinde via krantMelding binnenkwam (de Gouden Bal, een standbeeld, een nieuw competitierecord) hoort op dit

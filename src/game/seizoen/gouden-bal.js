@@ -1,8 +1,9 @@
 import { S, club, gemCijfer, ovr } from '../../core/state.js';
 import { pick, randInt, rnd } from '../../core/utils.js';
-import { AANTAL_RONDES, CLUBS, DIVS, divClubs, GAST_START, GASTEN } from '../../data/gegevens.js';
+import { AANTAL_RONDES, CLUBS, DIVS, rondesVan, divClubs, GAST_START, GASTEN } from '../../data/gegevens.js';
 import { ACHTERNAMEN, stand } from '../competitie/spelers.js';
 import { metVoornaam } from '../media/nieuws.js';
+import { minWedSeizoen } from './verkiezing.js';
 import { vrouwenWereld } from '../../core/geslacht.js';
 
 /* ===================== Gouden Bal ===================== */
@@ -55,7 +56,8 @@ export function goudenBal(gem){
   const g = S.ss.g + (S.ss.bg || 0), a = S.ss.a + (S.ss.ba || 0);
   const tb = sp.tGB || 0; sp.tGB = 0; // bonus van het WK/EK van afgelopen zomer
   const top = wereldTop(), o = ovr(sp);
-  const mijn = S.ss.wed >= 8 && gem !== null ? goudenBalScore({gem, g, a, kamp, beker:S.ss.bekerWinst, cl:S.ss.clWinst, o, t, tb, top}) : 0;
+  // (minstens de helft van het seizoen gespeeld: wie lang geblesseerd was, wint de Gouden Bal niet)
+  const mijn = S.ss.wed >= minWedSeizoen() && gem !== null ? goudenBalScore({gem, g, a, kamp, beker:S.ss.bekerWinst, cl:S.ss.clWinst, o, t, tb, top}) : 0;
   wereldSterren().forEach(x => { if (!isTopClub(x.club)) x.club = pick(topClubs()); });
   const lijst = wereldSterren().map(x => ({naam:metVoornaam(x.v, x.n), club:CLUBS[x.club].n, k:sterKlasse(x), score:Math.round(x.basis + rnd() * 18 + (stand(1)[0] === x.club || (CLUBS[x.club].gast && CLUBS[x.club].gast.rang === 1) ? 8 : 0))}));
   // De jury wil ook wel eens een ander: elke eerder gewonnen Gouden Bal telt licht tegen je mee
@@ -71,12 +73,15 @@ export function goudenBal(gem){
 // De race tijdens het seizoen: jouw verwachte punten (goals en assists doorgerekend naar een heel seizoen) tegen die van de sterren
 export function goudenBalStand(){
   const sp = S.sp, t = club().t, wed = S.ss.wed || 0, gem = gemCijfer(), los = !!sp.clubloos;
-  const kamp = !los && stand(t)[0] === sp.club, schaal = wed >= 3 ? Math.max(1, AANTAL_RONDES / wed) : 1;
+  // Doorrekenen naar het hele seizoen: de weken die nog komen, min de weken dat je geblesseerd bent of geschorst
+  const per = (rondesVan(t) || AANTAL_RONDES) / AANTAL_RONDES; // (een kortere league speelt niet elke week)
+  const nog = Math.max(0, Math.round((AANTAL_RONDES - (S.ronde || 0) - Math.max(0, sp.blessure || 0)) * per) - Math.max(0, sp.geschorst || 0)), verwacht = wed + nog, MIN = minWedSeizoen(t);
+  const kamp = !los && stand(t)[0] === sp.club, schaal = wed >= 3 ? Math.max(1, verwacht / wed) : 1;
   const g = S.ss.g + (S.ss.bg || 0), a = S.ss.a + (S.ss.ba || 0), gP = Math.round(g * schaal), aP = Math.round(a * schaal);
   const kTop = wereldTop(), o = ovr(sp);
   const basis = {gem:gem ?? 6, g:gP, a:aP, kamp, beker:S.ss.bekerWinst, cl:S.ss.clWinst, o, t, tb:sp.tGB || 0, top:kTop};
   const onderdelen = goudenBalOnderdelen({...basis, eerder:eerdereGB(), prognose:wed >= 3});
-  const mijn = los || gem === null ? 0 : onderdelen.totaal;
+  const mijn = los || gem === null || verwacht < MIN ? 0 : onderdelen.totaal; // (haal je het minimum niet meer, dan tel je niet mee)
   wereldSterren().forEach(x => { if (!isTopClub(x.club)) x.club = pick(topClubs()); });
   const lijst = wereldSterren().map(x => ({naam:metVoornaam(x.v, x.n), club:CLUBS[x.club].n, k:sterKlasse(x), score:Math.round(x.basis + 9 + (stand(1)[0] === x.club || (CLUBS[x.club].gast && CLUBS[x.club].gast.rang === 1) ? 8 : 0))}));
   lijst.push({naam:sp.naam, club:los ? 'zonder club' : club().n, k:o, score:mijn, jij:true});
@@ -85,7 +90,9 @@ export function goudenBalStand(){
   // Wat levert wat op (met jouw niveau erbij)
   const f = GB_NIVEAU[t] ?? 0, r1 = x => String(Math.round(x * 10) / 10).replace('.', ',');
   const tips = [];
-  if (wed < 8) tips.push(`Speel minstens 8 wedstrijden: nu ${wed}. Anders tel je niet mee.`);
+  if (verwacht < MIN) tips.push(sp.blessure > 0 ? `Door je blessure haal je de ${MIN} wedstrijden niet meer die je minstens moet spelen (nu ${wed}). Dit seizoen tel je niet mee.` : `Je haalt de ${MIN} wedstrijden niet meer die je minstens moet spelen (nu ${wed}). Dit seizoen tel je niet mee.`);
+  else if (wed < MIN) tips.push(`Speel minstens ${MIN} wedstrijden: nu ${wed}. Anders tel je niet mee.`);
+  if (sp.blessure > 0 && verwacht >= MIN) tips.push(`Je bent nog ${sp.blessure} ${sp.blessure === 1 ? 'week' : 'weken'} geblesseerd: die wedstrijden tellen niet mee in je verwachting.`);
   if (t > 1) tips.push(`In de ${DIVS[t]} telt je seizoen maar voor ${Math.round(f * 100)}%. Speel in de hoogste competitie (${DIVS[1]}) om echt mee te doen.`);
   if (f > 0){
     tips.push(`Elke 0,1 hoger gemiddeld cijfer: +${r1(1.8 * f)} punten${gem !== null ? ` (nu ${c1(gem)})` : ''}.`);
@@ -103,7 +110,7 @@ export function goudenBalStand(){
       verschil.push({l:GB_NAAM[r.k] || r.k, d, waarom}); }
     for (const x of V.rij) if (!onderdelen.rij.some(r => r.k === x.k) && Math.abs(x.v) >= 1) verschil.push({l:GB_NAAM[x.k] || x.k, d:-x.v, waarom:''});
   }
-  return {lijst, plek, mijn, gat, top, tips, prognose:{g:gP, a:aP}, telt:wed >= 8, onderdelen, verschil, delta:V && gem !== null ? mijn - V.mijn : null};
+  return {lijst, plek, mijn, gat, top, tips, prognose:{g:gP, a:aP}, telt:wed >= MIN, onderdelen, verschil, delta:V && gem !== null ? mijn - V.mijn : null};
 }
 // Elke week een momentopname, zodat je ziet wat er veranderde
 export function gbMoment(){

@@ -13,7 +13,7 @@ import { HERKOMST_IDS, hulpInhoud, opslagKnoppen } from './render/views/start.js
 
 /* ===================== Invoer ===================== */
 // De taalknop (bovenbalk): Nederlands of Engels (core/taal.js vertaalt de tekst op het scherm)
-document.addEventListener('click', e => { const k = e.target.closest('[data-taal]'); if (!k) return; e.preventDefault(); e.stopPropagation(); const naar = taal() === 'en' ? 'nl' : 'en'; zetTaal(naar); if (naar === 'nl'){ if (S) bewaar(); location.reload(); } else render(); }, true); // (terug naar Nederlands: opnieuw laden, zodat ook vertaalde vensters weer Nederlands zijn)
+document.addEventListener('click', e => { const k = e.target.closest('[data-taal]'); if (!k) return; e.preventDefault(); e.stopPropagation(); const naar = taal() === 'en' ? 'nl' : 'en'; zetTaal(naar); render(); }, true); // (niet herladen: je blijft op hetzelfde scherm; zetTaal zet ook een open venster terug naar het Nederlands)
 startVertaler();
 // De muziekknop (bovenbalk): achtergrondmuziek aan of uit (core/muziek.js)
 document.addEventListener('click', e => { const k = e.target.closest('[data-muziek]'); if (!k) return; e.preventDefault(); e.stopPropagation(); zetMuziek(!muziekAan()); render(); }, true);
@@ -81,6 +81,8 @@ async function toonHulp(){
     <h3>Animatie bij een transfer</h3><p class="muted klein-tekst">Je tekent je contract bij de voorzitter, geeft hem een hand en houdt je nieuwe shirt omhoog.</p>
     <div class="rij">${['aan', 'uit'].map(v => `<label class="radio"><input type="radio" name="transferAnim" value="${v}" ${ta === v ? 'checked' : ''}> ${v[0].toUpperCase() + v.slice(1)}</label>`).join('')}</div>
     ${magBekijken ? '<p><button class="klein" id="bekijkTransfer" type="button">✍️ Bekijk de animatie (bij je huidige club)</button></p>' : ''}
+    <h3>Huldiging na een prijs</h3><p class="muted klein-tekst">Na een titel, een beker of een toernooi staat het team op het podium en til jij de prijs boven je hoofd.</p>
+    <div class="rij">${['aan', 'uit'].map(v => `<label class="radio"><input type="radio" name="huldigingAnim" value="${v}" ${(instel().huldigingAnim || 'aan') === v ? 'checked' : ''}> ${v[0].toUpperCase() + v.slice(1)}</label>`).join('')}</div>
     <h3>Opkomst vóór de wedstrijd</h3><p class="muted klein-tekst">De teams komen het veld op en je ziet beide opstellingen. Op het scherm vóór de aftrap kun je hem ook altijd zelf starten (🎬).</p>
     <div class="rij">${[['belangrijk', 'Belangrijke duels'], ['altijd', 'Altijd'], ['uit', 'Uit']].map(([v, l]) => `<label class="radio"><input type="radio" name="opkomst" value="${v}" ${(instel().opkomst || 'belangrijk') === v ? 'checked' : ''}> ${l}</label>`).join('')}</div>` : '';
   const muziek = `<h3>Muziek</h3><p class="muted klein-tekst">Rustige achtergrondmuziek terwijl je speelt. Je kunt hem ook met de 🎵-knop bovenin aan of uit zetten.</p>
@@ -99,7 +101,7 @@ async function toonHulp(){
     <h3>Bronnen</h3>
     <p class="muted klein-tekst">3D-spelersmodel: <a href="https://sketchfab.com/3d-models/pallone-da-calciogiocatore-3016826bcb984b02869f8dcc296120e0" target="_blank" rel="noopener" style="color:var(--info)">"pallone da calcio+giocatore"</a> door rosaliarenda (Sketchfab), licentie <a href="http://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener" style="color:var(--info)">CC-BY-4.0</a>. Aangepast voor dit spel: spijkerbroek, bal en wimpers weggelaten, texturen verkleind, eigen tenues, huidskleur, kapsels, lengte, bouw en bewegingen.</p>`);
   const m = document.getElementById('modal');
-  const wissel = e => { if (e.target.name === 'muziek'){ zetMuziek(e.target.value === 'aan'); render(); } if (e.target.name === 'anim' && S){ instel().anim = e.target.value; render(); } if (e.target.name === 'transferAnim' && S){ instel().transferAnim = e.target.value; bewaar(); } if (e.target.name === 'opkomst' && S){ instel().opkomst = e.target.value; bewaar(); } };
+  const wissel = e => { if (e.target.name === 'muziek'){ zetMuziek(e.target.value === 'aan'); render(); } if (e.target.name === 'anim' && S){ instel().anim = e.target.value; render(); } if (e.target.name === 'transferAnim' && S){ instel().transferAnim = e.target.value; bewaar(); } if (e.target.name === 'opkomst' && S){ instel().opkomst = e.target.value; bewaar(); } if (e.target.name === 'huldigingAnim' && S){ instel().huldigingAnim = e.target.value; bewaar(); } };
   const volume = e => { if (e.target.id === 'muziekVolume') zetVolume(e.target.value); };
   m.addEventListener('change', wissel); m.addEventListener('input', volume);
   await p;
