@@ -1,6 +1,5 @@
-/* Zijkant: schuift mee met de pagina en scrolt zelf als hij te lang is */
+/* Zijkant: staat vast bovenaan de pagina en scrolt gewoon met de pagina mee weg (geen sticky, geen eigen scrollbalk) */
 .zij{display:grid;gap:10px;min-width:0}
-@media (min-width:861px){.zij{position:sticky;top:calc(var(--hud-h, 0px) + 10px);max-height:calc(100vh - var(--hud-h, 0px) - 20px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--lijn) transparent;padding-right:2px}}
 .kaart{background:var(--gras2);border:1px solid var(--lijn);border-radius:10px;padding:12px;display:grid;gap:8px;min-width:0}
 .speler{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center}
 .ovr{font-family:var(--f-display);font-weight:900;font-size:2.4rem;line-height:.9;color:var(--lamp);text-align:center}

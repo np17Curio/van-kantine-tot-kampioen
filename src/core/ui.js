@@ -48,7 +48,10 @@ export function render(){
   resetActs(); muziekNaRender(!!S); // (startscherm: menumuziek, in het spel: de spelmuziek)
   const veld = document.getElementById('veld'), trainerFase = S && (/^(trainer|analist|eigenaar)/.test(S.fase) || (S.fase === 'event' && S.trainer && !S.trainer.gestopt)); // (een privégebeurtenis als trainer)
   veld.innerHTML = tmp.beweging ? vBeweging() : S && tmp.vrijTrainen ? vVrijTrainen() : S && tmp.stats ? vStats() : S ? ({selectie:vSelectie, selectieKeuze:vSelectieKeuze, proef:vProef, week:vWeek, oproep:vOproep, event:vEvent, match:vMatch, matchEnd:vMatchEnd, venster:vVenster, clubloos:vClubloos, afscheid:vAfscheid, seizoenEinde:vSeizoenEinde, ontwikkeling:vOntwikkeling, toernooi:vToernooi, toernooiEinde:vToernooiEinde, einde:vEinde, trainerAanbod:vTrainerAanbod, trainerCursus:vTrainerCursus, trainerLive:vTrainerLive, trainer:vTrainer, trainerUitslag:vTrainerUitslag, trainerSeizoen:vTrainerSeizoen, analist:vAnalist, analistUitslag:vAnalistUitslag, analistSeizoen:vAnalistSeizoen, eigenaarAanbod:vEigenaarAanbod, eigenaar:vEigenaar, eigenaarSeizoen:vEigenaarSeizoen}[S.fase] || vStart)() : vStart();
-  document.getElementById('zij').innerHTML = S && /^(analist|eigenaar)/.test(S.fase) ? (vZijNa() || vZijStart()) : S && S.trainer && trainerFase ? vZijTrainer() : S && S.fase !== 'einde' && !trainerFase && !S.selectie ? vZij() : vZijStart();
+  // (de zijkant scrolt zelf: na het opnieuw tekenen dezelfde scrollpositie houden, anders springt hij bij elke klik naar boven)
+  const zij = document.getElementById('zij'), zijScroll = zij.scrollTop;
+  zij.innerHTML =S && /^(analist|eigenaar)/.test(S.fase) ? (vZijNa() || vZijStart()) : S && S.trainer && trainerFase ? vZijTrainer() : S && S.fase !== 'einde' && !trainerFase && !S.selectie ? vZij() : vZijStart();
+  zij.scrollTop = zijScroll;
   const hud = document.getElementById('hud');
   hud.innerHTML = vHud(!!(S && !trainerFase && S.fase !== 'einde' && !S.selectie));
   document.body.dataset.fase = tmp.beweging ? 'beweging' : S && tmp.vrijTrainen ? 'vrijtrainen' : S ? (tmp.stats ? 'stats' : S.fase) : 'start';

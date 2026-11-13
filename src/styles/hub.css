@@ -96,7 +96,7 @@
 .winkelitem .klein,.winkelitem .tag{justify-self:start}
 
 /* Wedstrijd: scorebord blijft in beeld tijdens het lezen van het verslag */
-.score{position:sticky;top:calc(var(--hud-h, 0px) + 8px);z-index:6;box-shadow:0 6px 16px rgba(0,0,0,.35)}
+.score{position:relative;z-index:6;box-shadow:0 6px 16px rgba(0,0,0,.35)}
 
 /* Toasts: wat leverde je keuze op? */
 .toasts{position:fixed;right:16px;bottom:16px;z-index:50;display:grid;gap:8px;max-width:min(440px,calc(100vw - 32px));pointer-events:none}
@@ -125,7 +125,6 @@ kbd{font-family:var(--f-mono);font-size:.8em;border:1px solid var(--lijn);border
 @media (max-width:700px){
   .hud{position:static;box-shadow:none}
   .hudmeters{flex:1 1 100%;order:3}
-  .score{top:8px}
   .toasts{left:16px;right:16px;bottom:88px}
   .hubtab{padding:7px 9px 5px;font-size:.9rem}
 }

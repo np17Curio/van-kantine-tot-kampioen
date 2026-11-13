@@ -392,7 +392,8 @@ export function teken3D(T, nu){
   // ingezoomd zoals een tv-camera; bij een doel schuift het beeld iets op zodat het doel in beeld blijft
   // Ver weg (normaal): volgt de bal en schuift bij een doel iets op, zodat het doel in beeld blijft.
   // Dichtbij (duels, tackles, juichen, toespraak): volgt jou, ook in de diepte
-  const zoom = T.zoom || 1, J = zoom < 1 && T.ents.J;
+  // In de herhaling: eerst op jou, maar zodra de bal bij je weg is (het schot) volgt de camera de bal tot in het doel
+  const zoom = T.zoom || 1, Jent = zoom < 1 && T.ents.J, J = Jent && T.herhaling && T.bal && Math.hypot(T.bal.x - Jent.x, T.bal.y - Jent.y) > 3 ? T.bal : Jent;
   const cam = T.cam ?? 52.5, doelX = J ? wx(J.x) : wx(cam) + (cam > 70 ? (cam - 70) * .25 : cam < 35 ? -(35 - cam) * .25 : 0);
   // T.cam is in pitch.js al afgevlakt; hier alleen nog een klein beetje, en een stukje vooruit kijken naar waar de bal heen gaat
   const vooruit = J || R.vorigeBalX === undefined || !dt ? 0 : Math.max(-6, Math.min(6, (bx - R.vorigeBalX) / dt * .25)); R.vorigeBalX = bx;

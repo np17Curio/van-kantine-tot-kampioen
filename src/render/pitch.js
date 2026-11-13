@@ -778,7 +778,7 @@ export function pitchSpeel(el, a, klaar, opt = {}){
   const cv = pitchCanvas(el), {sc, st} = animScript(a), snel = (instel().anim === 'snel' ? .5 : 1) * (opt.herhaling ? HERHALING_TRAAG : 1) * ((typeof window !== 'undefined' && window.__pitchTraag) || 1);
   const T = {geenJuichJ:!!a.dansNa, bord:a.soort === 'wissel' ? {uit:a.uit ?? null, in:a.in ?? null} : null, ents:sc.ents, bal:{...sc.bal}, cam:sc.cam, zoom:opt.herhaling && sc.ents.J ? .55 : sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(), rivaal:rivaalInBeeld(sc.ents),
     onder:opt.herhaling ? `⟲ HERHALING · ${a.min ?? ''}' · ${S.sp.naam}` : a.onder || (a.soort === 'shootout' ? 'Strafschoppen' : null)};
-  T.vriend = vriendInBeeld(sc.ents, T.rivaal && T.rivaal.id);
+  T.vriend = vriendInBeeld(sc.ents, T.rivaal && T.rivaal.id); T.herhaling = !!opt.herhaling;
   let i = -1, t0 = 0, van = null, fx = null, fxT = 0, eind = 0, aanzet = 0;
   const id = (PITCH = {stop:false, klaar}), gen = GEN;
   const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
