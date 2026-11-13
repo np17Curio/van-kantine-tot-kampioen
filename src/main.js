@@ -3,6 +3,7 @@ import { bevestig, momentopname, openModal, sneltoetsen, toonVerschil } from './
 import { S, SLOTS, bewaar, exporteer, importeer, resetTmp, setS, tmp } from './core/state.js';
 import { krantNaRender } from './render/krantfoto.js';
 import { startVertaler, taal, zetTaal } from './core/taal.js';
+import { muziekAan, muziekVolume, startMuziek, zetMuziek, zetVolume } from './core/muziek.js';
 import { herstel } from './core/migratie.js';
 import { herstelSeizoenDelen } from './game/seizoen/seizoen.js';
 import { ACTS, render, speelOndertekening } from './core/ui.js';
@@ -14,6 +15,9 @@ import { HERKOMST_IDS, hulpInhoud, opslagKnoppen } from './render/views/start.js
 // De taalknop (bovenbalk): Nederlands of Engels (core/taal.js vertaalt de tekst op het scherm)
 document.addEventListener('click', e => { const k = e.target.closest('[data-taal]'); if (!k) return; e.preventDefault(); e.stopPropagation(); const naar = taal() === 'en' ? 'nl' : 'en'; zetTaal(naar); if (naar === 'nl'){ if (S) bewaar(); location.reload(); } else render(); }, true); // (terug naar Nederlands: opnieuw laden, zodat ook vertaalde vensters weer Nederlands zijn)
 startVertaler();
+// De muziekknop (bovenbalk): achtergrondmuziek aan of uit (core/muziek.js)
+document.addEventListener('click', e => { const k = e.target.closest('[data-muziek]'); if (!k) return; e.preventDefault(); e.stopPropagation(); zetMuziek(!muziekAan()); render(); }, true);
+startMuziek();
 document.addEventListener('click', async e => {
   if (e.target.closest('[data-hulp]')) return toonHulp();
   const b = e.target.closest('[data-i]'); if (!b || b.disabled) return;
@@ -79,7 +83,10 @@ async function toonHulp(){
     ${magBekijken ? '<p><button class="klein" id="bekijkTransfer" type="button">✍️ Bekijk de animatie (bij je huidige club)</button></p>' : ''}
     <h3>Opkomst vóór de wedstrijd</h3><p class="muted klein-tekst">De teams komen het veld op en je ziet beide opstellingen. Op het scherm vóór de aftrap kun je hem ook altijd zelf starten (🎬).</p>
     <div class="rij">${[['belangrijk', 'Belangrijke duels'], ['altijd', 'Altijd'], ['uit', 'Uit']].map(([v, l]) => `<label class="radio"><input type="radio" name="opkomst" value="${v}" ${(instel().opkomst || 'belangrijk') === v ? 'checked' : ''}> ${l}</label>`).join('')}</div>` : '';
-  const p = openModal('Hoe werkt het?', `${instellingen}
+  const muziek = `<h3>Muziek</h3><p class="muted klein-tekst">Rustige achtergrondmuziek terwijl je speelt. Je kunt hem ook met de 🎵-knop bovenin aan of uit zetten.</p>
+    <div class="rij">${[['aan', 'Aan'], ['uit', 'Uit']].map(([v, l]) => `<label class="radio"><input type="radio" name="muziek" value="${v}" ${(muziekAan() ? 'aan' : 'uit') === v ? 'checked' : ''}> ${l}</label>`).join('')}
+    <label class="radio" style="gap:8px">Volume <input type="range" id="muziekVolume" min="0" max="1" step="0.05" value="${muziekVolume()}" style="width:140px"></label></div>`;
+  const p = openModal('Hoe werkt het?', `${instellingen}${muziek}
     <h3>Sneltoetsen</h3>
     <ul class="toetsen"><li><kbd>1</kbd>–<kbd>9</kbd> kies de genummerde keuze</li><li><kbd>Enter</kbd> hoofdknop (verder, speel, volgende week)</li><li><kbd>←</kbd> <kbd>→</kbd> wissel van tabblad</li><li><kbd>Esc</kbd> sluit dit venster</li></ul>
     ${hulpInhoud()}
@@ -92,10 +99,11 @@ async function toonHulp(){
     <h3>Bronnen</h3>
     <p class="muted klein-tekst">3D-spelersmodel: <a href="https://sketchfab.com/3d-models/pallone-da-calciogiocatore-3016826bcb984b02869f8dcc296120e0" target="_blank" rel="noopener" style="color:var(--info)">"pallone da calcio+giocatore"</a> door rosaliarenda (Sketchfab), licentie <a href="http://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener" style="color:var(--info)">CC-BY-4.0</a>. Aangepast voor dit spel: spijkerbroek, bal en wimpers weggelaten, texturen verkleind, eigen tenues, huidskleur, kapsels, lengte, bouw en bewegingen.</p>`);
   const m = document.getElementById('modal');
-  const wissel = e => { if (e.target.name === 'anim' && S){ instel().anim = e.target.value; render(); } if (e.target.name === 'transferAnim' && S){ instel().transferAnim = e.target.value; bewaar(); } if (e.target.name === 'opkomst' && S){ instel().opkomst = e.target.value; bewaar(); } };
-  m.addEventListener('change', wissel);
+  const wissel = e => { if (e.target.name === 'muziek'){ zetMuziek(e.target.value === 'aan'); render(); } if (e.target.name === 'anim' && S){ instel().anim = e.target.value; render(); } if (e.target.name === 'transferAnim' && S){ instel().transferAnim = e.target.value; bewaar(); } if (e.target.name === 'opkomst' && S){ instel().opkomst = e.target.value; bewaar(); } };
+  const volume = e => { if (e.target.id === 'muziekVolume') zetVolume(e.target.value); };
+  m.addEventListener('change', wissel); m.addEventListener('input', volume);
   await p;
-  m.removeEventListener('change', wissel);
+  m.removeEventListener('change', wissel); m.removeEventListener('input', volume);
 }
 
 /* ===================== Start ===================== */

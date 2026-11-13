@@ -1,4 +1,6 @@
 import { S, bewaar, tmp } from './state.js';
+import { muziekNaRender } from './muziek.js';
+import { taal, vertaal } from './taal.js';
 import { vToernooi, vToernooiEinde } from '../game/interlands/toernooi.js';
 import { instel, openAnims, pitchNaRender, vPitch } from '../render/pitch.js';
 import { fotoNaRender, krantNaRender } from '../render/krantfoto.js';
@@ -30,7 +32,11 @@ export function knop(label, fn, cls = 'hoofd', extra = ''){ return `<button clas
 export function resetActs(){ ACTS = []; }
 
 // Kleurt effecten als "+8" (groen) en "−12" (rood) in de ondertitel van een keuze
-export const effecten = s => String(s).replace(/(^|[\s(·])([+−]\d+(?:[.,]\d+)?%?)/g, (_, voor, n) => `${voor}<span class="eff ${n[0] === '+' ? 'plus' : 'min'}">${n}</span>`);
+// (eerst vertalen: daarna staan de getallen in een eigen <span> en is de zin in stukjes geknipt)
+const ontsnap = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+// (een tekst zonder html, maar met &quot; erin: eerst terug naar gewone tekst, anders herkent het woordenboek hem niet)
+const vertaalHtml = t => taal() !== 'en' ? t : /</.test(t) || !/&(quot|#39|amp|lt|gt);/.test(t) ? vertaal(t) : ontsnap(vertaal(t.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')));
+export const effecten = s => vertaalHtml(String(s)).replace(/(^|[\s(·])([+−]\d+(?:[.,]\d+)?%?)/g, (_, voor, n) => `${voor}<span class="eff ${n[0] === '+' ? 'plus' : 'min'}">${n}</span>`);
 export function keuzeKnop(t, s, fn, extra = ''){ return `<button class="keuze" data-i="${act(fn)}" ${extra}><span class="t">${t}</span>${s ? `<span class="s">${effecten(s)}</span>` : ''}</button>`; }
 
 // Tabbalk: tabs = [[sleutel, label, badge?]]; badge '!' is urgent, een getal is 'nog te doen'
@@ -39,7 +45,7 @@ export function tabBalk(tabs, actief, kies, cls = 'hubtabs'){
 }
 
 export function render(){
-  resetActs();
+  resetActs(); muziekNaRender(!!S); // (startscherm: menumuziek, in het spel: de spelmuziek)
   const veld = document.getElementById('veld'), trainerFase = S && (/^(trainer|analist|eigenaar)/.test(S.fase) || (S.fase === 'event' && S.trainer && !S.trainer.gestopt)); // (een privégebeurtenis als trainer)
   veld.innerHTML = tmp.beweging ? vBeweging() : S && tmp.vrijTrainen ? vVrijTrainen() : S && tmp.stats ? vStats() : S ? ({selectie:vSelectie, selectieKeuze:vSelectieKeuze, proef:vProef, week:vWeek, oproep:vOproep, event:vEvent, match:vMatch, matchEnd:vMatchEnd, venster:vVenster, clubloos:vClubloos, afscheid:vAfscheid, seizoenEinde:vSeizoenEinde, ontwikkeling:vOntwikkeling, toernooi:vToernooi, toernooiEinde:vToernooiEinde, einde:vEinde, trainerAanbod:vTrainerAanbod, trainerCursus:vTrainerCursus, trainerLive:vTrainerLive, trainer:vTrainer, trainerUitslag:vTrainerUitslag, trainerSeizoen:vTrainerSeizoen, analist:vAnalist, analistUitslag:vAnalistUitslag, analistSeizoen:vAnalistSeizoen, eigenaarAanbod:vEigenaarAanbod, eigenaar:vEigenaar, eigenaarSeizoen:vEigenaarSeizoen}[S.fase] || vStart)() : vStart();
   document.getElementById('zij').innerHTML = S && /^(analist|eigenaar)/.test(S.fase) ? (vZijNa() || vZijStart()) : S && S.trainer && trainerFase ? vZijTrainer() : S && S.fase !== 'einde' && !trainerFase && !S.selectie ? vZij() : vZijStart();

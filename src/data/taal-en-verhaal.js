@@ -2766,8 +2766,6 @@ export const EN_VERHAAL = {
   "Selectieteam (met *)":"Selection team (with *)",
   "Selectiewedstrijd * van *. Langs de lijn staan scouts van clubs uit heel *, met een notitieblok in de hand.*":"Selection match * of *. Along the sideline stand scouts from clubs all over *, notebooks in hand.*",
   "Langs de lijn hoor je de scouts praten over *, ook *. * wordt gezien als het grootste talent van de selectiedagen. * kijkt je even aan: dit wordt een strijd.":"Along the sideline you hear the scouts talking about *, also *. * is seen as the biggest talent of the selection days. * glances at you: this is going to be a battle.",
-  "Je cijfers tot nu toe: * (gemiddeld *). Bij de * sta je nu op plek * van **":"Your ratings so far: * (average *). Among the * you're now in place * of **",
-  "* staat bij de * op plek * van *.":"* is in place * of * among the *.",
   "Je rivaal * staat op plek * (gemiddeld *).":"Your rival * is in place * (average *).",
   "De scouts zijn onder de indruk*. Je klasse gaat van * naar *.":"The scouts are impressed*. Your rating goes from * to *.",
   "Je bent er nog niet helemaal: je klasse zakt van * naar *.":"You're not quite there yet: your rating drops from * to *.",

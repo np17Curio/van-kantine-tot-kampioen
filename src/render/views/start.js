@@ -17,7 +17,7 @@ export const HERKOMST_IDS = ['geboren', 'vader', 'moeder'];
 export const opslagKnoppen = () => `<div class="rij opslag"><button class="klein" id="opslagDown" type="button">💾 Opslag downloaden</button><label class="klein bestandknop">📂 Opslag laden<input type="file" id="opslagLaad" accept=".json,application/json" hidden></label></div>`;
 
 export function landSelect(id, label){
-  return `<div><label class="label" for="${id}">${label}</label><select id="${id}">${LANDEN_LIJST.map(n => `<option ${tmp[id] === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></div>`;
+  return `<div><label class="label" for="${id}">${label}</label><select id="${id}">${LANDEN_LIJST.map(n => `<option value="${esc(n)}" ${tmp[id] === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></div>`;
 }
 export const herkomstUitTmp = () => ({geboren:tmp.geboren, vader:tmp.vader, moeder:tmp.moeder});
 export function vHerkomstKeuze(){
@@ -113,7 +113,7 @@ export function vStart(){
     <div><span class="label">Positie</span><div class="keuzes" style="margin-top:6px">${posKnop('SPITS')}${posKnop('MID')}${posKnop('VERD')}${posKnop('KEEPER')}</div></div>
     ${vVriend()}
     <div style="display:grid;gap:8px"><span class="label">Afkomst</span>${vHerkomstKeuze()}<p class="muted klein-tekst">Hiermee bepaal je voor welke landen je later interlands kunt spelen.</p></div>
-    <div style="display:grid;gap:8px"><label class="label" for="opgroei">Waar groei je op?</label><select id="opgroei">${SPEEL_LANDEN.map(n => `<option ${opgroeiKeuze() === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
+    <div style="display:grid;gap:8px"><label class="label" for="opgroei">Waar groei je op?</label><select id="opgroei">${SPEEL_LANDEN.map(n => `<option value="${esc(n)}" ${opgroeiKeuze() === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
       <p class="muted klein-tekst">Hier begin je je carrière. Elk land heeft zijn eigen competitie, clubs en kranten. De nummers 1 en 2 van elke hoogste competitie spelen de Champions League.</p></div>
     ${vSlotKeuze()}
     ${slot ? knop('Start carrière', () => { nieuwSpel((tmp.naam || '').trim() || (tmp.vrouw ? 'Lieke de Raket' : 'Daan de Kanon'), tmp.pos, herkomstUitTmp(), opgroeiKeuze(), {leeftijd:tmp.leeftijd || 15, uiterlijk:tmp.uiterlijk, sleutel:tmp.uitSleutel, pers:tmp.pers || [], slot, vrouw:!!tmp.vrouw, valtOp:valtOp(), vriend:{naam:(tmp.vriendNaam || '').trim(), pos:tmp.vriendPos || tmp.pos, vrouw:tmp.vriendVrouw === undefined ? !!tmp.vrouw : tmp.vriendVrouw}}); }, 'hoofd', bezet ? `data-bevestig="De carrière van ${esc(bezet.naam)} wordt overschreven." data-ja="Ja, overschrijven"` : '') : '<p class="muted">Kies eerst welke carrière mag worden overschreven.</p>'}`;

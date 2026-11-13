@@ -1,4 +1,5 @@
 import { taal } from '../../core/taal.js';
+import { muziekAan } from '../../core/muziek.js';
 import { S, club, ovr, seizoenLabel } from '../../core/state.js';
 import { clamp, esc, geldTxt } from '../../core/utils.js';
 import { AANTAL_RONDES, NIVEAU, POS } from '../../data/gegevens.js';
@@ -15,7 +16,7 @@ function meter(kort, lang, v, flow){
 
 export function vHud(inSpel){
   const merk = `<div class="merk">Het Grote Doorbreken<small>VAN TALENT NAAR DE WERELDTOP</small></div>`;
-  const hulp = `<button class="hudknop taalknop" data-taal aria-label="${taal() === 'en' ? 'Nederlands' : 'English'}" title="Taal / Language">${taal() === 'en' ? 'NL' : 'EN'}</button><button class="hudknop" data-hulp aria-label="Hulp, sneltoetsen en instellingen" title="Hulp en instellingen">?</button>`;
+  const hulp = `<button class="hudknop muziekknop${muziekAan() ? '' : ' uit'}" data-muziek aria-label="${muziekAan() ? 'Muziek uit' : 'Muziek aan'}" title="${muziekAan() ? 'Muziek uit' : 'Muziek aan'}">${muziekAan() ? '🎵' : '🔇'}</button><button class="hudknop taalknop" data-taal aria-label="${taal() === 'en' ? 'Nederlands' : 'English'}" title="Taal / Language">${taal() === 'en' ? 'NL' : 'EN'}</button><button class="hudknop" data-hulp aria-label="Hulp, sneltoetsen en instellingen" title="Hulp en instellingen">?</button>`;
   if (!inSpel) return `${merk}<div class="hudrechts">${hulp}</div>`;
   const sp = S.sp, c = club();
   const status = sp.clubloos ? 'Zonder club' : sp.o23 ? 'Bij de O23' : statusNaam(statusNiveau());
