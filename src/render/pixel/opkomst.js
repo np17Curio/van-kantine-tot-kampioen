@@ -3,6 +3,7 @@
 // stellen zich op in één rij (met een naambalk), het uitteam schudt de handen van het thuisteam, en tot slot de opstellingen.
 // 216 beelden van 380×200 op 10 fps. In het spel met de echte teams: tenues, namen, rugnummers, aanvoerders, formaties.
 // Alles wordt in sleutels getekend en per onderdeel met een eigen palet ingekleurd (zie ook contract.js).
+import { pixelLogo, zetLogo } from './clublogo.js';
 import { Doek, GROND, Img, ORIGINEEL, inkleuren, speler, sprite } from './rig.js';
 import { loopCyclus } from './animaties.js';
 import { donker } from './atlas.js';
@@ -75,7 +76,7 @@ function tunnelWereld(info){
     for (let x = 20; x < TG - 20; x += 55){ c.rect(x, 31, 18, 3, 'M'); c.rect(x + 2, 34, 14, 1, 'w'); }   // lampen
     c.rect(0, 34, TG, 88, 'c'); for (let x = 0; x < TG; x += 40) c.vline(x, 34, 82, 'C');                // betonnen wand
     c.rect(0, 116, TG, 6, '1'); c.rect(0, 116, TG, 1, '2');                                                // plint in clubkleuren
-    c.stamp(logo, 60, 52); c.stamp(logo, 200, 52);
+    if (!info.logoImg){ c.stamp(logo, 60, 52); c.stamp(logo, 200, 52); } // (met het echte logo: dat komt er als plaatje overheen)
     tekst(c, 130, 56, info.tunnelNaam, 'w'); tekst(c, 130, 66, 'DIT IS ONS HUIS', 'M');
     tekst(c, 236, 92, 'VELD', 'y'); c.line(254, 94, 262, 94, 'y'); c.px(261, 93, 'y'); c.px(261, 95, 'y');  // bordje met pijl
     c.rect(0, 122, TG, SH - 122, 'z'); for (let y = 130; y < SH; y += 12) c.hline(0, y, TG, 'Z');          // rubberen mat
@@ -161,6 +162,7 @@ export function maakOpkomst(info = {}){
   const RIJ_W = RIJ_MARGE * 2 + (OPRIJ.length - 1) * RIJ_AFSTAND + 40;
   // de achtergronden
   const tunnelCv = inkleuren(tunnelWereld(info), pal);
+  { const pl = pixelLogo(info.logoImg, 14); if (pl){ zetLogo(tunnelCv, pl, 61, 51); zetLogo(tunnelCv, pl, 201, 51); } } // het echte logo van de thuisclub in de tunnel
   const breedImg = stadion(RIJ_W, info), breedCv = inkleuren(breedImg, pal);
   const rijCv = document.createElement('canvas'); rijCv.width = RIJ_W; rijCv.height = SH;
   { const g = rijCv.getContext('2d'); g.drawImage(breedCv, 0, 0); OPRIJ.forEach((id, j) => g.drawImage(sp[id]('staan'), RIJ_MARGE + 20 + j * RIJ_AFSTAND - 35 - 1, RIJ_VOET - GROND - 1)); }

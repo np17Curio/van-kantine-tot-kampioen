@@ -41,7 +41,7 @@ import { doeActiviteit, plafond, trainXP } from '../../game/week.js';
 import { eisRij, vAgent } from './agent.js';
 import { vriendSpeler } from '../../game/speler/journey.js';
 import { vriendBijTegenstander } from '../../game/speler/journey.js';
-import { TOON, VRIEND_ACTIES, bijJou, kanVragen, vriendRolTxt, vriendClubNaam, vriendHier, vriendLand, kanUitpraten, kanVriendActie, speeltTegenVriend, vriendKlasse, vriendStats, uitpraten, vriendActie, vriendDuelAntwoord, vriendDuelVraag } from '../../game/speler/journey.js';
+import { BAND, TOON, VRIEND_ACTIES, contactZoeken, kanContact, vriendBandKlasse, vriendBandLabel, bijJou, kanVragen, vriendRolTxt, vriendClubNaam, vriendHier, vriendLand, kanUitpraten, kanVriendActie, speeltTegenVriend, vriendKlasse, vriendStats, uitpraten, vriendActie, vriendDuelAntwoord, vriendDuelVraag } from '../../game/speler/journey.js';
 import { herkomstUitTmp, vHerkomstKeuze } from './start.js';
 import { balk, vSeizoenStrip } from './zijbalk.js';
 import { blok, chips, meer, regels, tegel } from './sjablonen.js';
@@ -233,11 +233,13 @@ function vDezeWeek(){
   let cta;
   if (!w.gedaan){
     html += sp.blessure > 0 ? `<section class="activiteiten"><h3 class="sectiekop">${sp.verlof ? 'Je bent met zwangerschapsverlof' : 'Je bent geblesseerd'}</h3><div class="keuzes">${keuzeKnop(sp.verlof ? 'Rustig in beweging blijven' : 'Revalideren', 'Fitheid +20', () => doeActiviteit('revalidatie'))}</div></section>` : vActiviteiten();
-    cta = `<span class="muted">Kies eerst wat je deze week doet.</span>` + (sp.clubloos || (fx && isDerby(fx.opp)) ? '' : knop('⏭ Rest van het seizoen simuleren', simuleerSeizoen, 'hoofd tweede'));
+    cta = `<span class="muted">Kies eerst wat je deze week doet.</span>` + (sp.clubloos ? '' : sp.blessure > 0 ? knop('⏭ Simuleren tot je fit bent', simuleerSeizoen, 'hoofd tweede')
+      : fx && isDerby(fx.opp) ? '' : knop('⏭ Rest van het seizoen simuleren', simuleerSeizoen, 'hoofd tweede')); // (geblesseerd: ook bij een derby, je zit toch op de tribune)
   } else if (sp.geboorte) cta = `<span class="muted">Kies eerst een naam voor je kindje.</span>`;
   else if (w.school && !w.school.klaar) cta = `<span class="muted">Maak eerst je schoolwerk af, daarna kun je spelen.</span>`;
   else if (!fx) cta = knop('Speelvrije week · verder', rustWeek);
-  else cta = knop(sp.o23 && sp.blessure <= 0 && sp.fit >= 20 ? `Speel met de O23 tegen ${esc(opp.n)} O23` : `Speel ronde ${S.ronde + 1}: ${fx.thuis ? esc(club().n) + ' – ' + esc(opp.n) : esc(opp.n) + ' – ' + esc(club().n)}`, startWedstrijd) + knop('⏩ Simuleren', () => { startWedstrijd(); simuleer(); }, 'hoofd tweede') + (isDerby(fx.opp) ? '' : knop('⏭ Rest van het seizoen simuleren', simuleerSeizoen, 'hoofd tweede')); // (een derby speel je zelf)
+  else cta = knop(sp.o23 && sp.blessure <= 0 && sp.fit >= 20 ? `Speel met de O23 tegen ${esc(opp.n)} O23` : `Speel ronde ${S.ronde + 1}: ${fx.thuis ? esc(club().n) + ' – ' + esc(opp.n) : esc(opp.n) + ' – ' + esc(club().n)}`, startWedstrijd) + knop('⏩ Simuleren', () => { startWedstrijd(); simuleer(); }, 'hoofd tweede') + (sp.blessure > 0 ? knop('⏭ Simuleren tot je fit bent', simuleerSeizoen, 'hoofd tweede')
+    : isDerby(fx.opp) ? '' : knop('⏭ Rest van het seizoen simuleren', simuleerSeizoen, 'hoofd tweede')); // (een derby speel je zelf, behalve als je geblesseerd bent)
   html += vFocusExtra();
   const rest = teamOpen();
   html += `<div class="ctabalk">${cta}${w.gedaan && rest ? `<span class="niv">Nog ${rest} ${rest === 1 ? 'teamactie' : 'teamacties'} open bij <b>Team</b></span>` : ''}</div>`;
@@ -490,10 +492,14 @@ function vBuitenBasis(){
   const v = sp.vriend, vb = v ? Math.round(v.band) : 0, R = sp.rivaal;
   const vriendHtml = !v ? '' : vVriendVergelijk() + (!v.weg ? `<p>${esc(v.voornaam)} ${esc(v.n)} · ${bijJou() ? `speelt bij jou, bij ${esc(club().n)}` : vriendClubNaam() ? `speelt bij ${esc(vriendClubNaam())}${vriendHier() ? '' : ` (${esc(vriendLand())})`}` : 'nog zonder club'}</p>
     ${sp.vriendBod ? `<p class="goedtxt klein-tekst">${esc(v.voornaam)} wil dat je naar ${esc(vriendClubNaam() || '' + vr.zijn + ' club')} komt: in de ${!vriendHier() || S.ronde >= WINTER ? 'zomer' : 'winterstop'} doet ${vr.zijn} club een bod.</p>` : ''}
-    <p>Jullie band: <b>${vb}</b> <span class="risico ${vb >= 60 ? 'r-veilig' : vb >= 25 ? 'r-gem' : 'r-riskant'}">${vb >= 60 ? 'Beste vrienden' : vb >= 25 ? 'Goede vrienden' : 'Het schuurt'}</span></p>
-    <p class="muted klein-tekst">Hoe beter jullie band, hoe groter de kans dat jullie vrienden blijven als er iets gebeurt (een zaakwaarnemer die ${vr.hem} weg wil halen, ruzie in de media). Zonder contact groeien jullie langzaam uit elkaar${bijJou() ? ', maar bij dezelfde club zien jullie elkaar elke dag' : ''}.</p>
+    <p>Jullie band: <b>${vb}</b> <span class="risico ${vriendBandKlasse(vb)}">${vriendBandLabel(vb)}</span></p>
+    ${vb < BAND.koud ? `<p class="fouttxt klein-tekst">Pas op: zakt jullie band verder, dan verbreekt ${esc(v.voornaam)} het contact${vriendHier() ? ` en wordt ${vr.hij} je rivaal` : ''}.</p>` : ''}
+    <p class="muted klein-tekst">Zonder contact groeien jullie langzaam uit elkaar${bijJou() ? ', maar bij dezelfde club zien jullie elkaar elke dag' : ''}. Schuurt het (onder ${BAND.schuurt}), dan kost dat je moraal, krijg je ruzie en speelt ${vr.hij} je in het veld minder aan. Onder ${BAND.koud} kost het ook focus. Onder ${BAND.waarschuwing} wil ${vr.hij} je spreken, en onder ${BAND.breuk} is het voorbij. Een hele goede band (${BAND.top}+) geeft je af en toe extra moraal.</p>
     <span class="label winkelkop">Met ${esc(v.voornaam)} · 1 per week${w.vriend ? ' (al gedaan)' : ''}</span>
     <div class="keuzes">${Object.entries(VRIEND_ACTIES).map(([id, a]) => keuzeKnop(a.n, a.komen ? (v.komt ? `${vr.hij} komt in de ${v.komt.na === 'winter' ? 'winterstop' : 'zomer'}` : bijJou() ? 'jullie spelen al samen' : sp.clubloos || sp.o23 ? 'kan nu niet' : `${vriendRolTxt()}${kanVragen() ? '' : ' · vraag het in de volgende transferperiode opnieuw'}`) : a.s + (a.zelfde && !bijJou() ? ' · alleen als jullie bij dezelfde club spelen' : ''), () => vriendActie(id), `data-blijf ${kanVriendActie(id) ? '' : 'disabled'}`)).join('')}</div>`
+    : v.verbroken ? `<p>Jij en ${esc(v.voornaam)} ${esc(v.n)} hebben geen contact meer.</p>
+    <p class="muted klein-tekst">Stuur ${vr.hem} af en toe een bericht. Misschien komt het ooit weer goed.</p>
+    <div class="keuzes">${keuzeKnop('Een bericht sturen', '1 per week', contactZoeken, `data-blijf ${kanContact() ? '' : 'disabled'}`)}</div>`
     : `<p>${esc(v.voornaam)} ${esc(v.n)} is nu je rivaal${R && R.exVriend ? ` (${esc(rivaalBand(R.band).toLowerCase())})` : ''}.</p>
     <p class="muted klein-tekst">Zit het weer goed tussen jullie (band "Vriendschap"), dan worden jullie weer beste vrienden.</p>
     <div class="keuzes">${keuzeKnop('Het uitpraten', 'jullie band +8', uitpraten, `data-blijf ${kanUitpraten() ? '' : 'disabled'}`)}</div>`);

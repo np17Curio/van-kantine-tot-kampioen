@@ -15,7 +15,7 @@ import { fmt1 } from '../speler/o23.js';
 import { checkStatus, statusPunten, wedstrijdPunten } from '../speler/status.js';
 import { teamKracht } from '../team/kleedkamer.js';
 import { opstellingReden, opstellingScore } from '../team/opstelling.js';
-import { maakPers, modFans, vPers } from '../wedstrijd/fans-pers.js';
+import { maakPers, modFans, persWaardig, vPers } from '../wedstrijd/fans-pers.js';
 import { focusNaWedstrijd } from '../wedstrijd/focus.js';
 import { MOMENTS, kans } from '../wedstrijd/momenten.js';
 import { ontvangst, reunieAftrap, reunieMet, reunieNaWedstrijd, vReunieEinde } from '../wedstrijd/reunie.js';
@@ -208,7 +208,7 @@ export function eindeBeker(){
   else S.ss.bekerRes = `door naar de ${bekerRondeNaam(k, B.rondes.length).toLowerCase()}`;
   if (B.winnaar === sp.club) S.ss.bekerRes = 'gewonnen';
   M.statusTekst = checkStatus();
-  if (speelde && isProf() && M.beker.ronde === 'Finale') M.pers = maakPers(M, 'finale');
+  if (speelde && isProf() && M.beker.ronde === 'Finale' && persWaardig()) M.pers = maakPers(M, 'finale');
   if (M.reunie){ M.bekerWinstRonde = winst; reunieNaWedstrijd(M, speelde); }
   S.fase = 'matchEnd';
 }

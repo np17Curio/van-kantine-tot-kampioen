@@ -54,14 +54,10 @@ export function logoOnderdelen(id){
   const symbool = (WOORD_SYMBOOL.find(([r]) => r.test(naam)) || [null, ['ster', 'bal', 'ster', 'kroon', 'bliksem'][h % 5]])[1];
   return {naam, vorm:VORM_NAMEN[(h >>> 3) % VORM_NAMEN.length], symbool, ini:initialen(naam), jaar:1890 + (h >>> 9) % 116, t};
 }
-const cache = {};
-export function clubLogo(id, maat = 28){
-  const key = id + '|' + maat + '|' + (CLUBS[id] ? CLUBS[id].n : ''); if (cache[key]) return cache[key];
-  const o = logoOnderdelen(id); if (!o) return '';
-  const {t, vorm, symbool, ini, jaar} = o, d = VORMEN[vorm], cid = 'lg' + id + 'x' + maat;
-  const wit = '#f6f6f6', donker = '#15161c', licht = c => { const n = parseInt(c.slice(1), 16); return ((n >> 16) * .299 + ((n >> 8) & 255) * .587 + (n & 255) * .114) > 150; };
+const wit = '#f6f6f6', donker = '#15161c', licht = c => { const n = parseInt(c.slice(1), 16); return ((n >> 16) * .299 + ((n >> 8) & 255) * .587 + (n & 255) * .114) > 150; };
+// De kleuren van het logo (uit het tenue) en de achtergrond in het design van het tenue
+function logoKleuren(t){
   const rand = kleurAfstand(t.accent, t.shirt) > 90 ? t.accent : licht(t.shirt) ? donker : wit;
-  // achtergrond in het design van het tenue
   const pat = t.patroon === 'strepen' ? [0, 1, 2, 3, 4].map(i => `<rect x="${10 + i * 20}" y="0" width="10" height="100" fill="${t.accent}"/>`).join('')
     : t.patroon === 'banen' ? [0, 1, 2, 3, 4].map(i => `<rect x="0" y="${8 + i * 20}" width="100" height="10" fill="${t.accent}"/>`).join('')
     : t.patroon === 'helften' ? `<rect x="50" y="0" width="50" height="100" fill="${t.accent}"/>`
@@ -69,6 +65,14 @@ export function clubLogo(id, maat = 28){
     : t.patroon === 'blokken' ? [0, 1, 2, 3, 4].map(r => [0, 1, 2, 3, 4].map(k => (r + k) % 2 ? `<rect x="${k * 20}" y="${r * 20}" width="20" height="20" fill="${t.accent}"/>` : '').join('')).join('') : '';
   // het symbool op een rond plaatje in de clubkleur, met de initialen eronder
   const plaatKl = t.shirt, symKl = kleurAfstand(t.accent, plaatKl) > 90 ? t.accent : licht(plaatKl) ? donker : wit, tekstKl = licht(t.shirt) && !pat ? donker : wit;
+  return {rand, pat, plaatKl, symKl, tekstKl};
+}
+const cache = {};
+export function clubLogo(id, maat = 28){
+  const key = id + '|' + maat + '|' + (CLUBS[id] ? CLUBS[id].n : ''); if (cache[key]) return cache[key];
+  const o = logoOnderdelen(id); if (!o) return '';
+  const {t, vorm, symbool, ini, jaar} = o, d = VORMEN[vorm], cid = 'lg' + id + 'x' + maat;
+  const {rand, pat, plaatKl, symKl, tekstKl} = logoKleuren(t);
   const groot = maat >= 56, tekst = maat >= 24;
   const lint = vorm === 'lint' ? `<path d="M2 66H98L92 76L98 86H2L8 76Z" fill="${rand}"/><text x="50" y="80.5" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="${ini.length > 3 ? 11 : 13}" fill="${licht(rand) ? donker : wit}">${esc(ini)}</text>` : '';
   const ty = vorm === 'ruit' ? 74 : vorm === 'rond' ? 80 : 79;
@@ -83,6 +87,20 @@ export function clubLogo(id, maat = 28){
     + (groot && vorm !== 'ruit' ? `<text x="50" y="${vorm === 'lint' ? 95 : 90}" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="6" fill="${tekstKl}" stroke="${t.shirt}" stroke-width="1.5" paint-order="stroke" letter-spacing=".5">SINDS ${jaar}</text>` : '')
     + `</svg>`;
   return cache[key] = svg;
+}
+// Een eenvoudige versie voor een klein pixellogo (render/pixel/clublogo.js, 12 tot 18 pixels): geen tekst en geen dunne
+// lijntjes (die vallen op zo'n klein logo weg of worden ruis), een dikkere rand en een groter symbool op het plaatje.
+export function pixelLogoSvg(id, maat = 200){
+  const o = logoOnderdelen(id); if (!o) return '';
+  const {t, vorm, symbool} = o, d = VORMEN[vorm], cid = 'plg' + id;
+  const {rand, pat, plaatKl, symKl} = logoKleuren(t), cy = vorm === 'ruit' ? 50 : 47, r = vorm === 'ruit' ? 27 : 31;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${maat}" height="${maat}">`
+    + `<defs><clipPath id="${cid}"><path d="${d}"/></clipPath></defs>`
+    + `<path d="${d}" fill="${t.shirt}"/><g clip-path="url(#${cid})">${pat}</g>`
+    + `<circle cx="50" cy="${cy}" r="${r}" fill="${plaatKl}"/>`
+    + `<g transform="translate(50 ${cy}) scale(${vorm === 'ruit' ? 1.5 : 1.75})">${SYMBOLEN[symbool](symKl, plaatKl)}</g>`
+    + `<path d="${d}" fill="none" stroke="${rand}" stroke-width="12" clip-path="url(#${cid})"/>`
+    + `</svg>`;
 }
 // Als data-URL (voor een <img> of om op een canvas te tekenen)
 export const logoURL = (id, maat = 128) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(clubLogo(id, maat));

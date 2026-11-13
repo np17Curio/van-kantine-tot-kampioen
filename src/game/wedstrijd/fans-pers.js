@@ -1,4 +1,4 @@
-import { S, club, mod, tmp } from '../../core/state.js';
+import { S, club, mod, ovr, tmp } from '../../core/state.js';
 import { keuzeKnop } from '../../core/ui.js';
 import { clamp, esc, geldTxt, pick, rnd } from '../../core/utils.js';
 import { CLUBS, divClubs } from '../../data/gegevens.js';
@@ -7,7 +7,8 @@ import { krantMelding } from '../media/roddel.js';
 import { social, volgersTxt } from '../prive/social.js';
 import { onrust } from '../speler/kalmte.js';
 import { fmt1 } from '../speler/o23.js';
-import { statusPunten } from '../speler/status.js';
+import { recenteGoudenBal, statusNiveau, statusPunten } from '../speler/status.js';
+import { isAanvoerder } from '../team/aanvoerder.js';
 import { iedereen } from '../team/kleedkamer.js';
 import { ck } from '../transfers/buitenland.js';
 import { focusBoost } from './momenten.js';
@@ -90,6 +91,14 @@ export function vFans(){
     <div class="keuzes">${FAN_ACTIES.map(a => keuzeKnop(esc(a.l), gedaan.includes(a.id) ? 'deze week al gedaan' : esc(a.d), () => fanActie(a.id), `data-blijf ${gedaan.includes(a.id) ? 'disabled' : ''}`)).join('')}</div></div></section>`;
 }
 // Persconferentie na de wedstrijd: een vraag en drie soorten antwoorden
+// Wie mag naar de persconferentie? Alleen het gezicht van het team: de aanvoerder, een fanfavoriet of clublegende,
+// of een grote speler (minstens vaste waarde en duidelijk beter dan het team, of een grote naam). Een jonkie of bankspeler niet
+export function persWaardig(){
+  const sp = S.sp; if (!sp || sp.o23) return false;
+  const n = statusNiveau();
+  if (isAanvoerder() || n >= 3) return true;
+  return n >= 2 && (ovr(sp) >= club().s + 4 || sp.rep >= 70 || recenteGoudenBal());
+}
 export function maakPers(M, soort){
   const sp = S.sp, zij = CLUBS[M.opp].n, wij = club().n, won = M.us > M.them, verl = M.us < M.them, c = M.cijfer;
   const bron = pick(KRANTEN[Math.min(club().t, 2)]);

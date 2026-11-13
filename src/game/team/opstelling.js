@@ -1,7 +1,7 @@
 import { S, club, ovr } from '../../core/state.js';
 import { clamp } from '../../core/utils.js';
 import { AANV, OPST_BASIS } from '../../data/gegevens.js';
-import { statusNiveau } from '../speler/status.js';
+import { clubNiveau, statusNiveau } from '../speler/status.js';
 import { TACTIEKEN, clubTactiek, pasScore } from './tactiek.js';
 
 /* ===================== Opstelling ===================== */
@@ -12,7 +12,7 @@ export const OPST_MAX = [42, 50];
 export function opstMax(lvl, sc){ return lvl < OPST_MAX.length ? Math.min(sc, OPST_MAX[lvl]) : sc; }
 export function opstellingScore(){
   const sp = S.sp, c = club(), lvl = statusNiveau();
-  return opstMax(lvl, OPST_BASIS[lvl] + sp.vorm * 9 + Math.min(0, sp.fit - 55) * 1.2 + (sp.vert - 50) * .25 + clamp(ovr(sp) - c.s, -10, 10) * .8 + tactiekOpst());
+  return opstMax(lvl, OPST_BASIS[lvl] + sp.vorm * 9 + Math.min(0, sp.fit - 55) * 1.2 + (sp.vert - 50) * .25 + clamp(clubNiveau() - c.s, -10, 10) * .8 + tactiekOpst()); // (je klasse plus je naam: een Gouden Bal-winnaar zit niet op de bank)
 }
 // Past je goed in de speelstijl van de trainer, dan sta je sneller in de basis (max ±6)
 export const tactiekOpst = () => S.sp.o23 ? 0 : clamp((pasScore() - 50) * .2, -6, 6);

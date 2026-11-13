@@ -6,6 +6,7 @@ import { esc } from '../core/utils.js';
 import { CLUBS } from '../data/gegevens.js';
 import { clubTenue } from '../data/tenues.js';
 import { logoURL } from '../data/logos.js';
+import { laadLogoBron } from './pixel/clublogo.js';
 import { ACHTERNAMEN, VOORL } from '../game/competitie/spelers.js';
 import { KRANTEN } from '../game/media/nieuws.js';
 import { social, volgersTxt } from '../game/prive/social.js';
@@ -58,7 +59,7 @@ async function speel(o){
   const sp = S.sp, c = CLUBS[o.clubId]; if (!c) return;
   const laag = maakLaag({tag:o.tag, label:'Animatie: persconferentie. Kies je antwoorden met de knoppen of met 1, 2 en 3.', interactief:true});
   try {
-    const tenue = clubTenue(o.clubId), logoImg = await laadPlaatje(logoURL(o.clubId, 256));
+    const tenue = clubTenue(o.clubId), logoImg = await laadPlaatje(logoURL(o.clubId, 256)), logoBron = await laadLogoBron(o.clubId);
     if (laag.weg) return;
     const info = {club:c.n, naam:sp.naam, tenue, logoImg, trainer:o.trainer,
       voorlichter:`${VOORL[hashGetal('pvv|' + c.n) % VOORL.length]}. ${ACHTERNAMEN[hashGetal('pva|' + c.n) % ACHTERNAMEN.length]}`};
@@ -67,7 +68,7 @@ async function speel(o){
     let sleutel = sp.naam; try { sleutel = ploegen().jij || sleutel; } catch (e){}
     const delen = String(sp.naam || '').trim().split(/\s+/), achternaam = delen.length > 1 ? delen.slice(1).join(' ') : delen[0] || '';
     const zaal = maakPers({uit:uiterlijkVoor('jij|' + sleutel, {...(sp.uiterlijk || {}), vrouw:!!sp.vrouw}), uitPv:uiterlijkVoor('persvoorlichter|' + c.n),
-      tenue, trainer:o.trainer, naam:achternaam});
+      tenue, trainer:o.trainer, naam:achternaam, logoImg:logoBron}); // (in de pixelscène: het logo zonder tekst, als scherp pixellogo)
     const Z = 3, cv = document.createElement('canvas'); cv.width = PW * Z; cv.height = PH * Z; cv.className = 'cs-pixel';
     cv.setAttribute('aria-hidden', 'true'); laag.vak.prepend(cv);
     const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;

@@ -1,4 +1,3 @@
-import { hoogtepunt } from '../speler/hoogtepunten.js';
 import { S, club, gemCijfer, mod, ovr, salarisLabel, salarisVoor, seizoenLabel, tmp } from '../../core/state.js';
 import { knop } from '../../core/ui.js';
 import { clamp, esc, geldTxt, rnd } from '../../core/utils.js';
@@ -49,7 +48,7 @@ export function contractVoorstel(){
     mod('moraal', 6); statusPunten(1); S.ss.contractRond = true; tmp.contract = null;
     const tot = S.jaar + x.jaren;
     S.car.hist.push(`${seizoenLabel()}: nieuw contract bij ${c.n} tot ${tot} (${geldTxt(sal)} per jaar)`);
-    hoogtepunt('verlenging', {club:c.n, tot}, true);
+    // (geen hoogtepunt met keuzes meer bij een verlenging: dat kwam elke keer terug en voegde weinig toe)
     if (c.t <= 3) krantMelding(`${sp.naam} verlengt bij ${c.n} tot ${tot}`, `De club en de speler zijn het eens over een nieuw contract.${sal > b.salaris ? ' ' + ik.Hij + ' gaat er flink op vooruit.' : ''}`);
     S.ss.contractMelding = {goed:true, t:`${c.n} gaat akkoord! Je nieuwe contract: ${geldTxt(sal)} per jaar, ${x.jaren} jaar${teken ? `, plus ${geldTxt(teken)} tekengeld` : ''}${sp.clausule ? `, met een afkoopclausule van ${geldTxt(sp.clausule.bedrag)}` : ''}.`};
     return;

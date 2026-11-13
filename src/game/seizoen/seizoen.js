@@ -52,7 +52,7 @@ export function ontwikkel(){
 // Een clubwissel midden in het seizoen: bewaar wat je bij je oude club haalde (voor het overzicht aan het einde)
 export function seizoenDeel(){
   const sp = S.sp; if (!S.ss || !(S.ronde > 0) || sp.clubloos || (S.venster && S.venster.soort === 'zomer' && S.fase === 'venster')) return;
-  const c = club(); (S.ss.delen = S.ss.delen || []).push({club:c.n, div:DIVS[c.t], land:thuisLand(), wed:S.ss.wed, g:S.ss.g, a:S.ss.a, c:S.ss.c.length});
+  const c = club(); (S.ss.delen = S.ss.delen || []).push({club:c.n, id:sp.club, div:DIVS[c.t], land:thuisLand(), wed:S.ss.wed, g:S.ss.g, a:S.ss.a, c:S.ss.c.length});
 }
 // Je seizoen per club (bij een wissel in de winter): het laatste deel is je huidige club
 function seizoenDelen(huidig, div = DIVS[club().t]){
@@ -171,7 +171,10 @@ export function naSeizoen(){
   if (!sp.blessure) sp.blesSoort = null; sp.fit = 95;
   // Promotie en degradatie gaan nu in: de nieuwe competities beginnen met een lege stand
   S.vorig = {}; for (let t = 1; t <= LAAGSTE; t++) stand(t).forEach((id, i) => { S.vorig[id] = {t, plek:i + 1}; });
-  if (S.eind.wissels){ voerPromotieUit(S.eind.wissels); S.tab = nieuweTabellen(); S.ss.st = {}; S.ss.res = {}; }
+  if (S.eind.wissels){
+    // de topscorerslijst van dit seizoen bewaren (met de divisie van toen): in de zomer laat de competitie die nog zien
+    S.vorigeSt = {s:seizoenLabel(), st:Object.fromEntries(Object.entries(S.ss.st || {}).map(([k, x]) => [k, {...x, t:CLUBS[x.club] ? CLUBS[x.club].t : null}]))};
+    voerPromotieUit(S.eind.wissels); S.tab = nieuweTabellen(); S.ss.st = {}; S.ss.res = {}; }
   if (sp.laatsteSeizoen){ const c0 = S.car.clubs[0], thuis = c0 && c0.club === sp.club && (c0.land || 'Nederland') === thuisLand();
     return stoppen(`Je laatste seizoen zit erop${thuis ? `, bij ${club().n}, waar het allemaal begon` : ''}. Je hangt je schoenen aan de wilgen.`); }
   if (sp.leeftijd >= 35) return stoppen('Op je 35e hang je de schoenen aan de wilgen. Je lichaam zegt: genoeg.');

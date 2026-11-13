@@ -18,7 +18,7 @@ import { kalmte, onrust } from '../speler/kalmte.js';
 import { checkO23, eindeO23, startO23 } from '../speler/o23.js';
 import { eindeSelectie } from '../speler/selectie.js';
 import { rugnummer } from '../team/rugnummers.js';
-import { speeltTegenVriend, toonMeter, vriendNaam, vriendPos, vriendBijTegenstander, vriendInTeam, zetVriendBand } from '../speler/journey.js';
+import { BAND, speeltTegenVriend, toonMeter, vriendNaam, vriendPos, vriendBijTegenstander, vriendInTeam, zetVriendBand } from '../speler/journey.js';
 import { checkStatus, statusNiveau, statusPunten, wedstrijdPunten } from '../speler/status.js';
 import { isAanvoerder } from '../team/aanvoerder.js';
 import { band, iedereen, teamKracht } from '../team/kleedkamer.js';
@@ -26,7 +26,7 @@ import { opstellingReden, opstellingScore } from '../team/opstelling.js';
 import { clubTactiek, erbij, matchup } from '../team/tactiek.js';
 import { openVenster } from '../transfers/transfers.js';
 import { agentCheck } from '../transfers/zaakwaarnemer.js';
-import { fansNaWedstrijd, fansVoorAftrap, isDerby, maakPers, modFans } from './fans-pers.js';
+import { fansNaWedstrijd, fansVoorAftrap, isDerby, maakPers, modFans, persWaardig } from './fans-pers.js';
 import { focusNaWedstrijd } from './focus.js';
 import { FLOW, MOMENTS, SLECHTE_FOCUS, bouwMoment, focusBoost, kans, kiesMomentType, pOpts } from './momenten.js';
 import { gebruik, staminaNaWedstrijd, staminaStart, wisselCheck } from './stamina.js';
@@ -118,7 +118,11 @@ export function planWedstrijd(M, T, O, vast){
   const ikK = sp.pos === 'KEEPER', hijK = vriendPos() === 'KEEPER';
   // (zit hij bij zijn club op de bank, dan valt hij de helft van de keren in: ook dan krijg je een moment met hem)
   if ((speeltTegenVriend(M.opp) || (vriendBijTegenstander(M.opp) && rnd() < .5)) && !(ikK && hijK) && rnd() < .9){ M.ev.push(ikK ? {type:'moment', min:randInt(start + 1, 89), m:'eenOpEenKeeper', vriendSchiet:true} : {type:'moment', min:randInt(start + 1, 89), m:hijK ? 'vriendKeeperTegen' : 'vriendTegen'}); extra -= 1; }
-  if (!ikK && vriendInTeam(M) && rnd() < (M.selectie ? .8 : .6)){ M.ev.push({type:'moment', min:randInt(start + 1, 89), m:hijK ? 'vriendKeeperUit' : 'vriendVrij'}); extra -= 1; }
+  if (!ikK && vriendInTeam(M) && rnd() < (M.selectie ? .8 : .6)){
+    // (schuurt het tussen jullie, dan speelt hij je de helft van de keren niet aan)
+    if (!M.inter && sp.vriend && sp.vriend.band < BAND.schuurt && rnd() < .5) M.ev.push({type:'genegeerd', min:randInt(start + 1, 89), naam:vriendNaam(), vriend:true});
+    else M.ev.push({type:'moment', min:randInt(start + 1, 89), m:hijK ? 'vriendKeeperUit' : 'vriendVrij'});
+    extra -= 1; }
   // tegen je rivaal: een gewoon moment minder, de duels met hem komen ervoor in de plaats
   for (let i = 0; i < Math.max(1, nn + extra - (M.rivaal ? 1 : 0)); i++) M.ev.push({type:'moment', min:randInt(start + 1, 89), m:kiesMomentType()});
   // Weerzien met je oude club: extra duels en je oude teamgenoten in het verslag
@@ -227,7 +231,8 @@ export function verslag(e, M){
     case 'geelThem': return {t:uniek(M, 'geelThem', [`Gele kaart voor ${op} van ${zij}.`, `${op} van ${zij} schopt ${tm} onderuit. Geel.`, `${op} van ${zij} krijgt geel wegens tijdrekken.`]), k:'kaart'};
     case 'oudMaat': return {t:pick([`Je oude maatje ${e.naam} probeert je af te stoppen. Jullie grijnzen allebei.`, `${e.naam} zet je stevig onder druk en geeft je daarna een knipoog. Net als vroeger op de training.`]), k:'info'};
     case 'oudVijand': return {t:pick([`${e.naam}, met wie je nooit door één deur kon, schopt je net iets te hard. "Welkom terug," sist ${team.hij}.`, `${e.naam} blijft de hele tijd tegen je praten. ${team.Hij} wil je gek maken.`]), k:'gevaar'};
-    case 'genegeerd': return {t:`${e.naam} ziet je vrijstaan, maar speelt de bal niet naar jou. ${team.Hij} schiet zelf, ver over. Jullie kunnen het niet zo goed met elkaar vinden.`, k:'mis'};
+    case 'genegeerd': if (e.vriend) return {t:`${e.naam} ziet je vrijstaan, maar speelt de bal niet naar jou. ${vr.Hij} kijkt je niet eens aan. Het schuurt tussen jullie, en dat zie je nu ook in het veld.`, k:'mis'};
+      return {t:`${e.naam} ziet je vrijstaan, maar speelt de bal niet naar jou. ${team.Hij} schiet zelf, ver over. Jullie kunnen het niet zo goed met elkaar vinden.`, k:'mis'};
     case 'rust': return {t:`Rust. Stand: ${stand2()}.${jijSpeelt ? '' : M.rol === 'invaller' || M.rol === 'bank' ? ` ${coach} zegt dat je klaar moet zitten.` : ''}`, k:'rust'};
     case 'warm': return {t:`${coach} zegt dat je moet gaan warmlopen. Je trekt je trainingsjack uit.`, k:'info'};
     case 'geenInval': return {t:`${coach} kiest voor een andere wissel. Je gaat weer zitten.`, k:'info'};
@@ -605,7 +610,7 @@ export function eindeWedstrijd(){
   // en dan vaker na een opvallende wedstrijd (bescheiden/zelfverzekerd/uitdagend = kalm/gebalanceerd/fel)
   if (speelde){ S.ss.persNa = (S.ss.persNa || 0) + 1;
     const opvallend = M.cijfer != null && (M.cijfer >= 8.5 || M.cijfer <= 5);
-    if (M.rivaal || M.derby || vriendBijTegenstander(M.opp) || (S.ss.persNa > 3 && rnd() < (opvallend ? .45 : .2))){ M.pers = maakPers(M); S.ss.persNa = 0; } }
+    if (persWaardig() && (M.rivaal || M.derby || vriendBijTegenstander(M.opp) || (S.ss.persNa > 3 && rnd() < (opvallend ? .45 : .2)))){ M.pers = maakPers(M); S.ss.persNa = 0; } } // (alleen als aanvoerder of grote speler: fans-pers.js persWaardig)
   if (speelde) volgersNaWedstrijd(M);
   if (speelde){ if (sp.huur) sp.huur.cijfers.push(M.cijfer); M.o23Tekst = checkO23(); }
   const o = ovr(sp); if (o > S.car.maxOvr) S.car.maxOvr = o;

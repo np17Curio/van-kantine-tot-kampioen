@@ -115,11 +115,19 @@ export function vKrant(items, titel = 'In de krant'){
   return `<div class="krantblok"><span class="label">${esc(titel)}</span><div class="pixelkranten">${items.map(n => `<figure class="pixelkrant" data-krant="${registreer(n)}"><canvas aria-hidden="true"></canvas><figcaption class="sr-only">${esc(n.bron || '')}: <b>${esc(n.kop)}</b>. ${esc(n.tekst || '')}${n.foto ? ` (Foto: ${esc(n.foto.onder || '')})` : ''}</figcaption></figure>`).join('')}</div></div>`;
 }
 // Ranglijst van de competitie op niveau t: k = 'g' (goals) of 'a' (assists)
-export function ranglijst(t, k){
-  const o = k === 'g' ? 'a' : 'g';
-  const l = Object.values(S.ss.st || {}).filter(x => CLUBS[x.club].t === t && x[k] > 0);
-  // Jij staat er altijd in als je in deze competitie speelt, ook met 0
-  if (club().t === t && !l.some(x => x.jij && x.club === S.sp.club)) l.push({club:S.sp.club, jij:true, v:'', n:S.sp.naam, g:0, a:0});
+// bron: de lijst van dit seizoen (S.ss.st) of de bewaarde eindstand van vorig seizoen (S.vorigeSt.st, met de divisie erbij)
+const divVan = x => x.t ?? (CLUBS[x.club] ? CLUBS[x.club].t : null);
+export function ranglijst(t, k, bron = S.ss.st){
+  const o = k === 'g' ? 'a' : 'g', alle = Object.values(bron || {}).filter(x => divVan(x) === t);
+  const l = alle.filter(x => !x.jij && x[k] > 0);
+  // Jij: al je rijen in deze competitie samen. Na een verhuur of transfer in de winter heb je er één per club; los telde
+  // alleen de rij van je huidige club, en stond je na een verhuur ineens met 0 goals in de lijst
+  const mijn = alle.filter(x => x.jij), hier = bron === S.ss.st && club().t === t;
+  if (mijn.length){
+    const basis = mijn.find(x => x.club === S.sp.club) || mijn[mijn.length - 1];
+    const samen = {...basis, g:mijn.reduce((n, x) => n + (x.g || 0), 0), a:mijn.reduce((n, x) => n + (x.a || 0), 0), clubs:[...new Set(mijn.map(x => x.club))]};
+    if (samen[k] > 0 || hier) l.push(samen);
+  } else if (hier) l.push({club:S.sp.club, jij:true, v:'', n:S.sp.naam, g:0, a:0}); // (jij staat er altijd in als je in deze competitie speelt, ook met 0)
   return l.sort((x, y) => y[k] - x[k] || y[o] - x[o] || (x.jij ? -1 : y.jij ? 1 : 0));
 }
 // Met voorletter schrijf je het tussenvoegsel klein: R. van Leeuwen (zonder voorletter: Van Leeuwen)
@@ -127,11 +135,24 @@ export const metVoornaam = (v, n) => `${v} ${n.replace(/^(Van den|Van der|Van|De
 export const metVoorletter = x => `${x.v}. ${x.n.replace(/^(Van den|Van der|Van|De|Den)(?= )/, m => m.toLowerCase())}`;
 export const kortClub = id => CLUBS[id].n.replace(/ O19$/, '');
 export function vRanglijst(t, k){
-  const l = ranglijst(t, k), top = l.slice(0, 10), ik = l.findIndex(x => x.jij && x.club === S.sp.club);
+  // In de zomer en aan het begin van een seizoen is de lijst van dit seizoen nog leeg: dan de eindstand van vorig seizoen
+  // (met daarin ook je goals voor je eigen club, als je in de winter verhuurd was)
+  const V = S.vorigeSt, leeg = !Object.values(S.ss.st || {}).some(x => divVan(x) === t && x[k] > 0);
+  if (leeg && V && V.st){
+    const mijnT = Object.values(V.st).filter(x => x.jij).map(divVan), tv = mijnT.length && !mijnT.includes(t) && club().t === t ? mijnT[0] : t;
+    const lv = ranglijst(tv, k, V.st);
+    if (lv.length && lv[0][k]) return `<p class="muted klein-tekst">Vorig seizoen ${esc(V.s)}${tv !== t ? ` · ${esc(DIVS[tv])}` : ''}</p>` + tabelRang(lv, k);
+  }
+  const l = ranglijst(t, k);
+  if (!l.length || !l[0][k]) return `<p class="muted klein-tekst">Nog niemand heeft ${k === 'g' ? 'gescoord' : 'een assist gegeven'} dit seizoen.</p>`;
+  return tabelRang(l, k);
+}
+function tabelRang(l, k){
+  const top = l.slice(0, 10), ik = l.findIndex(x => x.jij);
   // Gedeelde plaatsen: gelijk aantal = zelfde positie
   const plek = i => { let j = i; while (j > 0 && l[j - 1][k] === l[i][k]) j--; return j + 1; };
-  const rij = (x, i) => `<tr class="${x.jij ? 'mij' : ''}"><td>${plek(i)}</td><td><span class="rnaam">${x.jij ? esc(x.n) + ' (jij)' : esc(metVoorletter(x))}</span><span class="rclub">${esc(kortClub(x.club))}</span></td><td>${x[k]}</td></tr>`;
-  if (!l.length || !l[0][k]) return `<p class="muted klein-tekst">Nog niemand heeft ${k === 'g' ? 'gescoord' : 'een assist gegeven'} dit seizoen.</p>`;
+  const clubTxt = x => x.clubs && x.clubs.length > 1 ? x.clubs.map(kortClub).join(' / ') : kortClub(x.club); // (na een verhuur in de winter: beide clubs)
+  const rij = (x, i) => `<tr class="${x.jij ? 'mij' : ''}"><td>${plek(i)}</td><td><span class="rnaam">${x.jij ? esc(x.n) + ' (jij)' : esc(metVoorletter(x))}</span><span class="rclub">${esc(clubTxt(x))}</span></td><td>${x[k]}</td></tr>`;
   return `<table class="tabel rang"><thead><tr><th>#</th><th>Speler</th><th>${k === 'g' ? 'Goals' : 'Assists'}</th></tr></thead><tbody>
     ${top.map((x, i) => rij(x, i)).join('')}${ik >= 10 ? `<tr class="gat"><td colspan="3">…</td></tr>${rij(l[ik], ik)}` : ''}</tbody></table>`;
 }

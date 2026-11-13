@@ -61,7 +61,7 @@ const WORTELS = (c, x0, y0, x1, y1) => { for (let y = y0; y <= y1; y++) for (let
 // Een echte knot: een ronde bol (r = 4) met glans linksboven, schaduw rechtsonder en een donker elastiekje waar hij op het hoofd zit
 const KNOT2 = (c, x, y, r = 4, voet = 'onder') => { c.circ(x, y, r, 'h'); c.circ(x + 1, y + 1, r - 1, 'h'); c.px(x - 1, y - 2, 'j'); c.px(x - 2, y - 1, 'j'); c.px(x - 2, y, 'j');
   c.line(x + 1, y + r - 1, x + r - 1, y + 1, 'H'); c.px(x + r, y, 'H'); c.px(x, y, 'H');
-  if (voet === 'onder') c.hline(x - 2, y + r, 5, 'H'); else c.vline(x + r, y - 2, 5, 'H'); };
+  if (voet === 'onder') c.hline(x - 2, y + r, 5, 'H'); else if (voet === 'zij') c.vline(x + r, y - 2, 5, 'H'); };
 const KNOT = (c, x, y, r = 3) => { c.circ(x, y, r, 'h'); c.px(x - 1, y - 1, 'j'); c.px(x - 2, y, 'j'); c.px(x + 1, y + 1, 'H'); c.px(x + 2, y, 'H'); };
 // Surferhaar: golvende plukken (een donkere groef die heen en weer slingert), ongelijke punten die naar buiten krullen,
 // en door de zon gebleekte (lichtere) uiteinden
@@ -143,7 +143,7 @@ Object.assign(ACHTER, {
     c.line(19, 1, 12, 5, 'j'); c.line(23, 1, 30, 5, 'j'); },
   knot: c => { // strak naar achteren gekamd naar één knot, die boven het hoofd uitsteekt
     c.rect(9, 4, 24, 7, 'h'); c.rect(11, 3, 20, 1, 'h'); c.rect(8, 8, 2, 4, 'h'); c.rect(32, 8, 2, 4, 'h');
-    for (const [a, b] of [[11, 17], [15, 19], [27, 23], [31, 25]]) c.line(a, 9, b, 4, 'H');  // de lokken trekken naar het midden
+    c.line(12, 9, 17, 4, 'H'); c.line(30, 9, 25, 4, 'H');                                   // twee lokken die naar het midden trekken
     c.rect(13, 4, 3, 1, 'j'); c.rect(26, 4, 3, 1, 'j');
     KNOT2(c, 21, 0, 4); c.hline(18, 3, 7, 'H'); },                                            // de knot, met het elastiekje op de rand
   surfer: c => { SURF_TOP(c); c.rect(5, 7, 5, 12, 'h'); c.rect(32, 7, 5, 12, 'h'); PUNTEN(c, 5, 9, 19, -1); PUNTEN(c, 32, 36, 19, 1);
@@ -265,8 +265,8 @@ Object.assign(RUG, {
   millimeter: c => { RUG.kaal(c); BUZZ(c, 10, 2, 31, 20, [17, 4]); },
   scheiding: RUG_KORT,
   midden: c => { RUG_VOL(c); c.hline(8, 21, 26, 'H'); },
-  knot: c => { RUG_KORT(c); for (const [a, b] of [[11, 18], [15, 20], [21, 21], [27, 22], [31, 24]]) c.line(a, 15, b, 7, 'H');
-    KNOT2(c, 21, 2, 4); c.hline(18, 6, 7, 'H'); },
+  knot: c => { c.rect(9, 4, 24, 15, 'h'); c.rect(11, 3, 20, 1, 'h'); for (const [a, b] of [[12, 18], [18, 20], [24, 22], [30, 24]]) c.line(a, 16, b, 7, 'H'); // (glad, met lokken naar de knot)
+    KNOT2(c, 21, 2, 4, 'geen'); },
   surfer: c => { RUG_VOL(c); c.rect(7, 10, 28, 12, 'h'); PUNTEN(c, 7, 34, 22, 1); for (const [x, f] of [[10, 0], [15, 2], [20, 4], [25, 1], [30, 3]]) GOLF(c, x, 4, 23, f); ZONGEBLEEKT(c, 7, 20, 35, 26); },
   dreads: c => { RUG_KORT(c); c.ellipse(21, 5, 13, 5, 'h'); WORTELS(c, 8, 1, 34, 8); for (let x = 6; x < 36; x += 3) DREAD(c, x, 6, (x / 3) % 2 ? 23 : 25); },
   bob: c => { RUG_VOL(c); c.rect(8, 10, 26, 11, 'h'); c.hline(8, 21, 26, 'H'); for (const x of [13, 18, 23, 28]) c.vline(x, 10, 11, 'H'); },

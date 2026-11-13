@@ -6,6 +6,7 @@
 import { Doek, GROND, Img, ORIGINEEL, inkleuren, speler, sprite, vuist } from './rig.js';
 import { loopCyclus } from './animaties.js';
 import { donker, lookVan } from './atlas.js';
+import { pixelLogo, zetLogo } from './clublogo.js';
 import { tekst as fontTekst, regelBreedte, zonderAccent } from './font.js';
 
 export const ZW = 220, ZH = 124, FRAMES = 52, FPS = 8;
@@ -25,7 +26,7 @@ const STIJL = {k:'#1a1414', s:'#f7c9a8', S:'#e3a07e', h:'#b5541c', H:'#7e3410', 
 // r/R/w de club (logo's, tafelkleed, vlaggetjes)
 const LOGO = ['..RRRRRRRRR', '..RrwrwrwrR', '..RrwrwrwrR', '..RrwrwrwrR', '..RrwrwrwrR', '...RrwrwrR.', '....RrwrR..', '.....RrR...', '......R....'];
 const logo = sprite(16, 13, c => LOGO.forEach((rij, y) => [...rij].forEach((k, x) => { if (k !== '.') c.px(x, y, k); })));
-function zaal(){
+function zaal(echtLogo){
   return sprite(ZW, ZH, c => {
     c.rect(0, 0, ZW, VLOER, 'f'); c.rect(0, 64, ZW, VLOER - 64, 'F'); c.hline(0, 64, ZW, 'T');
     c.rect(0, VLOER, ZW, ZH - VLOER, 'J');
@@ -33,7 +34,7 @@ function zaal(){
     // sponsorwand met clublogo's (pxl: box = rand, pattern = tegels, afgekapt aan de rand)
     c.rect(44, 6, 170, 56, 'x');
     for (let x = 44; x < 214; x++){ c.px(x, 6, 'X'); c.px(x, 61, 'X'); } for (let y = 7; y < 61; y++){ c.px(44, y, 'X'); c.px(213, y, 'X'); }
-    for (let ty = 8; ty < 60; ty += 13) for (let tx = 46; tx < 212; tx += 16){
+    if (!echtLogo) for (let ty = 8; ty < 60; ty += 13) for (let tx = 46; tx < 212; tx += 16){ // (met het echte logo: dat komt er hieronder als plaatje overheen)
       const cw = Math.min(16, 212 - tx), ch = Math.min(13, 60 - ty);
       for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++){ const v = logo.d[y * 16 + x]; if (v) c.img.set(tx + x, ty + y, v); }
     }
@@ -127,7 +128,10 @@ export function maakContract(info = {}){
   const club = stijl ? {r:STIJL.r, R:STIJL.R, w:STIJL.w} : {r:t.shirt, R:donker(t.shirt, .3), w:t.accent};
   const shirtKl = {'(':club.r, ')':club.R, '[':club.w};
   // de zaal
-  const zaalCv = inkleuren(zaal(), {...STIJL, ...club, x:STIJL.w, X:STIJL.W});
+  const pl = pixelLogo(info.logoImg, 16);
+  const zaalCv = inkleuren(zaal(!!pl), {...STIJL, ...club, x:STIJL.w, X:STIJL.W});
+  // het echte clublogo op de sponsorwand: drie rijen, om en om verschoven (16 pixels: groot genoeg om het logo te herkennen)
+  if (pl) for (let r = 0, ty = 8; ty < 60; ty += 18, r++) for (let tx = 46 + (r % 2 ? 11 : 0); tx < 212; tx += 22) zetLogo(zaalCv, pl, tx, ty, [45, 7, 168, 54]);
   // de speler: jouw uiterlijk in vrijetijdskleding (in de stijlbron: het model-uiterlijk)
   const ik = stijl ? {kapsel:'model', kleuren:{...ORIGINEEL, c:STIJL.c, C:STIJL.C, e:STIJL.e, E:STIJL.E, y:'#f4f4f8', Y:'#c4c4d0', a:'#3a3a44', A:'#24242c', w:'#ffffff'}}
     : lookVan(info.uit || {}, {shirt:'#ffffff', accent:'#ffffff', patroon:'effen', broek:'#4a6fb0', sok:'#4a6fb0'}, {kleding:'casual'});

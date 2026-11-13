@@ -45,20 +45,25 @@ export function vSelectieEnd(){
 }
 // De clubs die je na de selectiedagen willen hebben: jij kiest
 const SOORT = {past:'Past bij je niveau', ambitie:'Ambitieus', veilig:'Veel speeltijd'};
+// Je klasse na de selectiedagen, en hoeveel die door je selectiewedstrijden veranderd is
+function klasseRegel(){
+  const nu = ovr(S.sp), voor = S.selectie.klasseVoor ?? nu, d = nu - voor;
+  return `Je klasse is nu <b>${nu}</b>${d ? ` <span class="${d > 0 ? 'goedtxt' : 'fouttxt'}">(${d > 0 ? '+' : ''}${d} door de selectiedagen)</span>` : ''}.`;
+}
 export function vSelectieKeuze(){
   const Sel = S.selectie, vc = Sel.vriendClub, vn = S.sp.vriend ? S.sp.vriend.voornaam : null;
   const kaart = (o, i) => {
-    const c = CLUBS[o.club], r = o.o23 ? null : rolBijClub(o.club, {...c, land:'nieuw'}), stijl = TACTIEKEN[clubTactiek(o.club)];
+    const c = CLUBS[o.club], r = o.o23 ? null : rolBijClub(o.club, {...c, land:'nieuw'}), stijl = TACTIEKEN[clubTactiek(o.club)], d = ovr(S.sp) - c.s;
     return `<div class="bod ${o.soort === 'ambitie' ? 'door' : ''}"><span class="label">${SOORT[o.soort]} · ${o.o23 ? 'O23' : NIVEAU[c.t]} · ${esc(DIVS[c.t])}</span>
       <div class="club">${clubLogo(o.club, 40)}<span>${esc(c.n)}${o.o23 ? ' O23' : ''}</span></div>
       <p class="quote">${esc(o.quote)}</p>
-      <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>Stand</dt><dd>${esc(clubPlek({club:o.club}))}</dd><dt>${salarisLabel(c.t)}</dt><dd>${geldTxt(o.salaris)}</dd><dt>Contract</dt><dd>${o.jaren} jaar</dd><dt>Speelstijl</dt><dd>${esc(stijl ? stijl.n : '–')}</dd></dl>
+      <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>Jouw klasse</dt><dd>${ovr(S.sp)} <span class="${d >= 0 ? 'goedtxt' : 'fouttxt'}">(${d >= 0 ? '+' : ''}${d})</span></dd><dt>Stand</dt><dd>${esc(clubPlek({club:o.club}))}</dd><dt>${salarisLabel(c.t)}</dt><dd>${geldTxt(o.salaris)}</dd><dt>Contract</dt><dd>${o.jaren} jaar</dd><dt>Speelstijl</dt><dd>${esc(stijl ? stijl.n : '–')}</dd></dl>
       <div class="rol"><span class="label">Jouw rol daar</span>${o.o23 ? '<b>Bij de O23</b><span class="risico r-gem">Bewijs je, dan haalt de trainer je naar het eerste</span>' : `<b>${r.status}</b><span class="risico ${r.plek[1]}">${r.plek[0]}</span>`}</div>
       ${vc && vc.club === o.club && vn && !vriendApart() ? `<p class="goedtxt klein-tekst">🤝 ${esc(vn)} tekent hier ook${vc.o23 ? ' (bij de O23)' : ''}.</p>` : ''}
       <div class="rij">${knop('Hier tekenen', () => tekenSelectie(i), 'hoofd', 'style="font-size:1.05rem;padding:10px 16px"')}</div></div>`;
   };
   const vElders = vc && vn && (vriendApart() || !Sel.bods.some(o => o.club === vc.club)) ? `<p class="muted">${esc(vn)} heeft al gekozen: ${vr.hij} tekent bij ${esc(vriendClubInfo(vc.club).n)}${vc.o23 ? ' (O23)' : ''}.</p>` : '';
   return `<div class="verhaal"><span class="label">Selectiedagen · de aanbiedingen</span><h2>Welke club past bij jou?</h2>
-    <p>Gemiddeld een <b>${fmt1(selGemiddelde())}</b>, plek <b>${mijnPlek().plek}</b> van de ${POS_MEERV[S.sp.pos]}. Deze clubs willen je hebben. Let op je rol: bij een sterke club leer je veel, maar speel je minder.</p>${vElders}</div>
+    <p>Gemiddeld een <b>${fmt1(selGemiddelde())}</b>, plek <b>${mijnPlek().plek}</b> van de ${POS_MEERV[S.sp.pos]}. ${klasseRegel()} Deze clubs willen je hebben. Let op je rol: bij een sterke club leer je veel, maar speel je minder.</p>${vElders}</div>
     <div class="aanbod">${Sel.bods.map(kaart).join('')}</div>`;
 }

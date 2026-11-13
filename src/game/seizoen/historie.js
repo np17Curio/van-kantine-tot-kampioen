@@ -76,7 +76,10 @@ export function historieSeizoen(){
 // Jij bij deze club: goals en wedstrijden (records.js) en of je er een legende bent
 export function jijBij(id){
   const R = S.car && S.car.rec, ky = ck(id), c = CLUBS[id];
-  const g = (R && R.clubG && R.clubG[ky]) || 0, w = (R && R.clubW && R.clubW[ky]) ?? (id === S.sp.club ? S.sp.clubWed || 0 : 0);
+  // (vangnet: ook je afgesloten seizoenen bij deze club tellen, ook het deel tot de winter vóór een verhuur. Valt de sleutel
+  //  in R.clubG ooit weg, zoals bij oude opslag of een verhuur naar het buitenland, dan zie je je goals toch)
+  const uitSeizoenen = ((S.car && S.car.seizoenen) || []).filter(x => x.club === c.n).reduce((n, x) => n + (x.g || 0), 0);
+  const g = Math.max((R && R.clubG && R.clubG[ky]) || 0, uitSeizoenen), w = (R && R.clubW && R.clubW[ky]) ?? (id === S.sp.club ? S.sp.clubWed || 0 : 0);
   const legende = (S.car.prijzen || []).includes(`Clublegende van ${c.n}`) || (id === S.sp.club && S.sp.legendeHier);
   return {g, w, legende:legende || g >= 50 || w >= 150};
 }

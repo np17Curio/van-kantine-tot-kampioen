@@ -3,6 +3,7 @@
 // een tafel met een kleed in de clubkleuren, microfoons van de zenders, jij en de persvoorlichter achter de tafel,
 // tv-camera's aan de zijkant en vooraan een rij journalisten en fotografen (op de rug gezien) die hun hand opsteken.
 // De scène wordt per beeld getekend uit een toestand (render/persscene.js bepaalt wat er gebeurt).
+import { pixelLogo, zetLogo } from './clublogo.js';
 import { Doek, GROND, Img, inkleuren, speler, sprite } from './rig.js';
 import { loopCyclus } from './animaties.js';
 import { donker, lookVan } from './atlas.js';
@@ -23,7 +24,7 @@ const KL = {k:'#1a1414', s:'#f7c9a8', S:'#e3a07e', h:'#b5541c', j:'#dc7a3c', w:'
 // ---------- de zaal ----------
 const LOGO = ['..RRRRRRRRR', '..RrwrwrwrR', '..RrwrwrwrR', '..RrwrwrwrR', '..RrwrwrwrR', '...RrwrwrR.', '....RrwrR..', '.....RrR...', '......R....'];
 const logo = sprite(16, 13, c => LOGO.forEach((rij, y) => [...rij].forEach((k, x) => { if (k !== '.') c.px(x, y, k); })));
-function zaal(){
+function zaal(echtLogo){
   return sprite(PW, PH, c => {
     c.rect(0, 0, PW, VLOER, 'f'); c.rect(0, 66, PW, VLOER - 66, 'F'); c.hline(0, 66, PW, 'L');
     c.rect(0, VLOER, PW, PH - VLOER, 'J');                                                   // vloerbedekking
@@ -31,7 +32,7 @@ function zaal(){
     // de perswand: wit met clublogo's om en om, een band in de clubkleur eronder
     c.rect(38, 4, 178, 62, 'x'); c.rect(38, 64, 178, 3, 'r');
     for (let x = 38; x < 216; x++){ c.px(x, 4, 'X'); } for (let y = 4; y < 64; y++){ c.px(38, y, 'X'); c.px(215, y, 'X'); }
-    for (let r = 0, ty = 7; ty < 58; ty += 14, r++) for (let tx = 41 + (r % 2) * 10; tx < 204; tx += 20)
+    if (!echtLogo) for (let r = 0, ty = 7; ty < 58; ty += 14, r++) for (let tx = 41 + (r % 2) * 10; tx < 204; tx += 20)
       for (let y = 0; y < 13; y++) for (let x = 0; x < 16; x++){ const v = logo.d[y * 16 + x]; if (v) c.img.set(tx + x, ty + y, v); }
     // de deur links, open
     c.rect(4, 40, 26, VLOER - 40, 'i'); c.rect(7, 43, 20, VLOER - 43, 'D'); c.rect(25, 43, 4, VLOER - 43, 'I');
@@ -40,11 +41,11 @@ function zaal(){
   });
 }
 // De tafel (komt over de personen heen): blad, kleed met PERSCONFERENTIE, microfoons, naambordjes en water
-function tafel(naam){
+function tafel(naam, echtLogo){
   return sprite(PW, PH, c => {
     c.rect(56, TAFEL, 112, 3, 'i'); c.hline(56, TAFEL, 112, 'L'); c.rect(56, TAFEL + 3, 112, 1, 'I');
     c.rect(58, TAFEL + 4, 108, VLOER - TAFEL - 4, 'r'); c.hline(58, TAFEL + 4, 108, 'w'); c.hline(58, VLOER - 1, 108, 'R');
-    c.stamp(logo, 60, TAFEL + 4);
+    if (!echtLogo) c.stamp(logo, 60, TAFEL + 4);
     tekst(c, 118, TAFEL + 6, 'PERSCONFERENTIE', 'w', {align:'c'});
     // de microfoons van de zenders voor jouw plek (op kinhoogte), een losse voor de persvoorlichter
     [[SX - 10, 1], [SX - 6, 2], [SX - 2, 3], [SX + 2, 4], [SX + 6, 5]].forEach(([x, k], i) => {
@@ -96,7 +97,12 @@ export function maakPers(info){
   const t = info.tenue || {shirt:'#e0262b', accent:'#ffffff', patroon:'effen'};
   const club = {r:t.shirt, R:donker(t.shirt, .3), w:t.accent || '#ffffff', x:'#ffffff', X:'#d4d4de'};
   const pal = {...KL, ...club};
-  const zaalCv = inkleuren(zaal(), pal), tafelCv = inkleuren(tafel(info.naam || ''), pal);
+  const pl = pixelLogo(info.logoImg, 12);
+  const zaalCv = inkleuren(zaal(!!pl), pal), tafelCv = inkleuren(tafel(info.naam || '', !!pl), pal);
+  if (pl){ // het echte clublogo op de perswand (om en om) en op het tafelkleed
+    for (let r = 0, ty = 7; ty < 58; ty += 14, r++) for (let tx = 41 + (r % 2) * 10; tx < 204; tx += 20) zetLogo(zaalCv, pl, tx + 2, ty, [39, 5, 176, 59]);
+    zetLogo(tafelCv, pl, 62, TAFEL + 5);
+  }
   const cams = [false, true].map(l => inkleuren(tvCamera(l), pal));
   // jij: in het trainingspak van de club (als trainer: in pak); de persvoorlichter in pak met een das in de clubkleur
   const ik = lookVan(info.uit || {}, info.trainer ? null : {...t, broek:'#262b36', sok:'#262b36'}, {kleding:info.trainer ? 'pak' : 'training', nr:2});

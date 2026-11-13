@@ -7,6 +7,7 @@ import { toast } from '../core/feedback.js';
 import { ploegen } from './pitch.js';
 import { elftal, introSoort } from './views/match.js';
 import { maakLaag, speelLus } from './cutscene-basis.js';
+import { laadLogoBron } from './pixel/clublogo.js';
 import { S } from '../core/state.js';
 import { esc } from '../core/utils.js';
 import { AANV, CLUBS } from '../data/gegevens.js';
@@ -121,7 +122,9 @@ async function speel(M){
   const laag = maakLaag({tag:'Live', label:'Animatie: de teams komen het veld op'});
   try {
     const P = ploegen(), ploeg = ploegInfo(M, P);
-    const op = maakOpkomst(opkomstInfo(M, ploeg, P));
+    const info = opkomstInfo(M, ploeg, P); info.logoImg = await laadLogoBron(ploeg.thuis.id); // (het logo zonder tekst: als scherp pixellogo in de tunnel)
+    if (laag.weg) return;
+    const op = maakOpkomst(info);
     if (laag.weg) return;
     const cv = document.createElement('canvas'); cv.width = op.W; cv.height = op.H; cv.className = 'cs-pixel'; cv.setAttribute('aria-hidden', 'true');
     laag.vak.prepend(cv); const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;

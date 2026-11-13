@@ -6,6 +6,7 @@ import { maakPixelFoto } from './pixel/krantfoto.js';
 import { krantItem, krantPagina, rubriekVan, draaiBeeld, DRAAI_FRAMES, DRAAI_FPS } from './pixel/krant.js';
 import { maakContract } from './pixel/contract.js';
 import { uiterlijkVoor } from './pixel/uiterlijk.js';
+import { laadLogoBron, logoBron, logoGeladen } from './pixel/clublogo.js';
 import { shirtNummer } from '../game/team/rugnummers.js';
 import { ik, vrouwenWereld } from '../core/geslacht.js';
 import { thuisLand } from '../data/landen.js';
@@ -30,7 +31,7 @@ const MUREN = [['#0f1a33', '#c6f432'], ['#1a1030', '#f3c44f'], ['#0d2a22', '#fff
 function fotoCtx(img){
   if (img && img.dataset.uit){ const [huid, haar, kapsel, lengte, bmi, vrouw] = img.dataset.uit.split(','); return {sleutel:img.dataset.sleutel || 'nieuw', uiterlijk:{huid:+huid, haar:+haar, kapsel, ...(lengte ? {lengte:+lengte, bmi:+bmi} : {}), ...(vrouw !== undefined ? {vrouw:vrouw === '1'} : {})}, club:'', muur:'#0f1a33', accent:'#c6f432', tenue:STANDAARD, ...(img.dataset.draai !== undefined ? {draai:+img.dataset.draai} : {})}; }
   const c = club(), [muur, accent] = MUREN[(S.sp.club || 0) % MUREN.length];
-  const pl = ploegen(); return {sleutel:pl.jij, naam:S.sp.naam, uiterlijk:S.sp.uiterlijk || null, club:c ? c.n : '', muur, accent, tenue:clubTenue(S.sp.club), clubId:S.sp.club, band:!!pl.band, sponsor:S.sp.clubloos || S.sp.o23 ? null : shirtSponsor(c, thuisLand())}; // (de shirtsponsor van je club)
+  const pl = ploegen(); return {sleutel:pl.jij, naam:S.sp.naam, uiterlijk:S.sp.uiterlijk || null, club:c ? c.n : '', muur, accent, tenue:clubTenue(S.sp.club), clubId:S.sp.club, logo:logoBron(S.sp.club), band:!!pl.band, sponsor:S.sp.clubloos || S.sp.o23 ? null : shirtSponsor(c, thuisLand())}; // (de shirtsponsor van je club)
 }
 // (het uiterlijk als losse velden: huid en haar zijn getallen, opgeteld zouden huid 1 + haar 2 en huid 2 + haar 1 dezelfde foto geven)
 const uitSleutel = u => u ? [u.huid, u.haar, u.kapsel, u.lengte ?? '', u.bmi ?? '', u.schoen ?? '', u.baard || '', u.vrouw ? 'v' : ''].join(',') : '';
@@ -38,7 +39,8 @@ const sleutelVan = (soort, ctx) => [soort, ctx.sleutel, ctx.club, ctx.draai ?? '
 export function foto(soort, img){
   const ctx = fotoCtx(img), key = sleutelVan(soort, ctx);
   if (!KLAAR.has(key)){
-    KLAAR.set(key, Promise.resolve().then(() => maakPixelFoto(soort, ctx)));
+    // (eerst het clublogo laden: dat hangt op de persmuur achter je)
+    KLAAR.set(key, laadLogoBron(ctx.clubId).then(() => maakPixelFoto(soort, {...ctx, logo:logoBron(ctx.clubId)})));
   }
   return KLAAR.get(key);
 }
@@ -52,12 +54,14 @@ function krantFoto(item){
   if (rubriekVan(item) === 'TRANSFERNIEUWS' && String(item.kop).includes(S.sp.naam) && !S.sp.clubloos && S.sp.club != null){
     let nr = null; try { nr = shirtNummer(); } catch (e){}
     const delen = String(S.sp.naam).trim().split(/\s+/), naam = delen.length > 1 ? delen.slice(1).join(' ') : delen[0];
-    const {uitsnede} = maakContract({uit:uiterlijkVoor('jij|' + ctx.sleutel, {...(S.sp.uiterlijk || {}), vrouw:!!S.sp.vrouw}), tenue:ctx.tenue, nr, naam, alleenUitsnede:true});
+    const {uitsnede} = maakContract({uit:uiterlijkVoor('jij|' + ctx.sleutel, {...(S.sp.uiterlijk || {}), vrouw:!!S.sp.vrouw}), tenue:ctx.tenue, nr, naam, logoImg:ctx.logo, alleenUitsnede:true}); // (met het echte clublogo op de sponsorwand)
     return {cv:uitsnede(), onder:`${S.sp.naam} toont ${ik.zijn} nieuwe shirt${nr ? ` met rugnummer ${nr}` : ''}.`, door:'Pixel Pers'};
   }
   return null;
 }
 export function krantNaRender(){
+  // het clublogo (op de persmuur en de sponsorwand van de foto's) moet eerst geladen zijn; daarna opnieuw
+  if (S && S.sp && !logoGeladen(S.sp.club)){ laadLogoBron(S.sp.club).then(() => krantNaRender()); return; }
   const rustig = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   document.querySelectorAll('figure.pixelkrant[data-krant]:not([data-klaar])').forEach(fig => {
     if (fig.closest('details:not([open])')) return; // (ingeklapt: pas tekenen als hij opengaat, dan draait hij ook in)

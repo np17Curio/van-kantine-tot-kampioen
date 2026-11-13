@@ -18,10 +18,28 @@ import { chemie } from '../team/kleedkamer.js';
 import { hoogtepunt } from './hoogtepunten.js';
 
 /* ===================== Status bij de club ===================== */
-// Startstatus bij een nieuwe club: hoe beter je bent dan de club en hoe bekender je bent, hoe hoger
+// Een club kijkt niet alleen naar je klasse, maar ook naar wat je hebt laten zien. Dit zijn extra "klassepunten":
+// een Gouden Bal (+5, elke volgende +1), je vorm (gemiddeld cijfer van vorig of dit seizoen: tot +3, of tot -2),
+// andere persoonlijke prijzen (+1 per stuk, tot +2) en veel interlands (+1). Samen hoogstens +10.
+const jaarVan = p => parseInt(String(p).match(/(\d{4})/)?.[1] ?? '0', 10);
+export function naamBonus(){
+  const sp = S.sp, prijzen = (S.car && S.car.prijzen) || [];
+  const gb = prijzen.filter(p => /^Gouden Bal /.test(p)).length;
+  const andere = prijzen.filter(p => /^(Speler van het Seizoen|Topscorer|Gouden Schoen|Assistkoning|Beste speler) /.test(p)).length;
+  const nu = S.ss && S.ss.c && S.ss.c.length >= 6 ? S.ss.c.reduce((a, b) => a + b, 0) / S.ss.c.length : null, gem = nu ?? S.vorigGem ?? null;
+  const vorm = gem === null ? 0 : clamp((gem - 6.8) * 3, -2, 3);
+  const caps = Object.values((S.car && S.car.int) || {}).reduce((a, x) => a + (x.caps || 0), 0);
+  return Math.min(10, (gb ? 5 + (gb - 1) : 0) + Math.min(2, andere) + vorm + (caps >= 25 ? 1 : 0));
+}
+// De laatste 3 seizoenen de Gouden Bal gewonnen? Dan ben je bij elke club minstens een vaste waarde
+export const recenteGoudenBal = () => ((S.car && S.car.prijzen) || []).some(p => /^Gouden Bal /.test(p) && jaarVan(p) >= S.jaar - 3);
+// Je niveau zoals een club het ziet: je klasse plus je naam en je prestaties
+export const clubNiveau = () => ovr(S.sp) + naamBonus();
+// Startstatus bij een nieuwe club: hoe beter je bent dan de club (met je prestaties erbij) en hoe bekender je bent, hoe hoger
 export function startStatus(id, cObj){
   const sp = S.sp, c = cObj || CLUBS[id];
-  const st = clamp((ovr(sp) - c.s) * 3 + sp.rep * .45, 0, 62);
+  let st = clamp((clubNiveau() - c.s) * 3 + sp.rep * .45, 0, 62);
+  if (recenteGoudenBal()) st = Math.max(st, 38); // (de beste speler van de wereld zet je niet op de bank)
   // Een tiener is bij een nieuwe club altijd eerst een jonkie, hoe goed hij ook is
   return sp.leeftijd < 20 ? Math.min(st, 8) : st;
 }
@@ -123,7 +141,7 @@ export function checkStatus(){
 export function rolBijClub(id, cObj){
   const sp = S.sp, c = cObj || CLUBS[id], hier = id === sp.club && !(cObj && cObj.land);
   const lvl = hier ? statusNiveau() : niveauVoor(startStatus(id, c), 0, 0, false, c.t, sp.leeftijd);
-  const sc = opstMax(lvl, OPST_BASIS[lvl] + (hier ? sp.vorm * 9 + (sp.vert - 50) * .25 : -1.25) + clamp(ovr(sp) - c.s, -10, 10) * .8);
+  const sc = opstMax(lvl, OPST_BASIS[lvl] + (hier ? sp.vorm * 9 + (sp.vert - 50) * .25 : -1.25) + clamp(clubNiveau() - c.s, -10, 10) * .8);
   const plek = sc >= 56 ? ['Basisspeler', 'r-veilig'] : sc >= 44 ? ['Strijd om een basisplaats', 'r-gem'] : ['Begint op de bank', 'r-riskant'];
   return {status:statusNaam(lvl), plek};
 }

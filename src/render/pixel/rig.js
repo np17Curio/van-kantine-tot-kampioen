@@ -111,21 +111,42 @@ const HOOFDEN = new Map();
 // Van voren: gezicht x 10-31, mond y 22; van opzij (zij): gezicht x 15-31, mond x 28-30. De snor van voren is die van
 // de eigenaar in de contractscène (stijlbron: _hoofd_baas). true = 'snor' (zo riep de contractscène het al aan).
 const baardSoort = b => b === true ? 'snor' : b && b !== 'geen' ? b : '';
+// Gezichtshaar. Geen effen blok (dat leek een masker of bandana): de baard volgt de kaak, de wangen blijven vrij,
+// de rand naar de huid is zacht, de mond blijft zichtbaar en onder de kin loopt hij rond.
+const KORREL = (x, y) => (((x * 73856093) ^ (y * 19349663) ^ (x * y * 83492791)) >>> 0) % 100; // (vaste "willekeur": geen ruitjes)
+// de bovenrand van de baard per kolom (van voren: x 10-31, van opzij: x 22-31); hoger bij de bakkebaarden, lager bij de mond
+const BAARDRAND_V = x => x <= 11 || x >= 30 ? 16 : x === 12 || x === 29 ? 18 : x === 13 || x === 28 ? 19 : x <= 15 || x >= 26 ? 20 : 21;
+const BAARDRAND_Z = x => x <= 23 ? 16 : x === 24 ? 18 : x <= 26 ? 20 : 21;
+function baardVlak(c, zij, onder, dicht, stoppel = false){
+  const [x0, x1] = zij ? [22, 31] : [10, 31], rand = zij ? BAARDRAND_Z : BAARDRAND_V;
+  for (let x = x0; x <= x1; x++){
+    const top = rand(x) + (stoppel ? 1 : 0);
+    if (stoppel){ for (let y = top; y <= onder; y++) if (!c.is(x, y, 'k')) c.px(x, y, KORREL(x, y) < 22 ? 'H' : 'S'); continue; } // stoppels: een donkere baardschaduw met losse haartjes
+    if (KORREL(x, top - 1) < 35) c.px(x, top - 1, 'h');                                   // een zachte, rafelige bovenrand
+    for (let y = top; y <= onder; y++) if (KORREL(x, y) < dicht) c.px(x, y, KORREL(x + 7, y) < 14 ? 'H' : 'h');
+  }
+}
+function snor(c, zij){
+  if (zij){ c.rect(27, 20, 5, 1, 'H'); c.rect(28, 21, 4, 1, 'H'); c.px(27, 21, 'h'); return; }
+  c.rect(18, 20, 6, 1, 'H'); c.rect(17, 21, 8, 1, 'H'); c.px(16, 22, 'H'); c.px(25, 22, 'H');     // met hoekjes die naar beneden lopen
+}
 function gezichtshaar(c, baard, zij){
   if (!baard) return;
-  if (baard === 'stoppels'){
-    const [x0, x1] = zij ? [22, 31] : [11, 30];
-    for (let y = 21; y <= 24; y++) for (let x = x0; x <= x1; x++) if ((x + y) % 2 === 0 && !(y === 22 && x >= (zij ? 28 : 18) && x <= (zij ? 30 : 22))) c.px(x, y, 'H');
-    if (zij) c.px(31, 21, 'H'); else { c.px(18, 21, 'H'); c.px(20, 21, 'H'); c.px(22, 21, 'H'); }
+  if (baard === 'stoppels'){ baardVlak(c, zij, 24, 100, true); if (zij) c.hline(28, 22, 3, 'k'); else c.hline(18, 22, 5, 'k'); return; } // (de mond blijft zichtbaar)
+  if (baard === 'baard'){
+    baardVlak(c, zij, 24, 100);
+    if (zij){ c.rect(24, 25, 7, 1, 'h'); c.px(31, 24, 'h'); c.hline(25, 25, 5, 'H'); }    // onder de kin rond
+    else { c.rect(13, 25, 16, 1, 'h'); c.hline(15, 25, 12, 'H'); }
+    snor(c, zij);
+    if (zij){ c.hline(28, 22, 3, 'k'); c.px(30, 23, 's'); }             // de mond en een stukje onderlip
+    else { c.hline(18, 22, 5, 'k'); c.rect(19, 23, 3, 1, 's'); }
     return;
   }
-  if (baard === 'baard'){
-    // (met een donkere rand en wat textuur in H: anders valt een lichte baard weg tegen de huid)
-    if (zij){ c.rect(22, 20, 10, 5, 'h'); c.rect(22, 16, 2, 4, 'h'); c.vline(22, 16, 9, 'H'); c.hline(22, 24, 10, 'H'); for (let x = 23; x < 32; x += 2) c.px(x, 23, 'H'); c.hline(28, 22, 3, 'k'); }
-    else { c.rect(10, 20, 22, 5, 'h'); c.rect(10, 16, 2, 4, 'h'); c.rect(30, 16, 2, 4, 'h'); c.hline(10, 24, 22, 'H'); c.vline(10, 16, 9, 'H'); c.vline(31, 16, 9, 'H'); for (let x = 12; x < 30; x += 2) c.px(x, 23, 'H'); c.hline(18, 22, 5, 'k'); }
+  snor(c, zij);                                                                               // de snor (ook bij het sikje)
+  if (baard === 'sikje'){
+    if (zij){ c.rect(28, 23, 4, 2, 'h'); c.px(29, 25, 'h'); c.px(30, 25, 'h'); c.hline(28, 24, 4, 'H'); }
+    else { c.px(17, 22, 'H'); c.px(23, 22, 'H'); c.rect(18, 23, 5, 2, 'h'); c.rect(19, 25, 3, 1, 'h'); c.hline(18, 24, 5, 'H'); c.px(20, 23, 'H'); } // (verbonden met de snor, rond onder de kin)
   }
-  if (zij) c.rect(27, 20, 5, 2, 'H'); else c.rect(17, 20, 8, 2, 'H');   // de snor (ook bij sikje en volle baard)
-  if (baard === 'sikje'){ if (zij){ c.rect(28, 23, 4, 2, 'h'); c.hline(28, 24, 4, 'H'); } else { c.rect(18, 23, 5, 2, 'h'); c.hline(18, 24, 5, 'H'); } }
 }
 export function hoofd(kapsel = 'model', vrouw = false, baard = ''){
   baard = vrouw ? '' : baardSoort(baard);

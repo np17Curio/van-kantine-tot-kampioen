@@ -12,7 +12,7 @@ import { speelRonde } from '../competitie/spelers.js';
 import { KRANTEN, reeks } from '../media/nieuws.js';
 import { krantMelding } from '../media/roddel.js';
 import { topBonus } from '../prive/sponsors.js';
-import { statusNiveau } from './status.js';
+import { startStatus, statusNiveau } from './status.js';
 import { sluitVenster } from '../transfers/transfers.js';
 import { agentReset } from '../transfers/zaakwaarnemer.js';
 import { focusNaWedstrijd } from '../wedstrijd/focus.js';
@@ -171,8 +171,13 @@ export function terugVanHuur(){
   sp.club = h.ouder; sp.huur = null; sp.o23 = null; sp.recent = []; sp.gewaarschuwd = false;
   sp.clubWed = h.clubWed; sp.clubSz = h.clubSz; sp.legendeHier = h.legende; sp.sindsTransfer = 10; sp.huurTerug = true; // (geen 'eerste seizoen' meer bij je eigen club)
   let tekst;
-  if (g !== null && g >= 7){ sp.status = Math.max(h.status, 38); sp.vert = 55; tekst = `Je huurperiode bij ${huurNaam} was een succes (gemiddeld ${fmt1(g)}). ${ouder.n} haalt je terug en rekent op je.`; }
-  else if (g !== null && g >= 6.4){ sp.status = Math.max(h.status, 22); sp.vert = 45; tekst = `Je speelde redelijk bij ${huurNaam} (gemiddeld ${fmt1(g)}). Terug bij ${ouder.n} moet je knokken voor een basisplaats.`; }
+  // Een goede huurperiode maakt je nog geen basisspeler bij je eigen club: je komt terug als bankspeler die dicht tegen een
+  // basisplaats aan zit (een jonkie stond eerst nog onderaan). Alleen als je klasse echt goed genoeg is voor de club (die je
+  // dan ook bij een gewone overstap als vaste waarde zou zien), begin je meteen in de basis
+  const kanBasis = startStatus(h.ouder) >= 35;
+  if (g !== null && g >= 7){ sp.status = kanBasis ? Math.max(h.status, 38) : Math.max(h.status, Math.min(34, Math.max(h.status + 14, 26))); sp.vert = 55;
+    tekst = kanBasis ? `Je huurperiode bij ${huurNaam} was een succes (gemiddeld ${fmt1(g)}). ${ouder.n} haalt je terug en rekent op je.` : `Je huurperiode bij ${huurNaam} was een succes (gemiddeld ${fmt1(g)}). Terug bij ${ouder.n} zit je dicht tegen een basisplaats aan, maar die moet je hier nog verdienen.`; }
+  else if (g !== null && g >= 6.4){ sp.status = Math.max(h.status, Math.min(24, h.status + 6)); sp.vert = 45; tekst = `Je speelde redelijk bij ${huurNaam} (gemiddeld ${fmt1(g)}). Terug bij ${ouder.n} moet je knokken voor een basisplaats.`; }
   else { sp.status = Math.min(h.status, 12); sp.vert = 30; tekst = `Je huurperiode bij ${huurNaam} liep niet goed${g !== null ? ` (gemiddeld ${fmt1(g)})` : ''}. ${ouder.n} is nog niet overtuigd.`; }
   sp.statusNiveau = statusNiveau();
   S.car.hist.push(`${seizoenLabel()}: terug van huur bij ${huurNaam} naar ${ouder.n}`);

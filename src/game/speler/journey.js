@@ -41,6 +41,12 @@ export function interLand(){
   return meest ? meest[0] : landenVoor()[0] || thuisLand();
 }
 export const vriendActief = () => { const v = S.sp && S.sp.vriend; return !!(v && !v.weg && v.club != null); };
+// ---------- jullie band: de drempels (−100..100) ----------
+// Onder "schuurt" merk je het (moraal, berichtjes, hij laat je links liggen in het veld), onder "koud" ook je focus.
+// Onder "waarschuwing" wil hij je spreken; zakt de band daarna onder "breuk", dan is het voorbij.
+export const BAND = {schuurt:25, koud:0, waarschuwing:-40, breuk:-60, top:75};
+export const vriendBandLabel = b => b >= 60 ? 'Beste vrienden' : b >= BAND.schuurt ? 'Goede vrienden' : b >= BAND.koud ? 'Het schuurt' : 'IJskoud';
+export const vriendBandKlasse = b => b >= 60 ? 'r-veilig' : b >= BAND.schuurt ? 'r-gem' : 'r-riskant';
 export const journey = () => S && S.sp && S.sp.journey;
 export const VOORNAMEN = ['Sem', 'Daan', 'Milan', 'Jayden', 'Noah', 'Luuk', 'Bram', 'Ryan', 'Thijs', 'Mo'];
 export const VOORNAMEN_V = ['Lieke', 'Noor', 'Jill', 'Sanne', 'Fenna', 'Esmee', 'Lotte', 'Yara', 'Romée', 'Damaris'];
@@ -187,8 +193,8 @@ export function breukUitkomst(soort, band, naar){
   }
   vriendWordtRivaal(band, naar);
 }
-export function vriendWordtRivaal(band, naar){
-  const sp = S.sp, v = sp.vriend; if (naar == null || opAfstand()) return;
+export function vriendWordtRivaal(band, naar, breuk = false){
+  const sp = S.sp, v = sp.vriend, vanClub = v.club; if (naar == null || opAfstand()) return;
   // Had je al een (andere) rivaal, dan neemt je ex-vriend die plaats in
   if (sp.rivaal && !sp.rivaal.exVriend){ const r = sp.rivaal, sel = CLUBS[r.club] ? selectie(r.club) : null; if (sel){ const x = sel.find(y => y.n === r.n && y.v === r.v); if (x) x.rivaal = false; } sp.rivaal = null; }
   if (sp.rivaal) return;
@@ -196,8 +202,12 @@ export function vriendWordtRivaal(band, naar){
   const oud = v.club != null ? selectie(v.club) : null; if (oud){ const x = oud.find(y => y.vriend); if (x) oud.splice(oud.indexOf(x), 1); }
   sp.rivaal = {v:v.v, n:v.n, pos:vriendPos(), lft:v.lft, k:v.k, pot:v.pot, kVorig:v.k, club:naar, achtergrond:'Jullie waren beste vrienden, tot ' + vr.hij + ' vertrok.', karakter:pick(Object.keys(PERS)),
     onderling:{w:0, g:0, v:0}, hist:[], seizoen:null, band, race:{}, exVriend:true};
+  if (breuk) sp.rivaal.achtergrond = 'Jullie waren beste vrienden, tot jullie uit elkaar groeiden.';
   plaatsRivaal(naar);
   v.club = naar; v.weg = true; v.land = thuisLand();
+  if (breuk){ const weg = naar !== vanClub ? ` ${vr.Hij} vertrekt naar ${CLUBS[naar].n}.` : '';
+    S.car.hist.push(`${seizoenLabel()}: breuk met jeugd${vr.vriend} ${v.voornaam} ${v.n}, nu je rivaal`);
+    krantMelding(`Breuk tussen ${sp.naam} en ${v.voornaam} ${v.n}`, `De jeugdvrienden zijn uit elkaar gegroeid. "We hebben elkaar niets meer te zeggen," zegt ${v.voornaam}.${weg}`); return; }
   S.car.hist.push(`${seizoenLabel()}: jeugdvriend ${v.voornaam} ${v.n} vertrekt naar ${CLUBS[naar].n} en wordt je rivaal`);
   krantMelding(`${v.voornaam} ${v.n} kiest voor ${CLUBS[naar].n}`, `De ${vr.jeugdvriend} van ${sp.naam} tekende op de laatste dag van de transferperiode. ${vr.Zijn} nieuwe zaakwaarnemer ${MAKELAAR} regelde de overstap.`);
 }
@@ -530,7 +540,24 @@ export function vriendEvents(){
   const sp = S.sp, v = sp.vriend, vn = v.voornaam, zelfde = bijJou(), gezien = v.evGezien = v.evGezien || {}, j = S.jaar;
   const mag = (id, wacht) => gezien[id] == null || j - gezien[id] >= wacht;
   const ev = (id, tekst, opts, na) => ({soort:'prive', tekst, opts:opts.map(([l, toon, d, uit]) => ({l, toon, f(){ gezien[id] = j; zetBand(d); if (na) na(toon); return uit; }}))});
-  const L = [], Vr = v.vriendin, hn = Vr && Vr.naam;
+  const L = [], Vr = v.vriendin, hn = Vr && Vr.naam, koud = v.band < BAND.koud;
+  // ---- het schuurt: ruzie, roddels, afzeggingen (met een kans om het goed te maken) ----
+  if (v.band < BAND.schuurt){
+    if (mag('roddel', 1)) L.push(ev('roddel', `In een interview wordt ${vn} naar jou gevraagd. "We spreken elkaar bijna niet meer. Het succes is ${sp.naam} een beetje naar het hoofd gestegen, denk ik."`, [
+      [`${vr.Hem} bellen: "Klopt dat, wat je zei?"`, 'kalm', 10, `Jullie praten het uit. "Ik was gewoon boos," geeft ${vn} toe.`],
+      ['Er niets over zeggen', 'bal', 2, 'Het nieuws waait vanzelf over.'],
+      ['Terugslaan in je eigen interview', 'fel', -8, `"Ik heb niemand nodig die achter mijn rug over me praat," zeg je. Dat komt in de krant.`]],
+      toon => { if (toon === 'fel') krantMelding(`${sp.naam} haalt uit naar ${vn} ${v.n}`, `"Ik heb niemand nodig die achter mijn rug over me praat," zegt ${sp.naam} over ${ik.zijn} jeugd${vr.vriend}.`); }));
+    if (mag('vergeten', 1)) L.push(ev('vergeten', `${vn} belt je, boos. "Je bent mijn verjaardag vergeten. Weer."`, [
+      ['Sorry zeggen en een cadeau langsbrengen', 'kalm', 10, `${vn} doet open en moet toch lachen om je cadeau.`],
+      ['"Sorry, het was een drukke week."', 'bal', 2, `"Dat is het altijd," zegt ${vn}.`],
+      ['"Jij belt mij ook nooit."', 'fel', -8, `${vn} hangt op.`]]));
+    if (mag('afzeggen', 1)) L.push(ev('afzeggen', `${vn} zegt jullie afspraak op het laatste moment af. Al voor de derde keer.`, [
+      ['"Geen probleem. Wanneer kun je wel?"', 'kalm', 10, `${vn} stelt zaterdag voor. Jullie zitten weer eens samen op de bank.`],
+      ['Een kort "oké" sturen', 'bal', 2, 'Gelezen. Geen antwoord.'],
+      ['"Laat maar, ik weet genoeg."', 'fel', -8, `${vn} reageert niet meer.`]]));
+  }
+  if (koud) return L; // (ijskoud: hij nodigt je nergens meer voor uit)
   // ---- zijn liefdesleven ----
   if (!Vr || (Vr.fase === 'single' && j > Vr.sinds)){
     const naam = pick(liefNamen(!vriendVrouw()).filter(n => n !== (sp.relatie && sp.relatie.naam) && n !== (Vr && Vr.oud)));
@@ -624,9 +651,12 @@ export function vriendWeek(eerste){
     // Na de verleiding: zijn jullie toch uit elkaar gegroeid, dan probeert de zaakwaarnemer het nog een keer (eens per seizoen, bij de winterstop)
     if (J && J.verleiding && v.band < 25 && S.ronde === WINTER && v.vosJaar !== S.jaar && !S.wachtEv){ v.vosJaar = S.jaar; S.wachtEv = vosOpnieuw(); }
     // Hij vraagt of jij naar zijn club komt (hooguit eens per seizoen, als jij daar minstens wissel zou zijn)
+    else if (bandWeek()) return;
     else if ((!J || J.verleiding) && v.band >= 20 && v.lokJaar !== S.jaar && S.ronde >= 6 && !bijJou() && !vriendApart() && !sp.o23 && !sp.huur && !sp.clubloos && !eersteSeizoen() && !sp.vriendBod && !v.komt && !S.wachtEv && v.club != null && rnd() < .05 && rolBijHem() !== 'tribune'){ v.lokJaar = S.jaar; S.wachtEv = vriendLokt(); }
     return;
   }
+  // Geen contact meer (na een breuk op afstand): af en toe een berichtje van hem
+  if (v.weg && v.verbroken) return contactWeek();
   // Een rivaal met wie het weer goed zit, wordt weer je vriend
   const R = sp.rivaal;
   if (v.weg && R && R.exVriend && R.band >= 60 && !S.wachtEv){
@@ -637,6 +667,76 @@ export function vriendWeek(eerste){
     if (S.week) S.week.tekst.push(`Na alles wat er gebeurd is, staan ${v.voornaam} en jij ineens weer samen te lachen. Jullie zijn weer beste vrienden. (Je krijgt een nieuwe rivaal in de competitie.)`);
   }
 }
+// ---------- jullie band: wat je ervan merkt ----------
+// Elke week (als hij je vriend is): een slechte band kost moraal en focus, een hele goede geeft je wat extra. Zakt hij
+// te diep, dan wil hij je spreken (de waarschuwing, eens per seizoen), en daarna is het voorbij (de breuk).
+// Geeft true als er een bericht klaarstaat (S.wachtEv)
+function bandWeek(){
+  const sp = S.sp, v = sp.vriend, vn = v.voornaam, b = v.band, w = S.week;
+  if (w){
+    if (b < BAND.schuurt && rnd() < .35){ mod('moraal', -2); w.tekst.push(pick([`${vn} reageert al dagen niet op je appjes.`, `Op Instagram zie je dat ${vn} een feestje had. Zonder jou.`,
+      `Je stuurt ${vn} een filmpje. ${vr.Hij} leest het, maar reageert niet.`, `Je moeder vraagt hoe het met ${vn} gaat. Je weet het eigenlijk niet.`]) + ' (moraal −2)'); }
+    if (b < BAND.koud && rnd() < .3){ mod('focus', -3); w.tekst.push((bijJou() ? `Het is ongemakkelijk in de kleedkamer met ${vn}. Jullie ontlopen elkaar.` : `Je ligt 's nachts wakker van de ruzie met ${vn}.`) + ' (focus −3)'); }
+    if (b >= BAND.top && rnd() < .25){ mod('moraal', 1); w.tekst.push(pick([`${vn} stuurt je een meme van jullie oude jeugdtrainer. Je ligt dubbel.`, `${vn} appt na je wedstrijd: "Lekker gespeeld, ${ik.knul}!"`,
+      `${vn} stuurt een foto van jullie twee op het jeugdtoernooi, van jaren geleden.`]) + ' (moraal +1)'); }
+  }
+  if (b >= BAND.schuurt) v.gewaarschuwd = false; // (weer goed: een volgende keer eerst weer een waarschuwing)
+  if (S.wachtEv || sp.clubloos) return false;
+  if (b <= BAND.breuk && v.gewaarschuwd){ S.wachtEv = breukBericht(); return true; }
+  if (b <= BAND.waarschuwing && v.waarschuwJaar !== S.jaar){ v.waarschuwJaar = S.jaar; v.gewaarschuwd = true; S.wachtEv = vriendWaarschuwing(); return true; }
+  return false;
+}
+function vriendWaarschuwing(){
+  const v = S.sp.vriend, vn = v.voornaam;
+  return {soort:'prive', titel:`${vn} wil je spreken`, tekst:`${vn} belt je. "Het gaat al tijden niet goed tussen ons. Je reageert nergens meer op en je bent er nooit. Ben ik je nog iets waard?"`, opts:[
+    {l:'"Sorry. Laten we het goedmaken."', toon:'kalm', f(){ v.band = Math.max(v.band + 30, 0); mod('moraal', 2); return `Het is even stil. Dan zegt ${vn}: "Oké. Maar dan meen je het." Jullie spreken af voor zaterdag. (band +30)`; }},
+    {l:'"Ik heb even tijd nodig."', toon:'bal', f(){ zetBand(5); return `"Neem die tijd dan," zegt ${vn}. "Maar wacht niet te lang." ${vr.Hij} hangt op. (band +5)`; }},
+    {l:'"Misschien zijn we gewoon uit elkaar gegroeid."', toon:'fel', f(){ return vriendBreuk(); }}]};
+}
+function breukBericht(){
+  const v = S.sp.vriend, vn = v.voornaam;
+  return {soort:'prive', titel:'Het is voorbij', tekst:`${vn} stuurt je een lang bericht. "Ik heb het geprobeerd. Jij niet. Ik ben er klaar mee."`, opts:[
+    {l:`${vr.Hem} nog één keer bellen`, toon:'kalm', f(){ if (rnd() < .35){ v.band = -20; return `${vn} neemt op. Na een lang gesprek zegt ${vr.hij}: "Eén kans nog." (band −20)`; } return `${vn} neemt niet op. ` + vriendBreuk(); }},
+    {l:'"Dan niet."', toon:'fel', f(){ return vriendBreuk(); }}]};
+}
+// De breuk: in jouw competitie wordt hij je rivaal (bij zijn eigen club, of hij vertrekt als hij bij jou speelt);
+// speelt hij ergens anders, dan hebben jullie geen contact meer (v.verbroken). Geeft de tekst voor het bericht
+export function vriendBreuk(){
+  const sp = S.sp, v = sp.vriend, vn = v.voornaam, band = Math.round(Math.max(v.band, -100));
+  mod('moraal', -8); v.gewaarschuwd = false;
+  if (!opAfstand() && v.club != null){
+    const naar = bijJou() ? breukDoel().naar : v.club;
+    if (naar != null) vriendWordtRivaal(band, naar, true);
+    if (v.weg && sp.rivaal && sp.rivaal.exVriend) return `Het is voorbij tussen jou en ${vn}. Vanaf nu is ${vr.hij} je rivaal. (moraal −8)`;
+  }
+  v.weg = true; v.verbroken = {week:S.weekNr || 0, contact:0};
+  S.car.hist.push(`${seizoenLabel()}: breuk met jeugd${vr.vriend} ${vn} ${v.n}`);
+  krantMelding(`Breuk tussen ${sp.naam} en ${vn} ${v.n}`, `De jeugdvrienden zijn uit elkaar gegroeid. "We spreken elkaar niet meer," zegt ${vn}.`);
+  return `Het is voorbij tussen jou en ${vn}. Jullie hebben geen contact meer. (moraal −8)`;
+}
+// Geen contact meer: zelf een bericht sturen (1 per week, zoals de acties met je vriend), of hij stuurt er af en toe een
+export const kanContact = () => { const sp = S.sp, v = sp.vriend; return !!(v && v.weg && v.verbroken && S.week && !S.week.vriend && !sp.clubloos); };
+export function contactZoeken(){
+  if (!kanContact()) return;
+  const v = S.sp.vriend, B = v.verbroken, vn = v.voornaam; B.contact = (B.contact || 0) + 8; S.week.vriend = 'contact';
+  S.week.tekst.push(B.contact >= 30 ? weerVrienden() : pick([`Je stuurt ${vn} een bericht. Het blijft lang stil, dan komt er een kort "hoi" terug.`, `Je feliciteert ${vn} met ${vr.zijn} wedstrijd. ${vr.Hij} stuurt een duimpje terug.`, `Je stuurt ${vn} een oude foto van jullie. Gelezen, geen antwoord. Maar ${vr.hij} heeft hem wel gezien.`]));
+}
+function weerVrienden(){
+  const sp = S.sp, v = sp.vriend, vn = v.voornaam; v.weg = false; v.verbroken = null; v.band = 30; v.waarschuwJaar = S.jaar;
+  if (sp.journey) sp.journey.route = 'vriend';
+  S.car.hist.push(`${seizoenLabel()}: ${vn} ${v.n} is weer je vriend`); mod('moraal', 5);
+  return `${vn} belt je. Na een paar minuten lachen jullie weer, net als vroeger. Jullie zijn weer vrienden. (moraal +5)`;
+}
+function contactWeek(){
+  const v = S.sp.vriend, B = v.verbroken, vn = v.voornaam;
+  if (S.wachtEv || S.sp.clubloos || (S.weekNr || 0) - (B.week || 0) < 19 || B.evJaar === S.jaar || rnd() >= .08) return;
+  B.evJaar = S.jaar;
+  S.wachtEv = {soort:'prive', titel:`Een bericht van ${vn}`, tekst:`Na lange tijd stuurt ${vn} je een berichtje: "Hé. Ik zag je laatste wedstrijd. Goed gespeeld."`, opts:[
+    {l:'Meteen terugbellen', toon:'kalm', f(){ return weerVrienden(); }},
+    {l:'Een duimpje terugsturen', toon:'bal', f(){ B.contact = (B.contact || 0) + 10; return 'Een begin. Misschien komt het ooit weer goed.'; }},
+    {l:'Niet reageren', toon:'fel', f(){ B.contact = 0; return `${vn} stuurt niets meer.`; }}]};
+}
+
 // De zaakwaarnemer probeert het opnieuw (jullie band is laag)
 function vosOpnieuw(){
   const v = S.sp.vriend, d = breukDoel(), vn = v.voornaam; if (d.naar == null || d.naar === v.club || opAfstand()) return null;

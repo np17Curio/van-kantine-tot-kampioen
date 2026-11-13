@@ -4,6 +4,7 @@ import { esc, geldTxt } from '../core/utils.js';
 import { CLUBS } from '../data/gegevens.js';
 import { clubTenue } from '../data/tenues.js';
 import { logoURL } from '../data/logos.js';
+import { laadLogoBron } from './pixel/clublogo.js';
 import { shirtNummer } from '../game/team/rugnummers.js';
 import { laadPlaatje, maakLaag, speelLus } from './cutscene-basis.js';
 import { FLITS, FPS, FRAMES, MOMENT, maakContract } from './pixel/contract.js';
@@ -32,7 +33,7 @@ async function speel(o){
   const laag = maakLaag({tag:'Officieel', label:'Animatie: je tekent bij je nieuwe club'});
   const tk = teksten(laag);
   try {
-    const tenue = clubTenue(clubId), logoImg = await laadPlaatje(logoURL(clubId, 256));
+    const tenue = clubTenue(clubId), logoImg = await laadPlaatje(logoURL(clubId, 256)), logoBron = await laadLogoBron(clubId);
     if (laag.weg) return;
     const o23 = !!(o.o23 || sp.o23); // (bij de O23 een nummer van het beloftenteam)
     let nr = null; try { nr = shirtNummer(o23); } catch (e){}
@@ -44,7 +45,7 @@ async function speel(o){
     const uit = uiterlijkVoor('jij|' + sleutel, {...(sp.uiterlijk || {}), vrouw:!!sp.vrouw});
     // op het shirt: je achternaam (alles na je voornaam) en je rugnummer
     const delen = String(sp.naam || '').trim().split(/\s+/), rugnaam = delen.length > 1 ? delen.slice(1).join(' ') : delen[0] || '';
-    const {frames} = maakContract({uit, tenue, nr, naam:rugnaam});
+    const {frames} = maakContract({uit, tenue, nr, naam:rugnaam, logoImg:logoBron}); // (in de pixelscène: het logo zonder tekst, als scherp pixellogo)
     const cv = document.createElement('canvas'); cv.width = frames[0].width; cv.height = frames[0].height; cv.className = 'cs-pixel';
     cv.setAttribute('aria-hidden', 'true'); laag.vak.prepend(cv);
     const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;

@@ -19,7 +19,7 @@ import { rugnummer } from '../../game/team/rugnummers.js';
 import { fixture } from '../../game/competitie/competitie.js';
 import { clubLogo } from '../../data/logos.js';
 import { PERS, karakter, mijnPers } from '../../game/speler/persoonlijkheid.js';
-import { bijJou, vriendClubNaam, toonLabel, vriendKlasse, vriendStats } from '../../game/speler/journey.js';
+import { bijJou, vriendBandLabel, vriendClubNaam, toonLabel, vriendKlasse, vriendStats } from '../../game/speler/journey.js';
 import { bandLabel } from '../../game/speler/rivaal.js';
 import { gewichtVan, lengteTxt, lichaam } from '../../game/speler/lichaam.js';
 import { vHistorie } from '../../game/seizoen/historie.js';
@@ -152,7 +152,7 @@ function vVerhaal(){
     <div class="toonmeter" title="Kalme keuzes: de trainer vertrouwt je meer. Felle keuzes: de fans houden van je vuur."><span>🧊 Rustig</span><span class="b"><i style="left:${(t + 100) / 2}%"></i></span><span>Heethoofd 🔥</span></div>
     ${v ? (() => { const st = vriendStats(); return `<p class="muted klein-tekst">Jij ${S.ss.g || 0} G · ${S.ss.a || 0} A · klasse ${ovr(sp)} — ${esc(v.voornaam)} ${st.g} G · ${st.a} A · klasse ${vriendKlasse()}</p>`; })() : ''}
     ${(() => { const k = karakter(); return `<p class="klein-tekst karaktereffect" title="${esc(k.veld + ' ' + k.buiten)}">${k.i} <b>${k.n}</b>: ${esc(k.veld)} ${esc(k.buiten)}</p>`; })()}
-    <p class="muted klein-tekst">Karakter: <b>${toonLabel()}</b>${b !== null ? ` · ${v.weg ? 'ex-' + vr.vriend + '' : '' + vr.jeugdvriend + ''} ${esc(v.voornaam)}: ${v.weg ? bandLabel(b).toLowerCase() : b >= 60 ? 'beste vrienden' : b >= 20 ? 'goede vrienden' : 'het schuurt'}${!v.weg && vriendClubNaam() ? (bijJou() ? ' (jouw club)' : ` (${esc(vriendClubNaam())})`) : ''}` : ''}</p>
+    <p class="muted klein-tekst">Karakter: <b>${toonLabel()}</b>${b !== null ? ` · ${v.weg ? 'ex-' + vr.vriend + '' : '' + vr.jeugdvriend + ''} ${esc(v.voornaam)}: ${v.weg ? (v.verbroken ? 'geen contact meer' : bandLabel(b).toLowerCase()) : vriendBandLabel(b).toLowerCase()}${!v.weg && vriendClubNaam() ? (bijJou() ? ' (jouw club)' : ` (${esc(vriendClubNaam())})`) : ''}` : ''}</p>
     <p class="muted klein-tekst">Ouders: ${mensBand(ouders().band)}${sp.relatie ? ` · ${esc(sp.relatie.naam)}: ${mensBand(sp.relatie.band)}` : ''}</p></div>`;
 }
 export function vZij(){

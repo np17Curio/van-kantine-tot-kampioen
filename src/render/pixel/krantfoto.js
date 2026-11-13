@@ -8,6 +8,7 @@ import { donker, lookVan } from './atlas.js';
 import { fans } from './opkomst.js';
 import { tekst, zonderAccent } from './font.js';
 import { uiterlijkVoor } from './uiterlijk.js';
+import { pixelLogo, zetLogo } from './clublogo.js';
 
 const Z = 6, X0 = 48; // de vergroting, waar de heup van de speler staat (het beeld: standaard 120×80, zie maakPixelFoto)
 const R = Math.round;
@@ -101,13 +102,13 @@ function bruiloftAchter(FW, FH){
 // de clubschildjes (sleutels 1-3: de clubkleuren)
 const SCHILD = ['RRRRRRRRR', 'RrwrwrwrR', 'RrwrwrwrR', 'RrwrwrwrR', '.RrwrwrR.', '..RrwrR..', '...RrR...', '....R....'];
 const schild = sprite(9, 8, c => SCHILD.forEach((rij, y) => [...rij].forEach((k, x) => { if (k !== '.') c.px(x, y, {R:'2', r:'1', w:'3'}[k]); })));
-function persmuur(naam, FW, FH){
+// de plekken van de logo's op de persmuur (rij r, vanaf y; om de rij een rij met de naam van de sponsor)
+const muurLogos = FW => { const l = []; for (let r = 0, y = 3; y < 66; r += 2, y += 26) for (let x = (r % 4 ? 10 : -2); x < FW; x += 26) l.push([x, y]); return l; };
+function persmuur(naam, FW, FH, echtLogo){
   return sprite(FW, FH, c => {
     c.rect(0, 0, FW, FH, 'M');
-    for (let r = 0, y = 3; y < 66; r++, y += 13){
-      if (r % 2 === 0) for (let x = (r % 4 ? 10 : -2); x < FW; x += 26) c.stamp(schild, x, y);
-      else { const w = naam.length * 4 + 10; for (let x = (r % 4 === 1 ? -6 : 8); x < FW; x += w) tekst(c, x, y + 2, naam, '4'); }
-    }
+    if (!echtLogo) for (const [x, y] of muurLogos(FW)) c.stamp(schild, x, y); // (met het echte logo: dat komt er hieronder als plaatje overheen)
+    for (let r = 1, y = 16; y < 66; r += 2, y += 26){ const w = naam.length * 4 + 10; for (let x = (r % 4 === 1 ? -6 : 8); x < FW; x += w) tekst(c, x, y + 2, naam, '4'); }
     c.rect(0, FH - 14, FW, 14, 'F'); c.hline(0, FH - 14, FW, 'f');
   });
 }
@@ -147,10 +148,12 @@ export function maakPixelFoto(soort, ctx = {}, {w:FW = 120, h:FH = 80, canvas:al
   const ererondje = soort === 'ererondje';
   const achter = soort === 'huis' ? inkleuren(huisAchter(FW, FH, F.type || 'huis'), {L:'#8fd3ff', l:'#b8e4ff', W:'#ffffff', g:'#3f9a4a', G:'#4caf55', B:'#b5603f', b:'#8e4630', V:'#efe9df', D:'#7a2e2a', k:'#2a2430', w:'#bfe6ff', d:'#6b4226', r:'#d62828', '<':'#f3c44f'})
     : soort === 'bruiloft' ? inkleuren(bruiloftAchter(FW, FH), {P:'#f6dfe6', p:'#f1d2db', g:'#cfc4b6', w:'#ffffff', G:'#3f8a4a', r:'#e05a7a', y:'#ffd34d'})
-    : inkleuren(ererondje ? stadion(zonderAccent(ctx.club || 'KAMPIOEN').slice(0, 16), FW, FH) : persmuur(naam, FW, FH),
+    : inkleuren(ererondje ? stadion(zonderAccent(ctx.club || 'KAMPIOEN').slice(0, 16), FW, FH) : persmuur(naam, FW, FH, !!ctx.logo),
     ererondje ? {K:'#0f1424', b:'#3c4a6e', M:'#ffe9a8', w:'#ffffff', C:'#22222a', c:'#34343e', g:'#2f7d3f', G:'#378c48', h:'#b5541c', s:'#f7c9a8', R:'#a3161b',
       v:'#2b3f9e', i:'#a8744f', n:'#2a1f1c', y:'#ffd21a', d:'#7a4a2a', ...clubKl}
       : {...clubKl, M:muur, F:donker(muur, .45), f:donker(muur, .2), 4:accent});
+  // het echte clublogo op de persmuur (scherp pixellogo, data/logos.js), op de plekken van de schildjes
+  if (ctx.logo && !prive && !ererondje){ const pl = pixelLogo(ctx.logo, 12); for (const [x, y] of muurLogos(FW)) zetLogo(achter, pl, x - 2, y - 2, [0, 0, FW, FH - 14]); }
   // samenstellen: het beeld van 120×80, de speler met zijn voeten net op de vloer
   const klein = document.createElement('canvas'); klein.width = FW; klein.height = FH;
   const g = klein.getContext('2d'); g.imageSmoothingEnabled = false;

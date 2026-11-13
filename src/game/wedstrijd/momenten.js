@@ -179,7 +179,8 @@ const TOON_KEUZE = {'Rustig blijven':'kalm', 'Lachen en weglopen':'bal', 'Melden
 for (const t of ['provocatie', 'opstootje', 'toespraak', 'juichen']) (MOMENTS[t] ? MOMENTS[t].opts : []).forEach(o => { if (!o.toon && TOON_KEUZE[o.l]) o.toon = TOON_KEUZE[o.l]; });
 // Tegen je vriend: hij staat ineens tegenover je
 MOMENTS.vriendTegen = {
-  get teksten(){ return S.week && S.week.vriendFel ? [`${vn()} staat ineens tegenover je. ${vr.Hij} is je door-de-benen-appje niet vergeten: "Kom maar op, maatje."`] : [`${vn()} staat ineens tegenover je. ${vr.Hij} grijnst: "Kom maar op, maatje."`, `Je krijgt de bal en wie staat er voor je? ${vn()}. Jullie moeten allebei lachen.`]; },
+  get teksten(){ const v = S.sp && S.sp.vriend; if (v && v.band < 0) return [`${vn()} staat ineens tegenover je. ${vr.Hij} kijkt je niet aan en zet zich schrap. Van het grijnzen van vroeger is niets meer over.`];
+    return S.week && S.week.vriendFel ? [`${vn()} staat ineens tegenover je. ${vr.Hij} is je door-de-benen-appje niet vergeten: "Kom maar op, maatje."`] : [`${vn()} staat ineens tegenover je. ${vr.Hij} grijnst: "Kom maar op, maatje."`, `Je krijgt de bal en wie staat er voor je? ${vn()}. Jullie moeten allebei lachen.`]; },
   opts:[
     {l:'Knipoog en gewoon voetballen', st:'kalm', b:-40, toon:'kalm', ok:()=>({t:`Je knipoogt en speelt de bal rustig verder. ${vn()} schudt lachend ${vr.zijn} hoofd.`, d:.1, vriend:2}), mis:()=>({t:'Je speelt de bal rustig verder.', d:0})},
     {get l(){ return `${vn()} uitdagen en voorbij dribbelen`; }, st:'drib', b:58, toon:'bal', ok:()=>({t:`Je zet ${vn()} met een schijnbeweging op het verkeerde been. "Die is voor de foto!"`, d:.3, next:'eenOpEen'}), mis:()=>({t:`${vn()} pakt de bal af en lacht je uit. "Te langzaam, maatje!"`, d:-.2, vriend:1})},

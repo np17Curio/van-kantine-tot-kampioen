@@ -87,11 +87,8 @@ const HOOG = {
     oudersL:() => 'Je ouders helpen met verhuizen', ouders:() => 'Je vader rijdt met een aanhanger vol dozen achter je aan, je moeder vult je koelkast tot hij niet meer dicht kan. Bij het afscheid geeft ze je een knuffel die net iets te lang duurt.',
     vriendL:(d, n) => `Een afscheidsavond met ${n}`, vriend:(d, n) => `Jij en ${n} eten pizza op het dak, net als vroeger. "Je bent nu een grote ${ik.speler}," zegt ${vr.hij}. "Vergeet me niet." Je belooft elke week te bellen.`,
     teamL:d => 'Afscheid nemen van je oude ploeggenoten', team:d => `Je geeft een afscheidsetentje voor je oude ploeggenoten${d.oud ? ` van ${d.oud}` : ''}. Er wordt gelachen, er worden verhalen verteld, en de aanvoerder geeft je een shirt met alle handtekeningen.`},
-  verlenging:{titel:'Een nieuw contract', wat:() => 'je nieuwe contract',
-    tekst:d => `Je contract bij ${d.club} is verlengd${d.tot ? `, tot ${d.tot}` : ''}. De club rekent op je. Met wie vier je het?`,
-    volgorde:['partner', 'ouders', 'vriend', 'opa', 'exVriend'], sociaal:'team',
-    partnerL:(d, n) => `Met ${n} naar huizen kijken`, partner:(d, n) => `Jij en ${n} kijken 's avonds samen naar huizen op je laptop. "Als we hier toch blijven…" zegt ${pa.ze}. Jullie dromen hardop over een tuin en een hond.`,
-    teamL:() => 'Taart voor de kleedkamer', team:() => 'Je zet een enorme taart in de kleedkamer, met het clublogo erop. Binnen vijf minuten is hij op. De keeper heeft slagroom in zijn haar.'},
+  // (verlenging: geen moment meer bij een nieuw contract bij je eigen club, dat kwam elke keer terug. Een die nog in de
+  //  wachtrij van een opgeslagen spel staat, valt vanzelf weg: hoogtepuntEvent kent hem niet meer)
   interDebuut:{titel:'Je debuut voor je land', wat:d => `je debuut voor ${d.land}`,
     tekst:d => `Je debuut voor ${d.land}${d.zij ? `, tegen ${d.zij}` : ''}! Het volkslied, je hand op je hart, het shirt met het nationale embleem. Je hebt er als kind van gedroomd.`,
     volgorde:['opa', 'ouders', 'partner', 'vriend', 'exVriend'], sociaal:'fans',

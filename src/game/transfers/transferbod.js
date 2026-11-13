@@ -1,4 +1,3 @@
-import { hoogtepunt } from '../speler/hoogtepunten.js';
 import { S, club, mod, ovr, salarisVoor, seizoenLabel, waarde } from '../../core/state.js';
 import { krantMelding } from '../media/roddel.js';
 import { clamp, geldTxt, pick, randInt, rnd } from '../../core/utils.js';
@@ -46,7 +45,7 @@ export function maakBodEvent(){
         const nu = Math.max(sp.contract, 0), nieuw = Math.round(Math.max(sp.salaris * 1.25, bod.salaris * .9) / 1000) * 1000, klein = Math.round(sp.salaris * 1.1 / 1000) * 1000;
         const N = sp.leeftijd >= 31 ? nu + 1 : Math.max(nu + 1, 3);
         S.volgEv = {soort:'transfer', tekst:`${oud} wil je niet kwijt en biedt een nieuw contract: ${geldTxt(nieuw)} per jaar voor ${N} jaar (tot ${S.jaar + N}). Je huidige contract loopt nog ${nu} ${nu === 1 ? 'jaar' : 'jaar'}. Wat doe je?`, opts:[
-          {l:`Tekenen: ${N} jaar voor ${geldTxt(nieuw)} per jaar`, f(){ sp.salaris = nieuw; sp.contract = N; S.ss.contractRond = true; S.car.hist.push(`${seizoenLabel()}: nieuw contract bij ${oud} tot ${S.jaar + N} (${geldTxt(nieuw)} per jaar)`); hoogtepunt('verlenging', {club:oud, tot:S.jaar + N}, true);
+          {l:`Tekenen: ${N} jaar voor ${geldTxt(nieuw)} per jaar`, f(){ sp.salaris = nieuw; sp.contract = N; S.ss.contractRond = true; S.car.hist.push(`${seizoenLabel()}: nieuw contract bij ${oud} tot ${S.jaar + N} (${geldTxt(nieuw)} per jaar)`);
             if (club().t <= 3) krantMelding(`${sp.naam} verlengt bij ${oud} tot ${S.jaar + N}`, `Na de interesse van ${c.n} houdt ${oud} ${ik.hem} graag binnen.`);
             return `Je tekent bij! Je contract loopt nu nog ${N} jaar (tot ${S.jaar + N}), voor ${geldTxt(nieuw)} per jaar.`; }},
           {l:`Alleen meer salaris, mijn contract blijft ${nu} jaar`, f(){ sp.salaris = Math.max(sp.salaris, klein); return `Je salaris gaat omhoog naar ${geldTxt(sp.salaris)} per jaar. Je contract loopt gewoon nog ${nu} jaar.`; }},

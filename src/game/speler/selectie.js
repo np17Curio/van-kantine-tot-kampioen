@@ -67,12 +67,13 @@ export function eindeSelectie(){
   S.fase = 'matchEnd';
 }
 // Na de laatste selectiewedstrijd: wie uitblinkt, blijkt beter dan gedacht (en wie tegenvalt, iets minder).
-// Bonus = je gemiddelde cijfer (-1 tot +5) plus je plek bij je positie (eerste +3, top 3 +1), op al je trainbare eigenschappen
+// Bonus = je gemiddelde cijfer (-3 bij rond de 5,5 tot +8 bij 8,5 of hoger) plus je plek bij je positie (eerste +3, top 3 +1),
+// op al je trainbare eigenschappen: hoe beter je selectiedagen, hoe hoger je klasse aan het begin van je carrière
 export function selectieGroei(){
   const sp = S.sp, Sel = S.selectie; if (Sel.groei != null) return null;
   const gem = gemiddelde(Sel.cijfers), plek = mijnPlek().plek, voor = ovr(sp);
-  const b = clamp(Math.round((gem - 6.5) * 3), -1, 5) + (plek === 1 ? 3 : plek <= RANG_TOP ? 1 : 0);
-  Sel.groei = b; if (!b) return null;
+  const b = clamp(Math.round((gem - 6.5) * 4), -3, 8) + (plek === 1 ? 3 : plek <= RANG_TOP ? 1 : 0);
+  Sel.groei = b; Sel.klasseVoor = voor; if (!b) return null;
   for (const k of TRAINBAAR) sp.a[k] = clamp(sp.a[k] + b, 20, 99);
   const na = ovr(sp); sp.pot = Math.max(sp.pot, na + 6); S.car.maxOvr = Math.max(S.car.maxOvr || 0, na);
   return b > 0 ? `De scouts zijn onder de indruk${plek === 1 ? `: de beste ${({SPITS:'spits', MID:'middenvelder', VERD:'verdediger', KEEPER:'keeper'})[sp.pos]} van de selectiedagen` : ''}. Je klasse gaat van ${voor} naar ${na}.` : `Je bent er nog niet helemaal: je klasse zakt van ${voor} naar ${na}.`;
