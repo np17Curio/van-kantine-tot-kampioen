@@ -68,6 +68,7 @@ function krantFoto(item){
   }
   // Geen eigen foto? Dan beslist de krant zelf of er een foto bij hoort (alleen bij een artikel over jou) en welke
   const f = autoFoto(item);
+  if (f && f.vriend) return {cv:maakPixelFoto(f.soort, {...ctx, ...vriendCtx(), foto:f}, {w:180, h:72, canvas:true}), onder:f.onder, door:'Studio Doorbraak'};
   if (f) return {cv:maakPixelFoto(f.soort, {...ctx, foto:f}, {w:180, h:72, canvas:true}), onder:f.onder, door:PAPARAZZO.includes(f.soort) ? 'Paparazzo' : 'Studio Doorbraak'};
   return null;
 }
@@ -90,9 +91,17 @@ const VELD = /doelpunt|scoort|\bgoal|treffer|hattrick|juich|vinger voor|het vak 
 const NACHT = /nachtclub|nacht|portier|feest|stappen|uitgaan|disco|kroeg|café|\bbar\b|karaoke|dansvloer|danst|champagne|vip-tafel|zonsopgang|sluitingstijd|doorhalen|casino|roulette|gokt|festival|crowdsurf|politie|dronken/;
 const PRIVE = /terras|selfie|liefde|verloofd|samenwonen|uit tussen|vreemd|betrapt|gespot|fotograaf|scheldt|ophef|tattoo|kapsel|rijbewijs|rijexamen|sportwagen|\bauto\b|villa|penthouse|kookwedstrijd|reclame|doneert|verrast|zieke kinderen|hond|\bkat\b|baby|vader|moeder|zwanger|bruiloft|getrouwd/;
 const GOAL = /scoort|\bgoal|doelpunt|treffer|hattrick/, WINST = /beslist|matchwinnaar|\bwint\b|winnaar|kampioen|\bheld\b/;
+// Je jeugdvriend op de foto: zijn eigen uiterlijk (dezelfde sleutel als op het veld, veld3d.js) in het tenue van zijn club
+function vriendCtx(){
+  const v = S.sp.vriend, hier = v && v.club != null && CLUBS[v.club] && (!v.land || v.land === thuisLand());
+  return {wie:'vriend|' + v.voornaam, band:false, ...(hier ? {club:CLUBS[v.club].n, tenue:clubTenue(v.club), clubId:v.club, logo:logoBron(v.club), sponsor:shirtSponsor(CLUBS[v.club], thuisLand())} : {club:'', tenue:STANDAARD, clubId:null, logo:null, sponsor:null})};
+}
 export function autoFoto(item){
   const sp = S && S.sp; if (!sp || !sp.naam) return null;
   const t = `${item.kop || ''} ${item.tekst || ''}`, l = t.toLowerCase(), naam = sp.naam;
+  // Gaat de kop over je jeugdvriend (zijn naam staat erin, de jouwe niet)? Dan een persfoto van hem, niet van jou
+  const v = sp.vriend, kop = String(item.kop || '');
+  if (v && v.voornaam && kop.includes(v.voornaam) && !kop.includes(naam)) return {soort:'portret', vriend:true, onder:`Persfoto: ${v.voornaam}${v.n ? ' ' + v.n : ''}.`};
   if (!t.includes(naam)) return null;
   const r = sp.relatie, p = r && r.naam && t.includes(r.naam) ? r.naam : null, paar = p ? {partner:p, partnerVrouw:partnerVrouw()} : {};
   if (BLESSURE.test(l)) return {soort:'blessure', onder:`${naam} op krukken.`};

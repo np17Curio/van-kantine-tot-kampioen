@@ -59,6 +59,16 @@ export function niveauVoor(pt, sz, wed, legende, t, leeftijd, aanvOk = sz >= 1 &
 // en heb je ervaring nodig. Onder de 23 kan het ook (vanaf 19), maar dan zijn de eisen strenger: dat gebeurt maar zelden.
 export const aanvLeeftijd = () => 19;
 export const JONG_AANV = 23;
+// Aanvoerder word je alleen als je een van de beste spelers van de selectie bent: bij de top 3 op klasse (jouw klasse tegen die van je ploeggenoten)
+export const AANV_TOP = 3;
+export function selectieRang(){
+  const sp = S.sp; let l = []; try { l = sp.clubloos || sp.club == null ? [] : selectie(sp.club); } catch (e){}
+  const mij = ovr(sp); return 1 + l.filter(x => !x.jij && x.n !== sp.naam && (x.k ?? 0) > mij).length;
+}
+function besteSpelersEis(){
+  const r = selectieRang();
+  return {t:`Een van de ${AANV_TOP} beste spelers van de selectie`, nu:`nr. ${r}`, doel:`top ${AANV_TOP}`, eenheid:'', ok:r <= AANV_TOP, voortgang:Math.min(1, AANV_TOP / r), tip:'Word beter dan je ploeggenoten: train je eigenschappen en speel goede wedstrijden.'};
+}
 export function aanvoerderEisen(){
   const sp = S.sp, jong = sp.leeftijd < JONG_AANV, rood = sp.roodBij != null ? S.car.wed - sp.roodBij : 99, groep = Math.round(chemie());
   const eis = (t, nu, doel, eenheid = '') => ({t, nu, doel, eenheid, ok:nu >= doel, voortgang:Math.max(0, Math.min(1, nu / doel))});
@@ -71,6 +81,7 @@ export function aanvoerderEisen(){
     eis('Wedstrijden in je carrière', S.car.wed, 80),
     {...eis('Wedstrijden zonder rode kaart', Math.min(rood, 10), 10), t:'Geen rode kaart in je laatste 10 wedstrijden'},
     eis('Leeftijd', sp.leeftijd, aanvLeeftijd(), ' jaar'),
+    besteSpelersEis(),
   ];
 }
 export function statusNiveau(){

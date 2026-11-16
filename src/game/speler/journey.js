@@ -4,7 +4,8 @@ import { AANTAL_RONDES, CLUBS, DIVS, LAAGSTE, liefNamen, clubsLand, divClubs, WI
 import { thuisLand } from '../../data/landen.js';
 import { andereWereldClub, andereWereldIds, clubPlek, vreemdeClub } from '../transfers/buitenland.js';
 import { interDrempel, landenVoor } from '../interlands/interlands.js';
-import { OPBOUW, selectie, startElf } from '../competitie/spelers.js';
+import { OPBOUW, selectie, stand, startElf } from '../competitie/spelers.js';
+import { BEKERS } from '../competitie/beker.js';
 import { herschik } from '../transfers/markt.js';
 import { krantMelding } from '../media/roddel.js';
 import { social } from '../prive/social.js';
@@ -343,11 +344,18 @@ export function vriendTransfer(){
   const land = vriendLand(), hier = vriendHier(), info = id => vriendClubInfo(id), cur = info(v.club);
   if (!cur) return null;
   const omhoog = v.k >= cur.s + 5, omlaag = v.k <= cur.s - 8; if (!omhoog && !omlaag) return null;
+  // Hij gaat zijn eigen weg, niet op hetzelfde moment als jij: hooguit eens per twee seizoenen, en ook als hij te goed is
+  // voor zijn club niet meteen (een kans die groeit naarmate hij beter is dan zijn club). Ben jij net zelf van club gewisseld,
+  // dan blijft hij meestal nog even zitten
+  if (v.transferJaar != null && S.jaar - v.transferJaar < 2) return null;
+  let kans = omhoog ? clamp((v.k - cur.s - 3) / 10, .2, .75) : .4;
+  if ((sp.sindsTransfer ?? 99) < 8) kans *= .3;
+  if (rnd() > kans) return null;
   const ids = hier ? [1, LAAGSTE].flatMap(t => divClubs(t)) : vriendApart() ? [1, 2].flatMap(t => andereWereldIds(land, t)) : Array.from({length:clubsLand(land) - 8}, (_, i) => 8 + i);
   const verboden = vriendVerboden();
   const kand = ids.filter(i => { const c = info(i); return i !== v.club && !verboden.has(i) && !(hier && i === sp.club) && c && c.t >= 1 && (omhoog ? c.s >= cur.s + 2 && c.s >= v.k - 6 && c.s <= v.k - 1 : c.s < cur.s && c.s >= v.k - 6); });
   if (!kand.length) return null;
-  const naar = pick(kand), nieuw = info(naar), oud = cur.n;
+  const naar = pick(kand), nieuw = info(naar), oud = cur.n; v.transferJaar = S.jaar; (v.vorigeClubs = v.vorigeClubs || []).push(oud);
   if (hier){ const sel = selectie(v.club), x = sel.find(y => y.vriend); if (x){ sel.splice(sel.indexOf(x), 1); selectie(v.club); herschik(sel); }
     plaatsVriend(naar, false); const y = vriendSpeler(); if (y){ y.k = v.k; y.lft = v.lft; } herschik(selectie(naar)); }
   else { v.club = naar; v.land = land; }
@@ -371,10 +379,18 @@ export function vriendSeizoen(){
   const st = vriendStats(), k = vriendKlasse(), C = v.carriere = v.carriere || {g:0, a:0, seizoenen:0};
   if (v.carriereJaar === S.jaar) return; // al meegeteld
   C.g += st.g; C.a += st.a; C.seizoenen++; v.carriereJaar = S.jaar; if (k) v.k = k;
+  vriendPrijzen(); // (zijn prijzen van dit seizoen: kampioen, een beker)
   const doel = vriendPos() === 'SPITS' || sp.pos === 'SPITS' ? 'g' : 'a', woord = doel === 'g' ? 'goals' : 'assists', jij = S.ss[doel] || 0, hij = st[doel];
   (v.hist = v.hist || []).push(`${seizoenLabel()}: jij ${jij}, ${v.voornaam} ${hij} ${woord} · ${vr.zijn} klasse ${k}`); if (v.hist.length > 12) v.hist.shift();
 }
 
+// Zijn prijzen: werd zijn club dit seizoen kampioen, of won die een beker? (alleen bij een club in jouw land: die competities worden gespeeld)
+function vriendPrijzen(){
+  const v = S.sp.vriend, P = v.prijzen = v.prijzen || []; if (v.weg || v.club == null || !vriendHier() || !CLUBS[v.club]) return;
+  const c = CLUBS[v.club], seizoen = seizoenLabel();
+  try { if (c.t >= 1 && stand(c.t)[0] === v.club) P.push({s:seizoen, t:`Kampioen van de ${DIVS[c.t]} met ${c.n}`}); } catch (e){}
+  const B = S.ss && S.ss.bekers; if (B) for (const k in B) if (B[k].winnaar === v.club) P.push({s:seizoen, t:`${BEKERS[k].naam} met ${c.n}`});
+}
 // ---------- samen in het veld ----------
 // Speelt je vriend in deze wedstrijd in jouw team? Bij de selectiedagen altijd; bij je club als jullie allebei in het
 // eerste elftal (of allebei bij de O23) zitten en hij in de basis staat

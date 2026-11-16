@@ -21,7 +21,7 @@ export function clubAfscheid(oudId, hoe){
   if (punten < 3) return null;
   const wed = (R.clubW && R.clubW[ky]) ?? sp.clubWed ?? 0, g = (R.clubG && R.clubG[ky]) || 0;
   let nr = ''; try { nr = rugnummer() || ''; } catch (e){ nr = ''; }
-  const A = {club:c.n, fk:ky, sz, wed, g, aanv, topscorer, recordspeler, nr, legende:sp.legendeHier, ere:false};
+  const A = {club:c.n, id:oudId, fk:ky, sz, wed, g, aanv, topscorer, recordspeler, nr, legende:sp.legendeHier, ere:false};
   // erelegende: de club eert je bij je vertrek (ook voor een reünie later: bewaarVertrek ziet sp.legendeHier)
   if (!sp.legendeHier && (punten >= 7 || (aanv && topscorer))){
     sp.legendeHier = true; A.ere = true; A.legende = true;
@@ -40,6 +40,6 @@ function afscheidEvent(A){
   return {soort:'club', tekst, opts:[
     {l:'Een open brief aan de fans', toon:'kalm', f(){ mod('moraal', 6); mod('rep', 2); oudFans(15); krantMelding(`Ontroerende brief van ${sp.naam} aan de fans van ${A.club}`, `"Jullie waren mijn familie. Ik vergeet jullie nooit."`); return `Je brief wordt overal gedeeld. Bij ${A.club} hangt hij straks in de kantine.`; }},
     {l:'Een ererondje bij de laatste thuiswedstrijd', toon:'bal', f(){ mod('moraal', 10); oudFans(10); const n = Math.round(200 + social().volgers * .03); social().volgers += n;
-      krantMelding(`Tranen bij ${A.club}: ererondje voor ${sp.naam}`, `Het hele stadion staat op. ${A.wed} wedstrijden en ${A.g} goals, en nu een laatste rondje.`, KRANTEN[0], {...fotoVan('ererondje', `${sp.naam} zwaait naar de fans van ${A.club} tijdens ${ik.zijn} ererondje.`), clubId:oudId, band:!!A.aanv}); return `Het hele stadion zingt je naam. Het filmpje gaat de hele wereld rond: +${volgersTxt(n)} volgers.`; }},
+      krantMelding(`Tranen bij ${A.club}: ererondje voor ${sp.naam}`, `Het hele stadion staat op. ${A.wed} wedstrijden en ${A.g} goals, en nu een laatste rondje.`, KRANTEN[0], {...fotoVan('ererondje', `${sp.naam} zwaait naar de fans van ${A.club} tijdens ${ik.zijn} ererondje.`), clubId:A.id, band:!!A.aanv}); return `Het hele stadion zingt je naam. Het filmpje gaat de hele wereld rond: +${volgersTxt(n)} volgers.`; }},
     {l:'Stilletjes vertrekken', toon:'fel', f(){ mod('focus', 6); oudFans(-5); return `Je zwaait nog één keer en stapt in de auto. Je hoofd zit al bij je nieuwe club. De fans hadden je graag nog bedankt.`; }}]};
 }

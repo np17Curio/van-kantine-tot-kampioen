@@ -6146,4 +6146,15 @@ export const EN_VERHAAL = {
   "Je ziet ze op je onderarmen als je in je shirt speelt. Later kun je er in de tattooshop meer laten zetten.":"You see them on your forearms when you play in your shirt. Later you can get more at the tattoo shop.",
   "Naam aanpassen":"Change name",
   "Andere naam":"Other name",
+  // aanvoerder: een van de beste spelers
+  "Een van de # beste spelers van de selectie":"One of the # best players in the squad",
+  "een van de # beste spelers van de selectie nr. #/top #":"one of the # best players in the squad no. #/top #",
+  "nr. #/top #":"no. #/top #",
+  "Word beter dan je ploeggenoten: train je eigenschappen en speel goede wedstrijden.":"Become better than your teammates: train your attributes and play good matches.",
+  // je beste vriend: prijzen en clubs
+  "Seizoenen als prof":"Seasons as a pro",
+  "Prijzen van * (#)":"Trophies of * (#)",
+  "Eerdere clubs van *: *":"Previous clubs of *: *",
+  "Kampioen van de * met *":"Champion of the * with *",
+  "Prijzen":"Trophies",
 };

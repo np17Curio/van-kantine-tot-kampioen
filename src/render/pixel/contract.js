@@ -3,7 +3,7 @@
 // eigenaar en laat je nieuwe shirt zien. Vooraan zit publiek, en de fotografen flitsen. 52 beelden van 220×124 op 8 fps.
 // Hier met jouw uiterlijk (in vrijetijdskleding), de kleuren van je nieuwe club en jouw rugnummer.
 // Elk onderdeel wordt in eigen sleutels getekend, met een eigen palet ingekleurd en dan over elkaar gelegd.
-import { Doek, GROND, Img, ORIGINEEL, inkleuren, speler, sprite, vuist } from './rig.js';
+import { Doek, GROND, Img, ORIGINEEL, inkleuren, punten, speler, sprite, vuist } from './rig.js';
 import { loopCyclus } from './animaties.js';
 import { donker, lookVan } from './atlas.js';
 import { pixelLogo, zetLogo } from './clublogo.js';
@@ -103,8 +103,11 @@ function spelerBeeld(f, v, shirt){
   else if (f < 30) speler(c, B, v);                                                            // klaar
   else if (f < 38) speler(c, {...B, aR:[f % 2 ? 62 : 72, 25]}, v);                             // hand schudden
   else {                                                                                       // het shirt voor de borst, vuisten op de schouders
-    speler(c, {...B, aL:[-154, 0], aR:[154, 0], arm:.4}, v);
-    const sy = 42 + (f === 38 ? 4 : 0);
+    // (de armen hangen achter het shirt; de enige zichtbare handen zijn de vuisten op de bovenhoeken van het shirt.
+    //  Het shirt hangt op borsthoogte, gerekend vanaf je hoofd: zo klopt het ook nu de speler langer is)
+    const P = {...B, aL:[-15, 5], aR:[15, 5], arm:.55};
+    speler(c, P, v);
+    const sy = punten(P).hoofd[1] - 12 + 27 + (f === 38 ? 4 : 0);
     const h = Math.floor(shirt.w / 2); // (het shirt van de stijlbron is 26 breed, dat met je naam 40)
     c.stamp(shirt, 40 - h, sy); vuist(c, 40 - h + 1, sy + 1, 'S'); vuist(c, 40 + h - 1, sy + 1, 's');
   }

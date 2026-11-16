@@ -1,3 +1,4 @@
+import { BEKER_ALT } from '../../data/landen.js';
 import { S, club, mod, ovr, tmp, attr } from '../../core/state.js';
 import { act, keuzeKnop, knop, tabBalk } from '../../core/ui.js';
 import { clamp, esc, geldTxt } from '../../core/utils.js';
@@ -83,11 +84,13 @@ function teamOpen(){
 // Het interview in de week van het duel met je rivaal (niet verplicht)
 // Zondag tegen je beste vriend (bij een andere club): hij appt je, jij antwoordt met een toon
 // Jij tegen je jeugdvriend: klasse, club, dit seizoen en de hele carrière (groen = de beste)
+const ECHTE_PRIJS = () => new RegExp(`^(Kampioen|${BEKER_ALT}|Champions League|Europa Cup|Jeugdbeker)`);
 function vVriendVergelijk(){
   const sp = S.sp, v = sp.vriend, vn = v.voornaam, st = vriendStats(), C = v.carriere || {g:0, a:0}, jk = ovr(sp), hk = vriendKlasse() || 0;
   const rv = v.weg && sp.rivaal && sp.rivaal.exVriend, clNaam = rv ? (CLUBS[sp.rivaal.club] || {}).n : vriendClubNaam();
   const jij = {k:jk, g:S.ss.g || 0, a:S.ss.a || 0, cg:S.car.g || 0, ca:S.car.a || 0}, al = v.carriereJaar === S.jaar, hij = {k:hk, g:st.g, a:st.a, cg:C.g + (al ? 0 : st.g), ca:C.a + (al ? 0 : st.a), ic:(v.int && v.int.caps) || 0};
-  jij.ic = Object.values(S.car.int || {}).reduce((t, x) => t + (x.caps || 0), 0); // (na het seizoensein zitten zijn cijfers al in zijn carrière)
+  jij.ic = Object.values(S.car.int || {}).reduce((t, x) => t + (x.caps || 0), 0);
+  jij.pr = (S.car.prijzen || []).filter(p => ECHTE_PRIJS().test(p)).length; // (alleen echte prijzen: titels en bekers, net als in Mijn carrière; geen diploma's of topscorerstitels) hij.pr = (v.prijzen || []).length; jij.sz = (S.car.seizoenen || []).length; hij.sz = C.seizoenen || 0; // (na het seizoensein zitten zijn cijfers al in zijn carrière)
   const cel = (x, y) => `<td class="${x > y ? 'goedtxt' : ''}"><b>${x}</b></td>`, rij = (l, k) => `<tr><td class="muted">${l}</td>${cel(jij[k], hij[k])}${cel(hij[k], jij[k])}</tr>`;
   const hoofd = sp.pos === 'SPITS' ? 'g' : 'a', w = hoofd === 'g' ? 'goals' : 'assists';
   const vx = !rv && vriendSpeler(), bankTip = vx && !vx.basis && !v.o23 ? ` ${vn} zit bij ${vr.zijn} club vaak op de bank (er staan betere spelers op ${vr.zijn} plek), dus ${vr.hij} scoort minder.` : '';
@@ -97,8 +100,10 @@ function vVriendVergelijk(){
       ${rij('Klasse', 'k')}
       <tr><td class="muted">Club</td><td>${esc(club().n)}${sp.o23 ? ' O23' : ''}</td><td>${clNaam ? esc(clNaam) + (v.o23 && !rv ? ' O23' : '') + (!rv && !vriendHier() ? ` (${esc(vriendLand())})` : '') : '–'}</td></tr>
       ${(() => { const x = !rv && vriendSpeler(); return x ? `<tr><td class="muted">Bij ${vr.zijn} club</td><td></td><td>${v.o23 ? 'O23' : x.bles > 0 ? 'geblesseerd' : x.basis ? 'basisspeler' : '<span class="fouttxt">bankspeler</span>'}</td></tr>` : ''; })()}
-      ${rij('Goals dit seizoen', 'g')}${rij('Assists dit seizoen', 'a')}${rij('Goals carrière', 'cg')}${rij('Assists carrière', 'ca')}${jij.ic || hij.ic ? rij('Interlands', 'ic') : ''}
+      ${rij('Goals dit seizoen', 'g')}${rij('Assists dit seizoen', 'a')}${rij('Goals carrière', 'cg')}${rij('Assists carrière', 'ca')}${jij.ic || hij.ic ? rij('Interlands', 'ic') : ''}${rij('Prijzen', 'pr')}${rij('Seizoenen als prof', 'sz')}
     </tbody></table><p class="muted klein-tekst">${esc(zin)} ${jk > hk ? 'Jij bent de betere speler (klasse).' : jk < hk ? `${esc(vn)} is nu nog beter (klasse).` : 'Jullie zijn even goed.'}</p>
+    ${(v.prijzen || []).length ? `<details class="paneel"><summary class="label">Prijzen van ${esc(vn)} (${v.prijzen.length})</summary>${v.prijzen.slice().reverse().map(p => `<p class="klein-tekst">🏆 ${esc(p.t)} <span class="muted">· ${esc(p.s)}</span></p>`).join('')}</details>` : ''}
+    ${(v.vorigeClubs || []).length ? `<p class="muted klein-tekst">Eerdere clubs van ${esc(vn)}: ${v.vorigeClubs.map(esc).join(' → ')} → ${esc(clNaam || '')}</p>` : ''}
     ${(v.hist || []).length ? `<details class="paneel"><summary class="label">Vorige seizoenen</summary>${v.hist.slice().reverse().map(h => `<p class="muted klein-tekst">${esc(h)}</p>`).join('')}</details>` : ''}`;
 }
 function vVriendInterview(fx){

@@ -202,7 +202,7 @@ function stadion(naam, FW, FH){
 // opties: {w, h} (het pixelbeeld, standaard 120×80) en canvas (dan het kleine canvas zelf, niet vergroot: voor de pixelkrant)
 export function maakPixelFoto(soort, ctx = {}, {w:FW = 120, h:FH = 80, canvas:alleenCanvas = false} = {}){
   const tenue = ctx.tenue || STANDAARD, muur = ctx.muur || '#0f1a33', accent = ctx.accent || '#c6f432';
-  const uit = uiterlijkVoor('jij|' + (ctx.sleutel || 'nieuw'), ctx.leeftijd ? {...(ctx.uiterlijk || {}), leeftijd:ctx.leeftijd} : ctx.uiterlijk || undefined); // (je leeftijd: pixel/leeftijd.js)
+  const uit = ctx.wie ? uiterlijkVoor(ctx.wie) : uiterlijkVoor('jij|' + (ctx.sleutel || 'nieuw'), ctx.leeftijd ? {...(ctx.uiterlijk || {}), leeftijd:ctx.leeftijd} : ctx.uiterlijk || undefined); // (je leeftijd: pixel/leeftijd.js)
   const F = ctx.foto || {}, prive = ['huis', 'bruiloft', 'strand', 'stad', 'straat', 'blessure'].includes(soort), gala = soort === 'goudenbal', aanv = soort === 'aanvoerder';
   const JURK = {shirt:'#fbfbff', accent:'#e8e2f2', patroon:'effen', broek:'#fbfbff', sok:'#fbfbff'};
   const kleed = (u, vrouw) => soort === 'huis' || soort === 'strand' || soort === 'stad' || soort === 'straat' ? ['casual', tenue, {}] : soort === 'blessure' ? ['training', tenue, {}] : gala ? ['pak', null, {pak:'#1b1d24', pak2:'#0f1016', das:'#c9a227'}] : soort === 'bruiloft' ? (vrouw ? ['tenue', JURK, {}] : ['pak', null, {pak:'#1b1d24', pak2:'#0f1016', das:'#c9a227'}]) : ['tenue', tenue, {band:aanv || !!ctx.band}];

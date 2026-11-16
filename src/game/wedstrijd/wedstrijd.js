@@ -32,7 +32,7 @@ import { focusNaWedstrijd } from './focus.js';
 import { FLOW, MOMENTS, SLECHTE_FOCUS, bouwMoment, focusBoost, kans, kiesMomentType, pOpts } from './momenten.js';
 import { gebruik, staminaNaWedstrijd, staminaStart, wisselCheck } from './stamina.js';
 import { eindeNacompetitie, nacompetitie } from '../competitie/nacompetitie.js';
-import { ontvangst, reunieAftrap, reunieMet, reunieNaWedstrijd } from './reunie.js';
+import { ontvangst, reunieAftrap, reunieMet, reunieMomenten, reunieMomentTekst, reunieNaWedstrijd } from './reunie.js';
 import { leeftijdGroei, nieuweWeek, verhoog } from '../week.js';
 import { animAnderen, animPush, animSoort, animVariant } from '../../render/pitch.js';
 import { dansLijst, dansTekst, dansVan, dansVrij, nieuwVrij } from './dansen.js';
@@ -134,7 +134,8 @@ export function planWedstrijd(M, T, O, vast){
   for (let i = 0; i < Math.max(1, nn + extra - (M.rivaal ? 1 : 0)); i++) M.ev.push({type:'moment', min:randInt(start + 1, 89), m:kiesMomentType()});
   // Weerzien met je oude club: extra duels en je oude teamgenoten in het verslag
   if (M.reunie){ for (let i = 0; i < (M.reunieDuels || 0); i++) M.ev.push({type:'moment', min:randInt(start + 1, 89), m:pick(['provocatie', 'opstootje', 'tackle'])});
-    if (M.reunieMaat) M.ev.push({type:'oudMaat', min:randInt(10, 80), naam:M.reunieMaat}); if (M.reunieVijand) M.ev.push({type:'oudVijand', min:randInt(10, 80), naam:M.reunieVijand}); }
+    if (M.reunieMaat) M.ev.push({type:'oudMaat', min:randInt(10, 80), naam:M.reunieMaat}); if (M.reunieVijand) M.ev.push({type:'oudVijand', min:randInt(10, 80), naam:M.reunieVijand});
+    M.ev.push(...reunieMomenten(M, start)); } // (hoe meer je er betekende, hoe meer er gebeurt: reunie.js)
   // Lage kalmte: je zoekt het gedoe sneller op
   { const ka = kalmte(); if (ka < 55 && rnd() < (55 - ka) / 35) M.ev.push({type:'moment', min:randInt(start + 1, 89), m:pick(['opstootje', 'provocatie'])}); }
   // Derby: er gaat altijd iemand op je lontje staan
@@ -244,6 +245,7 @@ export function verslag(e, M){
       if (e.wat === 'botsing') return {t:`Jij en ${n} gaan allebei voor dezelfde bal en knallen tegen elkaar op. Op de tribune wordt gelachen. ${H} staat op zonder je aan te kijken.`, k:'mis'};
       return {t:`Je pass komt net niet aan. ${n} gooit ${z} armen in de lucht en foetert je uit, recht voor de dug-out. De trainer kijkt het hoofdschuddend aan.`, k:'info'}; }
     case 'oudMaat': return {t:pick([`Je oude maatje ${e.naam} probeert je af te stoppen. Jullie grijnzen allebei.`, `${e.naam} zet je stevig onder druk en geeft je daarna een knipoog. Net als vroeger op de training.`]), k:'info'};
+    case 'reunieMoment': return reunieMomentTekst(e, M, jijSpeelt && !M.rood && M.gewisseld === undefined);
     case 'oudVijand': return {t:pick([`${e.naam}, met wie je nooit door één deur kon, schopt je net iets te hard. "Welkom terug," sist ${team.hij}.`, `${e.naam} blijft de hele tijd tegen je praten. ${team.Hij} wil je gek maken.`]), k:'gevaar'};
     case 'genegeerd': if (e.vriend) return {t:`${e.naam} ziet je vrijstaan, maar speelt de bal niet naar jou. ${vr.Hij} kijkt je niet eens aan. Het schuurt tussen jullie, en dat zie je nu ook in het veld.`, k:'mis'};
       return {t:`${e.naam} ziet je vrijstaan, maar speelt de bal niet naar jou. ${team.Hij} schiet zelf, ver over. Jullie kunnen het niet zo goed met elkaar vinden.`, k:'mis'};

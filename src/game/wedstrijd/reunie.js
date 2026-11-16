@@ -24,7 +24,9 @@ export function bewaarVertrek(oudId, hoe, naarRivaal){
   const type = sp.legendeHier ? 'legende' : (naarRivaal || hoe === 'geforceerd' || sp.ontbonden || sp.vertrekRuzie) ? 'slecht' : hoe === 'weg' ? 'weg' : 'goed';
   const reden = naarRivaal ? 'Je ging naar de aartsrivaal.' : sp.ontbonden ? 'Je contract werd ontbonden.' : hoe === 'geforceerd' ? 'Je dwong je transfer af.' : sp.vertrekRuzie ? 'Je wilde per se weg en kreeg ruzie met de club.' : VERTREK_TEKST[type];
   const rel = sp.kleed && sp.kleed.club === ck(oudId) ? {...sp.kleed.rel} : {};
-  oudeClubs()[ck(oudId)] = {type, reden, rel, jaar:S.jaar, nr:(sp.rugHist || {})[ck(oudId)] ?? null, n:CLUBS[oudId].n, land:thuisLand()};
+  const rec = (S.car && S.car.rec) || {};
+  oudeClubs()[ck(oudId)] = {type, reden, rel, jaar:S.jaar, nr:(sp.rugHist || {})[ck(oudId)] ?? null, n:CLUBS[oudId].n, land:thuisLand(),
+    sz:sp.clubSz || 0, wed:(rec.clubW && rec.clubW[ck(oudId)]) ?? sp.clubWed ?? 0, g:(rec.clubG && rec.clubG[ck(oudId)]) || 0, aanv:(sp.statusNiveau || 0) >= 4}; // (wat je er betekende: voor het weerzien)
   // Hoe de oude fans over je denken past bij hoe je vertrok
   sp.fans = sp.fans || {}; const f = fans(oudId);
   zetFans(oudId, type === 'legende' ? Math.max(f, 85) : type === 'goed' ? Math.max(f, 58) : type === 'slecht' ? Math.min(f, 25) : f);
@@ -76,6 +78,54 @@ export function reunieAftrap(M){
   if (fel){ const n = focusBoost(3); M.reunieDuels = Math.max(M.reunieDuels || 0, 1); M.log.push({m:'', t:`Na je woorden in de krant ben je extra gebrand. Focus +${n}.`, k:'info'}); }
   const {maat, vijand} = oudeMaten(M.opp); M.reunieMaat = maat ? maat.n : null; M.reunieVijand = vijand ? vijand.n : null;
 }
+// ---------- hoeveel je betekende bij je oude club: hoe meer, hoe meer er gebeurt bij het weerzien ----------
+// 0-10: seizoenen, wedstrijden, goals, aanvoerder, clublegende (oude opslag zonder die cijfers: uit je clubrecords)
+export function reunieImpact(opp){
+  const R = reunieMet(opp); if (!R) return 0; const rec = (S.car && S.car.rec) || {}, k = ck(opp);
+  const sz = R.sz ?? 0, wed = R.wed ?? ((rec.clubW && rec.clubW[k]) || 0), g = R.g ?? ((rec.clubG && rec.clubG[k]) || 0);
+  return Math.min(10, sz + wed / 50 + g / 25 + (R.aanv ? 1.5 : 0) + (R.type === 'legende' ? 3 : 0));
+}
+// De momenten tijdens de wedstrijd (wedstrijd.js zet ze in het verslag): bij een warm weerzien eerbetoon, bij een vijandig weerzien gedoe
+const WARM = ['spandoek', 'video', 'mascotte', 'kitman', 'lied', 'shirts', 'oudeTrainer'], KOUD = ['boegeroep', 'judas', 'shirtVerbrand', 'stewards', 'oudeTrainerKoud'];
+export function reunieMomenten(M, start){
+  const R = reunieMet(M.opp); if (!R || !M.reunie) return [];
+  const imp = reunieImpact(M.opp), warm = M.reunie.ontvangst === 'ovatie' || M.reunie.ontvangst === 'applaus', n = Math.min(5, 1 + Math.floor(imp / 2.2));
+  const lijst = (warm ? WARM : M.reunie.ontvangst === 'fluit' ? KOUD : [...WARM.slice(0, 3), ...KOUD.slice(0, 2)]).slice();
+  for (let i = lijst.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [lijst[i], lijst[j]] = [lijst[j], lijst[i]]; }
+  M.reunie.impact = imp;
+  return lijst.slice(0, n).map((wat, i) => ({type:'reunieMoment', wat, min:Math.max(start + 1, Math.min(88, 4 + i * 17 + Math.floor(Math.random() * 10)))}));
+}
+export function reunieMomentTekst(e, M, opVeld){
+  const R = reunieMet(M.opp) || {}, naam = CLUBS[M.opp].n, nr = R.nr ? `nummer ${R.nr}` : 'je oude rugnummer', jaren = R.sz ? `${R.sz} ${R.sz === 1 ? 'seizoen' : 'seizoenen'}` : 'jaren';
+  switch (e.wat){
+    case 'spandoek': mod('moraal', 2); return {t:`In het oude vak gaat een enorm spandoek omhoog: je gezicht, ${nr}, en "Voor altijd een van ons". Je slikt even.`, k:'ok'};
+    case 'video': { const n = focusBoost(2); return {t:`Op het grote scherm een filmpje over je tijd bij ${naam}: ${R.g || 0} goals${R.wed ? ` in ${R.wed} wedstrijden` : ''}. Het hele stadion klapt mee. Focus +${n}.`, k:'ok'}; }
+    case 'mascotte': mod('moraal', 2); return {t:`Een jochie in een oud shirt van ${naam} met jouw naam erop rent op je af voor een high five. De camera's smullen ervan.`, k:'ok'};
+    case 'kitman': return {t:`De materiaalman van ${naam}, die ${jaren} lang je schoenen poetste, steekt zijn duim op vanaf de bank.`, k:'ok'};
+    case 'lied': { const n = opVeld ? focusBoost(3) : 0; return {t:`Als je de bal krijgt, zingen de fans van ${naam} ineens je oude lied. ${opVeld ? `Je krijgt er kippenvel van. Focus +${n}.` : 'Vanaf de bank zing je zachtjes mee.'}`, k:'ok'}; }
+    case 'shirts': return {t:`Op de tribune zie je overal nog oude shirts met jouw naam. ${jaren} bij ${naam}: dat vergeten ze hier niet.`, k:'ok'};
+    case 'oudeTrainer': mod('moraal', 1); return {t:`Je oude trainer roept je bij de dug-out: "Je bent nog steeds even lastig, hè?" Jullie lachen allebei.`, k:'ok'};
+    case 'boegeroep': if (opVeld) mod('focus', -3); return {t:`Elke keer dat je de bal raakt, klinkt een oorverdovend boegeroep uit het vak van ${naam}.${opVeld ? ' Focus −3.' : ''}`, k:'mis'};
+    case 'judas': if (opVeld) mod('focus', -2); return {t:`"Judas! Judas!" De fans van ${naam} hebben er een spreekkoor voor bedacht.${opVeld ? ' Focus −2.' : ''}`, k:'mis'};
+    case 'shirtVerbrand': return {t:`In het oude vak houdt iemand een shirt met ${nr} omhoog en steekt het in brand. De stewards grijpen in.`, k:'mis'};
+    case 'stewards': return {t:`Bij een hoekschop voor het oude vak moeten stewards voor je gaan staan: er vliegen bekertjes het veld op.`, k:'mis'};
+    case 'oudeTrainerKoud': return {t:`Je oude trainer kijkt je de hele wedstrijd niet aan. Bij een wissel loop je vlak langs hem: geen woord.`, k:'info'};
+  }
+  return {t:'', k:'info'};
+}
+// Na het laatste fluitsignaal: bij een groot weerzien een eigen keuze (de oude kleedkamer in, of je excuses aan de fans)
+export function reunieNaKeuze(soort){
+  const M = S.M, R = M && M.reunie; if (!R || M.reunieNa) return;
+  const o = oudeClubs()[ck(R.club)] || {}, naam = CLUBS[R.club].n;
+  if (soort === 'kleedkamer'){ mod('moraal', 4); for (const k in (o.rel || {})) o.rel[k] = clamp(o.rel[k] + 5, 0, 100); modFans(3, R.club);
+    M.reunieNa = `Je loopt de kleedkamer van ${naam} binnen. Je oude plekje, je oude haakje: er zit nog een sticker met je naam op. Je oude ploeggenoten geven je een drankje. (moraal +4, band met je oude teamgenoten +5)`; }
+  else if (soort === 'ererondje'){ mod('moraal', 3); modFans(6, R.club); social().volgers += 150;
+    M.reunieNa = `Na afloop loop je nog een rondje langs het oude vak. Ze scanderen je naam. (fans van ${naam} +6, moraal +3)`; }
+  else if (soort === 'excuses'){ modFans(8, R.club); mod('focus', 2);
+    M.reunieNa = `Je loopt naar het oude vak en steekt je handen op: sorry. Er klinkt nog wat gefluit, maar ook applaus. Het ijs is gebroken. (fans van ${naam} +8)`; }
+  else if (soort === 'negeren'){ mod('focus', 3); modFans(-4, R.club);
+    M.reunieNa = `Je draait je om en loopt meteen de tunnel in. Voor jou is dit hoofdstuk afgesloten. (fans van ${naam} −4)`; }
+}
 export function reunieNaWedstrijd(M, speelde){
   const sp = S.sp, R = M.reunie; if (!R) return;
   const t = S.car.tegenOud = S.car.tegenOud || {}, x = t[ck(R.club)] = t[ck(R.club)] || {w:0, g:0, v:0, goals:0}; x.n = CLUBS[R.club].n;
@@ -100,6 +150,12 @@ export function shirtRuil(){
 export function vReunieEinde(M){
   if (!M.reunie) return '';
   return `${M.reunieKop ? vKrant([{bron:pick(KRANTEN[Math.min(club().t, 3)]), kop:M.reunieKop.kop, tekst:M.reunieKop.tekst}]) : ''}
+    ${(() => { const imp = M.reunie.impact ?? reunieImpact(M.reunie.club), warm = M.reunie.ontvangst === 'ovatie' || M.reunie.ontvangst === 'applaus';
+      if (M.reunieNa) return `<p class="melding">${esc(M.reunieNa)}</p>`;
+      if (imp < 3) return '';
+      return `<span class="label">Na het laatste fluitsignaal</span><div class="keuzes">${warm
+        ? keuzeKnop('De oude kleedkamer in', 'moraal +4 · band met je oude teamgenoten +5', () => reunieNaKeuze('kleedkamer'), 'data-blijf') + keuzeKnop('Nog een rondje langs het oude vak', 'fans van je oude club +6 · volgers', () => reunieNaKeuze('ererondje'), 'data-blijf')
+        : keuzeKnop('Je excuses aanbieden aan de oude fans', 'fans van je oude club +8', () => reunieNaKeuze('excuses'), 'data-blijf') + keuzeKnop('Meteen de tunnel in', 'focus +3 · fans van je oude club −4', () => reunieNaKeuze('negeren'), 'data-blijf')}</div>`; })()}
     ${M.reunieMaat ? (M.shirtGeruild ? `<p class="melding">${esc(M.shirtTekst)}</p>` : `<div class="rij">${knop(`Shirt ruilen met je oude maat ${esc(M.reunieMaat)}`, shirtRuil, 'klein', 'data-blijf')}</div>`) : ''}`;
 }
 export function vTegenOud(){
