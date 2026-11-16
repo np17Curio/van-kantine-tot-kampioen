@@ -1,3 +1,5 @@
+import { partnerNaWedstrijd } from '../prive/partner.js';
+import { mijlpaalGoalNaWedstrijd } from '../speler/mijlpaalgoal.js';
 import { S, club, mod, ovr, seizoenLabel } from '../../core/state.js';
 import { sterrenNa } from '../wedstrijd/opdrachten.js';
 import { knop } from '../../core/ui.js';
@@ -109,7 +111,7 @@ export function eindeNacompetitie(){
     S.car.wed++; if (M.rood) S.sp.roodBij = S.car.wed; S.car.g += M.goals; S.car.a += M.assists; carCijfer(M.cijfer);
     statusPunten(wedstrijdPunten(M.cijfer, M.goals, M.assists, winst, M.rood, M.rol === 'invaller') * .5);
     M.bonus = topBonus(M); sterrenNa(M); // (de wedstrijddoelen: opdrachten.js)
-    focusNaWedstrijd(M); volgersNaWedstrijd(M);
+    focusNaWedstrijd(M); volgersNaWedstrijd(M); partnerNaWedstrijd(M); mijlpaalGoalNaWedstrijd(M);
   } else { M.cijfer = null; if (M.rol === 'geschorst' && sp.geschorst > 0) sp.geschorst--; }
   const prom = M.po.soort === 'promotie' || M.po.soort === 'finale';
   M.poWinst = winst;

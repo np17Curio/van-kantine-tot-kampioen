@@ -124,6 +124,24 @@ select{background:var(--diep);border:1px solid var(--lijn);border-radius:6px;pad
 .persoonlijkheden{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
 .keuze.pers .v{font-size:.8rem;line-height:1.35;color:var(--krijt)}
 .keuze.pers.geblokt{opacity:.45}
+.persknoppen .geblokt{opacity:.45}
+.persuitleg{display:grid;gap:2px;margin-top:6px}
+.persuitleg p{margin:0}
+/* Compacter startscherm: kleuren, lengte en bouw naast elkaar; de rest in twee kolommen */
+.kleurrijen{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.kleurrijen.twee{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.kleurrijen .kleurvlakken{gap:6px}
+.kleurrijen .kleurvlak{width:26px;height:26px}
+.posities{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.startkolommen{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:start}
+.startkolom{display:grid;gap:12px;min-width:0}
+/* Het formulier voor een nieuwe carrière: links je speler (vast op zijn plek bovenaan: hij scrolt gewoon mee weg met de pagina), rechts alle keuzes */
+.startform{display:grid;grid-template-columns:minmax(150px,220px) minmax(0,1fr);gap:14px;align-items:start}
+.startvelden{display:grid;gap:14px;min-width:0}
+.startlinks{display:grid;gap:8px;align-content:start;min-width:0}
+.startlinks .hoofd{width:100%}
+.startvelden .hubtabs{margin-bottom:2px}
+@media (max-width:560px){.startform{grid-template-columns:96px minmax(0,1fr);gap:10px}}
 .perschips{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
 .tag.pers{cursor:help}
 

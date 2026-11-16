@@ -2,7 +2,8 @@ import { herstel } from '../../core/migratie.js';
 import { herstelSeizoenDelen } from '../../game/seizoen/seizoen.js';
 import { SLOTS, laad, saves, setS, tmp, vrijeSlot, wis } from '../../core/state.js';
 import { voornamenVoor } from '../../game/speler/journey.js';
-import { act, knop } from '../../core/ui.js';
+import { act, knop, tabBalk } from '../../core/ui.js';
+import { tattooCode } from '../pixel/tattoo.js';
 import { esc } from '../../core/utils.js';
 import { DIVS, LANDEN_LIJST, NIVEAU, POS, zetWereld } from '../../data/gegevens.js';
 import { SPEEL_LANDEN, zetLand } from '../../data/landen.js';
@@ -26,6 +27,18 @@ export function vHerkomstKeuze(){
 
 export const opgroeiKeuze = () => tmp.opgroei || (SPEEL_LANDEN.includes(tmp.geboren) ? tmp.geboren : 'Nederland');
 // Je speler aanmaken: huidskleur, haarkleur en kapsel, met je pixelspeler ernaast (render/pixel/voorbeeld.js)
+// Tattoos bij het aanmaken: alleen als je begint op je 18e of 23e. Per arm: niets, een kleintje, een tekst (op de linkerarm) of een full sleeve.
+// Ze staan meteen op je pixelspeler (data-tattoo) en gaan mee in je carrière (sp.tattoos), net als de tattoos uit de tattooshop
+const TATTOO_KEUZE = {r:[['', 'Geen'], ['klein', 'Klein'], ['mouw', 'Full sleeve']], l:[['', 'Geen'], ['klein', 'Klein'], ['tekst', 'Tekst "Mam & Pap"'], ['mouw', 'Full sleeve']]};
+const startTattoos = () => (tmp.leeftijd || 15) >= 18 ? (tmp.tattoos || []) : [];
+const startTattooCode = () => tattooCode(startTattoos());
+function vTattooKeuze(){
+  if ((tmp.leeftijd || 15) < 18) return '';
+  const l = tmp.tattoos || (tmp.tattoos = []), op = arm => (l.find(t => t.arm === arm) || {}).soort || '';
+  const zet = (arm, soort) => () => { tmp.tattoos = l.filter(t => t.arm !== arm).concat(soort ? [{soort, arm, ...(soort === 'tekst' ? {tekst:'Mam & Pap'} : {})}] : []); };
+  const rij = (arm, naam) => `<div><span class="label">${naam}</span><div class="kapsels" role="group" aria-label="${naam}">${TATTOO_KEUZE[arm].map(([s, t]) => knop(t, zet(arm, s), 'klein' + (op(arm) === s ? ' aan' : ''), `data-blijf aria-pressed="${op(arm) === s}"`)).join('')}</div></div>`;
+  return `<div><span class="label">Tattoos</span><div class="kleurrijen twee" style="margin-top:4px">${rij('r', 'Rechterarm')}${rij('l', 'Linkerarm')}</div><p class="muted klein-tekst">Je ziet ze op je onderarmen als je in je shirt speelt. Later kun je er in de tattooshop meer laten zetten.</p></div>`;
+}
 function vUiterlijk(){
   const u = tmp.uiterlijk || (tmp.uiterlijk = willekeurigUiterlijk());
   if (!u.lengte) u.lengte = standaardLengte(tmp.pos, tmp.vrouw); if (!u.bmi) u.bmi = 22.5; if (!SCHOENEN[u.schoen]) u.schoen = 0; // lengte, bouw (lichaam.js) en de kleur van je schoenen
@@ -39,28 +52,29 @@ function vUiterlijk(){
         <p class="muted klein-tekst">${tmp.vrouw ? 'Je speelt in het vrouwenvoetbal: de vrouwenteams van dezelfde clubs, met hun eigen competities, toernooien en nationale teams.' : 'Je speelt in het mannenvoetbal.'}</p></div>`;
   if (!tmp.uitSleutel) tmp.uitSleutel = Math.random().toString(36).slice(2, 10);
   const vlak = (lijst, k, label, namen) => `<div class="kleurvlakken" role="group" aria-label="${label}">${lijst.map((kl, i) => `<button class="kleurvlak ${u[k] === i ? 'aan' : ''}" style="--kl:${kl}" aria-pressed="${u[k] === i}" aria-label="${label} ${namen ? namen[i] : `${i + 1} van ${lijst.length}`}" title="${namen ? namen[i] : ''}" data-i="${act(() => { u[k] = i; })}" data-blijf></button>`).join('')}</div>`;
-  return `<div class="aanmaken">
-    <figure class="portretfoto"><canvas id="pixelVoorbeeld" data-uit="${u.huid},${u.haar},${u.kapsel},${u.lengte},${u.bmi},${tmp.vrouw ? 1 : 0},${u.schoen},${u.baard || ''}" data-sleutel="${tmp.uitSleutel}" role="img" aria-label="Jouw ${tmp.vrouw ? 'speelster' : 'speler'}"></canvas><span class="reellabel" aria-hidden="true"></span></figure>
-    <div class="aanmaakkeuzes">
-      ${geslacht}
+  // (je pixelspeler staat in de linkerkolom van het hele formulier, zie vStart: zo blijft hij in beeld terwijl je naar beneden scrolt)
+  tmp.portretHtml = `<figure class="portretfoto"><canvas id="pixelVoorbeeld" data-uit="${u.huid},${u.haar},${u.kapsel},${u.lengte},${u.bmi},${tmp.vrouw ? 1 : 0},${u.schoen},${u.baard || ''}" data-sleutel="${tmp.uitSleutel}" data-leeftijd="${tmp.leeftijd || 15}" data-tattoo="${startTattooCode()}" role="img" aria-label="Jouw ${tmp.vrouw ? 'speelster' : 'speler'}"></canvas><span class="reellabel" aria-hidden="true"></span></figure>`;
+  tmp.verrasHtml = knop('🎲 Verras me', () => { tmp.uiterlijk = {...willekeurigUiterlijk(tmp.vrouw), lengte:LENGTES[Math.floor(Math.random() * LENGTES.length)], bmi:BOUW[Math.floor(Math.random() * BOUW.length)].bmi, baard:BAARD_KEUZE[Math.floor(Math.random() * BAARD_KEUZE.length)][0]}; tmp.uitSleutel = Math.random().toString(36).slice(2, 10); }, 'klein', 'data-blijf');
+  const speler = `${geslacht}
       <div class="invoer"><label class="label" for="naam">Naam van je ${tmp.vrouw ? 'speelster' : 'speler'}</label><input id="naam" maxlength="24" placeholder="bijv. ${tmp.vrouw ? 'Lieke de Raket' : 'Daan de Kanon'}" value="${esc(tmp.naam)}"></div>
-      <div><span class="label">Huidskleur</span>${vlak(HUID, 'huid', 'Huidskleur')}</div>
+      <div class="kleurrijen"><div><span class="label">Huidskleur</span>${vlak(HUID, 'huid', 'Huidskleur')}</div>
       <div><span class="label">Haarkleur</span>${vlak(HAAR, 'haar', 'Haarkleur', HAAR_NAAM)}</div>
-      <div><span class="label">Voetbalschoenen</span>${vlak(SCHOENEN, 'schoen', 'Voetbalschoenen', SCHOEN_NAAM)}</div>
+      <div><span class="label">Voetbalschoenen</span>${vlak(SCHOENEN, 'schoen', 'Voetbalschoenen', SCHOEN_NAAM)}</div></div>
       <div><span class="label">Kapsel</span><div class="kapsels" role="group" aria-label="Kapsel">${KAPSEL_KEUZE.map(([k, l]) => knop(l, () => { u.kapsel = k; }, 'klein' + (u.kapsel === k ? ' aan' : ''), `data-blijf aria-pressed="${u.kapsel === k}"`)).join('')}</div></div>
-      ${baardKiezen ? `<div><span class="label">Gezichtshaar</span><div class="kapsels" role="group" aria-label="Gezichtshaar">${BAARD_KEUZE.map(([b, l]) => knop(l, () => { u.baard = b; }, 'klein' + (u.baard === b ? ' aan' : ''), `data-blijf aria-pressed="${u.baard === b}"`)).join('')}</div></div>` : !tmp.vrouw ? `<p class="muted klein-tekst">Gezichtshaar: begin je op je 15e, dan groeit je baard later. Rond je 18e kies je bij de kapper wat je ermee doet.</p>` : ''}
-      <div><span class="label">${(tmp.leeftijd || 15) < 23 ? 'Lengte nu' : 'Lengte'} · ${lengteTxt(u.lengte)}</span><div class="kapsels" role="group" aria-label="Lengte">${LENGTES.map(l => knop(lengteTxt(l), () => { u.lengte = l; }, 'klein' + (u.lengte === l ? ' aan' : ''), `data-blijf aria-pressed="${u.lengte === l}"`)).join('')}</div>${(() => { const r = groeiRest(tmp.leeftijd || 15, !!tmp.vrouw); return r >= 1 ? `<p class="muted klein-tekst">Je bent nog in de groei: je wordt waarschijnlijk ongeveer ${lengteTxt(Math.round(u.lengte + r * .6))}–${lengteTxt(Math.round(u.lengte + r * 1.4))} (tot je 23e).</p>` : ''; })()}</div>
+      ${vTattooKeuze()}
+      ${baardKiezen ? `<div><span class="label">Gezichtshaar</span><div class="kapsels" role="group" aria-label="Gezichtshaar">${BAARD_KEUZE.map(([b, l]) => knop(l, () => { u.baard = b; }, 'klein' + (u.baard === b ? ' aan' : ''), `data-blijf aria-pressed="${u.baard === b}"`)).join('')}</div></div>` : ''}`;
+  const lichaam = `<div class="kleurrijen twee"><div><span class="label">${(tmp.leeftijd || 15) < 23 ? 'Lengte nu' : 'Lengte'} · ${lengteTxt(u.lengte)}</span><div class="kapsels" role="group" aria-label="Lengte">${LENGTES.map(l => knop(lengteTxt(l), () => { u.lengte = l; }, 'klein' + (u.lengte === l ? ' aan' : ''), `data-blijf aria-pressed="${u.lengte === l}"`)).join('')}</div>${(() => { const r = groeiRest(tmp.leeftijd || 15, !!tmp.vrouw); return r >= 1 ? `<p class="muted klein-tekst">Je bent nog in de groei: je wordt waarschijnlijk ongeveer ${lengteTxt(Math.round(u.lengte + r * .6))}–${lengteTxt(Math.round(u.lengte + r * 1.4))} (tot je 23e).</p>` : ''; })()}</div>
       <div><span class="label">Bouw · ${gewichtVan(u.lengte, u.bmi)} kg</span><div class="kapsels" role="group" aria-label="Bouw">${BOUW.map(b => knop(b.n, () => { u.bmi = b.bmi; }, 'klein' + (u.bmi === b.bmi ? ' aan' : ''), `data-blijf aria-pressed="${u.bmi === b.bmi}"`)).join('')}</div>
-        <p class="muted klein-tekst">${lichaamSamenvatting({...u, vrouw:!!tmp.vrouw})}. Lang = sterk in de lucht, klein en tenger = snel, zwaar = sterk in duels maar sneller moe.</p></div>
-      <div>${knop('🎲 Verras me', () => { tmp.uiterlijk = {...willekeurigUiterlijk(tmp.vrouw), lengte:LENGTES[Math.floor(Math.random() * LENGTES.length)], bmi:BOUW[Math.floor(Math.random() * BOUW.length)].bmi, baard:BAARD_KEUZE[Math.floor(Math.random() * BAARD_KEUZE.length)][0]}; tmp.uitSleutel = Math.random().toString(36).slice(2, 10); }, 'klein', 'data-blijf')}</div>
-    </div></div>`;
+        <p class="muted klein-tekst">${lichaamSamenvatting({...u, vrouw:!!tmp.vrouw})}. Lang = sterk in de lucht, klein en tenger = snel, zwaar = sterk in duels maar sneller moe.</p></div></div>`;
+  return {speler, lichaam};
 }
 // Wie ben je? Maximaal 3 persoonlijkheden, die bepalen hoe je bent in en buiten het veld
 function vPersoonlijkheid(){
   const l = tmp.pers || (tmp.pers = []);
   return `<div><span class="label">Persoonlijkheid · kies er maximaal ${MAX_PERS} (${l.length}/${MAX_PERS})</span>
-    <div class="keuzes persoonlijkheden" style="margin-top:6px">${Object.entries(PERS).map(([id, p]) => { const aan = l.includes(id), waarom = kanErBij(l, id);
-      return `<button class="keuze pers ${aan ? 'aan' : ''} ${!aan && waarom ? 'geblokt' : ''}" aria-pressed="${aan}" ${!aan && waarom ? `aria-disabled="true" title="${esc(waarom)}"` : ''} data-i="${act(() => { tmp.pers = wisselPers(tmp.pers || [], id); })}" data-blijf><span class="t">${p.i} ${p.n}</span><span class="v"><b>In het veld:</b> ${esc(p.veld)}</span><span class="v"><b>Buiten het veld:</b> ${esc(p.buiten)}</span>${!aan && waarom ? `<span class="s fouttxt">${esc(waarom)}</span>` : ''}</button>`; }).join('')}</div>
+    <div class="kapsels persknoppen" role="group" aria-label="Persoonlijkheid">${Object.entries(PERS).map(([id, p]) => { const aan = l.includes(id), waarom = kanErBij(l, id);
+      return `<button class="klein ${aan ? 'aan' : ''} ${!aan && waarom ? 'geblokt' : ''}" aria-pressed="${aan}" title="${esc(!aan && waarom ? waarom : `In het veld: ${p.veld} Buiten het veld: ${p.buiten}`)}" ${!aan && waarom ? 'aria-disabled="true"' : ''} data-i="${act(() => { tmp.pers = wisselPers(tmp.pers || [], id); })}" data-blijf>${p.i} ${p.n}</button>`; }).join('')}</div>
+    ${l.length ? `<div class="persuitleg">${l.map(id => { const p = PERS[id]; return `<p class="klein-tekst"><b>${p.i} ${p.n}</b> · <span class="muted">In het veld:</span> ${esc(p.veld)} · <span class="muted">Buiten het veld:</span> ${esc(p.buiten)}</p>`; }).join('')}</div>` : ''}
     <div class="rij" style="margin-top:6px">${knop('🎲 Verras me', () => { tmp.pers = willekeurigePers(2); }, 'klein', 'data-blijf')}${l.length ? knop('Geen persoonlijkheid', () => { tmp.pers = []; }, 'klein', 'data-blijf') : '<span class="muted klein-tekst">Je mag ook niets kiezen: dan ben je een gewone speler.</span>'}</div></div>`;
 }
 // Hoe oud ben je? Elke leeftijd is een ander verhaal
@@ -101,22 +115,30 @@ export function vStart(){
   return `<div class="verhaal">
       <span class="label">Nieuwe carrière</span>
       <h1>Het Grote Doorbreken</h1>
-      <p>Maak je speler en kies hoe je begint: als wonderkind, gewoon als 18-jarige of als laatbloeier die zich moet bewijzen. Je begint met 3 selectiewedstrijden: speel je goed, dan tekent een club uit de hoogste league; speel je slecht, dan begin je bij de O23. Van daaruit klim je misschien wel naar de Europese top.</p>
-      <p class="muted">Ook buiten het veld gebeurt van alles: school, feestjes, ongelukjes, de liefde en de media. Jouw keuzes bepalen je reputatie.</p>
+      <p>Maak je speler en kies hoe je begint. Na 3 selectiewedstrijden tekent een club je, of begin je bij de O23. Daarna bepalen jouw keuzes, in en buiten het veld, hoe ver je komt.</p>
     </div>
     ${vSaves()}
     ${opslagKnoppen()}
-    <span class="label">Nieuwe carrière</span>
-    ${vUiterlijk()}
-    ${vLeeftijd()}
-    ${vPersoonlijkheid()}
-    <div><span class="label">Positie</span><div class="keuzes" style="margin-top:6px">${posKnop('SPITS')}${posKnop('MID')}${posKnop('VERD')}${posKnop('KEEPER')}</div></div>
-    ${vVriend()}
-    <div style="display:grid;gap:8px"><span class="label">Afkomst</span>${vHerkomstKeuze()}<p class="muted klein-tekst">Hiermee bepaal je voor welke landen je later interlands kunt spelen.</p></div>
+    ${vNieuw(slot, bezet, posKnop)}`;
+}
+// Een nieuwe carrière maken in 4 stappen (tabbladen), zodat je niet ver hoeft te scrollen. Links staat altijd je speler,
+// met 'Verras me' en de startknop eronder: je kunt op elk moment beginnen (wat je niet kiest, krijgt een standaardwaarde)
+const START_TABS = [['speler', '1 · Je speler'], ['lichaam', '2 · Lichaam en positie'], ['verhaal', '3 · Verhaal en karakter'], ['vriend', '4 · Vriend en afkomst']];
+function vNieuw(slot, bezet, posKnop){
+  const {speler, lichaam} = vUiterlijk(), tab = START_TABS.some(([k]) => k === tmp.startTab) ? tmp.startTab : 'speler', i = START_TABS.findIndex(([k]) => k === tab);
+  const inhoud = {
+    speler,
+    lichaam:`${lichaam}<div><span class="label">Positie</span><div class="keuzes posities" style="margin-top:6px">${posKnop('SPITS')}${posKnop('MID')}${posKnop('VERD')}${posKnop('KEEPER')}</div></div>`,
+    verhaal:`${vLeeftijd()}${vPersoonlijkheid()}`,
+    vriend:`<div class="startkolommen"><div class="startkolom">${vVriend()}</div>
+    <div class="startkolom"><div style="display:grid;gap:8px"><span class="label">Afkomst</span>${vHerkomstKeuze()}<p class="muted klein-tekst">Hiermee bepaal je voor welke landen je later interlands kunt spelen.</p></div>
     <div style="display:grid;gap:8px"><label class="label" for="opgroei">Waar groei je op?</label><select id="opgroei">${SPEEL_LANDEN.map(n => `<option value="${esc(n)}" ${opgroeiKeuze() === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
-      <p class="muted klein-tekst">Hier begin je je carrière. Elk land heeft zijn eigen competitie, clubs en kranten. De nummers 1 en 2 van elke hoogste competitie spelen de Champions League.</p></div>
-    ${vSlotKeuze()}
-    ${slot ? knop('Start carrière', () => { nieuwSpel((tmp.naam || '').trim() || (tmp.vrouw ? 'Lieke de Raket' : 'Daan de Kanon'), tmp.pos, herkomstUitTmp(), opgroeiKeuze(), {leeftijd:tmp.leeftijd || 15, uiterlijk:tmp.uiterlijk, sleutel:tmp.uitSleutel, pers:tmp.pers || [], slot, vrouw:!!tmp.vrouw, valtOp:valtOp(), vriend:{naam:(tmp.vriendNaam || '').trim(), pos:tmp.vriendPos || tmp.pos, vrouw:tmp.vriendVrouw === undefined ? !!tmp.vrouw : tmp.vriendVrouw}}); }, 'hoofd', bezet ? `data-bevestig="De carrière van ${esc(bezet.naam)} wordt overschreven." data-ja="Ja, overschrijven"` : '') : '<p class="muted">Kies eerst welke carrière mag worden overschreven.</p>'}`;
+      <p class="muted klein-tekst">Hier begin je je carrière. Elk land heeft zijn eigen competitie, clubs en kranten.</p></div></div></div>`,
+  }[tab];
+  const volgende = i + 1 < START_TABS.length ? knop(`Volgende: ${START_TABS[i + 1][1].replace(/^\d · /, '')} →`, () => { tmp.startTab = START_TABS[i + 1][0]; }, 'klein', 'data-blijf') : '';
+  const start = slot ? knop('Start carrière', () => { nieuwSpel((tmp.naam || '').trim() || (tmp.vrouw ? 'Lieke de Raket' : 'Daan de Kanon'), tmp.pos, herkomstUitTmp(), opgroeiKeuze(), {leeftijd:tmp.leeftijd || 15, uiterlijk:tmp.uiterlijk, sleutel:tmp.uitSleutel, pers:tmp.pers || [], tattoos:startTattoos(), slot, vrouw:!!tmp.vrouw, valtOp:valtOp(), vriend:{naam:(tmp.vriendNaam || '').trim(), pos:tmp.vriendPos || tmp.pos, vrouw:tmp.vriendVrouw === undefined ? !!tmp.vrouw : tmp.vriendVrouw}}); }, 'hoofd', bezet ? `data-bevestig="De carrière van ${esc(bezet.naam)} wordt overschreven." data-ja="Ja, overschrijven"` : '') : '<p class="muted klein-tekst">Kies eerst welke carrière mag worden overschreven.</p>';
+  return `<div class="startform"><div class="startlinks">${tmp.portretHtml}${tmp.verrasHtml}${start}</div>
+    <div class="startvelden">${tabBalk(START_TABS, tab, k => { tmp.startTab = k; })}<div class="aanmaakkeuzes">${inhoud}</div><div class="rij">${volgende}</div>${vSlotKeuze()}</div></div>`;
 }
 // Spelregels in het kort: op het startscherm en in het hulpvenster (?)
 const UITLEG = [

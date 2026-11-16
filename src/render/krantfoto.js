@@ -1,14 +1,15 @@
 import { shirtSponsor } from '../data/shirtsponsors.js';
 import { S, club } from '../core/state.js';
+import { CLUBS } from '../data/gegevens.js';
 import { ploegen } from './pitch.js';
 import { STANDAARD, clubTenue } from '../data/tenues.js';
 import { maakPixelFoto } from './pixel/krantfoto.js';
 import { krantItem, krantPagina, rubriekVan, draaiBeeld, DRAAI_FRAMES, DRAAI_FPS } from './pixel/krant.js';
 import { maakContract } from './pixel/contract.js';
-import { uiterlijkVoor } from './pixel/uiterlijk.js';
+import { jijTattoo, uiterlijkVoor } from './pixel/uiterlijk.js';
 import { laadLogoBron, logoBron, logoGeladen } from './pixel/clublogo.js';
 import { shirtNummer } from '../game/team/rugnummers.js';
-import { ik, vrouwenWereld } from '../core/geslacht.js';
+import { ik, partnerVrouw, vrouwenWereld } from '../core/geslacht.js';
 import { thuisLand } from '../data/landen.js';
 
 /* ===================== Foto's in de krant ===================== */
@@ -20,23 +21,30 @@ export const FOTO_SOORTEN = {
   svs:{alt:'met de bokaal voor Speler van het Seizoen', prijs:'de bokaal'},
   topscorer:{alt:'met de Gouden Schoen voor de topscorer', prijs:'de Gouden Schoen'},
   portret:{alt:'op de persfoto', prijs:null},
+  aanvoerder:{alt:'met de aanvoerdersband, naast de trainer en de vice-aanvoerders', prijs:null},
   goudenbal:{alt:'met de Gouden Bal', prijs:'de Gouden Bal'},
   get ererondje(){ return {alt:`tijdens ${ik.zijn} ererondje`, prijs:null}; },
   huis:{alt:'voor het nieuwe huis', prijs:null},
   bruiloft:{alt:'op de bruiloft', prijs:null},
+  strand:{alt:'op het strand', prijs:null},
+  stad:{alt:"'s avonds in de stad", prijs:null},
+  blessure:{alt:'op krukken', prijs:null},
+  juich:{alt:'juichend na een doelpunt', prijs:null},
+  straat:{alt:'op straat', prijs:null},
+  veld:{alt:'op het veld', prijs:null},
 };
 const KLAAR = new Map();
 
 const MUREN = [['#0f1a33', '#c6f432'], ['#1a1030', '#f3c44f'], ['#0d2a22', '#ffffff'], ['#2a0f14', '#f3c44f']];
 // Wie staat er op de foto? img.dataset.uit = 'huid,haar,kapsel' (op het startscherm, nog zonder carrière), anders jouw speler
 function fotoCtx(img){
-  if (img && img.dataset.uit){ const [huid, haar, kapsel, lengte, bmi, vrouw] = img.dataset.uit.split(','); return {sleutel:img.dataset.sleutel || 'nieuw', uiterlijk:{huid:+huid, haar:+haar, kapsel, ...(lengte ? {lengte:+lengte, bmi:+bmi} : {}), ...(vrouw !== undefined ? {vrouw:vrouw === '1'} : {})}, club:'', muur:'#0f1a33', accent:'#c6f432', tenue:STANDAARD, ...(img.dataset.draai !== undefined ? {draai:+img.dataset.draai} : {})}; }
+  if (img && img.dataset.uit){ const [huid, haar, kapsel, lengte, bmi, vrouw] = img.dataset.uit.split(','); return {sleutel:img.dataset.sleutel || 'nieuw', uiterlijk:{huid:+huid, haar:+haar, kapsel, ...(lengte ? {lengte:+lengte, bmi:+bmi} : {}), ...(vrouw !== undefined ? {vrouw:vrouw === '1'} : {})}, club:'', muur:'#0f1a33', accent:'#c6f432', tenue:STANDAARD, ...(img.dataset.draai !== undefined ? {draai:+img.dataset.draai} : {}), ...(img.dataset.leeftijd ? {leeftijd:+img.dataset.leeftijd} : {})}; }
   const c = club(), [muur, accent] = MUREN[(S.sp.club || 0) % MUREN.length];
-  const pl = ploegen(); return {sleutel:pl.jij, naam:S.sp.naam, uiterlijk:S.sp.uiterlijk || null, club:c ? c.n : '', muur, accent, tenue:clubTenue(S.sp.club), clubId:S.sp.club, logo:logoBron(S.sp.club), band:!!pl.band, sponsor:S.sp.clubloos || S.sp.o23 ? null : shirtSponsor(c, thuisLand())}; // (de shirtsponsor van je club)
+  const pl = ploegen(); return {sleutel:pl.jij, naam:S.sp.naam, uiterlijk:S.sp.uiterlijk || null, club:c ? c.n : '', muur, accent, tenue:clubTenue(S.sp.club), clubId:S.sp.club, logo:logoBron(S.sp.club), band:!!pl.band, leeftijd:S.sp.leeftijd, sponsor:S.sp.clubloos || S.sp.o23 ? null : shirtSponsor(c, thuisLand())}; // (de shirtsponsor van je club)
 }
 // (het uiterlijk als losse velden: huid en haar zijn getallen, opgeteld zouden huid 1 + haar 2 en huid 2 + haar 1 dezelfde foto geven)
 const uitSleutel = u => u ? [u.huid, u.haar, u.kapsel, u.lengte ?? '', u.bmi ?? '', u.schoen ?? '', u.baard || '', u.vrouw ? 'v' : ''].join(',') : '';
-const sleutelVan = (soort, ctx) => [soort, ctx.sleutel, ctx.club, ctx.draai ?? '', ctx.band ? 'C' : '', uitSleutel(ctx.uiterlijk)].join('|');
+const sleutelVan = (soort, ctx) => [soort, ctx.sleutel, ctx.club, ctx.draai ?? '', ctx.band ? 'C' : '', uitSleutel(ctx.uiterlijk), ctx.leeftijd || '', jijTattoo()].join('|'); // (ouder worden of een nieuwe tattoo: een nieuwe foto)
 export function foto(soort, img){
   const ctx = fotoCtx(img), key = sleutelVan(soort, ctx);
   if (!KLAAR.has(key)){
@@ -51,14 +59,50 @@ const PAGINA = new Map(), GEZIEN = new Set();
 function krantFoto(item){
   if (!(S && S.sp)) return null;
   const ctx = fotoCtx();
-  if (item.foto && FOTO_SOORTEN[item.foto.soort]) return {cv:maakPixelFoto(item.foto.soort, {...ctx, foto:item.foto}, {w:180, h:72, canvas:true}), onder:item.foto.onder, door:['huis', 'bruiloft'].includes(item.foto.soort) ? 'Paparazzo' : 'Studio Doorbraak'};
+  if (item.foto && FOTO_SOORTEN[item.foto.soort]) return {cv:maakPixelFoto(item.foto.soort, {...ctx, ...clubVanFoto(item.foto), foto:item.foto}, {w:180, h:72, canvas:true}), onder:item.foto.onder, door:PAPARAZZO.includes(item.foto.soort) ? 'Paparazzo' : 'Studio Doorbraak'};
   if (rubriekVan(item) === 'TRANSFERNIEUWS' && String(item.kop).includes(S.sp.naam) && !S.sp.clubloos && S.sp.club != null){
     let nr = null; try { nr = shirtNummer(); } catch (e){}
     const delen = String(S.sp.naam).trim().split(/\s+/), naam = delen.length > 1 ? delen.slice(1).join(' ') : delen[0];
     const {uitsnede} = maakContract({uit:uiterlijkVoor('jij|' + ctx.sleutel, {...(S.sp.uiterlijk || {}), vrouw:!!S.sp.vrouw}), tenue:ctx.tenue, nr, naam, logoImg:ctx.logo, alleenUitsnede:true}); // (met het echte clublogo op de sponsorwand)
     return {cv:uitsnede(), onder:`${S.sp.naam} toont ${ik.zijn} nieuwe shirt${nr ? ` met rugnummer ${nr}` : ''}.`, door:'Pixel Pers'};
   }
+  // Geen eigen foto? Dan beslist de krant zelf of er een foto bij hoort (alleen bij een artikel over jou) en welke
+  const f = autoFoto(item);
+  if (f) return {cv:maakPixelFoto(f.soort, {...ctx, foto:f}, {w:180, h:72, canvas:true}), onder:f.onder, door:PAPARAZZO.includes(f.soort) ? 'Paparazzo' : 'Studio Doorbraak'};
   return null;
+}
+// Hoort de foto bij een andere club dan je huidige (het ererondje bij je oude club na een transfer)? Dan het tenue, de naam en het logo van die club
+function clubVanFoto(f){
+  if (f.clubId == null || f.clubId === S.sp.club) return {};
+  const c = CLUBS[f.clubId]; if (!c) return {};
+  return {club:c.n, tenue:clubTenue(f.clubId), clubId:f.clubId, logo:logoBron(f.clubId), band:!!f.band, sponsor:shirtSponsor(c, thuisLand())};
+}
+const PAPARAZZO = ['huis', 'bruiloft', 'strand', 'stad', 'straat'];
+// Hoort er een foto bij dit artikel? Alleen als het over jou gaat (je naam staat erin); anders geen foto (nieuws over andere clubs, de stand …).
+// Welke foto: wat er in het artikel staat beslist, niet de rubriek (een roddel kan ook in een sportkrant staan). Van boven naar beneden:
+// geblesseerd → op krukken; vakantie → het strand; uitgaan, feesten, casino → 's avonds in de stad; ander privénieuws (de liefde,
+// een tattoo, een auto, een selfie …) → overdag op straat, in gewone kleren; een goal of een overwinning → juichend in het stadion;
+// verder voetbalnieuws (contract, basisplaats, interland …) → een persfoto in je tenue voor de persmuur. Je partner staat erbij als die in het artikel staat.
+const BLESSURE = /blessure|geblesseerd|kruisband|hamstring|enkelband|revalid|krukken|uitgeschakeld|zorgen om/;
+const VAKANTIE = /strand|ibiza|malediven|vakantie|\bboot\b|\bzee\b|\bzon\b|zonnetje/;
+// (iets wat je op het veld deed: dat gebeurde in het stadion, ook al staat er "club" of "fans" in de tekst)
+const VELD = /doelpunt|scoort|\bgoal|treffer|hattrick|juich|vinger voor|het vak van|tribune|scheidsrechter|\bscheids\b|rode kaart|gele kaart|\brood\b|penalty|strafschop|vrije trap|assist|redding|op het veld|gewisseld|invalbeurt|aanvoerdersband|ererondje/;
+const NACHT = /nachtclub|nacht|portier|feest|stappen|uitgaan|disco|kroeg|café|\bbar\b|karaoke|dansvloer|danst|champagne|vip-tafel|zonsopgang|sluitingstijd|doorhalen|casino|roulette|gokt|festival|crowdsurf|politie|dronken/;
+const PRIVE = /terras|selfie|liefde|verloofd|samenwonen|uit tussen|vreemd|betrapt|gespot|fotograaf|scheldt|ophef|tattoo|kapsel|rijbewijs|rijexamen|sportwagen|\bauto\b|villa|penthouse|kookwedstrijd|reclame|doneert|verrast|zieke kinderen|hond|\bkat\b|baby|vader|moeder|zwanger|bruiloft|getrouwd/;
+const GOAL = /scoort|\bgoal|doelpunt|treffer|hattrick/, WINST = /beslist|matchwinnaar|\bwint\b|winnaar|kampioen|\bheld\b/;
+export function autoFoto(item){
+  const sp = S && S.sp; if (!sp || !sp.naam) return null;
+  const t = `${item.kop || ''} ${item.tekst || ''}`, l = t.toLowerCase(), naam = sp.naam;
+  if (!t.includes(naam)) return null;
+  const r = sp.relatie, p = r && r.naam && t.includes(r.naam) ? r.naam : null, paar = p ? {partner:p, partnerVrouw:partnerVrouw()} : {};
+  if (BLESSURE.test(l)) return {soort:'blessure', onder:`${naam} op krukken.`};
+  if (VELD.test(l)) return GOAL.test(l) ? {soort:'juich', onder:`Feest bij ${naam} na het doelpunt.`} : WINST.test(l) ? {soort:'juich', onder:`Feest bij ${naam}.`} : {soort:'veld', onder:`${naam} op het veld.`};
+  if (VAKANTIE.test(l)) return {soort:'strand', ...paar, onder:p ? `${naam} en ${p} genieten van de zon.` : `${naam} geniet van de zon.`};
+  if (NACHT.test(l)) return {soort:'stad', ...paar, onder:p ? `${naam} en ${p} 's avonds in de stad.` : `${naam} 's avonds in de stad.`};
+  if (PRIVE.test(l) || p || rubriekVan(item) === 'RODDEL') return {soort:'straat', ...paar, onder:p ? `${naam} en ${p} in de stad.` : `${naam} in de stad.`};
+  if (GOAL.test(l)) return {soort:'juich', onder:`Feest bij ${naam} na het doelpunt.`};
+  if (WINST.test(l)) return {soort:'juich', onder:`Feest bij ${naam}.`};
+  return {soort:'portret', onder:`Persfoto: ${naam}.`};
 }
 export function krantNaRender(){
   // het clublogo (op de persmuur en de sponsorwand van de foto's) moet eerst geladen zijn; daarna opnieuw

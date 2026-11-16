@@ -1,3 +1,4 @@
+import { partnerNaWedstrijd } from '../prive/partner.js';
 import { hoogtepunt } from '../speler/hoogtepunten.js';
 import { S, club, mod, ovr, seizoenLabel } from '../../core/state.js';
 import { sterrenNa } from '../wedstrijd/opdrachten.js';
@@ -21,6 +22,7 @@ import { MOMENTS, kans } from '../wedstrijd/momenten.js';
 import { ontvangst, reunieAftrap, reunieMet, reunieNaWedstrijd, vReunieEinde } from '../wedstrijd/reunie.js';
 import { keeperRol, planWedstrijd, stand2, verderSpelen, vervolgNaRonde } from '../wedstrijd/wedstrijd.js';
 import { animPush, reeksStrafschoppen } from '../../render/pitch.js';
+import { strafschoppenStart } from '../wedstrijd/strafschoppen.js';
 import { scorebord, vFit, vLog, statRegel } from '../../render/views/match.js';
 import { staminaNaWedstrijd } from '../wedstrijd/stamina.js';
 import { vormBonus } from './vorm.js';
@@ -171,10 +173,13 @@ export function startBeker(k, m){
 // Einde bekerwedstrijd: bij gelijkspel strafschoppen (jij neemt er één als je in het veld staat)
 export function eindeBeker(){
   const sp = S.sp, M = S.M, k = M.beker.k, B = S.ss.bekers[k];
+  // Gelijk en jij staat in het veld: eerst de strafschoppenserie waarin jij kiest (strafschoppen.js). Daarna komen we hier terug
+  if (M.us === M.them && !M.ss && strafschoppenStart(M)) return;
   M.klaar = true;
   const speelde = M.rol === 'basis' || M.rol === 'invaller';
   let winst = M.us > M.them;
-  if (M.us === M.them){
+  if (M.us === M.them && M.ss) winst = M.ss.wij > M.ss.zij;
+  else if (M.us === M.them){
     let wij = 0, zij = 0; const kansJij = speelde && !M.rood ? kans(MOMENTS.penalty.opts[0]) : null;
     const ks = reeksStrafschoppen(kansJij, M); wij = ks.wij; zij = ks.zij;
     winst = wij > zij; M.pens = `${wij}-${zij}`; animPush(M, {soort:'shootout', type:'shootout', kicks:ks.lijst, winst});
@@ -196,7 +201,7 @@ export function eindeBeker(){
     S.ss.bg = (S.ss.bg || 0) + M.goals; S.ss.ba = (S.ss.ba || 0) + M.assists; S.ss.bw = (S.ss.bw || 0) + 1;
     statusPunten(wedstrijdPunten(M.cijfer, M.goals, M.assists, winst, M.rood, M.rol === 'invaller') * .5);
     M.bonus = topBonus(M); sterrenNa(M); // (de wedstrijddoelen: opdrachten.js)
-    focusNaWedstrijd(M); volgersNaWedstrijd(M); recordsNaWedstrijd(M);
+    focusNaWedstrijd(M); volgersNaWedstrijd(M); partnerNaWedstrijd(M); recordsNaWedstrijd(M);
   } else M.cijfer = null;
   mod('moraal', winst ? 4 : -4);
   if (winst && B.winnaar === sp.club){

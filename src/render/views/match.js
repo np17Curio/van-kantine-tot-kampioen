@@ -135,8 +135,18 @@ function speelOpkomstScene(M){
 }
 // Aftrap: eerst de opkomst (het introscherm blijft eronder staan), daarna pas de wedstrijd
 function aftrapMetOpkomst(M){
+  if (toonDebuut(M)) return speelDebuutScene(M);
   if (!toonOpkomst(M)) return aftrap();
   speelOpkomstScene(M).then(() => { if (S && S.M === M && M.intro){ aftrap(); render(); } });
+}
+// Je interlanddebuut (render/debuutscene.js): het volkslied en de hand van de bondscoach. Eén keer (M.debuut uit startInterland;
+// S.car.debuutScene onthoudt dat hij gespeeld is), niet als de opkomst-animaties uit staan
+const toonDebuut = M => !!(M && M.inter && M.debuut && !S.car.debuutScene && !tmp.simBezig && (instel().opkomst || 'belangrijk') !== 'uit');
+let DEBUUT = null;
+function speelDebuutScene(M){
+  S.car.debuutScene = true;
+  return (DEBUUT || (DEBUUT = import('../debuutscene.js'))).then(m => m.speelDebuut(M)).catch(e => console.warn('debuut', e))
+    .finally(() => { if (S && S.M === M && M.intro){ aftrap(); render(); } });
 }
 export function vMatch(){
   if (S.M.intro) return vIntro(S.M);
@@ -188,6 +198,7 @@ export function vMatchEnd(){
       <p>${oordeel}</p>${M.focusTekst ? `<p class="${M.focusOmlaag ? 'fouttxt' : 'goedtxt'}">${esc(M.focusTekst)}</p>` : ''}${vFit(M)}`;
     if (M.volgers) html += `<p class="muted">${M.volgers > 0 ? '+' : ''}${volgersTxt(M.volgers)} volgers op social media (nu ${volgersTxt(social().volgers)}).</p>`;
     if (M.volgerTekst) html += `<p class="melding">${esc(M.volgerTekst)}</p>`;
+    if (M.partnerTekst) html += `<p class="melding">${esc(M.partnerTekst)}</p>`;
     if (M.kaartTekst) html += `<p class="melding" style="${M.rood ? 'color:var(--fout);border-color:var(--fout)' : ''}">${esc(M.kaartTekst)}</p>`;
     if (M.statusTekst) html += `<p class="melding">${esc(M.statusTekst)}</p>`;
     if (M.agentTekst) html += `<p class="melding">${esc(M.agentTekst)}</p>`;

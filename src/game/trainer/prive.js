@@ -6,6 +6,8 @@ import { familieWeek } from '../prive/familie.js';
 import { relatieWeek } from '../prive/gezin.js';
 import { woning, woningMoraal } from '../prive/wonen-auto.js';
 import { geldF } from '../../data/gegevens.js';
+import { kindWeek } from './kind.js';
+import { kampTalentWeek } from '../prive/voetbalschool.js';
 
 /* ===================== Trainer: je privéleven gaat gewoon door ===================== */
 // Je salaris als trainer: hangt af van de league en je naam. Bij een O23 een bescheiden jeugdtrainerssalaris
@@ -27,5 +29,7 @@ export function trainerPriveWeek(){
   if (sp.relatie) sp.relatie.weken++;
   relatieWeek(false); buitenWeek(false); familieWeek(false);
   if (sp.relatie && sp.relatie.band < 25 && rnd() < .3) S.week.tekst.push(`${sp.relatie.naam} vindt dat je alleen nog maar met voetbal bezig bent.`);
+  kindWeek(); // (kind.js: je kind in je selectie)
+  kampTalentWeek(false); // (voetbalschool.js: een talent van je voetbalkamp komt naar je ploeg)
   if (S.wachtEv){ S.ev = S.wachtEv; S.wachtEv = null; S.fase = 'event'; }
 }

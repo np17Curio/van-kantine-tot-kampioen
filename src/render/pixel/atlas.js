@@ -4,6 +4,8 @@
 import { HAAR, HUID, SCHOENEN } from '../../data/uiterlijk.js';
 import { ANIMS, ANKER_X, tekenFrame } from './animaties.js';
 import { GROND, inkleuren } from './rig.js';
+import { ouderCode, ouderKleuren } from './leeftijd.js';
+import { tattooKleuren } from './tattoo.js';
 
 // ---------- kleuren ----------
 const hex2 = h => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
@@ -38,11 +40,19 @@ export function lookVan(uit = {}, tenue = null, opties = {}){
   // (een donkere schoen op een donkere omlijning: iets lichter, anders zie je hem niet)
   if (helder(k.y) < 30){ k.y = '#2b2d36'; k.Y = '#1f2028'; }
   if (!k.a){ k.a = donker(k.y, .35); k.A = donker(k.y, .5); } // de zolen
+  // jouw speler wordt ouder (uit.leeftijd, alleen bij 'jij|…' in uiterlijkVoor): een code achter het kapsel, grijs in het palet
+  const oud = uit.leeftijd ? ouderCode(uit.leeftijd, uit.ouderZaad || 0, !!uit.vrouw, uit.kapsel) : '';
+  if (oud) ouderKleuren(k, oud);
+  // jouw tattoos (uit.tattoo, pixel/tattoo.js): een tweede code achter het kapsel, de inkt in het palet
+  const tat = uit.tattoo || '';
+  if (tat) tattooKleuren(k);
   if (opties.kleuren) Object.assign(k, opties.kleuren); // (eigen kleuren, zoals de eigenaar in de contractscène)
   const patroon = kleding === 'tenue' ? (t.patroon || 'effen') : 'effen';
-  const baard = opties.snor ? 'snor' : !uit.vrouw && uit.baard && uit.baard !== 'geen' ? uit.baard : '';
-  const sleutel = [uit.kapsel || 'model', uit.vrouw ? 'v' : '', opties.snor ? 'snor' : baard, kleding, patroon, opties.handschoen ? 'q' : '', opties.band ? 'C' : '', opties.rugnummer || '', ...Object.values(k)].join('|');
-  return {kapsel:uit.kapsel || 'model', vrouw:!!uit.vrouw, snor:!!opties.snor, baard, kleding, patroon, handschoen:!!opties.handschoen, band:!!opties.band, rugnummer:opties.rugnummer || '', kleuren:k, sleutel,
+  let baard = opties.snor ? 'snor' : !uit.vrouw && uit.baard && uit.baard !== 'geen' ? uit.baard : '';
+  if (!opties.snor && uit.leeftijd && baard){ if (uit.leeftijd < 17) baard = ''; else if (uit.leeftijd < 19 && baard === 'baard') baard = 'stoppels'; } // (op je vijftiende nog geen baard)
+  const kapsel = (uit.kapsel || 'model') + (oud || tat ? '@' + (oud || '00000') : '') + (tat ? '~' + tat : '');
+  const sleutel = [kapsel, uit.vrouw ? 'v' : '', opties.snor ? 'snor' : baard, kleding, patroon, opties.handschoen ? 'q' : '', opties.band ? 'C' : '', opties.rugnummer || '', ...Object.values(k)].join('|');
+  return {kapsel, vrouw:!!uit.vrouw, snor:!!opties.snor, baard, kleding, patroon, handschoen:!!opties.handschoen, band:!!opties.band, rugnummer:opties.rugnummer || '', kleuren:k, sleutel,
     lengte:uit.lengte || 1, bouw:uit.bouw || 1};
 }
 

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { hashGetal, tenueVoor, uiterlijkVoor } from './pixel/uiterlijk.js';
+import { hashGetal, jijLeeftijd, jijTattoo, tenueVoor, uiterlijkVoor } from './pixel/uiterlijk.js';
 import { anker, FIGUUR_PX, frame, frameOp, lookVan } from './pixel/atlas.js';
 import { BAL_VOOR } from './pixel/animaties.js';
 import { BAL as BAL_PX, inkleuren } from './pixel/rig.js';
@@ -206,7 +206,7 @@ export const POSE_NAMEN = Object.keys(POSE);
 // Wie is dit (voor een vast uiterlijk): jij, of een speler van een club
 function sleutelVan(e, T){
   const p = T.ploegen || {};
-  if (e.id === 'J' && (e.rol === 'wij' || e.rol === 'k' || !e.rol)) return 'jij|' + (p.jij || 'x') + (p.jijUit ? '|' + [p.jijUit.huid, p.jijUit.haar, p.jijUit.kapsel, p.jijUit.lengte || '', p.jijUit.bmi || '', p.jijUit.schoen ?? '', p.jijUit.baard || ''].join(',') : '') + (p.band ? '|C' : '');
+  if (e.id === 'J' && (e.rol === 'wij' || e.rol === 'k' || !e.rol)) return 'jij|' + (p.jij || 'x') + (p.jijUit ? '|' + [p.jijUit.huid, p.jijUit.haar, p.jijUit.kapsel, p.jijUit.lengte || '', p.jijUit.bmi || '', p.jijUit.schoen ?? '', p.jijUit.baard || ''].join(',') : '') + (p.band ? '|C' : '') + '|L' + jijLeeftijd() + '|T' + jijTattoo(); // (ouder worden: pixel/leeftijd.js; tattoos: pixel/tattoo.js)
   if (e.rol === 'R') return 'scheids|' + (p.zij ?? '');
   if (T.rivaal && e.id === T.rivaal.id) return 'rivaal|' + T.rivaal.naam; // (je rivaal ziet er altijd hetzelfde uit)
   if (T.vriend && e.id === T.vriend.id) return 'vriend|' + T.vriend.naam; // (en je jeugdvriend ook)

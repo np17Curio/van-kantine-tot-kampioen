@@ -107,10 +107,12 @@ function zoekMeer(t){
 }
 // Eén stuk tekst vertalen (de witruimte eromheen blijft staan). Lukt het niet in één keer, dan per stukje tussen de " · "
 // Vaste woorden in het pixelfont (bordjes, rubrieken, krantennamen). Dat zijn hoofdletters zonder zinsbouw, dus een eigen lijstje
-const PIXEL = {'PERSCONFERENTIE':'PRESS CONFERENCE', 'OPSTELLING':'LINE-UPS', 'DIT IS ONS HUIS':'THIS IS OUR HOME', 'VELD':'PITCH', 'VERKOCHT':'SOLD', 'KAMPIOENEN':'CHAMPIONS', 'WINNAARS':'WINNERS', 'GOUDEN BAL':'GOLDEN BALL',
-  'TRANSFERNIEUWS':'TRANSFER NEWS', 'RODDEL':'GOSSIP', 'INTERLAND':'INTERNATIONAL', 'DE DEAL':'THE DEAL', 'DE PIXEL KRANT':'THE PIXEL TIMES',
+const PIXEL = {'PERSCONFERENTIE':'PRESS CONFERENCE', 'OPSTELLING':'LINE-UPS', 'DIT IS ONS HUIS':'THIS IS OUR HOME', 'VELD':'PITCH', 'VERKOCHT':'SOLD', 'KAMPIOENEN':'CHAMPIONS', 'WINNAARS':'WINNERS', 'GOUDEN BAL':'GOLDEN BALL', 'EN DE WINNAAR IS':'AND THE WINNER IS', 'DE WINNAAR':'THE WINNER', 'IN DE BASIS':'IN THE STARTING XI',
+  'TRANSFERNIEUWS':'TRANSFER NEWS', 'RODDEL':'GOSSIP', 'INTERLAND':'INTERNATIONAL', 'DEBUUT':'DEBUT', 'DE DEAL':'THE DEAL', 'DE PIXEL KRANT':'THE PIXEL TIMES',
   'DE SPORTKRANT':'THE SPORTS PAPER', 'VOETBAL VANDAAG':'FOOTBALL TODAY', 'STUDIO VOETBAL':'FOOTBALL STUDIO', 'EUROPEES VOETBALNIEUWS':'EUROPEAN FOOTBALL NEWS',
-  'De Sportkrant':'The Sports Paper', 'Voetbal Vandaag':'Football Today', 'Studio Voetbal':'Football Studio', 'Europees Voetbalnieuws':'European Football News'};
+  '1E GOAL':'1ST GOAL', 'HERHALING':'REPLAY', 'De Sportkrant':'The Sports Paper', 'Voetbal Vandaag':'Football Today', 'Studio Voetbal':'Football Studio', 'Europees Voetbalnieuws':'European Football News',
+  'BEDANKT':'THANK YOU', 'LEGENDE':'LEGEND', // (de spandoeken bij je afscheid: render/pixel/afscheid.js)
+  'PROMOTIE!':'PROMOTED!', 'TOPDIVISIE':'TOP DIVISION', 'EERSTE DIVISIE':'FIRST DIVISION'}; // (het spandoek in de promotieparade: render/pixel/parade.js)
 export const vertaalPixel = s => TAAL === 'en' ? (PIXEL[s] ?? PIXEL[String(s).toUpperCase()] ?? s) : s;
 const CACHE = new Map(); // (dezelfde tekst komt bij elke weergave terug)
 export function vertaal(tekst){

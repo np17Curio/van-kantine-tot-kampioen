@@ -106,6 +106,8 @@ export const sprite = (w, h, ...stappen) => { const img = new Img(w, h), c = new
 // ---------- de onderdelen ----------
 // Het hoofd (38×26) met een kapsel. 'model' is het haar uit de stijlbron; de andere kapsels staan in kapsels.js
 import { haarAchter, haarVoor, haarRug, haarZijAchter, haarZijVoor } from './kapsels.js';
+import { verouder } from './leeftijd.js'; // (jouw speler wordt ouder: grijs, inhammen, rimpels; de code staat achter het kapsel)
+import { leesTattoo, tattooArm } from './tattoo.js'; // (jouw tattoos: alleen op huid, de code staat achter het kapsel)
 const HOOFDEN = new Map();
 // Gezichtshaar (baard: '', 'geen', 'stoppels', 'snor', 'sikje', 'baard'), in de haarkleur (h, en H voor de schaduw).
 // Van voren: gezicht x 10-31, mond y 22; van opzij (zij): gezicht x 15-31, mond x 28-30. De snor van voren is die van
@@ -168,6 +170,7 @@ export function hoofd(kapsel = 'model', vrouw = false, baard = ''){
     c.px(20, 19, 'S');
     if (vrouw){ c.hline(18, 22, 5, 'k'); c.hline(19, 23, 3, 'p'); } else c.hline(18, 22, 5, 'k');
     gezichtshaar(c, baard, false);
+    verouder(c, kapsel, 'voor');
   });
   HOOFDEN.set(sl, img); return img;
 }
@@ -188,6 +191,7 @@ export function hoofdZij(kapsel = 'model', vrouw = false, baard = ''){
     c.rect(23, 20, 3, 1, 'p');                                                                 // blos
     c.hline(28, 22, 3, 'k'); if (vrouw) c.px(29, 23, 'p');                                     // mond
     gezichtshaar(c, baard, true);
+    verouder(c, kapsel, 'zij');
   });
   HOOFDEN.set(sl, img); return img;
 }
@@ -198,6 +202,7 @@ export function hoofdRug(kapsel = 'model'){
     c.rect(10, 6, 22, 19, 's'); c.rect(10, 23, 22, 2, 'S'); c.rect(31, 8, 1, 15, 'S');      // het hoofd en de nek
     c.rect(5, 14, 3, 5, 's'); c.px(7, 16, 'S'); c.rect(34, 14, 3, 5, 'S');                  // oren
     haarRug(c, kapsel);
+    verouder(c, kapsel, 'rug');
   });
   HOOFDEN.set(sl, img); return img;
 }
@@ -311,7 +316,20 @@ export const BAL = sprite(11, 11, c => BAL_KAART.forEach((rij, y) => [...rij].fo
 export const GROND = 74;               // y van de grond (onderkant schoenen)
 export const W = 96, H = 90;
 const rad = d => d * Math.PI / 180, R = Math.round;
-const L = {boven:6, onder:5, dij:6, scheen:6};
+// De lengte van de ledematen. Langer dan de stijlbron (boven 6, onder 5, dij 6, scheen 6): een slankere, langere speler,
+// met meer ruimte op de armen (voor tattoos). De romp is ook langer: ROMP_EXTRA rijen shirt erbij (zie rek)
+const L = {boven:8, onder:7, dij:9, scheen:9};
+export const ROMP_EXTRA = 4, HEUP = 39 + ROMP_EXTRA; // HEUP: hoe ver de heup onder de bovenkant van het hoofd zit (oy = heup - HEUP)
+// De romp langer maken: de rijen 30-33 (het shirt, onder de kraag en de mouwen) elk twee keer. Werkt voor elk tenue,
+// pak, jas en trainingspak, en voor de achterkant met rugnummer, zonder dat elke romp opnieuw getekend hoeft te worden
+const REKKEN = new WeakMap();
+function rek(img){
+  let o = REKKEN.get(img); if (o) return o;
+  o = new Img(img.w, img.h + ROMP_EXTRA);
+  const rij = (van, naar) => { for (let x = 0; x < img.w; x++) o.d[naar * img.w + x] = img.d[van * img.w + x]; };
+  let y = 0; for (let r = 0; r < img.h; r++){ rij(r, y++); if (r >= 30 && r < 30 + ROMP_EXTRA) rij(r, y++); }
+  REKKEN.set(img, o); return o;
+}
 const stap = (x, y, hoek, len) => [x + Math.sin(rad(hoek)) * len, y + Math.cos(rad(hoek)) * len];
 function beenPunten(hx, hy, [a, buig]){ const [kx, ky] = stap(hx, hy, a, L.dij), [fx, fy] = stap(kx, ky, a - buig, L.scheen); return {kx, ky, fx, fy}; }
 function armPunten(sx, sy, [a, buig], f = 1){ const [ex, ey] = stap(sx, sy, a, L.boven * f), [hx, hy] = stap(ex, ey, a + buig, L.onder * f); return {ex, ey, hx, hy}; }
@@ -319,7 +337,7 @@ function dik(c, x0, y0, x1, y1, kleur, b){ c.line(R(x0), R(y0), R(x1), R(y1), 'k
 // Welke sleutels de ledematen per kleding krijgen (stijlbron: de teams THUIS, CASUAL, BAAS). Schoenen: y/Y, zolen: a/A
 // (de kleuren zelf komen uit de look: atlas.js lookVan)
 const LEDEN = {
-  tenue:   {dij:'s', dij2:'S', kous:'o', kous2:'O', mouw:'r', mouw2:'R', onder:'s', onder2:'S'},
+  tenue:   {dij:'s', dij2:'S', kous:'o', kous2:'O', mouw:'r', mouw2:'R', onder:'s', onder2:'S', kort:true}, // (kort: korte mouwen, de onderste helft van de bovenarm is huid)
   casual:  {dij:'e', dij2:'E', kous:'e', kous2:'E', mouw:'c', mouw2:'C', onder:'c', onder2:'C'},
   pak:     {dij:'c', dij2:'C', kous:'c', kous2:'C', mouw:'c', mouw2:'C', onder:'c', onder2:'C'},
   training:{dij:'u', dij2:'U', kous:'u', kous2:'U', mouw:'r', mouw2:'R', onder:'r', onder2:'R'},
@@ -345,11 +363,16 @@ function tekenBeen(c, hx, hy, pose, voor, T){
   dik(c, kx, ky, fx, fy, voor ? T.kous : T.kous2, 4);
   schoen(c, R(fx), R(fy), voor ? 'y' : 'Y', voor ? 'a' : 'A');
 }
-function tekenArm(c, sx, sy, pose, voor, hand, f, T, band){
+function tekenArm(c, sx, sy, pose, voor, hand, f, T, band, inkt){
   const {ex, ey, hx, hy} = armPunten(sx, sy, pose, f);
-  dik(c, sx, sy, ex, ey, voor ? T.mouw : T.mouw2, 4);
-  if (voor && band) c.line(R(sx + (ex - sx) * .55), R(sy + (ey - sy) * .55), R(sx + (ex - sx) * .85), R(sy + (ey - sy) * .85), '%', 4); // aanvoerdersband (stijlbron)
-  dik(c, ex, ey, hx, hy, voor ? T.onder : T.onder2, 3);
+  // korte mouwen (een voetbalshirt): de mouw tot halverwege de bovenarm, daaronder huid (daar is ook ruimte voor een tattoo)
+  const mx = sx + (ex - sx) * .35, my = sy + (ey - sy) * .35;
+  if (T.kort){ dik(c, mx, my, ex, ey, voor ? T.onder : T.onder2, 4); dik(c, sx, sy, mx, my, voor ? T.mouw : T.mouw2, 4); }
+  else dik(c, sx, sy, ex, ey, voor ? T.mouw : T.mouw2, 4);
+  if (voor && band) c.line(R(sx + (ex - sx) * (T.kort ? .12 : .55)), R(sy + (ey - sy) * (T.kort ? .12 : .55)), R(sx + (ex - sx) * (T.kort ? .42 : .85)), R(sy + (ey - sy) * (T.kort ? .42 : .85)), '%', 4); // aanvoerdersband (op de mouw)
+  if (inkt) T.kort ? tattooArm(c, R(mx), R(my), R(ex), R(ey), inkt, 'boven') : tattooArm(c, R(sx), R(sy), R(ex), R(ey), inkt, 'boven');
+  dik(c, ex, ey, hx, hy, voor ? T.onder : T.onder2, T.kort ? 4 : 3); // (blote armen iets steviger: dan past een tattoo erop)
+  if (inkt) tattooArm(c, R(ex), R(ey), R(hx), R(hy), inkt);
   vuist(c, R(hx), R(hy), hand);
   return [R(hx), R(hy)];
 }
@@ -361,15 +384,19 @@ function tekenBeenV(c, hx, hy, pose, voor, T, rug){
   dik(c, hx, ky, hx, fy, voor ? T.kous : T.kous2, 4);
   c.rect(x - 3, fy - 2, 7, 5, 'k'); c.rect(x - 2, fy - 1, 5, 2, voor ? 'y' : 'Y'); c.rect(x - 2, fy + 1, 5, 1, voor ? 'a' : 'A');
 }
-function tekenArmV(c, sx, sy, pose, kant, hand, f, T, voor){
+function tekenArmV(c, sx, sy, pose, kant, hand, f, T, voor, inkt){
   const a = armPunten(0, 0, pose, f), ex = sx + kant, hx = sx + kant;
-  dik(c, sx, sy, ex, sy + a.ey, voor ? T.mouw : T.mouw2, 4);
-  dik(c, ex, sy + a.ey, hx, sy + a.hy, voor ? T.onder : T.onder2, 3);
+  const my = sy + a.ey * .35;
+  if (T.kort){ dik(c, ex, my, ex, sy + a.ey, voor ? T.onder : T.onder2, 4); dik(c, sx, sy, ex, my, voor ? T.mouw : T.mouw2, 4); }
+  else dik(c, sx, sy, ex, sy + a.ey, voor ? T.mouw : T.mouw2, 4);
+  if (inkt) tattooArm(c, R(ex), R(T.kort ? my : sy), R(ex), R(sy + a.ey), inkt, 'boven');
+  dik(c, ex, sy + a.ey, hx, sy + a.hy, voor ? T.onder : T.onder2, T.kort ? 4 : 3);
+  if (inkt) tattooArm(c, R(ex), R(sy + a.ey), R(hx), R(sy + a.hy), inkt);
   vuist(c, R(hx), R(sy + a.hy), hand);
 }
 export function opGrond(P){ const l = beenPunten(0, 0, P.lL).fy, r = beenPunten(0, 0, P.lR).fy; return GROND - 3 - Math.max(l, r) - 1; }
 // Waar zitten heup en hoofd in deze pose (voor ankerpunten: rugnummer, kaart, iets in de hand)
-export function punten(P){ const hy = P.y ?? opGrond(P) - (P.hoog ?? 0), ox = R(P.x - 21), oy = R(hy - 39 + (P.dy ?? 0)); return {heup:[P.x, hy], hoofd:[ox + 21 + (P.hd ? P.hd[0] : 0), oy + 12 + (P.hd ? P.hd[1] : 0)], handVoor:(() => { const a = armPunten(ox + 30, oy + 28, P.aR, P.arm); return [a.hx, a.hy]; })()}; }
+export function punten(P){ const hy = P.y ?? opGrond(P) - (P.hoog ?? 0), ox = R(P.x - 21), oy = R(hy - HEUP + (P.dy ?? 0)); return {heup:[P.x, hy], hoofd:[ox + 21 + (P.hd ? P.hd[0] : 0), oy + 12 + (P.hd ? P.hd[1] : 0)], handVoor:(() => { const a = armPunten(ox + 30, oy + 28, P.aR, P.arm); return [a.hx, a.hy]; })()}; }
 
 // De hele speler in pose P. v = {kapsel, vrouw, kleding, patroon, band, nr, snor, baard, bal}. Geeft de plek van de voorste hand terug.
 // P (zoals in de stijlbron): x, y of hoog, dy, lL/lR [dij, knie], aL/aR [bovenarm, elleboog], hd [dx, dy], hand ('s' of 'q'), arm (lengte),
@@ -377,30 +404,31 @@ export function punten(P){ const hy = P.y ?? opGrond(P) - (P.hoog ?? 0), ox = R(
 // (een pen, een camera), voor = true tekent dat over de voorste arm
 export function speler(c, P, v = {}){
   const kleding = v.kleding || 'tenue', T = LEDEN[kleding] || LEDEN.tenue;
-  const hy = P.y ?? opGrond(P) - (P.hoog ?? 0), ox = R(P.x - 21), oy = R(hy - 39 + (P.dy ?? 0)), hand = P.hand ?? 's';
+  const hy = P.y ?? opGrond(P) - (P.hoog ?? 0), ox = R(P.x - 21), oy = R(hy - HEUP + (P.dy ?? 0)), hand = P.hand ?? 's';
   const [dx, dy] = P.hd ?? [0, 0], rt = P.richting, achterHand = hand === 's' ? 'S' : 'Q';
+  const tat = leesTattoo(v.kapsel) || {r:0, l:0}; // (r = de voorste arm, l = de achterste)
   if (rt === 'voor' || rt === 'achter'){
     const rug = rt === 'achter';
-    tekenBeenV(c, ox + 16, oy + 39, P.lL, false, T, rug);
-    tekenBeenV(c, ox + 26, oy + 39, P.lR, true, T, rug);
-    c.stamp(rug ? rompRug(kleding, v.patroon || 'strepen', v.nr) : romp(kleding, v.patroon || 'strepen'), ox, oy);
-    tekenArmV(c, ox + 11, oy + 28, P.aL, -1, achterHand, P.arm, T, false);
-    tekenArmV(c, ox + 30, oy + 28, P.aR, 1, hand, P.arm, T, true);
+    tekenBeenV(c, ox + 16, oy + HEUP, P.lL, false, T, rug);
+    tekenBeenV(c, ox + 26, oy + HEUP, P.lR, true, T, rug);
+    c.stamp(rek(rug ? rompRug(kleding, v.patroon || 'strepen', v.nr) : romp(kleding, v.patroon || 'strepen')), ox, oy);
+    tekenArmV(c, ox + 11, oy + 28, P.aL, -1, achterHand, P.arm, T, false, rug ? tat.r : tat.l);
+    tekenArmV(c, ox + 30, oy + 28, P.aR, 1, hand, P.arm, T, true, rug ? tat.l : tat.r);
     if (v.band){ const kx = rug ? ox + 12 : ox + 29; c.rect(kx - 1, oy + 30, 3, 3, '%'); }
     c.stamp(rug ? hoofdRug(v.kapsel || 'model') : hoofd(v.kapsel || 'model', !!v.vrouw, v.snor ? 'snor' : v.baard), ox + dx, oy + dy);
     if (P.bal && v.bal !== false) c.stamp(BAL, R(P.bal[0]) - 5, R(P.bal[1]) - 5, {rot:P.balRot || 0});
-    return [ox + 30, oy + 40];
+    return [ox + 30, oy + 40 + ROMP_EXTRA];
   }
   // vooraanzicht: schouders en heupen links en rechts; zijaanzicht: alles uit één punt (stijlbron)
   const zij = !!P.zij || rt === 'zij';
-  const sL = zij ? [21, 28] : [11, 28], sR = zij ? [21, 28] : [30, 28], hL = zij ? [20, 39] : [16, 39], hR = zij ? [22, 39] : [26, 39];
+  const sL = zij ? [21, 28] : [11, 28], sR = zij ? [21, 28] : [30, 28], hL = zij ? [20, HEUP] : [16, HEUP], hR = zij ? [22, HEUP] : [26, HEUP];
   if (P.extra && !P.voor) P.extra(c, {ox, oy, hy});
-  tekenArm(c, ox + sL[0], oy + sL[1], P.aL, false, achterHand, P.arm, T);
+  tekenArm(c, ox + sL[0], oy + sL[1], P.aL, false, achterHand, P.arm, T, false, tat.l);
   tekenBeen(c, ox + hL[0], oy + hL[1], P.lL, false, T);
   tekenBeen(c, ox + hR[0], oy + hR[1], P.lR, true, T);
-  c.stamp(zij ? rompZij(kleding, v.patroon || 'strepen') : romp(kleding, v.patroon || 'strepen'), ox, oy);
+  c.stamp(rek(zij ? rompZij(kleding, v.patroon || 'strepen') : romp(kleding, v.patroon || 'strepen')), ox, oy);
   c.stamp(zij ? hoofdZij(v.kapsel || 'model', !!v.vrouw, v.snor ? 'snor' : v.baard) : hoofd(v.kapsel || 'model', !!v.vrouw, v.snor ? 'snor' : v.baard), ox + dx, oy + dy);
-  const voorHand = tekenArm(c, ox + sR[0], oy + sR[1], P.aR, true, hand, P.arm, T, v.band);
+  const voorHand = tekenArm(c, ox + sR[0], oy + sR[1], P.aR, true, hand, P.arm, T, v.band, tat.r);
   if (P.extra && P.voor) P.extra(c, {ox, oy, hy});
   if (P.bal && v.bal !== false) c.stamp(BAL, R(P.bal[0]) - 5, R(P.bal[1]) - 5, {rot:P.balRot || 0});
   return voorHand;
@@ -414,7 +442,8 @@ export const ORIGINEEL = {k:'#1a1414', s:'#f7c9a8', S:'#e3a07e', p:'#f19a8f', h:
   c:'#2a2f3d', C:'#1b1f29', t:'#a3161b',
   // de tegenstander uit de stijlbron (UIT): blauw-geel shirt en blauwe kousen, witte broek, zwart haar, zwarte schoenen (animaties.js: alsUit)
   1:'#2b3f9e', 2:'#1a2563', 3:'#ffd84a', 4:'#d9a91c', 5:'#f4f4f8', 6:'#c4c4d0', 7:'#2a1f1c', 8:'#140e0c', 9:'#4a3a34', 0:'#3a3a44', '!':'#24242c', e:'#3a3f4a', E:'#23262e', m:'#c9ced8', l:'#ffe9a8', a:'#b8650a', A:'#8a4a08', '%':'#ffd21a', // (a/A: de zolen; %: de aanvoerdersband)
-  n:'#8a5a2b', N:'#5e3c1c'};
+  n:'#8a5a2b', N:'#5e3c1c',
+  '=':'#adadb4', '+':'#7c7c86', '&':'#3b3742', $:'#1c2236', '`':'#b3282f'}; // (grijs haar en een brillenmontuur: pixel/leeftijd.js)
 const RGB = new Map();
 const rgb = hex => { let v = RGB.get(hex); if (!v){ const n = parseInt(hex.slice(1), 16); v = [(n >> 16) & 255, (n >> 8) & 255, n & 255]; RGB.set(hex, v); } return v; };
 // Een afbeelding met sleutels naar een canvas met kleuren (pal: sleutel -> '#hex'; ontbreekt hij, dan de stijlbron)

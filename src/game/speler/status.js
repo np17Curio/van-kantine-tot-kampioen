@@ -8,7 +8,9 @@ import { norm } from '../transfers/zaakwaarnemer.js';
 import { LEEFTIJDEN, startVoor } from './startverhaal.js';
 import { maakJourney } from './journey.js';
 import { nieuweKans, vriendAlBijClub } from './proef.js';
-import { fotoVan } from '../media/nieuws.js';
+import { fotoVan, metVoorletter } from '../media/nieuws.js';
+import { selectie } from '../competitie/spelers.js';
+import { trainerVan } from '../trainer/pers.js';
 import { krantMelding } from '../media/roddel.js';
 import { MAX_PERS, PERS, pers } from './persoonlijkheid.js';
 import { zetWereld } from '../../data/gegevens.js';
@@ -100,6 +102,14 @@ export function statusDrempel(){
 // Een statuswijziging die het nieuws haalt: basisplaats, fanfavoriet, aanvoerder, clublegende, en terug naar de bank.
 // Dezelfde overgang komt pas na 6 speelrondes opnieuw in de krant (anders elke week "weer basis, weer bank")
 export const STATUS_KRANT_PAUZE = 6;
+// De foto bij "nieuwe aanvoerder": jij met de band, naast de trainer, met de twee vice-aanvoerders (de ervaren basisspelers)
+function aanvoerderFoto(naam, c){
+  const sp = S.sp; let vices = [], tr = '';
+  try { vices = selectie(sp.club).filter(x => x.basis && !x.jeugd && x.n !== sp.naam && !x.jij).sort((a, b) => (b.lft || 0) - (a.lft || 0) || (b.k || 0) - (a.k || 0)).slice(0, 2); } catch (e){}
+  try { tr = trainerVan(sp.club); } catch (e){}
+  const vNamen = vices.map(metVoorletter), wie = [tr ? `trainer ${tr}` : '', vNamen.length === 2 ? `de vice-aanvoerders ${vNamen[0]} en ${vNamen[1]}` : ''].filter(Boolean).join(' en ');
+  return {...fotoVan('aanvoerder', `${naam}, de nieuwe aanvoerder van ${c}${wie ? `, met ${wie}` : ''}.`), trainer:tr, vices:vices.map(x => x.n)};
+}
 export function statusKrant(oud, n){
   const sp = S.sp, c = club().n, naam = sp.naam;
   let sleutel = null, kop, tekst, foto = null;
@@ -109,7 +119,7 @@ export function statusKrant(oud, n){
     if (hid && !sp.o23) hoogtepunt(hid, {club:c}, true);
     if (n === 2){ sleutel = 'basis'; kop = `${naam} verovert een basisplaats bij ${c}`; tekst = 'De trainer rekent elke week op ' + ik.hem + '. "' + ik.Hij + ' heeft het verdiend."'; }
     else if (n === 3){ sleutel = 'fans'; kop = `Fanfavoriet: ${c} zingt de naam van ${naam}`; tekst = 'Op de tribune hangt al een spandoek met ' + ik.zijn + ' naam. De fans hebben een nieuwe ' + ik.held + '.'; }
-    else if (n === AANV){ sleutel = 'aanv'; kop = `${naam} is de nieuwe aanvoerder van ${c}`; tekst = `De trainer geeft ${ik.hem} de band. "${ik.Hij} gaat voorop in de strijd, op en naast het veld."`; foto = fotoVan('portret', `${naam}, de nieuwe aanvoerder van ${c}.`); }
+    else if (n === AANV){ sleutel = 'aanv'; kop = `${naam} is de nieuwe aanvoerder van ${c}`; tekst = `De trainer geeft ${ik.hem} de band. "${ik.Hij} gaat voorop in de strijd, op en naast het veld."`; foto = aanvoerderFoto(naam, c); }
     else if (n === LEGENDE){ sleutel = 'legende'; kop = `${naam} is een clublegende van ${c}`; tekst = 'Na jaren trouwe dienst krijgt ' + ik.hij + ' een plek in de eregalerij van de club.'; foto = fotoVan('portret', `Clublegende ${naam}.`); }
   } else if (oud >= AANV && n < AANV && n > 1){ sleutel = 'bandWeg'; kop = `${naam} raakt de aanvoerdersband kwijt`; tekst = `Na een reeks mindere wedstrijden geeft de trainer de band aan een ander. ${naam} moet het vertrouwen terugwinnen.`; }
   else if (oud >= 2 && n === 1){ sleutel = 'bank'; kop = `${naam} kwijt zijn basisplaats bij ${c}`; tekst = 'Na een paar mindere wedstrijden begint ' + ik.hij + ' weer op de bank. ' + ik.Hij + ' moet zich terugknokken.'; }
@@ -169,7 +179,7 @@ export function nieuwSpel(naam, pos, herkomst, land, opties = {}){
     relatie:null, rijbewijs:V.rijbewijs, rij:{lessen:V.rijbewijs ? 5 : 0, theorie:V.rijbewijs}, woning:V.woning, auto:V.auto, hond:false, status, clubWed:0, clubSz:0, statusNiveau:niveau, sindsTransfer:10, legendeHier:false,
     focus:65, school:{cijfers:[], gehad:[]}, ouders:{boos:false, trots:false},
     herkomst: herkomst || {geboren:'Nederland', vader:'Nederland', moeder:'Nederland'}, land:null, bonds:{}, agent:{doel:null, antwoord:null, gehaald:false, sugg:null},
-    pers:Array.isArray(opties.pers) ? opties.pers.filter(p => PERS[p]).slice(0, MAX_PERS) : [], startVerhaal:V.id, ...(opties.uiterlijk ? {uiterlijk:{...opties.uiterlijk}} : {}), ...(opties.sleutel ? {uitSleutel:opties.sleutel} : {})};
+    pers:Array.isArray(opties.pers) ? opties.pers.filter(p => PERS[p]).slice(0, MAX_PERS) : [], startVerhaal:V.id, ...(Array.isArray(opties.tattoos) && opties.tattoos.length ? {tattoos:opties.tattoos.map(t => ({...t, jaar:0}))} : {}), ...(opties.uiterlijk ? {uiterlijk:{...opties.uiterlijk}} : {}), ...(opties.sleutel ? {uitSleutel:opties.sleutel} : {})};
   if (opties.vrouw) sp.vrouw = true;
   if (sp.uiterlijk && sp.uiterlijk.lengte) sp.uiterlijk.eind = eindLengte(sp.uiterlijk.lengte, lft, !!opties.vrouw); // (je groeit nog tot je 23e)
   sp.valtOp = opties.valtOp === 'm' || opties.valtOp === 'v' ? opties.valtOp : opties.vrouw ? 'm' : 'v'; // je partner: een vriend ('m') of een vriendin ('v')

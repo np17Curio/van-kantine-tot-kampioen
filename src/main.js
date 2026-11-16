@@ -81,7 +81,7 @@ async function toonHulp(){
     <h3>Animatie bij een transfer</h3><p class="muted klein-tekst">Je tekent je contract bij de voorzitter, geeft hem een hand en houdt je nieuwe shirt omhoog.</p>
     <div class="rij">${['aan', 'uit'].map(v => `<label class="radio"><input type="radio" name="transferAnim" value="${v}" ${ta === v ? 'checked' : ''}> ${v[0].toUpperCase() + v.slice(1)}</label>`).join('')}</div>
     ${magBekijken ? '<p><button class="klein" id="bekijkTransfer" type="button">✍️ Bekijk de animatie (bij je huidige club)</button></p>' : ''}
-    <h3>Huldiging na een prijs</h3><p class="muted klein-tekst">Na een titel, een beker of een toernooi staat het team op het podium en til jij de prijs boven je hoofd.</p>
+    <h3>Huldiging na een prijs</h3><p class="muted klein-tekst">Na een titel, een beker of een toernooi staat het team op het podium en til jij de prijs boven je hoofd. Na een promotie rijden jullie in een open bus door de stad.</p>
     <div class="rij">${['aan', 'uit'].map(v => `<label class="radio"><input type="radio" name="huldigingAnim" value="${v}" ${(instel().huldigingAnim || 'aan') === v ? 'checked' : ''}> ${v[0].toUpperCase() + v.slice(1)}</label>`).join('')}</div>
     <h3>Opkomst vóór de wedstrijd</h3><p class="muted klein-tekst">De teams komen het veld op en je ziet beide opstellingen. Op het scherm vóór de aftrap kun je hem ook altijd zelf starten (🎬).</p>
     <div class="rij">${[['belangrijk', 'Belangrijke duels'], ['altijd', 'Altijd'], ['uit', 'Uit']].map(([v, l]) => `<label class="radio"><input type="radio" name="opkomst" value="${v}" ${(instel().opkomst || 'belangrijk') === v ? 'checked' : ''}> ${l}</label>`).join('')}</div>` : '';

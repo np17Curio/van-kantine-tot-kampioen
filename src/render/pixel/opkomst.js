@@ -11,6 +11,7 @@ import { regelBreedte, tekst } from './font.js';
 
 export const SW = 380, SH = 200, OP_FRAMES = 216, OP_FPS = 10;
 const T2 = 78, T3 = 140, T4 = 176, WACHT = 12, STAP = 6, AFSTAND = 30, TG = 300, TW = TG + 380;
+const SPOT = 30, PIJL_H = 76; // (jouw close-up: 3 seconden; de pijl staat zo hoog boven de voeten)
 const RIJ_AFSTAND = 28, RIJ_VOET = 170, RIJ_MARGE = 40, VB = 170, VH = 146, VELD = {thuis:[12, 46], uit:[198, 46]};
 export const FLITS3 = [[56, 60, 40], [60, 220, 55], [64, 130, 30], [68, 300, 70], [73, 80, 75]];
 export const DEEL = {tunnel:0, rij:T2, handen:T3, opstelling:T4};
@@ -149,7 +150,7 @@ function stijlInfo(){
 //   elf:[{naam, nr, xy, rond, cijfer, jij, persoon}]}, scheids:[{naam, persoon}], reclame, titel, tunnelNaam, kleuren (1-5: clubkleuren), leeg}
 // Geeft {teken(g, f): beeld f op een 2D-context van (SW+2)×(SH+2), flitsen(f): flitst er iemand}
 export function maakOpkomst(info = {}){
-  if (info.stijlbron) info = stijlInfo();
+  if (info.stijlbron){ const j = info.jij; info = stijlInfo(); if (j) info.thuis.elf[9].jij = true; } // (jij: om de extra aandacht voor jou te testen)
   const pal = {...STIJL, ...info.kleuren, 6:info.thuis.naamKleur, 7:info.uit.naamKleur};
   const sp = {};
   ['thuis', 'uit'].forEach(kant => info[kant].elf.forEach((x, i) => { sp[kant + i] = persoonSprites(x.persoon); }));
@@ -180,11 +181,20 @@ export function maakOpkomst(info = {}){
     cv:inkleuren(sprite(15, 15, c => { c.circ(7, 7, 7, i === A[kant] ? 'y' : x.jij ? 'M' : 'k'); c.circ(7, 7, 6, '1'); tekst(c, 8, 5, String(x.nr ?? ''), '2', {align:'c'}); }), {...STIJL, 1:x.rond, 2:x.cijfer})})));
   const flitsCv = inkleuren(sprite(9, 9, c => { c.line(4, 0, 4, 8, 'w'); c.line(0, 4, 8, 4, 'w'); c.rect(3, 3, 3, 3, 'w'); c.px(4, 4, 'y'); c.px(2, 2, 'y'); c.px(6, 2, 'y'); c.px(2, 6, 'y'); c.px(6, 6, 'y'); }), STIJL);
   const n = {thuis:info.thuis.elf.length, uit:info.uit.elf.length};
+  // Sta jij in de basis? Dan krijg je extra aandacht: een pijl boven je hoofd in de tunnel en op de rij, een gouden naambalk,
+  // en een eigen close-up (de camera zoomt op jou in, de fotografen flitsen) tussen de rij en het handjes schudden
+  const jijKant = ['thuis', 'uit'].find(k => info[k].elf.some(x => x.jij)), jijId = jijKant ? jijKant + info[jijKant].elf.findIndex(x => x.jij) : null;
+  const EXTRA = jijId ? SPOT : 0, jijJ = jijId ? OPRIJ.indexOf(jijId) : -1, jijX = RIJ_MARGE + 20 + jijJ * RIJ_AFSTAND;
+  const pijlCv = inkleuren(sprite(11, 8, c => { for (let y = 0; y < 6; y++) c.rect(y, y, 11 - 2 * y, 1, y < 2 ? 'y' : 'Y'); c.px(5, 6, 'Y'); }).outline(K('k')), STIJL);
+  const jijBalk = jijId && (() => { const w = wie(jijId);
+    return inkleuren(sprite(SW, 18, c => { c.rect(0, 0, SW, 18, 'O'); c.rect(0, 0, SW, 1, 'w'); c.rect(0, 17, SW, 1, 'Y'); c.rect(10, 3, 26, 12, 'K'); tekst(c, 23, 7, w.nr || '-', 'y', {align:'c'}); tekst(c, 44, 5, w.naam, 'k', {scale:2}); }), STIJL); })();
+  const spotTitel = jijId && balk('IN DE BASIS', 'y');
 
   const binnen = document.createElement('canvas'); binnen.width = SW; binnen.height = SH;
   const b = binnen.getContext('2d'); b.imageSmoothingEnabled = false;
   function teken(g, f){
     b.clearRect(0, 0, SW, SH);
+    let spot = -1; if (EXTRA && f >= T3){ if (f < T3 + EXTRA) spot = f - T3; else f -= EXTRA; } // (de close-up van jou zit tussen de rij en het handjes schudden)
     if (f < T2){
       // 1. de tunnel: wachten, dan naar buiten; de camera loopt mee met de kop van de stoet
       const gelopen = Math.max(0, f - WACHT) * STAP, camX = Math.max(0, Math.min(TW - SW, BAAN.achter.start + gelopen - 200));
@@ -192,6 +202,7 @@ export function maakOpkomst(info = {}){
       for (const baan of [BAAN.achter, BAAN.voor]) baan.ids.forEach((id, i) => {
         const x = baan.start - i * AFSTAND + gelopen - camX; if (x < -40 || x > SW + 40) return;
         b.drawImage(sp[id](f < WACHT ? 'zstaan' : 'l' + ((f + i * 3) % 8)), Math.round(x) - 36, baan.voet - GROND - 1);
+        if (id === jijId) b.drawImage(pijlCv, Math.round(x) - 6, baan.voet - PIJL_H + (f % 6 < 3 ? 0 : 1));
       });
       for (const [ff, x, y] of FLITS3) if (ff === f || ff + 1 === f) b.drawImage(flitsCv, x, y);
       if (f < WACHT) b.drawImage(titelCv, 0, 0);
@@ -200,7 +211,18 @@ export function maakOpkomst(info = {}){
       const camX = Math.round((f - T2) / (T3 - T2 - 1) * (RIJ_W - SW));
       b.drawImage(rijCv, -camX, 0);
       const j = Math.max(0, Math.min(OPRIJ.length - 1, Math.round((camX + SW / 2 - RIJ_MARGE - 20) / RIJ_AFSTAND)));
-      b.drawImage(balken[j], 0, 176);
+      if (jijId){ const px = jijX - camX; if (px > -10 && px < SW + 10) b.drawImage(pijlCv, px - 6, RIJ_VOET - PIJL_H + (f % 6 < 3 ? 0 : 1)); }
+      b.drawImage(j === jijJ && jijBalk ? jijBalk : balken[j], 0, 176);
+    } else if (spot >= 0){
+      // 2b. jouw close-up: ingezoomd (2×, scherpe pixels) op jou in de rij, de camera schuift langzaam naar je toe, de rest wordt donkerder
+      const cw = SW / 2, ch = SH / 2, cx = Math.round(Math.max(0, Math.min(RIJ_W - cw, jijX - cw / 2 - 24 * (1 - spot / (EXTRA - 1))))), cy = Math.round(Math.max(0, Math.min(SH - ch, RIJ_VOET + 6 - ch)));
+      b.drawImage(rijCv, cx, cy, cw, ch, 0, 0, SW, SH);
+      const sx = (jijX - cx) * 2, sy = (RIJ_VOET - 30 - cy) * 2, lg = b.createRadialGradient(sx, sy, 30, sx, sy, 150);
+      lg.addColorStop(0, 'rgba(10,8,20,0)'); lg.addColorStop(1, 'rgba(10,8,20,.78)'); b.fillStyle = lg; b.fillRect(0, 0, SW, SH);
+      b.drawImage(pijlCv, Math.round(sx - 11), Math.round((RIJ_VOET - PIJL_H - cy) * 2) + (spot % 6 < 3 ? 0 : 2), 22, 16);
+      for (let k = 0; k < 3; k++){ const h = hash(spot >> 1, k, 41); if (h % 3 === 0) b.drawImage(flitsCv, 20 + h % (SW - 40), 20 + (h >> 8) % 90); }
+      b.drawImage(spotTitel, 0, 0);
+      b.drawImage(jijBalk, 0, 176);
     } else if (f < T4){
       // 3. handjes schudden: het thuisteam staat met de hand uit, het uitteam loopt langs
       b.drawImage(breedCv, 0, 0);
@@ -209,7 +231,7 @@ export function maakOpkomst(info = {}){
       for (let i = 0; i < n.uit; i++){ const x = SW + 30 + i * 34 - t * 14; if (x < -40 || x > SW + 40) continue; b.drawImage(sp['uit' + i]('hl' + ((t + i * 3) % 8), true), Math.round(x) - 36, 166 - GROND - 1); }
       b.drawImage(fairCv, 0, 0);
     }
-    if (f >= T4 - 4){
+    if (spot < 0 && f >= T4 - 4){
       // 4. het opstellingsscherm schuift in beeld; de spelers verschijnen één voor één
       const dx = f < T4 ? Math.round(SW * (1 - (f - (T4 - 5)) / 5)) : 0;
       b.drawImage(opstCv, dx, 0);
@@ -218,8 +240,8 @@ export function maakOpkomst(info = {}){
     // de omlijning om het hele beeld, zoals pxl (de hoeken blijven leeg)
     g.clearRect(0, 0, SW + 2, SH + 2); g.fillStyle = STIJL.k; g.fillRect(1, 0, SW, SH + 2); g.fillRect(0, 1, SW + 2, SH); g.drawImage(binnen, 1, 1);
   }
-  const flitsen = f => f < T2 && FLITS3.some(([ff]) => ff === f);
-  return {teken, flitsen, W:SW + 2, H:SH + 2};
+  const flitsen = f => (f < T2 && FLITS3.some(([ff]) => ff === f)) || (EXTRA > 0 && f === T3 + 2);
+  return {teken, flitsen, W:SW + 2, H:SH + 2, frames:OP_FRAMES + EXTRA};
 }
 // voor het spel: de breedte van een tekst (om lange namen in te korten)
 export const breedte = s => regelBreedte(s);

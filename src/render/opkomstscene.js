@@ -134,8 +134,9 @@ async function speel(M){
     const label = laag.$('.op-label');
     laag.geladen();
     let vorig = -1;
-    await speelLus(laag, OP_FRAMES / OP_FPS, tt => {
-      const f = Math.max(0, Math.min(OP_FRAMES - 1, Math.floor(tt * OP_FPS)));
+    const frames = op.frames || OP_FRAMES; // (sta je in de basis, dan duurt het iets langer: je eigen close-up)
+    await speelLus(laag, frames / OP_FPS, tt => {
+      const f = Math.max(0, Math.min(frames - 1, Math.floor(tt * OP_FPS)));
       if (f === vorig) return;
       op.teken(g, f); vorig = f;
       if (op.flitsen(f)) laag.flits();

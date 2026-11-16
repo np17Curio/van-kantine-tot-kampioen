@@ -61,6 +61,8 @@ export function startInterland(naam){
   const T = L.s + (ovr(sp) - L.s) * .1 + (thuis ? 2 : 0), Opp = opp.s + (thuis ? 0 : 2);
   const M = {inter:{land:naam, type:O.type}, oppS:opp.s, wij:naam, zij:opp.n, thuis, rol, us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' || sp.pos === 'KEEPER' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false};
   S.M = M;
+  // je allereerste interland (voor welk land ook): dan speelt bij de aftrap de debuutscène (render/debuutscene.js), één keer
+  M.debuut = !Object.values(S.car.int || {}).some(x => x && x.caps > 0) && !S.car.debuutScene;
   // je jeugdvriend in de selectie? (journey.js)
   M.vriendMee = vriendInterland(naam);
   if (M.vriendMee) M.log.push({m:'', t:`Je ${vr.jeugdvriend} ${S.sp.vriend.voornaam} zit ook in de selectie${M.vriendMee.basis ? ', in de basis' : ', op de bank'}. Samen het volkslied zingen, net als vroeger in de achtertuin.`, k:'info'});

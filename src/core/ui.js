@@ -71,7 +71,7 @@ export function render(){
   // Net getekend bij een nieuwe club? Dan de animatie (over het spel heen; het spel zelf is al bijgewerkt)
   if (S && tmp.ondertekening){ const o = tmp.ondertekening; tmp.ondertekening = null; if (instel().transferAnim !== 'uit') speelOndertekening(o); }
   // Een prijs gewonnen? Dan eerst de huldiging; een persconferentie die nog open staat komt daarna (als speler na de wedstrijd, als trainer ervoor)
-  if (S && !tmp.beweging && !tmp.vrijTrainen && !tmp.stats && !tmp.simBezig){ if (S.huldiging || HULD_BEZIG) huldigingCheck(); else persCheck(); }
+  if (S && !tmp.beweging && !tmp.vrijTrainen && !tmp.stats && !tmp.simBezig){ if (S.mijlpaalGoal || MIJL_BEZIG) mijlpaalCheck(); else if (S.huldiging || HULD_BEZIG) huldigingCheck(); else if (galaOpen()) galaCheck(); else persCheck(); }
 }
 // De huldiging (render/huldigingscene.js): S.huldiging = {soort, prijs, clubId of land}, gezet bij de winst van een beker, de titel of een toernooi.
 // Na een wedstrijd pas als de laatste actie op het veld is uitgespeeld (zoals de persconferentie hieronder)
@@ -86,7 +86,33 @@ function huldigingCheck(){
   HULD_BEZIG = true;
   speelHuldigingNu(o).finally(() => { HULD_BEZIG = false; if (S) render(); });
 }
+// Een mijlpaalgoal (render/mijlpaalscene.js): S.mijlpaalGoal = {n, zij, clubId, soort}, gezet na je 1e, 50e en 100e goal (game/speler/mijlpaalgoal.js).
+// Net als de huldiging pas als de laatste actie op het veld is uitgespeeld; daarna komen een huldiging en de persconferentie
+let MIJL = null, MIJL_BEZIG = false, mijlWacht = 0, mijlSinds = 0;
+function mijlpaalCheck(){
+  if (MIJL_BEZIG || !S.mijlpaalGoal || S.fase === 'match') return;
+  if (S.fase === 'matchEnd' && S.M){ const open = openAnims(S.M); mijlSinds = mijlSinds || Date.now(); const lang = Date.now() - mijlSinds > 5000;
+    (S.M.gesimuleerd || lang ? open : open.slice(0, -1)).forEach(a => { a.gezien = true; }); }
+  if (S.fase === 'matchEnd' && S.M && openAnims(S.M).length && instel().anim !== 'uit'){ clearTimeout(mijlWacht); mijlWacht = setTimeout(() => { if (S && S.mijlpaalGoal) mijlpaalCheck(); }, 600); return; }
+  const o = S.mijlpaalGoal; S.mijlpaalGoal = null; mijlSinds = 0; bewaar();
+  if (instel().huldigingAnim === 'uit'){ render(); return; } // (dezelfde instelling als de huldiging: feestscènes aan of uit)
+  MIJL_BEZIG = true;
+  speelMijlpaalNu(o).finally(() => { MIJL_BEZIG = false; if (S) render(); });
+}
+export function speelMijlpaalNu(o){ return (MIJL || (MIJL = import('../render/mijlpaalscene.js'))).then(m => m.speelMijlpaal(o)).catch(e => console.warn('mijlpaalgoal', e)); }
 export function speelHuldigingNu(o){ return (HULD || (HULD = import('../render/huldigingscene.js'))).then(m => m.speelHuldiging(o)).catch(e => console.warn('huldiging', e)); }
+// Het gala van de Gouden Bal (render/galascene.js): één keer, op het eindscherm van het seizoen waarin je hem wint (S.eind.gala,
+// gezet door game/seizoen/gouden-bal-winst.js). Hangt aan dezelfde instelling als de huldiging
+let GALA = null, GALA_BEZIG = false;
+const galaOpen = () => S.fase === 'seizoenEinde' && S.eind && S.eind.gala && !S.eind.gala.animGezien;
+function galaCheck(){
+  if (GALA_BEZIG) return;
+  S.eind.gala.animGezien = true; bewaar();
+  if (instel().huldigingAnim === 'uit') return;
+  GALA_BEZIG = true;
+  speelGalaNu().finally(() => { GALA_BEZIG = false; if (S) render(); });
+}
+export function speelGalaNu(o){ return (GALA || (GALA = import('../render/galascene.js'))).then(m => m.speelGala(o)).catch(e => console.warn('gala', e)); }
 let PERS = null, persWacht = 0;
 function persOpenNu(){
   const P = S.fase === 'matchEnd' && S.M ? S.M.pers : S.fase === 'trainer' && S.trainer ? S.trainer.pers : null;

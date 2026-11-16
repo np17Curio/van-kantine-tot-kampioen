@@ -8,6 +8,7 @@ import { buitenWeek } from './prive/buiten-week.js';
 import { dieren } from './prive/dieren.js';
 import { familieWeek } from './prive/familie.js';
 import { relatieWeek } from './prive/gezin.js';
+import { partnerSponsorFactor, partnerWeek } from './prive/partner.js';
 import { haalFoutWeg, maakSchoolvraag } from './prive/school.js';
 import { baardWeek } from './prive/schoenen.js';
 import { agentAanbod, mijnAgent } from './transfers/zaakwaarnemer.js';
@@ -31,6 +32,7 @@ import { clubloosWeek } from './speler/clubloos.js';
 import { gbMoment } from './seizoen/gouden-bal.js';
 import { buitenlandWeek } from './prive/buitenland-leven.js';
 import { verleidingWeek, vriendWeek } from './speler/journey.js';
+import { kampTalentWeek } from './prive/voetbalschool.js';
 
 /* ===================== Week ===================== */
 export function nieuweWeek(eerste){
@@ -63,7 +65,7 @@ export function nieuweWeek(eerste){
   if (!eerste) agentAanbod(); // goed genoeg geworden voor een betere zaakwaarnemer?
   kalmWeek(eerste);
   if (!sp.clubloos) tuchtWeek(eerste);
-  relatieWeek(eerste);
+  relatieWeek(eerste); partnerWeek(eerste);
   raceWeek(eerste); // je rivaal: de race en zijn blessure
   buitenlandWeek(eerste); // in het buitenland: taal en heimwee
   if (!eerste) gbMoment(); // Gouden Bal: wat veranderde er sinds vorige week
@@ -79,7 +81,7 @@ export function nieuweWeek(eerste){
     if (sp.rep < d.minRep){ stop.push(`${d.merk} stopt de samenwerking: je reputatie is te ver gezakt.`); return false; }
     return true;
   });
-  const sGeld = sp.sponsors.reduce((a, d) => a + d.bedrag, 0) / AANTAL_RONDES;
+  const sGeld = sp.sponsors.reduce((a, d) => a + d.bedrag, 0) / AANTAL_RONDES * partnerSponsorFactor(); // (een bekende partner: meer sponsorgeld)
   sp.geld += sGeld; S.car.sponsor = (S.car.sponsor || 0) + sGeld;
   stop.forEach(t => S.week.tekst.push(t));
   if (!eerste && sp.relatie && sp.relatie.band < 25 && rnd() < .35){ mod('focus', -4); S.week.tekst.push(`Je hebt vaak ruzie met ${sp.relatie.naam}. Dat kost je concentratie.`); }
@@ -88,6 +90,7 @@ export function nieuweWeek(eerste){
   // Een gebeurtenis die deze week klaarstaat (zoals een jubileum) verschijnt nu
   vriendWeek(eerste); // je jeugdvriend: jullie band, en misschien probeert de zaakwaarnemer het opnieuw
   verleidingWeek(eerste); // de winterstop van je eerste seizoen: een zaakwaarnemer wil je vriend weghalen (deze week nog, niet een week later)
+  kampTalentWeek(eerste); // een talent van je voetbalkamp tekent bij je club (voetbalschool.js)
   hoogtepuntWeek(eerste); // een hoogtepunt van vorige week: met wie deel je het? (hoogtepunten.js)
   if (S.wachtEv){ S.ev = S.wachtEv; S.wachtEv = null; S.fase = 'event'; }
 }

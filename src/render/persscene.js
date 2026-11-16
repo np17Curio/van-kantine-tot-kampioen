@@ -1,5 +1,5 @@
 import { hashGetal, uiterlijkVoor } from './pixel/uiterlijk.js';
-import { BX, JOURNALISTEN, PH, PW, P_FPS, SX, DEUR, maakPers } from './pixel/pers.js';
+import { BX, JOURNALISTEN, PH, PW, P_FPS, SX, DEUR, maakPers, mondBij } from './pixel/pers.js';
 import { ploegen } from './pitch.js';
 import { S, club } from '../core/state.js';
 import { esc } from '../core/utils.js';
@@ -130,13 +130,13 @@ async function speel(o){
       if (fase === 'binnen'){
         if (t < LOOPT){ st.ikX = DEUR + t * 30; st.ikLoop = Math.floor(t * P_FPS); st.ikZit = 0; }
         else { st.ikZit = GLAD(LOOPT, ZITT, t); st.ikPose = st.ikZit < .5 ? 'staan' : 'zit'; }
-        if (t > LOOPT - .4 && t < LOOPT + 1.4) st.pvPose = 'zwaai';
+        if (t > LOOPT - .4 && t < LOOPT + 1.4){ st.pvPose = 'zwaai'; if (t > LOOPT - .3 && t < LOOPT + 1.1) st.pvMond = mondBij(t, 5); } // "Ga zitten, ..."
         if (t > .6 && !ui.onder) ui.onderschrift(o.kop, o.sub);
         if (t > LOOPT - .4 && !ui.wenk){ ui.wenk = true; ui.melding(`${esc(info.voorlichter)}, persvoorlichter: "Ga zitten, ze zijn er klaar voor."`); }
         if (t >= ZITT + 1.6){ q = -1; if (open.length){ q = open[0]; keuze = -1; handen.add(vrager()); naar('hand'); } else naar('opstaan'); }
         flitsKans = t > LOOPT ? 1.5 : .4;
       } else if (fase === 'hand'){
-        shot('handOp'); st.pvPose = ft < 1 ? 'zwaai' : 'zit';
+        shot('handOp'); st.pvPose = ft < 1 ? 'zwaai' : 'zit'; if (ft > .2 && ft < .8) st.pvMond = mondBij(ft, 11); // ("Ja, u daar")
         laag.$('.cs-onder').classList.remove('aan'); // (anders staat het onderschrift voor de journalist met zijn hand omhoog)
         if (ft > 1.6){ ui.vraag(vragen[q], open.indexOf(q), open.length); shot('tafel'); naar('vraag'); }
       } else if (fase === 'vraag'){
@@ -144,7 +144,7 @@ async function speel(o){
       } else if (fase === 'antwoord'){
         shot('jij');
         const s = vragen[q].opts[keuze].soort, snel = s === 'u' ? .18 : .3;
-        if (ft < 2.2){ gebaar += dt; st.ikPose = Math.floor(gebaar / snel) % 2 ? 'praat1' : 'praat2'; }
+        if (ft < 2.2){ gebaar += dt; st.ikPose = Math.floor(gebaar / snel) % 2 ? 'praat1' : 'praat2'; if (ft > .1) st.ikMond = mondBij(ft, q * 7); } // je mond beweegt terwijl je antwoordt (bij de vraag luister je: dicht)
         if (ft > 2.4){ ui.toonGevolg(); naar('gevolg'); }
       } else if (fase === 'gevolg'){
         if (ft > 1.2) shot('zaal');

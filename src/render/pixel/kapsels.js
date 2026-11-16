@@ -51,13 +51,19 @@ const FADE = (c, x0, y0, x1, y1) => {
 // Kaalgeschoren (de zijkanten van een hanenkam): de huid net iets donkerder, met hier en daar een stoppeltje
 const GESCHOREN = (c, x0, y0, x1, y1) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (c.is(x, y, 'sS')) c.px(x, y, RUIS(x, y) < 6 && !c.is(x - 1, y, 'h') ? 'h' : 'S'); };
 const STRENG = (c, x, y0, y1) => { for (let y = y0; y < y1; y += 2) c.rect(x, y, 3, 2, (y >> 1) % 2 ? 'h' : 'H'); };
-// een dreadlock: drie pixels breed, met een schaduwkant, gedraaide inkepingen, lichtpuntjes en een smal rond puntje
-const DREAD = (c, x, y0, y1) => { c.rect(x, y0, 3, y1 - y0, 'h'); c.vline(x + 2, y0, y1 - y0, 'H');
-  for (let y = y0 + 2; y < y1 - 1; y += 3){ c.px(x + 1, y, 'H'); c.px(x, y + 1, 'j'); }
-  c.px(x + 1, y1, 'h'); c.px(x + 2, y1, 'H'); };
-// de wortels van de locs op de schedel: vierkante vakjes met een naad ertussen en een lichtpuntje
-const WORTELS = (c, x0, y0, x1, y1) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++){ if (!c.is(x, y, 'hj')) continue;
-  const rx = (x - x0 + (Math.floor((y - y0) / 3) % 2) * 2) % 4, ry = (y - y0) % 3; if (rx === 3 || ry === 2) c.px(x, y, 'H'); else if (rx === 0 && ry === 0) c.px(x, y, 'j'); } };
+// Dreadlocks als rij strengen naast elkaar: elke loc is 3 breed (licht, haar, donkere naad), begint met een rond kopje op de
+// bolling van het hoofd (KOP: hoe lager naar de zijkanten) en eindigt in een rond puntje. Om de 4 pixels een draai in de loc.
+const KOP = x => Math.round(1 + ((x + 1 - 21) / 14) ** 2 * 7);
+const LOC = (c, x, y0, y1) => {
+  for (let y = y0; y <= y1; y++){
+    const kop = y === y0, punt = y === y1, d = y - y0;
+    if (kop){ c.px(x, y, 'h'); c.px(x + 1, y, 'h'); continue; } // (een breed kopje: de bovenrand blijft rond, niet stekelig)
+    if (punt){ c.px(x + 1, y, 'h'); continue; }
+    c.px(x, y, d <= 3 ? 'j' : 'h'); c.px(x + 1, y, d % 4 === 2 ? 'H' : 'h'); c.px(x + 2, y, 'H');
+  }
+};
+// een hele rij locs van links naar rechts; lang(x) zegt tot waar de loc op x hangt
+const LOCS = (c, x0, x1, lang, kop = KOP) => { for (let x = x0; x <= x1; x += 3) LOC(c, x, kop(x), lang(x)); };
 // Een echte knot: een ronde bol (r = 4) met glans linksboven, schaduw rechtsonder en een donker elastiekje waar hij op het hoofd zit
 const KNOT2 = (c, x, y, r = 4, voet = 'onder') => { c.circ(x, y, r, 'h'); c.circ(x + 1, y + 1, r - 1, 'h'); c.px(x - 1, y - 2, 'j'); c.px(x - 2, y - 1, 'j'); c.px(x - 2, y, 'j');
   c.line(x + 1, y + r - 1, x + r - 1, y + 1, 'H'); c.px(x + r, y, 'H'); c.px(x, y, 'H');
@@ -92,7 +98,14 @@ const ACHTER = {
     for (const [x, y] of [[10, 6], [15, 4], [21, 3], [27, 4], [32, 6], [8, 10], [34, 10]]){ c.circ(x, y, 3, 'h'); c.px(x - 1, y - 1, 'j'); c.px(x + 1, y + 1, 'H'); }
   },
   staart: c => { MODEL(c); c.line(8, 7, 3, 13, 'h', 4); c.line(3, 13, 2, 20, 'h', 3); c.line(3, 14, 2, 19, 'H'); c.rect(6, 7, 2, 3, 'H'); },
-  lang: c => { MODEL(c); c.rect(5, 8, 5, 17, 'h'); c.rect(32, 8, 5, 17, 'h'); },
+  // lang haar: een ronde bovenkant met een scheiding in het midden en een glansband, aan de zijkanten tot op de schouders,
+  // onderaan iets uitwaaierend en in punten (geen rechte rand: dan wordt het een helm)
+  lang: c => { c.ellipse(21, 6, 14, 6, 'h'); c.rect(7, 6, 28, 6, 'h');
+    c.rect(4, 8, 6, 15, 'h'); c.rect(32, 8, 6, 15, 'h');                                                    // de zijkanten
+    for (const [x, y] of [[3, 23], [4, 24], [6, 23], [7, 25], [9, 23], [32, 23], [34, 25], [35, 23], [37, 24], [38, 23]]) c.rect(x, y - 1, 2, 2, 'h'); // de puntjes
+    c.line(21, 0, 21, 9, 'H'); for (const [a, b] of [[[17, 1], [9, 9]], [[14, 2], [6, 13]], [[25, 1], [33, 9]], [[28, 2], [36, 13]]]) c.line(a[0], a[1], b[0], b[1], 'H');
+    c.vline(6, 12, 11, 'H'); c.vline(35, 12, 11, 'H'); c.vline(8, 15, 8, 'H'); c.vline(33, 15, 8, 'H');   // lokken naar beneden
+    c.line(11, 4, 17, 1, 'j'); c.line(12, 5, 18, 2, 'j'); c.line(25, 2, 29, 4, 'j'); },                  // glans
   kaal: c => { c.rect(10, 5, 22, 6, 's'); c.rect(12, 3, 18, 2, 's'); c.rect(15, 2, 12, 1, 's'); c.rect(29, 5, 3, 6, 'S'); c.rect(14, 4, 3, 1, 'S'); },
   afro: c => {
     c.ellipse(21, 7, 15, 8, 'h');
@@ -110,7 +123,11 @@ const VOOR = {
   kuif: () => {}, // (een kuif laat het voorhoofd vrij: geen donkere rand, die leek een pet)
   krul: c => { for (let x = 10; x < 32; x += 2) c.px(x, 10 + (x % 4 === 0 ? 1 : 0), 'h'); c.hline(10, 10, 22, 'h'); },
   staart: PONY,
-  lang: c => { PONY(c); c.rect(5, 10, 5, 15, 'h'); c.rect(32, 10, 5, 15, 'h'); c.vline(7, 11, 13, 'H'); c.vline(34, 11, 13, 'H'); },
+  // (van voren: gordijntjes vanaf de scheiding over het voorhoofd, en lange lokken vóór de oren langs tot op de schouders)
+  lang: c => { c.poly([10, 9, 21, 9, 21, 10, 15, 12, 10, 13], 'h'); c.poly([21, 9, 32, 9, 32, 13, 27, 12, 21, 10], 'h');
+    c.line(20, 10, 14, 12, 'H'); c.line(21, 10, 27, 12, 'H');
+    c.rect(6, 10, 4, 12, 'h'); c.rect(32, 10, 4, 12, 'h'); c.rect(6, 22, 3, 1, 'h'); c.rect(33, 22, 3, 1, 'h'); c.px(7, 23, 'h'); c.px(34, 23, 'h');
+    c.vline(8, 11, 11, 'H'); c.vline(33, 11, 11, 'H'); c.vline(6, 13, 6, 'j'); c.vline(35, 13, 6, 'H'); },
   kaal: () => {},
   afro: c => { c.ellipse(7, 12, 3, 6, 'h'); c.ellipse(35, 12, 3, 6, 'h'); c.hline(10, 10, 22, 'h'); c.px(6, 9, 'H'); c.px(36, 11, 'H'); },
   kroes: RECHTE_PONY,
@@ -149,8 +166,8 @@ Object.assign(ACHTER, {
   surfer: c => { SURF_TOP(c); c.rect(5, 7, 5, 12, 'h'); c.rect(32, 7, 5, 12, 'h'); PUNTEN(c, 5, 9, 19, -1); PUNTEN(c, 32, 36, 19, 1);
     GOLF(c, 7, 8, 20); GOLF(c, 34, 8, 20, 2); ZONGEBLEEKT(c, 5, 15, 9, 23); ZONGEBLEEKT(c, 32, 15, 37, 23); },
   // (van voren: naar achteren gebonden; de wortels bovenop en alleen de puntjes van de locks in de nek, achter de oren)
-  dreads: c => { c.ellipse(21, 6, 12, 5, 'h'); c.rect(9, 5, 24, 6, 'h'); WORTELS(c, 9, 1, 33, 10);
-    c.rect(8, 8, 2, 6, 'h'); c.rect(32, 8, 2, 6, 'h'); DREAD(c, 6, 15, 25); DREAD(c, 33, 15, 25); },
+  // dreadlocks: een rij locs over de hele bolling; naast het gezicht hangen ze door tot op de schouders (niet allemaal even lang)
+  dreads: c => { LOCS(c, 2, 35, x => x < 10 || x > 30 ? [24, 22, 25, 23][x % 4] : 11); },
   bob: c => { MODEL(c); c.rect(6, 8, 4, 13, 'h'); c.rect(32, 8, 4, 13, 'h'); },
   vlecht: c => { KORT(c); c.rect(10, 3, 22, 1, 'h'); for (const x of [15, 21, 27]) c.vline(x, 3, 6, 'H'); },
   knotjes: c => { KORT(c); KNOT(c, 10, 4, 4); KNOT(c, 32, 4, 4); },
@@ -171,13 +188,16 @@ Object.assign(VOOR, {
     for (const [x, y] of [[19, 10], [17, 11], [16, 11], [14, 12], [13, 12], [12, 13], [11, 13]]){ c.px(x, y, 'H'); c.px(41 - x, y, 'H'); }
     c.rect(12, 10, 4, 1, 'j'); c.rect(26, 10, 4, 1, 'j');
     c.rect(6, 10, 4, 9, 'h'); c.rect(32, 10, 4, 9, 'h'); PUNTEN(c, 6, 9, 19, -1); PUNTEN(c, 32, 35, 19, 1); GOLF(c, 8, 10, 20); GOLF(c, 33, 10, 20, 2); },
-  dreads: c => { c.hline(10, 10, 22, 'H'); for (let x = 11; x < 31; x += 3){ c.px(x, 10, 'h'); c.px(x + 1, 11, 'H'); } },  // (een rafelige haarlijn)
+  // (van voren: de locs boven het gezicht vallen met hun ronde puntjes net over de haarlijn)
+  dreads: c => { LOCS(c, 9, 30, x => (x % 2 ? 12 : 11)); },
   bob: c => { c.rect(10, 10, 22, 2, 'h'); c.hline(10, 12, 22, 'H'); c.rect(6, 10, 4, 11, 'h'); c.rect(32, 10, 4, 11, 'h'); c.hline(6, 21, 4, 'H'); c.hline(32, 21, 4, 'H'); c.vline(8, 11, 10, 'H'); c.vline(33, 11, 10, 'H'); },
   vlecht: RECHTE_PONY,
   knotjes: PONY,
 });
-export const haarAchter = (c, k) => (ACHTER[k] || MODEL)(c);
-export const haarVoor = (c, k) => (VOOR[k] || PONY)(c);
+// (achter het kapsel kan een leeftijdscode staan, 'kort@01200': die tekent pixel/leeftijd.js er daarna overheen)
+const B = k => String(k || 'model').split('@')[0];
+export const haarAchter = (c, k) => (ACHTER[B(k)] || MODEL)(c);
+export const haarVoor = (c, k) => (VOOR[B(k)] || PONY)(c);
 
 /* ---------- van opzij (profiel, naar rechts) en van achteren ---------- */
 // Van opzij (hoofdZij in rig.js, stijlbron _hoofd_zij): gezicht x 15-31, oor x 17-21, achterhoofd x 8-16.
@@ -207,19 +227,23 @@ const ZIJ_ACHTER = {
     c.line(21, 1, 31, 0, 'j'); c.px(24, 2, 'j'); c.px(29, 2, 'j'); },
   krul: c => { c.rect(10, 4, 22, 7, 'h'); for (const [x, y] of [[11, 5], [16, 3], [22, 3], [28, 5], [9, 11], [10, 17]]){ c.circ(x, y, 3, 'h'); c.px(x - 1, y - 1, 'j'); c.px(x + 1, y + 1, 'H'); } },
   staart: c => { ZIJ_MODEL(c); c.line(9, 9, 3, 14, 'h', 4); c.line(3, 14, 2, 21, 'h', 3); c.line(3, 15, 2, 20, 'H'); c.rect(8, 8, 2, 3, 'H'); },
-  lang: c => { ZIJ_MODEL(c); c.rect(6, 8, 10, 17, 'h'); c.vline(8, 10, 14, 'H'); c.vline(12, 12, 12, 'H'); },
+  // (van opzij: een ronde bovenkant met glans, het haar valt achter het oor langs tot op de schouders en loopt in punten uit)
+  lang: c => { ZIJ_MODEL(c); c.rect(5, 8, 12, 15, 'h'); for (const [x, y] of [[4, 23], [6, 24], [9, 25], [12, 24], [15, 23]]) c.rect(x, y - 1, 2, 2, 'h');
+    c.line(18, 1, 8, 12, 'H'); c.vline(7, 13, 11, 'H'); c.vline(11, 12, 12, 'H'); c.vline(14, 14, 9, 'H'); c.line(13, 3, 20, 1, 'j'); c.line(14, 4, 21, 2, 'j'); },
   kaal: c => { ZIJ_DAK(c, 's', 1, 4.5); ACHTERHOOFD(c, 's', 8, 19); c.px(10, 17, 'S'); c.px(11, 18, 'S'); c.rect(13, 19, 3, 1, 'S'); }, // (alleen een schaduw onder de bolling: een donkere band achterop leek haar)
   afro: c => { c.ellipse(19, 8, 15, 9, 'h'); c.rect(6, 8, 10, 13, 'h'); for (let y = 0; y < 21; y += 3) for (let x = 5; x < 35; x += 4){ const xx = x + (y % 2) * 2; if (c.is(xx, y, 'h')) c.px(xx, y, 'H'); } c.rect(14, 1, 3, 1, 'j'); },
   kroes: c => { ZIJ_KORT(c); for (let y = 4; y < 16; y += 2) for (let x = 9 + (y % 4 ? 1 : 0); x < 32; x += 3) if (c.is(x, y, 'h')) c.px(x, y, 'H'); },
   cornrows: ZIJ_CORN,
   vlechten: c => { ZIJ_CORN(c); for (let y = 12; y < 26; y += 2){ c.rect(8, y, 3, 2, (y >> 1) % 2 ? 'h' : 'H'); c.rect(12, y + 1, 3, 2, (y >> 1) % 2 ? 'H' : 'h'); } },
 };
-const ZIJ_VOOR = {model:ZIJ_PONY, staart:ZIJ_PONY, lang:ZIJ_PONY, kort:ZIJ_RECHT, kuif:ZIJ_RECHT, kroes:ZIJ_RECHT, cornrows:ZIJ_RECHT, vlechten:ZIJ_RECHT,
+const ZIJ_VOOR = {model:ZIJ_PONY, staart:ZIJ_PONY, kort:ZIJ_RECHT, kuif:ZIJ_RECHT, kroes:ZIJ_RECHT, cornrows:ZIJ_RECHT, vlechten:ZIJ_RECHT,
   krul: c => { for (let x = 17; x < 32; x += 2) c.px(x, 10 + (x % 4 === 1 ? 1 : 0), 'h'); c.hline(17, 10, 15, 'h'); },
+  // (lang haar van opzij: een gordijntje dat schuin over het voorhoofd naar voren valt, boven het oog langs)
+  lang: c => { c.poly([16, 9, 31, 9, 31, 11, 26, 12, 20, 13, 16, 14], 'h'); c.line(18, 10, 29, 11, 'H'); c.line(17, 12, 23, 11, 'j'); },
   afro: c => c.hline(17, 10, 15, 'h'), kaal: c => c.rect(15, 10, 1, 9, 's'), // (kaal: de achterrand van het gezicht loopt niet als een streep over de schedel)
   stekels: ZIJ_RECHT, hanenkam: () => {}, fade: ZIJ_RECHT, millimeter: c => { c.hline(18, 10, 13, 'H'); },
   scheiding: c => { ZIJ_RECHT(c); c.line(18, 10, 31, 12, 'h', 2); }, midden: c => { ZIJ_RECHT(c); c.line(17, 10, 31, 13, 'h', 2); }, knot: ZIJ_RECHT, surfer: c => { for (let x = 17; x <= 31; x++){ const d = x >= 29 ? 3 : x >= 25 ? 2 : 1; c.rect(x, 10, 1, d, 'h'); c.px(x, 9 + d, 'H'); } c.rect(20, 10, 5, 1, 'j'); }, // (de pluk die over het voorhoofd naar voren valt)
-  dreads: c => { ZIJ_RECHT(c); for (const x of [18, 23, 28]) DREAD(c, x, 9, 11); },
+  dreads: c => { LOCS(c, 17, 30, () => 11, x => Math.round(1 + ((x - 19) / 13) ** 2 * 7)); },
   bob: c => { c.rect(17, 10, 15, 2, 'h'); c.hline(17, 12, 15, 'H'); }, vlecht: ZIJ_RECHT, knotjes: ZIJ_PONY};
 Object.assign(ZIJ_ACHTER, {
   stekels: c => { ZIJ_KORT(c); for (let x = 10; x < 30; x += 4){ c.poly([x, 6, x + 1, 0, x + 4, 5], 'h'); c.px(x + 1, 2, 'j'); } },
@@ -232,13 +256,13 @@ Object.assign(ZIJ_ACHTER, {
     KNOT2(c, 9, 4, 4, 'zij'); c.vline(13, 2, 5, 'H'); },                                      // de knot achterop, elastiekje tegen het hoofd
   surfer: c => { ZIJ_DAK(c, 'h', 0, 4); c.rect(9, 3, 3, 8, 'h'); c.rect(6, 8, 10, 12, 'h'); PUNTEN(c, 6, 15, 20, -1); GOLF(c, 8, 9, 22); GOLF(c, 11, 6, 22, 2); GOLF(c, 14, 8, 21, 4);
     c.line(28, 2, 18, 5, 'H'); c.line(24, 5, 15, 9, 'H'); c.rect(18, 1, 6, 1, 'j'); ZONGEBLEEKT(c, 6, 16, 15, 24); },
-  dreads: c => { ZIJ_KORT(c); c.ellipse(19, 6, 12, 5, 'h'); WORTELS(c, 8, 1, 31, 9); for (const [x, y1] of [[4, 24], [7, 25], [10, 23], [13, 21]]) DREAD(c, x, 6, y1); },
+  dreads: c => { LOCS(c, 0, 16, x => [22, 25, 24, 23, 25, 21][Math.floor(x / 3) % 6], x => Math.round(1 + ((x - 19) / 13) ** 2 * 7)); },
   bob: c => { ZIJ_MODEL(c); c.hline(8, 20, 9, 'H'); },
   vlecht: c => { ZIJ_KORT(c); c.rect(8, 9, 3, 3, 'h'); STRENG(c, 8, 12, 26); c.hline(8, 11, 3, 'H'); },
   knotjes: c => { ZIJ_KORT(c); KNOT(c, 14, 3, 4); },
 });
-export const haarZijAchter = (c, k) => (ZIJ_ACHTER[k] || ZIJ_MODEL)(c);
-export const haarZijVoor = (c, k) => (ZIJ_VOOR[k] || ZIJ_PONY)(c);
+export const haarZijAchter = (c, k) => (ZIJ_ACHTER[B(k)] || ZIJ_MODEL)(c);
+export const haarZijVoor = (c, k) => (ZIJ_VOOR[B(k)] || ZIJ_PONY)(c);
 
 // Van achteren (hoofdRug in rig.js): het achterhoofd, met de oren aan beide kanten en onderin de nek
 const RUG_VOL = c => { c.rect(8, 3, 26, 19, 'h'); c.rect(10, 1, 22, 2, 'h'); c.rect(13, 0, 16, 1, 'h'); for (const x of [13, 18, 23, 28]) c.line(x, 3, x - 1, 20, 'H'); c.rect(14, 2, 3, 1, 'j'); c.rect(21, 2, 3, 1, 'j'); };
@@ -251,7 +275,9 @@ const RUG = {
     c.line(15, 0, 27, 0, 'j'); },
   krul: c => { c.rect(9, 5, 24, 13, 'h'); for (const [x, y] of [[10, 6], [15, 4], [21, 3], [27, 4], [32, 6], [9, 12], [33, 12], [14, 15], [21, 16], [28, 15]]){ c.circ(x, y, 3, 'h'); c.px(x - 1, y - 1, 'j'); c.px(x + 1, y + 1, 'H'); } },
   staart: c => { RUG_VOL(c); c.rect(19, 18, 4, 7, 'h'); c.vline(21, 19, 6, 'H'); c.rect(19, 17, 4, 1, 'H'); },
-  lang: c => { RUG_VOL(c); c.rect(7, 10, 28, 15, 'h'); for (const x of [11, 17, 24, 30]) c.vline(x, 12, 13, 'H'); },
+  // (van achteren: één glanzende massa tot op de schouders, met lokken en een gepunte onderrand)
+  lang: c => { RUG_VOL(c); c.rect(6, 10, 30, 13, 'h'); for (let x = 5; x <= 36; x++) c.rect(x, 22, 1, [2, 3, 2, 1, 2, 3, 3, 2, 1][x % 9], 'h'); // (een golvende onderrand, zonder gaten)
+    for (const x of [10, 15, 21, 27, 32]) c.line(x, 6, x + (x < 21 ? -1 : x > 21 ? 1 : 0), 23, 'H'); c.line(13, 3, 19, 1, 'j'); c.line(14, 4, 20, 2, 'j'); },
   kaal: c => { c.rect(10, 4, 22, 18, 's'); c.rect(12, 2, 18, 2, 's'); c.rect(29, 5, 3, 17, 'S'); c.rect(13, 5, 4, 1, 'S'); },
   afro: c => { c.ellipse(21, 9, 16, 10, 'h'); for (let y = 0; y < 20; y += 3) for (let x = 6; x < 37; x += 4){ const xx = x + (y % 2) * 2; if (c.is(xx, y, 'h')) c.px(xx, y, 'H'); } },
   kroes: c => { RUG_KORT(c); for (let y = 4; y < 18; y += 2) for (let x = 9 + (y % 4 ? 1 : 0); x < 33; x += 3) c.px(x, y, 'H'); },
@@ -268,9 +294,10 @@ Object.assign(RUG, {
   knot: c => { c.rect(9, 4, 24, 15, 'h'); c.rect(11, 3, 20, 1, 'h'); for (const [a, b] of [[12, 18], [18, 20], [24, 22], [30, 24]]) c.line(a, 16, b, 7, 'H'); // (glad, met lokken naar de knot)
     KNOT2(c, 21, 2, 4, 'geen'); },
   surfer: c => { RUG_VOL(c); c.rect(7, 10, 28, 12, 'h'); PUNTEN(c, 7, 34, 22, 1); for (const [x, f] of [[10, 0], [15, 2], [20, 4], [25, 1], [30, 3]]) GOLF(c, x, 4, 23, f); ZONGEBLEEKT(c, 7, 20, 35, 26); },
-  dreads: c => { RUG_KORT(c); c.ellipse(21, 5, 13, 5, 'h'); WORTELS(c, 8, 1, 34, 8); for (let x = 6; x < 36; x += 3) DREAD(c, x, 6, (x / 3) % 2 ? 23 : 25); },
+  // (van achteren: de hele rij locs hangt door tot in de nek, niet allemaal even lang)
+  dreads: c => { LOCS(c, 2, 35, x => [24, 22, 25, 23, 25][Math.floor(x / 3) % 5]); },
   bob: c => { RUG_VOL(c); c.rect(8, 10, 26, 11, 'h'); c.hline(8, 21, 26, 'H'); for (const x of [13, 18, 23, 28]) c.vline(x, 10, 11, 'H'); },
   vlecht: c => { RUG_KORT(c); for (const x of [16, 21, 26]) c.line(x, 3, 21, 15, 'H'); STRENG(c, 19, 15, 26); c.px(20, 25, 'j'); },
   knotjes: c => { RUG_KORT(c); KNOT(c, 10, 4, 4); KNOT(c, 32, 4, 4); },
 });
-export const haarRug = (c, k) => (RUG[k] || RUG_VOL)(c);
+export const haarRug = (c, k) => (RUG[B(k)] || RUG_VOL)(c);

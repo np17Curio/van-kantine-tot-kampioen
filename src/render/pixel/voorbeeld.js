@@ -49,7 +49,7 @@ export function voorbeeldNaRender(){
   if (!cv) return;
   // het uiterlijk zoals op het veld: lengte en bmi worden de factoren lengte en bouw
   const [huid, haar, kapsel, lengte, bmi, vrouw, schoen, baard] = (cv.dataset.uit || '').split(',');
-  const eigen = {huid:+huid, haar:+haar, kapsel, lengte:+lengte || undefined, bmi:+bmi || undefined, vrouw:vrouw === '1', ...(schoen !== undefined && schoen !== '' ? {schoen:+schoen} : {}), ...(baard ? {baard} : {})};
+  const eigen = {huid:+huid, haar:+haar, kapsel, lengte:+lengte || undefined, bmi:+bmi || undefined, vrouw:vrouw === '1', ...(schoen !== undefined && schoen !== '' ? {schoen:+schoen} : {}), ...(baard ? {baard} : {}), leeftijd:+cv.dataset.leeftijd || 15, tattoo:cv.dataset.tattoo || ''}; // (de tattoos die je bij het aanmaken kiest, vanaf 18) // (met de gekozen startleeftijd: 15, 18 of 23)
   const look = lookVan(uiterlijkVoor('jij|' + (cv.dataset.sleutel || 'x'), eigen), STANDAARD);
   speelReel(cv, look, REEL);
 }

@@ -10,6 +10,7 @@ import { vriendNaam, vriendSpeler, zetRivaalBand, zetVriendBand } from '../spele
 import { rivaalNaam } from '../speler/rivaal.js';
 import { lichaamKans, lichaamMomentFactor } from '../speler/lichaam.js';
 import { ik, team, vr } from '../../core/geslacht.js';
+import { handelsmerk, merkMisTekst, merkNaam, merkTekst } from '../speler/handelsmerk.js';
 
 /* ===================== Wedstrijdmomenten ===================== */
 export const goal = (t, d) => ({t, d, goal:true});
@@ -56,7 +57,9 @@ export const MOMENTS = {
     {l:'Voorzet', st:'pas', b:55, ok:()=>assistKans(.45, 'Je voorzet draait precies op het hoofd van'), mis:()=>({t:'Je voorzet is te lang en gaat zo uit.', d:-.2})},
     {l:'Kort nemen', st:'pas', b:60, ok:()=>({t:'Het ingestudeerde trucje werkt! De muur staat te slapen.', d:.3, next:'rand'}), mis:()=>({t:'Het trucje mislukt totaal. Ongemakkelijk.', d:-.4})},
     {l:'Onder de muur door', st:'afw', b:70, ok:()=>goal('De muur springt, jij schiet eronderdoor. Binnen!', 1.6), mis:()=>({t:'De muur blijft staan. Geblokt.', d:-.2})},
-    {l:'Teamgenoot laten nemen', st:'kalm', b:20, ok:()=> rnd() < .25 ? {t:'Je teamgenoot schiet hem er prachtig in. Jij juicht mee.', d:.1, teamGoal:true} : {t:'Je teamgenoot schiet in de muur.', d:0}, mis:()=>({t:'Je teamgenoot schiet ver over.', d:0})}]},
+    {l:'Teamgenoot laten nemen', st:'kalm', b:20, ok:()=> rnd() < .25 ? {t:'Je teamgenoot schiet hem er prachtig in. Jij juicht mee.', d:.1, teamGoal:true} : {t:'Je teamgenoot schiet in de muur.', d:0}, mis:()=>({t:'Je teamgenoot schiet ver over.', d:0})},
+    // je handelsmerk-trap (handelsmerk.js): alleen als je er een hebt, net iets meer kans dan direct op doel
+    {get l(){ return merkNaam(); }, merk:true, alleen:()=>!!handelsmerk(), vast:true, st:'afw', b:70, anim:['vrij', 'direct'], ok:()=>goal(merkTekst(), 1.8), mis:()=>({t:merkMisTekst(), d:-.1})}]},
   corner:{teksten:['Hoekschop voor jullie. Je staat in de zestien tussen een paar grote verdedigers.','Corner! Jullie beste voorzetter legt de bal klaar.'], opts:[
     {l:'Koppen op doel', st:'afw', b:66, ok:()=>goal('Je stijgt boven iedereen uit en kopt hem binnen!', 1.3), mis:()=>({t:'Je kopbal gaat naast.', d:-.1})},
     {l:'Terugkoppen', st:'pas', b:52, ok:()=>assistKans(.5, 'Je kopt de bal slim terug naar'), mis:()=>({t:'Je kopt hem zo in de handen van de keeper.', d:-.2})},
@@ -176,6 +179,7 @@ const TOON_KEUZE = {'Rustig blijven':'kalm', 'Lachen en weglopen':'bal', 'Melden
   'Rustig weglopen':'kalm', 'Teamgenoot wegtrekken':'bal', 'Neus tegen neus gaan staan':'fel', 'Protesteren bij de scheids':'fel',
   'Rustig blijven, het plan volgen':'kalm', 'Iedereen motiveren':'bal', 'Fel zijn en iedereen wakker schudden':'fel',
   'Niet juichen, uit respect':'kalm', 'Uitbundig juichen voor het oude vak':'bal', '"Ssst"-gebaar naar het oude vak':'fel'};
+MOMENTS.vrijeTrap.opts.forEach(o => { o.vt = true; }); // (een goal uit een van deze keuzes telt als vrije trap-goal: handelsmerk.js)
 for (const t of ['provocatie', 'opstootje', 'toespraak', 'juichen']) (MOMENTS[t] ? MOMENTS[t].opts : []).forEach(o => { if (!o.toon && TOON_KEUZE[o.l]) o.toon = TOON_KEUZE[o.l]; });
 // Tegen je vriend: hij staat ineens tegenover je
 MOMENTS.vriendTegen = {
@@ -250,6 +254,19 @@ Object.assign(MOMENTS, {
     {l:'Snel inspelen', st:'pas', b:52, ok:()=>({t:'Een snelle pass, en jullie zijn onder de druk uit.', d:.25}), mis:()=>keeperTegen(.4, 'Onderschept. Tegengoal.', 'Onderschept, maar je verdediger herstelt.', -.6, -.2)},
     {l:'Op de tribune', st:'kalm', b:25, ok:()=>({t:'De bal vliegt de tribune in. Veilig.', d:0}), mis:()=>({t:'Je raakt hem verkeerd: hoekschop.', d:-.1})}]},
 });
+// Strafschoppenserie in de beker (strafschoppen.js). kant: waar je schiet (schutter) of waar je heen duikt, gezien vanuit jezelf (keeper: jouw links = links van de schutter gespiegeld)
+Object.assign(MOMENTS, {
+  ssSchutter:{teksten:[''], opts:[
+    {l:'Laag in de linkerhoek', st:'afw', b:44, kant:'L', hoog:false},
+    {l:'Laag in de rechterhoek', st:'afw', b:44, kant:'R', hoog:false},
+    {l:'Hoog in de linkerhoek', st:'afw', b:54, kant:'L', hoog:true},
+    {l:'Hoog in de rechterhoek', st:'afw', b:54, kant:'R', hoog:true},
+    {l:'Hard door het midden', st:'kalm', b:52, kant:'M', hoog:false}]},
+  ssKeeper:{keeper:true, teksten:[''], opts:[
+    {l:'Naar links duiken', st:'verd', b:60, kant:'L'},
+    {l:'Naar rechts duiken', st:'verd', b:60, kant:'R'},
+    {l:'Blijven staan', st:'kalm', b:58, kant:'M'}]}
+});
 // De animatie per keuze bij je vriend (zijn naam staat in het label, dus de tabel met labels werkt hier niet).
 // 'pass/keeper' = naar je eigen keeper (je vriend als hij keeper is); bij vriendKeeperTegen is hij de keeper van de tegenstander
 [['vriendVrij', [['pass', 'normaal'], ['schot', 'normaal'], ['pass', 'eentwee'], ['pass', 'hak']]],
@@ -292,7 +309,8 @@ export function bouwMoment(type){
   const d = MOMENTS[type];
   const waarschuwing = S.M && S.M.geel && KAART_MOMENTEN.includes(type) ? ' Let op: je hebt al een gele kaart. Nog een kaart is rood!' : '';
   // de vaste optie (het schot bij een scoremoment) zit er altijd bij; de rest is een willekeurige keuze, tot 4 in totaal
-  const vast = d.opts.map((o, i) => i).filter(i => d.opts[i].vast), rest = shuffle(d.opts.map((o, i) => i).filter(i => !d.opts[i].vast));
+  const mag = i => !d.opts[i].alleen || d.opts[i].alleen(); // (sommige keuzes zijn er alleen soms, zoals je handelsmerk-trap)
+  const vast = d.opts.map((o, i) => i).filter(i => d.opts[i].vast && mag(i)), rest = shuffle(d.opts.map((o, i) => i).filter(i => !d.opts[i].vast && mag(i)));
   return {type, tekst:pick(d.teksten) + waarschuwing, idx:shuffle([...vast, ...rest].slice(0, Math.min(4, d.opts.length)))};
 }
 export const pOpts = p => p.idx.map(i => MOMENTS[p.type].opts[i]);

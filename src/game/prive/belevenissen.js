@@ -6,6 +6,7 @@ import { iedereen, zetBand } from '../team/kleedkamer.js';
 import { ouders } from './familie.js';
 import { inBuitenland, thuis, vluchtPrijs } from './buitenland-leven.js';
 import { social, volgersTxt } from './social.js';
+import { voegTattooToe } from './tattoo.js';
 import { ik, team } from '../../core/geslacht.js';
 
 /* ===================== Belevenissen buiten het voetbal ===================== */
@@ -39,8 +40,8 @@ export function belevenissen({sp, n, jong, bekend, meid}){
       {l:'Het nummer meteen blokkeren', f(){ return 'Weg ermee. Je stuurt nog een waarschuwing in de familiegroepsapp.'; }}]},
     // 4 · eenmalig
     {soort:'prive', als: sp.leeftijd >= 18 && !gehad('tattoo'), tekst:'Een paar teamgenoten hebben net een nieuwe tattoo. Jij zit ook al een tijdje te twijfelen.', opts:[
-      {l:'Een kleine op je onderarm', f(){ beleef('tattoo'); mod('moraal', 4); return 'Een klein voetballetje met de datum van je debuut. Je bent er blij mee.'; }},
-      {l:'Een grote op je hele rug', f(){ beleef('tattoo'); const b = betaal(900); mod('moraal', 6); band(-6); if (bekend) roddel(`${sp.naam} laat enorme tattoo zetten`, 'Op ' + ik.zijn + ' hele rug prijkt nu een leeuw met een voetbal. Fans zijn verdeeld.');
+      {l:'Een kleine op je onderarm', f(){ beleef('tattoo'); voegTattooToe('klein'); mod('moraal', 4); return 'Een klein voetballetje met de datum van je debuut. Je bent er blij mee.'; }},
+      {l:'Een grote op je hele rug', f(){ beleef('tattoo'); voegTattooToe('rug'); const b = betaal(900); mod('moraal', 6); band(-6); if (bekend) roddel(`${sp.naam} laat enorme tattoo zetten`, 'Op ' + ik.zijn + ' hele rug prijkt nu een leeuw met een voetbal. Fans zijn verdeeld.');
         return `${b ? geldTxt(b) + ' en ' : ''}zes uur pijn later heb je een leeuw met een voetbal op je rug. Je moeder schrikt zich rot als ze hem ziet.`; }},
       {l:'Toch maar niet', f(){ beleef('tattoo'); return 'Je bedenkt je in de wachtkamer. Misschien later.'; }}]},
     // 5 · eenmalig

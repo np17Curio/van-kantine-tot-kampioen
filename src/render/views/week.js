@@ -11,11 +11,15 @@ import { kindActie, ouderActie, ouderCadeau, ouderVliegPrijs, ouders } from '../
 import { ZAKEN, geldZaken, haalSpaar, koopAandelen, spaar, startZaak, verkoopAandelen, verkoopZaak } from '../../game/prive/geld.js';
 import { RING, aanzoek, geefNaam, kindLeeftijd, overKinderen, relatieEisen, samenwonen, scheidingKosten, trouwen } from '../../game/prive/gezin.js';
 import { STICHTING_PRIJS, goedDoel } from '../../game/prive/goede-doelen.js';
+import { KAMPEN, KAMP_WEKEN, SCHOOL_PRIJS, geefKamp, kampKost, kampReden, kampTalenten, school, startSchool, talentLeeftijd } from '../../game/prive/voetbalschool.js';
+import { POS_NAAM } from '../../game/competitie/spelers.js';
+import { EIGENSCHAPPEN, partnerEig } from '../../game/prive/partner.js';
 import { DATE_PRIJS, STAPPEN_PRIJS, cadeauPrijs, datingApp, gaStappen, relatieActie, uitElkaar } from '../../game/prive/liefde.js';
 import { beantwoord, spijbelen } from '../../game/prive/school.js';
 import { POSTS, VOLG_ACTIES, influencerPerWeek, kledingPerWeek, post, social, volgActie, volgersTxt } from '../../game/prive/social.js';
-import { koop } from '../../game/prive/sponsors.js';
+import { isProf, koop } from '../../game/prive/sponsors.js';
 import { merkenPerWeek, mijnMerken, vMerken } from '../../game/prive/merken.js';
+import { vTattoo } from '../../game/prive/tattoo.js';
 import { OORDEEL, besteLeagues, mijnLeague, oordeel } from '../../game/speler/niveau.js';
 import { landenRanking } from '../../game/competitie/landsterkte.js';
 import { KAPPER, MERKEN, baardMag, kanAanvragen, kanKapper, kansTxt, mijnUiterlijk, naarKapper, naarKapperBaard, schoenDeal, schoenKans, vraagAan } from '../../game/prive/schoenen.js';
@@ -457,6 +461,7 @@ function vBuitenBasis(){
     if (e.kind === '') acties.push(knop('Praten over kinderen', overKinderen, 'klein', 'data-blijf'));
     const hints = [e.samen, e.aanzoek, e.trouwen, e.kind].filter(Boolean);
     liefde = `<p>Je bent ${r.getrouwd ? 'getrouwd' : r.verloofd ? 'verloofd' : 'samen'} met <b>${esc(r.naam)}</b> (${r.weken} ${r.weken === 1 ? 'week' : 'weken'} samen)${stap ? ` · ${esc(stap)}` : ''}. <span class="muted">${gevoel}</span></p>
+      <div class="klein-tekst" style="display:grid;gap:2px"><span class="label">Karakter</span>${partnerEig().map(id => `<span><b>${EIGENSCHAPPEN[id].n}</b> · <span class="muted">${EIGENSCHAPPEN[id].uitleg}</span></span>`).join('')}</div>
       ${samenHtml}<div class="rij">${acties.join('')}${tmp.uitmaken ? '' : knop(r.getrouwd ? 'Scheiden' : 'Het uitmaken', () => { tmp.uitmaken = true; }, 'klein', 'data-blijf')}</div>
       ${hints.length ? `<p class="muted klein-tekst">${hints.map(esc).join(' ')}</p>` : ''}
       ${tmp.uitmaken ? `<div class="paneel"><p>${r.getrouwd ? `Weet je zeker dat je wilt scheiden van ${esc(r.naam)}? Ze krijgt de helft van je spaargeld (${geldTxt(scheidingKosten())}).` : `Weet je zeker dat je het wilt uitmaken met ${esc(r.naam)}?`}</p><div class="rij">${knop(sp.relatie.getrouwd ? 'Ja, scheiden' : 'Ja, uitmaken', () => { tmp.uitmaken = false; uitElkaar(); }, 'klein', 'data-blijf')}${knop('Nee, toch niet', () => { tmp.uitmaken = false; }, 'klein', 'data-blijf')}</div></div>` : ''}`;
@@ -492,7 +497,7 @@ function vBuitenBasis(){
   const goedHtml = `<p>${S.ss.goed ? `Dit seizoen deed je al ${S.ss.goed} keer iets voor een goed doel.` : 'Iets terugdoen voor anderen.'} <span class="muted">Vijf keer in een seizoen levert een prijs op.</span>${sp.stichting ? ` Jouw <b>${esc(sp.stichting.naam)}</b> helpt kinderen om te voetballen.` : ''}</p>
     ${w.goed ? '<p class="muted">Deze week heb je al iets gedaan.</p>' : ''}
     <div class="keuzes">${[['ziekenhuis', 'Kinderziekenhuis bezoeken', 'moraal +4 · reputatie +1 · focus +2'], ['clinic', 'Voetbalclinic geven', 'moraal +3 · reputatie +1 · fitheid −3'], ['doneren', `${geldTxt(Math.max(100, Math.round(sp.geld * .1)))} doneren`, '10% van je geld · moraal +3 · reputatie']].concat(sp.stichting ? [] : [['stichting', 'Eigen stichting oprichten', `${geldTxt(STICHTING_PRIJS)} · reputatie +6 · elke week moraal +1`]])
-      .map(([id, l, ds]) => keuzeKnop(l, ds, () => goedDoel(id), `data-blijf ${w.goed || (id === 'doneren' && sp.geld < 100) || (id === 'stichting' && sp.geld < STICHTING_PRIJS) ? 'disabled' : ''}`)).join('')}</div>`;
+      .map(([id, l, ds]) => keuzeKnop(l, ds, () => goedDoel(id), `data-blijf ${w.goed || (id === 'doneren' && sp.geld < 100) || (id === 'stichting' && sp.geld < STICHTING_PRIJS) ? 'disabled' : ''}`)).join('')}</div>` + vVoetbalschool();
   // Familie
   const ou = ouders(), ob = Math.round(ou.band), kinds = sp.kinderen || [], ver = inBuitenland();
   const famHtml = `<p>Je band met je ouders: <b>${ob}</b> <span class="risico ${ob >= 70 ? 'r-veilig' : ob >= 40 ? 'r-gem' : 'r-riskant'}">${ob >= 70 ? 'Heel goed' : ob >= 40 ? 'Goed' : 'Afstandelijk'}</span>${ou.boos ? ' <span class="risico r-riskant">Boos om je cijfers</span>' : ''}${sp.items.ouders ? ' <span class="muted">· ze wonen in het huis dat jij voor ze kocht</span>' : ''}</p>
@@ -527,6 +532,7 @@ function vBuitenBasis(){
       ${sp.vrouw ? '' : baardMag() && u.baard !== undefined ? `<span class="label" style="margin-top:8px">Gezichtshaar · ${geldTxt(KAPPER.knippen)}</span>
       <div class="kapsels" role="group" aria-label="Gezichtshaar">${BAARD_KEUZE.map(([b, n]) => knop(n, () => naarKapperBaard(b), 'klein' + (u.baard === b ? ' aan' : ''), `data-blijf aria-pressed="${u.baard === b}" ${kapper && u.baard !== b && sp.geld >= KAPPER.knippen ? '' : 'disabled'}`)).join('')}</div>`
         : `<p class="muted klein-tekst" style="margin-top:8px">Gezichtshaar: je baard komt nog (rond je 18e).</p>`}</div></div>
+    ${vTattoo()}
     <span class="label winkelkop">Voetbalschoenen${dl ? ` · jij speelt op ${esc(dl.merk)} (${geldTxt(dl.bedrag)} per jaar, ${dl.levenslang ? 'levenslang' : `nog ${dl.jaren} ${dl.jaren === 1 ? 'seizoen' : 'seizoenen'}`})` : ''}</span>
     <p class="muted klein-tekst">Hoe beter je bent, hoe groter het merk dat je wil hebben. De grote merken nemen alleen de beste spelers. Per merk kun je het één keer per halfjaar vragen.</p>
     <div class="keuzes">${MERKEN.map(m => { const reden = kanAanvragen(m), k = schoenKans(m);
@@ -536,6 +542,19 @@ function vBuitenBasis(){
   return `<section id="buitenPanel" class="paneel sectie"><h3 class="sectiekop">Buiten het voetbal · ${esc(samenvatting)}</h3>
     <div class="buitentabs" role="tablist" style="margin-top:8px">${tabs.map(([k, l]) => knop(l, () => { tmp.buitenTab = k; }, 'comptab' + (k === tab[0] ? ' aan' : ''), `data-blijf role="tab" aria-selected="${k === tab[0]}"`)).join('')}</div>
     <div class="winkel" style="margin-top:10px">${tab[2]}</div></section>`;
+}
+// Je eigen voetbalschool en het zomerkamp (voetbalschool.js), onder Goede doelen
+function vVoetbalschool(){
+  const sp = S.sp, v = school(), tal = kampTalenten();
+  if (!v) return `<span class="label winkelkop">Eigen voetbalschool</span>
+    <p class="muted klein-tekst">Een voetbalschool met jouw naam: elke zomer geef je een kamp voor kinderen. Wie weet ontdek je een groot talent.</p>
+    <div class="keuzes">${keuzeKnop('Voetbalschool beginnen', isProf() ? `${geldTxt(SCHOOL_PRIJS())} · reputatie +2 · elke zomer een kamp` : 'alleen als prof', startSchool, `data-blijf ${isProf() && sp.geld >= SCHOOL_PRIJS() ? '' : 'disabled'}`)}</div>`;
+  const zomer = S.ronde < KAMP_WEKEN && v.laatste !== S.jaar;
+  return `<span class="label winkelkop">${esc(v.naam)} · ${v.kampen} ${v.kampen === 1 ? 'kamp' : 'kampen'}, ${v.kinderen} kinderen</span>
+    <p class="muted klein-tekst">${v.laatste === S.jaar ? 'Het kamp van deze zomer zit erop.' : zomer ? 'Het is zomer: tijd voor je kamp. Eén per jaar.' : 'Volgende zomer (de eerste weken van het seizoen) kun je weer een kamp geven.'}</p>
+    <div class="keuzes">${KAMPEN.map(k => { const r = kampReden(k), kost = kampKost(k);
+      return keuzeKnop(k.n, `${kost ? geldTxt(kost) + ' kosten, plus inschrijfgeld' : 'gratis'} · reputatie +${k.rep} · fans +${k.fans} · moraal +${k.moraal}${r && zomer ? ' · ' + r : ''}`, () => geefKamp(k.id), `data-blijf ${r ? 'disabled' : ''}`); }).join('')}</div>
+    ${tal.length ? `<p class="klein-tekst"><b>Ontdekte talenten:</b> ${tal.map(t => `${esc(t.voornaam)} ${esc(t.n)} (${talentLeeftijd(t)}, ${POS_NAAM[t.pos].toLowerCase()})${t.club != null ? ` · <span class="goedtxt">bij ${esc(CLUBS[t.club].n)}</span>` : t.elders ? ' · bij een andere club' : ''}`).join(' · ')}</p>` : ''}`;
 }
 export function vSchool(){
   const v = S.week && S.week.school; if (!v) return '';

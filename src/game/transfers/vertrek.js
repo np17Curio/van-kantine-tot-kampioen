@@ -17,6 +17,9 @@ export const VERTREK_NA = 2;
 // Je eerste seizoen bij een nieuwe club: de club laat je nog niet gaan (geen biedingen, geen vertrekverzoek).
 // Wel: een club die je afkoopclausule betaalt, verhuur, en weggestuurd worden. Na een huurperiode telt je club als bekend terrein
 export const eersteSeizoen = () => { const sp = S.sp; return !!sp && !sp.clubloos && !sp.huur && !sp.huurTerug && (sp.clubSz || 0) < 1; };
+// Nieuw bij je club: het eerste jaar (je eerste seizoen, of een vol seizoen aan weken na een transfer in de winter) mag je club je
+// niet verkopen of verhuren, en komen er geen biedingen van andere clubs (alleen als een club je afkoopclausule betaalt)
+export const nieuwBijClub = () => { const sp = S.sp; return eersteSeizoen() || (!!sp && !sp.huur && !sp.huurTerug && !sp.clubloos && (sp.sindsTransfer || 0) < AANTAL_RONDES); };
 export function vertrekKans(){
   const sp = S.sp, n = statusNiveau();
   return clamp([.85, .75, .55, .35, .2, .1][n] + (sp.contract <= 1 ? .15 : 0) + (sp.vert < 30 ? .15 : 0) - (sp.contract >= 3 ? .1 : 0), .05, .95);

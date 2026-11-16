@@ -150,6 +150,9 @@ export const rivaalNaam = (R = rivaal()) => R ? metVoorletter(R) : '';
 // Welke rivaal speelt er bij deze tegenstander? (je hoofdrivaal gaat voor)
 export const rivaalTegen = opp => alleRivalen().find(R => { const r = rivaalSpeler(R); return !!(r && !(R.blessure > 0) && r.id === opp && r.id !== S.sp.club); }) || null;
 export const speeltTegenRivaal = opp => !!rivaalTegen(opp);
+// Een rivaal in je eigen ploeg met wie het slecht gaat (Vijand of erger, band -20 of lager) en die in de basis staat:
+// dan zie je dat ook in de wedstrijd (wedstrijd.js: momenten 'rivaalPloeg'; pitch.js: zijn naam met een ster boven zijn hoofd)
+export const ploegRivaal = () => alleRivalen().find(R => { if (!(R.band <= -20) || R.blessure > 0) return false; const r = rivaalSpeler(R); return !!(r && r.id === S.sp.club && r.x.basis !== false); }) || null;
 // Na een wedstrijd tegen zijn club: onderling resultaat, en de krant als een van jullie scoorde
 export function naRivaalDuel(M){
   const R = duelRivaal(M); if (!R || !M.rivaal) return null;

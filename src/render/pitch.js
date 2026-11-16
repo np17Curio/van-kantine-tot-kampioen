@@ -17,7 +17,13 @@ export const PITCH_KLEUR = {wij:'#c6f432', zij:'#e05252', K:'#9b6bd6', k:'#3fae6
 // Startopstelling per soort moment
 // Keeper: dezelfde scènes als een kans of goal van de tegenstander (of de opbouw), maar dan sta jij in het doel
 const KEEPER_SCENE = {redding:'tegenKans', eenOpEenKeeper:'tegenKans', hogeBal:'tegenKans', penaltyKeeper:'tegenKans', uittrap:'opbouw', terugspeel:'opbouw'};
-export function pitchScene(type){ if (KEEPER_SCENE[type]){ const sc = pitchSceneBasis(KEEPER_SCENE[type]); return alsKeeper({sc, st:[]}).sc; } return keeperVeld(pitchSceneBasis(type), type); }
+export function pitchScene(type){
+  // De strafschoppenserie (strafschoppen.js): jij achter de bal op de stip, of jij in het doel en hun schutter achter de bal
+  if (type === 'ssSchutter' || type === 'ssKeeper'){ const sc = pitchSceneBasis('shootout'), E = sc.ents;
+    if (type === 'ssSchutter') Object.assign(E.J, {x:92.5, y:34}), Object.assign(E.S, {x:86, y:38});
+    else { Object.assign(E.J, {x:104.6, y:34, rol:'k'}); Object.assign(E.S, {rol:'zij'}); E.K && Object.assign(E.K, {x:100, y:80}); }
+    return sc; }
+  if (KEEPER_SCENE[type]){ const sc = pitchSceneBasis(KEEPER_SCENE[type]); return alsKeeper({sc, st:[]}).sc; } return keeperVeld(pitchSceneBasis(type), type); }
 // Als keeper: een duel (provocatie, opstootje) speelt zich af bij je eigen doel, en bij een wissel draag je je keepersshirt
 const KEEPER_DUEL = ['provocatie', 'opstootje'];
 function keeperVeld(sc, type){
@@ -212,18 +218,24 @@ function animScriptBasis(a){
   const juich = (wie, links) => { if (!E[wie] || (wie === 'J' && a.dansNa)) return; // (na jouw goal kies je zelf hoe je juicht: dansen.js)
  const hoek = links ? {x:3, y:62} : {x:102, y:62}; const mv = {[wie]:{...hoek, pose:'juich'}}; ['A', 'B', 'C', 'J', 'Y', 'Z'].forEach(k => { if (k === 'J' && a.dansNa) return; if (k !== wie && E[k] && E[k].rol === E[wie].rol) mv[k] = k === 'J' && (a.bank || a.tribune) ? (a.bank ? {pose:'juich'} : undefined) : {x:hoek.x + (links ? 3 : -3) + r() * 2, y:hoek.y - 2 - r() * 4, pose:'juich'}; }); stap(900, mv, null); };
   if (c === 'shootout'){
-    let w = 0, z = 0;
+    // a.start: de stand vóór deze reeks (de serie wordt in stukjes afgespeeld als jij meedoet: strafschoppen.js).
+    // Per strafschop (optioneel) k.y/k.z: waar de bal heen gaat, k.ky: waar de keeper duikt, k.naast: mis, k.jijK: jij staat in het doel
+    let w = a.start ? a.start.w : 0, z = a.start ? a.start.z : 0;
+    const jRol = S && S.sp && S.sp.pos === 'KEEPER' ? 'k' : 'wij';
     a.kicks.forEach(k => {
-      const schutter = k.jij ? 'J' : 'S', hoek = r() < .5 ? 31.4 : 36.6;
-      const reset = {S:{x:k.jij ? 86 : 92.5, y:k.jij ? 38 : 34, rol:k.w ? 'wij' : 'zij', pose:null}, K:{x:104.6, y:34, rol:k.w ? 'K' : 'k'}};
-      if (k.jij) reset.J = {x:92.5, y:34, pose:null}; else reset.J = {x:84, y:44, pose:null};
+      const schutter = k.jij ? 'J' : 'S', hoek = k.y ?? (r() < .5 ? 31.4 : 36.6), KP = k.jijK ? 'J' : 'K';
+      const reset = {S:{x:k.jij ? 86 : 92.5, y:k.jij ? 38 : 34, rol:k.w ? 'wij' : 'zij', pose:null}, K:k.jijK ? {x:100, y:80} : {x:104.6, y:34, rol:k.w ? 'K' : 'k'}};
+      reset.J = k.jij ? {x:92.5, y:34, pose:null, rol:jRol} : k.jijK ? {x:104.6, y:34, pose:null, rol:'k'} : {x:84, y:44, pose:null, rol:jRol};
       stap(1, reset, {to:{x:94, y:34, z:0}, boog:0});
       stap(320, {[schutter]:{x:93.4, y:34}}, null);
-      if (k.r){ k.w ? w++ : z++; stap(480, {K:{y:hoek > 34 ? 31.5 : 36.5, z:.5}}, {to:{x:105.6, y:hoek, z:.3 + r() * 1.5}, boog:.3}, {t:`Raak! ${w}-${z}`, kl: k.w ? '#ffd84a' : '#ff9b9b', net:true, score:`${w}-${z}`}); }
-      else stap(480, {K:{y:hoek, z:.5}}, {to:{x:104.4, y:hoek, z:.8}, boog:.3}, {t:`Gestopt! ${w}-${z}`, kl: k.w ? '#ff9b9b' : '#b9ff9c', score:`${w}-${z}`});
-      stap(600, {[schutter]:{x:k.jij ? 96 : 95, y:k.r ? 30 : 37, pose: k.r === !!k.w ? 'juich' : 'sorry'}}, null); // even kijken: juichen of balen
+      const sc0 = `${w}-${z}`;
+      if (k.r){ k.w ? w++ : z++; stap(480, {[KP]:{y:k.ky ?? (hoek > 34 ? 31.5 : 36.5), z:.5}}, {to:{x:105.6, y:hoek, z:k.z ?? .3 + r() * 1.5}, boog:.3}, {t:`Raak! ${w}-${z}`, kl: k.w ? '#ffd84a' : '#ff9b9b', net:true, score:`${w}-${z}`}); }
+      else if (k.naast) stap(480, {[KP]:{y:k.ky ?? 34, z:.5}}, {to:{x:107, y:hoek > 34.5 ? 38.6 : hoek < 33.5 ? 29.4 : 34, z:(k.z || 0) > 1 ? 3.3 : .5}, boog:.4}, {t:`Mis! ${sc0}`, kl: k.w ? '#ff9b9b' : '#b9ff9c', score:sc0});
+      else stap(480, {[KP]:{y:k.ky ?? hoek, z:.5}}, {to:{x:104.4, y:k.ky ?? hoek, z:Math.min(k.z ?? .8, 1.3)}, boog:.3}, {t:`Gestopt! ${sc0}`, kl: k.w ? '#ff9b9b' : '#b9ff9c', score:sc0});
+      // even kijken: juichen of balen (de schutter juicht als hij raak schiet; jij als keeper na een redding)
+      stap(600, {[schutter]:{x:k.jij ? 96 : 95, y:k.r ? 30 : 37, pose:k.r ? 'juich' : 'sorry'}, ...(k.jijK && !k.r ? {J:{pose:'juich'}} : {})}, null);
     });
-    stap(300, {}, null, {t:a.winst ? 'Gewonnen!' : 'Uitgeschakeld', kl:a.winst ? '#ffd84a' : '#ff7b7b'});
+    if (a.winst !== undefined) stap(300, {}, null, {t:a.winst ? 'Gewonnen!' : 'Uitgeschakeld', kl:a.winst ? '#ffd84a' : '#ff7b7b'});
     return {sc, st};
   }
   if (c === 'teamGoal' || c === 'teamKans' || c === 'tegenGoal' || c === 'tegenKans'){
@@ -747,7 +759,10 @@ export function pitchStatisch(el, type){
 // Speelt je rivaal mee (wedstrijd tegen zijn club), dan is hij in elke scène de tegenstander die het dichtst bij jou staat (X, anders Y of Z).
 // veld3d.js zet een ster met zijn naam boven zijn hoofd, en hij heeft steeds hetzelfde uiterlijk
 export function rivaalInBeeld(ents){
-  const M = S && S.M; if (!M || !M.rivaal || M.inter || !ents) return null;
+  const M = S && S.M; if (!M || M.inter || !ents) return null;
+  // je rivaal speelt in jouw ploeg (en het schuurt): zijn naam met een ster boven een ploeggenoot naast je
+  if (!M.rivaal && M.ploegRivaal){ const id = ['A', 'B', 'C'].find(k => ents[k] && ents[k].rol === 'wij'); return id ? {id, naam:M.ploegRivaal.naam, mee:true} : null; }
+  if (!M.rivaal) return null;
   const id = ['X', 'Y', 'Z'].find(k => ents[k] && ents[k].rol === 'zij'); if (!id) return null;
   let naam = ''; try { naam = rivaalNaam(); } catch (e){} return naam ? {id, naam} : null;
 }

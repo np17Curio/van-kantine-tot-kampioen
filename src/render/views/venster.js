@@ -51,19 +51,23 @@ export function huurKaart(x){
     ${bl ? `<p class="muted klein-tekst">Je verhuist een seizoen naar ${esc(o.land)}: nieuwe competitie, nieuwe clubs, een nieuwe taal. In de zomer ga je terug naar ${esc(club().n)}.</p>` : ''}
     <div class="rij">${knop(`Op huur naar ${esc(c.n)}`, () => gaHuren(o), 'hoofd middel')}</div></div>`;
 }
+// Wil je club je kwijt na je huurperiode (transferlijst)? Dan geen 'blijven', maar wel 'nergens tekenen en wachten'.
+// (ook voor een transferperiode die al open stond voor deze regel bestond: die herken je aan de tekst van je club)
+const clubWilWeg = V => !!V && V.modus === 'normaal' && V.bods.length > 0 && (V.clubWilWeg || (!!S.sp.transferlijst && String(V.intro || '').includes('wil verder zonder jou')));
 export function vVenster(){
   const V = S.venster, sp = S.sp;
   let html = `<div class="verhaal"><span class="label">Transfermarkt · ${sp.ontbonden ? 'zonder club' : V.soort === 'winter' ? 'winterstop' : 'zomer'}</span><h2>${V.modus === 'huur' ? 'Verhuurd' : V.huurOpties && V.huurOpties.length ? (V.eigenHuur ? 'Op zoek naar een huurclub' : 'Je club wil je verhuren') : V.modus === 'weg' ? (sp.ontbonden ? 'Contract ontbonden!' : 'Weggestuurd!') : V.modus === 'vrij' ? 'Transfervrij' : V.modus === 'clubloos' ? (V.bods.length ? 'Eindelijk interesse!' : 'Nog steeds zonder club') : V.modus === 'jeugdKlaar' ? 'Klaar voor de senioren' : V.bods.length ? 'Er is interesse!' : 'Stil op de markt'}</h2><p>${esc(V.intro)}</p></div>`;
   if (V.melding) html += `<p class="melding">${esc(V.melding)}</p>`;
   if (V.huurOpties && V.huurOpties.length) html += `<div class="aanbod">${V.huurOpties.map(huurKaart).join('')}</div>`;
-  const kaarten = [];
-  if (V.blijven) kaarten.push(huidigKaart());
+  const kaarten = [], wilWeg = clubWilWeg(V);
+  if (V.blijven && !wilWeg) kaarten.push(huidigKaart());
   if (V.verlenging) kaarten.push(bodKaart(V.verlenging, 'Verlengen'));
   V.bods.forEach(o => kaarten.push(bodKaart(o, o.laatsteDans ? 'Terug naar waar het begon' : clubInfo(o).t <= 3 ? 'Ja, ik wil hierheen' : 'Tekenen')));
   if (kaarten.length) html += `<div class="aanbod">${kaarten.join('')}</div>`;
   if (V.modus === 'weg' || V.modus === 'vrij') html += V.bods.length
     ? knop('Geen van deze clubs: ik wacht op iets beters', zonderClub, 'klein', 'data-bevestig="Je zit dan zonder club en zonder salaris, tot er een club belt." data-ja="Ja, ik wacht"')
     : knop('Verder zonder club', zonderClub);
+  if (wilWeg) html += `<div class="paneel"><span class="label">Je club wil niet met je verder</span><p>${esc(club().n)} heeft je op de transferlijst gezet: blijven kan niet. Wil je bij geen van deze clubs tekenen? Dan wordt je contract ontbonden en zit je zonder club. Je traint alleen en wacht tot er een club belt.</p><div class="rij">${knop('Ik teken nergens: ik wacht op een andere club', zonderClub, 'hoofd tweede', 'data-bevestig="Je contract wordt ontbonden. Je zit zonder club en zonder salaris, tot er een club belt." data-ja="Ja, ik wacht"')}</div></div>`;
   if (V.modus === 'clubloos') html += knop(V.bods.length ? 'Nee, ik blijf wachten' : 'Verder zonder club', blijfWachten, V.bods.length ? 'klein' : 'hoofd');
   html += vMarkt();
   if (V.soort === 'zomer' && sp.leeftijd >= 33 && !sp.laatsteSeizoen) html += knop('Mijn laatste seizoen aankondigen', kondigAfscheidAan, 'klein', 'data-bevestig="Je speelt nog één seizoen, daarna stop je als voetballer. Dit kun je niet terugdraaien." data-ja="Ja, mijn laatste seizoen"');

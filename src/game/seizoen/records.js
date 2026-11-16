@@ -1,4 +1,5 @@
 import { hoogtepuntenNaWedstrijd } from '../speler/hoogtepunten.js';
+import { mijlpaalGoalNaWedstrijd } from '../speler/mijlpaalgoal.js';
 import { S, club, mod, seizoenLabel } from '../../core/state.js';
 import { esc } from '../../core/utils.js';
 import { CLUBS, DIVS, LAAGSTE, WERELD, rondesVan } from '../../data/gegevens.js';
@@ -54,6 +55,7 @@ export function recordsNaWedstrijd(M){
   const R = recs(), sp = S.sp, c = club(), naam = sp.naam, t = c.t, uit = [], zij = M.zij ?? (M.opp !== undefined ? CLUBS[M.opp].n : '');
   const debuut = R.debuut === null;
   if (debuut){ R.debuut = {lft:sp.leeftijd, club:c.n, s:seizoenLabel()}; }
+  mijlpaalGoalNaWedstrijd(M); // je 1e, 50e en 100e goal: de pixelscène na de wedstrijd (mijlpaalgoal.js)
   hoogtepuntenNaWedstrijd(M, debuut); // je debuut, je eerste goal, mijlpalen: een moment met keuzes (hoogtepunten.js)
   // Doelpunten in één wedstrijd
   if (M.goals >= 3){ R.hattricks++; if (R.hattricks > 1) uit.push(`Hattrick nummer ${R.hattricks} in je carrière!`); }

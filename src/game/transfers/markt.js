@@ -45,7 +45,7 @@ function neemOp(naar, speler){
   const selN = selectie(naar);
   const zelfde = selN.filter(x => x.pos === speler.pos);
   const zwakBasis = zelfde.filter(x => x.basis).sort((a, b) => a.g + a.a - b.g - b.a)[0];
-  const zwakBank = zelfde.filter(x => !x.basis && !x.vriend && !isRivaal(x)).sort((a, b) => a.g + a.a - b.g - b.a)[0];
+  const zwakBank = zelfde.filter(x => !x.basis && !x.vriend && !x.kind && !isRivaal(x)).sort((a, b) => a.g + a.a - b.g - b.a)[0];
   if (zwakBank) selN.splice(selN.indexOf(zwakBank), 1);
   if (zwakBasis){ zwakBasis.basis = false; [zwakBasis.g, zwakBasis.a] = [zwakBasis.g * .5, zwakBasis.a * .5]; }
   selN.push({v:speler.v, n:speler.n, pos:speler.pos, basis:true, nieuwWeek:S.weekNr || 0, k:speler.k, lft:speler.lft, kVorig:speler.kVorig, jeugd:speler.jeugd, sindsWeek:speler.sindsWeek, g:Math.max(speler.g, zwakBasis ? zwakBasis.g * 2 : 0), a:Math.max(speler.a, zwakBasis ? zwakBasis.a * 2 : 0)});
@@ -61,7 +61,7 @@ export function noteerDeal(van, naar, speler, soort, extra = {}){
 }
 // Kies een speler van de verkoper die de koper nog niet heeft (meestal een veldspeler uit de basis)
 function kiesSpeler(van, naar){
-  const selN = selectie(naar), kand = selectie(van).filter(x => x.basis && !x.vriend && !isRivaal(x) && naamVrij(selN, x.n) && (x.pos !== 'K' || rnd() < .15));
+  const selN = selectie(naar), kand = selectie(van).filter(x => x.basis && !x.vriend && !x.kind && !isRivaal(x) && naamVrij(selN, x.n) && (x.pos !== 'K' || rnd() < .15));
   // liefst iemand die de basis van de koper echt versterkt (beter dan zijn zwakste basisspeler op die plek)
   const zwakste = pos => Math.min(...selN.filter(x => x.pos === pos && x.basis).map(x => x.k ?? 0));
   const goed = kand.filter(x => (x.k ?? 0) >= zwakste(x.pos) - 2);
@@ -185,7 +185,7 @@ export function succesAankopen(comp, mijn, zonderMijn){
     const c = CLUBS[id], tweede = Math.max(30, ...comp.filter(i => i !== id).map(i => CLUBS[i].s)), plafond = Math.min(SUCCES.plafond, tweede + SUCCES.voorsprong);
     let erbij = 0; const l = [];
     for (let i = 0; i < n + 2 && l.length < n && erbij < SUCCES.maxPlus && c.s < plafond; i++){
-      const sel = selectie(id), zwak = sel.filter(x => x.basis && x.k !== undefined && !x.vriend && !isRivaal(x) && (x.pos !== 'K' || rnd() < .15)).sort((a, b) => a.k - b.k)[0]; if (!zwak) break;
+      const sel = selectie(id), zwak = sel.filter(x => x.basis && x.k !== undefined && !x.vriend && !x.kind && !isRivaal(x) && (x.pos !== 'K' || rnd() < .15)).sort((a, b) => a.k - b.k)[0]; if (!zwak) break;
       const k = clamp(c.s + randInt(1, 4), 30, 94); if (k < zwak.k + 2) continue; // alleen iemand die echt beter is
       const land = pick(landen), namen = (LAND_NAMEN[land] || ACHTERNAMEN).filter(a => naamVrij(sel, a)), nm = namen.length ? pick(namen) : pick(ACHTERNAMEN.filter(a => naamVrij(sel, a))) || 'Novak';
       const nieuw = {v:pick(VOORL), n:nm, pos:zwak.pos, basis:true, k, lft:randInt(23, 28), g:zwak.g, a:zwak.a};
@@ -222,7 +222,7 @@ export function inhaalAankopen(comp, onder, soort){
       const zwak = sel.filter(x => x.basis && (x.pos !== 'K' || rnd() < .15)).sort((a, b) => a.k - b.k)[0];
       if (!zwak) break;
       const laag = zwak.k + 2; if (laag > hoogst) continue;
-      const past = x => !x.vriend && !isRivaal(x) && x.pos === zwak.pos && x.k >= laag && x.k <= hoogst && naamVrij(sel, x.n);
+      const past = x => !x.vriend && !x.kind && !isRivaal(x) && x.pos === zwak.pos && x.k >= laag && x.k <= hoogst && naamVrij(sel, x.n);
       // (a) een reservespeler van een sterkere club uit de competitie, (b) een basisspeler uit de top van de divisie eronder
       const reserves = comp.filter(j => j !== id && CLUBS[j].s > CLUBS[id].s).flatMap(j => selectie(j).filter(x => !x.basis && past(x)).map(x => ({x, van:j, reserve:true})));
       const lager = onder.flatMap(j => selectie(j).filter(x => x.basis && past(x)).map(x => ({x, van:j, reserve:false})));
@@ -258,7 +258,7 @@ export function ontwikkelSpelers(clubs, mijn){
   for (const id of clubs){
     const sel = selectie(id), v = (S.vorig || {})[id], winnaars = id === mijn && v && v.plek === 1 ? .7 : .5; // (een winnende groep groeit samen)
     for (const x of sel){
-      if (isRivaal(x) || x.vriend) continue; // je rivaal en je jeugdvriend groeien zelf (rivaal.js, journey.js)
+      if (isRivaal(x) || x.vriend || x.kind) continue; // je rivaal en je jeugdvriend groeien zelf (rivaal.js, journey.js)
       x.lft = (x.lft || 25) + 1; x.kVorig = x.k;
       const [lo, hi] = GROEI(x.lft); x.k = clamp(x.k + randInt(lo, hi) + (x.basis && x.lft <= 25 && rnd() < winnaars ? 1 : 0), 25, 95);
     }
@@ -283,7 +283,7 @@ export function herschik(sel){
 export function jeugdDoorstroom(clubs){
   for (const id of clubs){
     const sel = selectie(id), weg = randInt(1, 2);
-    const bank = sel.filter(x => !x.basis && x.pos !== 'K' && !x.vriend && !isRivaal(x)).sort((a, b) => (a.k ?? 0) - (b.k ?? 0)).slice(0, weg);
+    const bank = sel.filter(x => !x.basis && x.pos !== 'K' && !x.vriend && !x.kind && !isRivaal(x)).sort((a, b) => (a.k ?? 0) - (b.k ?? 0)).slice(0, weg);
     for (const x of bank){ sel.splice(sel.indexOf(x), 1); if (id === S.sp.club) delete kleedkamer().rel[x.n]; }
     selectie(id); // aanvullen: de jeugdspelers
   }

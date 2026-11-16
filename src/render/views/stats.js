@@ -4,6 +4,7 @@ import { esc } from '../../core/utils.js';
 import { CLUBS, POS } from '../../data/gegevens.js';
 import { BEKER_ALT, PRIJS_CLUB, PRIJS_IND, PRIJS_LAND } from '../../data/landen.js';
 import { vRecords } from '../../game/seizoen/records.js';
+import { vHandelsmerk } from '../../game/speler/handelsmerk.js';
 import { fmt1 } from '../../game/speler/o23.js';
 import { vTegenOud } from '../../game/wedstrijd/reunie.js';
 import { vrouwenWereld } from '../../core/geslacht.js';
@@ -26,6 +27,7 @@ export function vStats(){
     ${int.length ? `<div class="paneel"><span class="label">Interlands</span>${int.map(([n, x]) => `<p><b>${esc(n)}</b>: ${x.caps} interlands · ${x.g} goals · ${x.a} assists</p>`).join('')}</div>` : ''}
     <div class="paneel"><span class="label">Prijzen met je club</span>${kast(club, 'Nog geen prijzen met een club. Dat komt nog!')}</div>
     ${land.length || toern.length ? `<div class="paneel"><span class="label">Met je land</span>${kast(land, 'Nog geen toernooi gewonnen.')}${toern.map(x => `<p class="muted klein-tekst">${esc(x)}</p>`).join('')}</div>` : ''}
+    ${vHandelsmerk()}
     ${vRecords()}
     ${vTegenOud()}
     <div class="paneel"><span class="label">Persoonlijke prijzen</span>${kast(ind, 'Nog geen persoonlijke prijzen.')}<p class="muted klein-tekst">${vrouwenWereld() ? 'Speelster van de Wedstrijd' : 'Man of the Match'} (een 8,5 of hoger): ${C.motm || 0} keer.</p></div>

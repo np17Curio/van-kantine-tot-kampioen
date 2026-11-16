@@ -4,7 +4,7 @@
 // tv-camera's aan de zijkant en vooraan een rij journalisten en fotografen (op de rug gezien) die hun hand opsteken.
 // De scène wordt per beeld getekend uit een toestand (render/persscene.js bepaalt wat er gebeurt).
 import { pixelLogo, zetLogo } from './clublogo.js';
-import { Doek, GROND, Img, inkleuren, speler, sprite } from './rig.js';
+import { Doek, GROND, Img, inkleuren, punten, speler, sprite } from './rig.js';
 import { loopCyclus } from './animaties.js';
 import { donker, lookVan } from './atlas.js';
 import { tekst, regelBreedte, zonderAccent } from './font.js';
@@ -92,6 +92,26 @@ export const POSES = {
 };
 const LOOP = loopCyclus(40);
 
+// ---------- praten: de mond (0 = dicht, 1 = half open, 2 = open) ----------
+// Over de mond van hoofd() in rig.js heen (van voren: x 18-22 op y 22 van het hoofd, onder de neus op x 20; bij een vrouw
+// de lippen 'p' eronder). Dicht = de mond zoals hij getekend is; half open en open zijn een donkere opening met een
+// tongetje, die ook door een baard of sikje heen getekend wordt (de snor erboven blijft staan).
+function tekenMond(img, P, mond, vrouw){
+  if (!mond) return;
+  const c = new Doek(img), [hx, hy] = punten(P).hoofd, x0 = hx - 3, y0 = hy + 10;   // (hoofd: x + 21, y + 12 -> mond op x 18-22, y 22)
+  if (mond === 1){
+    c.hline(x0, y0, 5, 'k'); c.hline(x0 + 1, y0 + 1, 3, 'k');
+    if (vrouw) c.hline(x0 + 1, y0 + 2, 3, 'p');
+  } else {
+    c.hline(x0, y0, 5, 'k'); c.hline(x0, y0 + 1, 5, 'k'); c.hline(x0 + 1, y0 + 2, 3, 'k');
+    c.px(x0 + 2, y0 + 1, 'p');                                                  // het tongetje
+    if (vrouw) c.hline(x0 + 1, y0 + 3, 3, 'p');
+  }
+}
+// Een natuurlijk ritme van lettergrepen (ongeveer 9 per seconde), met af en toe een korte pauze tussen woorden
+const LETTERGREPEN = [1, 2, 1, 0, 2, 1, 2, 0, 1, 1, 2, 1, 0, 0, 2, 1, 1, 2, 0, 1, 2, 2, 1, 0];
+export const mondBij = (t, zaad = 0) => LETTERGREPEN[(Math.floor(t * 9) + zaad) % LETTERGREPEN.length];
+
 // info = {uit (jouw uiterlijk), uitPv (de persvoorlichter), tenue, trainer, naam}
 export function maakPers(info){
   const t = info.tenue || {shirt:'#e0262b', accent:'#ffffff', patroon:'effen'};
@@ -108,9 +128,10 @@ export function maakPers(info){
   const ik = lookVan(info.uit || {}, info.trainer ? null : {...t, broek:'#262b36', sok:'#262b36'}, {kleding:info.trainer ? 'pak' : 'training', nr:2});
   const pv = lookVan(info.uitPv || {}, null, {kleding:'pak', nr:3, das:t.shirt});
   const cache = new Map();
-  const figuur = (look, P, flip) => {
-    const sl = look.sleutel + '|' + JSON.stringify(P) + (flip ? 'f' : ''); let cv = cache.get(sl);
+  const figuur = (look, P, flip, mond = 0) => {
+    const sl = look.sleutel + '|' + JSON.stringify(P) + (flip ? 'f' : '') + (mond ? '|m' + mond : ''); let cv = cache.get(sl);
     if (!cv){ const img = new Img(80, 90); speler(new Doek(img), {...P, x:40}, {kapsel:look.kapsel, vrouw:look.vrouw, kleding:look.kleding, baard:look.baard, snor:look.snor});
+      tekenMond(img, {...P, x:40}, mond, look.vrouw);
       let o = img.outline(107); if (flip) o = o.flipX(); cv = inkleuren(o, {...look.kleuren, w:look.kleding === 'pak' ? '#ffffff' : look.kleuren.w}); cache.set(sl, cv); }
     return cv;
   };
@@ -122,15 +143,15 @@ export function maakPers(info){
   const buf = document.createElement('canvas'); buf.width = PW; buf.height = PH;
   const g = buf.getContext('2d'); g.imageSmoothingEnabled = false;
 
-  // st = {ikX, ikLoop (beeld van de loop, of null), ikZit (0..1), ikPose, pvPose, handen:Set van plekken in RIJ, flits:[plekken], lamp}
+  // st = {ikX, ikLoop (beeld van de loop, of null), ikZit (0..1), ikPose, pvPose, ikMond/pvMond (0, 1, 2: zie mondBij), handen:Set van plekken in RIJ, flits:[plekken], lamp}
   function teken(st){
     g.drawImage(zaalCv, 0, 0);
     g.drawImage(cams[st.lamp ? 1 : 0], -2, VLOER - 44);
     // de persvoorlichter (gespiegeld: kijkt naar links) en jij
-    g.drawImage(figuur(pv, POSES[st.pvPose || 'zit'], true), BX - 40 - 1, DY - 1 + ZIT);
+    g.drawImage(figuur(pv, POSES[st.pvPose || 'zit'], true, st.pvMond || 0), BX - 40 - 1, DY - 1 + ZIT);
     const zak = Math.round((st.ikZit || 0) * ZIT);
     const ikP = st.ikLoop != null ? LOOP[st.ikLoop % 8] : POSES[st.ikPose || 'staan'];
-    g.drawImage(figuur(ik, ikP, false), Math.round(st.ikX ?? SX) - 40 - 1, DY - 1 + zak);
+    g.drawImage(figuur(ik, ikP, false, st.ikMond || 0), Math.round(st.ikX ?? SX) - 40 - 1, DY - 1 + zak);
     g.drawImage(tafelCv, 0, 0);
     g.drawImage(cams[st.lamp ? 1 : 0], PW - 24, VLOER - 40);
     // het publiek; wie een vraag wil stellen steekt zijn hand op, fotografen flitsen

@@ -143,10 +143,14 @@ export function maakPers(M, soort){
   }
   // Daarna nog een of twee vragen van andere journalisten, over iets anders (bij een derby, je rivaal of een finale twee)
   const vragen = [vraagVan(v)], recent = S.persRecent = S.persRecent || [];
+  // Wat er in deze wedstrijd opviel (rode kaart, hattrick, blessure, ruzie met je rivaal) of dat je aanvoerder bent: daar vraagt de pers altijd naar.
+  // Een rode kaart is de eerste vraag; de rest komt na de openingsvraag (hooguit 2)
+  const sit = situatieVragen(M).filter(x => x.altijd || !recent.includes(x.id)).slice(0, 2);
+  for (const x of sit){ if (x.eerst) vragen.unshift(vraagVan(x)); else vragen.push(vraagVan(x)); if (!x.altijd){ recent.push(x.id); if (recent.length > 24) recent.shift(); } }
   let vrg = null; try { if (vriendBijTegenstander(M.opp)) vrg = vriendVraag(M); } catch (e){}
   if (vrg) vragen.push(vraagVan(vrg)); // (speelde je tegen de club van je jeugdvriend, dan vraagt de pers altijd naar hem)
-  const extra = vervolgVragen(M).filter(x => x.doel !== v.doel && !recent.includes(x.id));
-  for (let n = (soort === 'finale' || M.derby || M.rivaal ? 2 : 1) - (vrg ? 1 : 0); n > 0 && extra.length; n--){
+  const extra = vervolgVragen(M).filter(x => x.doel !== v.doel && !recent.includes(x.id) && !sit.some(y => y.doel === x.doel));
+  for (let n = (soort === 'finale' || M.derby || M.rivaal ? 2 : 1) - (vrg ? 1 : 0) - sit.length; n > 0 && extra.length; n--){
     const x = extra.splice(Math.floor(rnd() * extra.length), 1)[0]; vragen.push(vraagVan(x));
     recent.push(x.id); if (recent.length > 24) recent.shift();
     for (let i = extra.length - 1; i >= 0; i--) if (extra[i].doel === x.doel) extra.splice(i, 1);
@@ -154,6 +158,32 @@ export function maakPers(M, soort){
   return {bron, zij, vragen, klaar:false};
 }
 const vraagVan = v => ({vraag:v.vraag, opts:[{s:'b', l:'Bescheiden', t:v.b}, {s:'z', l:'Zelfverzekerd', t:v.z}, {s:'u', l:'Uitdagend', t:v.u}], doel:v.doel, keuze:null, uit:null});
+// Vragen over wat er in deze wedstrijd gebeurde, en over je rol als aanvoerder. eerst: als eerste vraag; altijd: ook als je hem onlangs kreeg
+function situatieVragen(M){
+  const L = [], won = M.us > M.them, verl = M.us < M.them, aanv = isAanvoerder(), ploeg = team.jongens;
+  if (M.rood){
+    const tweede = M.roodSoort === 'tweedeGeel';
+    L.push(aanv
+      ? {id:'sRoodAanv', eerst:true, altijd:true, doel:'team', vraag:`Je bent de aanvoerder, en jij krijgt ${tweede ? 'twee keer geel' : 'een rode kaart'}. Wat voor voorbeeld geef je daarmee aan de groep?`, b:'"Een slecht voorbeeld. Ik heb mijn ploeggenoten in de steek gelaten en dat ga ik in de kleedkamer ook zeggen."', z:'"Ik ga altijd voorop in de duels. Soms gaat dat mis, maar daarom ben ik ook de aanvoerder."', u:'"Ik sta voor deze groep in het vuur. Als de rest net zo hard zou gaan, had ik dat niet hoeven doen."'}
+      : {id:'sRood', eerst:true, altijd:true, doel:'scheids', vraag:`Je kreeg ${tweede ? 'een tweede gele kaart' : 'rood'} en liet je ploeg met tien man staan. Wat ging er door je heen?`, b:'"Dom van mij. Sorry aan mijn ploeggenoten en aan de fans. Dit mag niet gebeuren."', z:'"Een harde kaart, maar ik ga altijd vol voor de bal. Zo ben ik nou eenmaal."', u:'"Dat was nooit rood. De scheidsrechter zocht vanaf de eerste minuut een reden."'});
+  }
+  if (M.goals >= 3) L.push({id:'sHattrick', doel:'ambitie', vraag:`Een hattrick tegen ${CLUBS[M.opp].n}! Neem je de wedstrijdbal mee naar huis?`, b:'"Die bal gaat naar mijn familie. Zonder hen stond ik hier niet."', z:'"Natuurlijk. En ik hoop dat er nog veel ballen bij komen."', u:'"Eén bal? Ik had er vandaag vijf moeten maken."'});
+  if (M.blessureVeld) L.push({id:'sBlessure', eerst:!M.rood, doel:'club', vraag:'Je moest geblesseerd van het veld. Hoe gaat het nu?', b:'"Het doet pijn, maar de medische staf zorgt goed voor me. Ik kom sterker terug."', z:'"Ik ben zo terug. Echt, over een paar weken sta ik er weer."', u:'"Als ze die man eerder een kaart hadden gegeven, stond ik er nog. Dit had voorkomen kunnen worden."'});
+  if (M.ploegRivaal) L.push({id:'sPloegRivaal', doel:'team', vraag:`Het schuurde zichtbaar tussen jou en ${M.ploegRivaal.naam}. Wat is er aan de hand in de kleedkamer?`, b:'"We zijn het niet altijd eens, maar op het veld spelen we voor hetzelfde shirt. Dat lossen we samen op."', z:'"Concurrentie maakt ons scherp. De trainer kiest wie er speelt, en dat ben ik."', u:`"Vraag het ${team.hem} zelf maar. Ik speel tenminste de bal naar een vrije man."`});
+  if (aanv && !M.rood){
+    const AANV_VRAGEN = verl ? [
+      {id:'sAanvVerlies', doel:'team', vraag:'Als aanvoerder: hoe krijg je de groep na deze nederlaag weer op de rit?', b:'"Ik praat met iedereen apart. Samen staan we hier ook weer uit op."', z:'"Ik ga voorop op de training. De rest volgt vanzelf."', u:`"Sommige ${ploeg} moeten zich eens afvragen of ze dit shirt wel verdienen."`},
+      {id:'sAanvKleedkamer', doel:'team', vraag:'Wat heb je na het laatste fluitsignaal in de kleedkamer gezegd?', b:'"Dat blijft binnen. Maar het was eerlijk, en iedereen luisterde."', z:'"Dat we dit volgende week rechtzetten. Punt."', u:'"Ik heb een paar namen genoemd. Die weten zelf wel wie ik bedoel."'}]
+    : won ? [
+      {id:'sAanvWinst', doel:'team', vraag:"Hoe houd je als aanvoerder de groep scherp na zo'n overwinning?", b:'"Met beide benen op de grond. Ik herinner iedereen eraan hoe hard we ervoor werken."', z:'"Dat is makkelijk: deze groep wil steeds meer. Ik zorg dat het zo blijft."', u:'"Door te zorgen dat niemand denkt dat hij er al is. Ook de sterren niet."'},
+      {id:'sAanvJong', doel:'team', vraag:'Je bent de aanvoerder. Wat doe je voor de jonge spelers in de groep?', b:'"Ik neem ze apart, leg dingen uit. Ik weet nog hoe het was toen ik jong was."', z:'"Ik laat ze zien hoe het moet: elke dag als eerste op de training."', u:'"Ze moeten eerst maar eens bewijzen dat ze erbij horen."'}]
+    : [
+      {id:'sAanvGelijk', doel:'team', vraag:'Wat zeg je als aanvoerder tegen de groep na dit gelijkspel?', b:'"Dat we trots mogen zijn op de inzet, en dat we de kansen beter moeten afmaken."', z:'"Dat dit te weinig is voor een ploeg met onze kwaliteit."', u:'"Dat sommigen zich harder moeten inzetten. Ik pik dit niet langer."'},
+      {id:'sAanvBand', doel:'team', vraag:'Hoe is het om de aanvoerdersband van deze club te dragen?', b:'"Een eer. Ik probeer elke dag iets terug te geven aan de groep."', z:'"Het past me. Ik ben een leider, op en naast het veld."', u:'"Iemand moet het doen. Niet iedereen in deze groep durft verantwoordelijkheid te nemen."'}];
+    L.push(pick(AANV_VRAGEN));
+  }
+  return L;
+}
 // Een vraag over je jeugdvriend, als je tegen zijn club speelde (doel 'vriend': je antwoord raakt jullie band)
 function vriendVraag(M){
   const n = vriendNaam(), won = M.us > M.them, verl = M.us < M.them;

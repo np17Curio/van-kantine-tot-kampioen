@@ -1,3 +1,4 @@
+import { partnerTransfer } from '../prive/partner.js';
 import { hoogtepunt } from '../speler/hoogtepunten.js';
 import { S, club, gemCijfer, mod, ovr, salarisVoor, seizoenLabel, tmp, waarde } from '../../core/state.js';
 import { geldTxt, randInt, rnd, shuffle } from '../../core/utils.js';
@@ -22,7 +23,7 @@ import { rivaalVenster } from '../speler/rivaal.js';
 import { wordClubloos } from '../speler/clubloos.js';
 import { partnerKans, startBuitenland, thuis as thuisStart } from '../prive/buitenland-leven.js';
 import { vriendBodVenster } from '../speler/journey.js';
-import { eersteSeizoen } from './vertrek.js';
+import { eersteSeizoen, nieuwBijClub } from './vertrek.js';
 import { clubAfscheid } from './clubafscheid.js';
 import { ik } from '../../core/geslacht.js';
 
@@ -149,7 +150,7 @@ export function openVenster(soort){
   }
   if (sp.transferlijst && modus === 'normaal') intro += ' Je staat op de transferlijst: je club laat je gaan als je een club kiest.';
   // Je eerste seizoen bij deze club (vertrek.js): nog geen biedingen. De droomclub en het bod via je vriend wachten tot de zomer
-  const eerste = modus === 'normaal' && !terug && eersteSeizoen();
+  const eerste = modus === 'normaal' && !terug && nieuwBijClub(); // (je eerste jaar bij de club: niet verkopen, niet verhuren)
   // Net terug van een huurperiode: je eigen club beslist (o23.js terugVanHuur). Wil die je terug of verhuurt die je opnieuw,
   // dan komen er geen andere clubs langs; alleen de huurclub kan je via een koopoptie overnemen. Bij verkoop: de transferlijst
   const naHuur = terug && modus === 'normaal' ? terug.oordeel : null;
@@ -199,7 +200,11 @@ export function openVenster(soort){
   if (eb){ bods = bods.filter(b => !(b.club === eb.club && (b.land || null) === (eb.land || null))); bods.unshift(eb);
     intro = `${clubInfo(eb).n} belt: "Kom je laatste seizoen spelen waar het allemaal begon." Ze kunnen je maar een fractie betalen van wat je nu verdient. ` + intro; }
   if (sp.relatie) bods.forEach(b => { if (isBuitenland(b) && b.partnerMee === undefined) b.partnerMee = b.land === thuisStart() || rnd() < partnerKans(); });
-  S.venster = {soort, modus, intro, bods, verlenging, blijven, agentBod, huurOpties, ...(eigenHuur ? {eigenHuur} : {})};
+  // Je club wil je na je huurperiode kwijt (transferlijst): dan kun je niet 'gewoon blijven'. Je kiest een club, of je tekent nergens
+  // en laat je contract ontbinden: dan zit je zonder club en wacht je tot er een club belt
+  const clubWilWeg = naHuur === 'verkoop' && !zwaar && bods.length > 0;
+  if (clubWilWeg) blijven = false;
+  S.venster = {soort, modus, intro, bods, verlenging, blijven, agentBod, huurOpties, ...(eigenHuur ? {eigenHuur} : {}), ...(clubWilWeg ? {clubWilWeg} : {})};
   sp.transferWens = false;
   S.fase = 'venster';
 }
@@ -259,6 +264,7 @@ export function wissel(o, hoe){
     if (sp.relatie.getrouwd || sp.relatie.samen || rnd() < .3 + sp.relatie.band / 200) teksten.push(`${naam} verhuist mee naar het buitenland!${kinderen().length ? ' De kinderen gaan er naar een internationale school.' : ''}`);
     else teksten.push(eindRelatie(`${naam} wil niet mee naar het buitenland. Jullie gaan uit elkaar.`));
   }
+  if (sp.relatie) teksten.push(...partnerTransfer(oudLand, oud, nieuw)); // (partner.js: ambitieus / heimwee)
   if (sp.agent && naarDoel) agentReset(`Gelukt! Je speelt nu bij ${nieuw.n}${landWissel ? ` in ${o.land}` : ''}. Heb je een nieuw doel? Zeg het maar.`);
   tmp.ondertekening = {clubId:o.club, jaren:o.jaren, salaris:o.salaris, som:o.som || 0}; // de animatie (contract tekenen) na de volgende weergave
   hoogtepunt('transfer', {club:nieuw.n, oud:los ? null : oud.n, buitenland:landWissel}, true); // (hoogtepunten.js)
@@ -310,7 +316,7 @@ export function blijf(){
   sluitVenster();
 }
 // Geen club (of geen van de clubs die je willen): verder zonder club
-export function zonderClub(){ const V = S.venster; wordClubloos(V.modus === 'weg' ? 'weg' : 'vrij'); sluitVenster(); }
+export function zonderClub(){ const V = S.venster; wordClubloos(V.modus === 'weg' || V.clubWilWeg || S.sp.transferlijst ? 'weg' : 'vrij'); sluitVenster(); }
 // Al zonder club en (nog) niet tekenen
 export function blijfWachten(){ S.verhuisTekst = S.venster.bods.length ? 'Je zegt nee tegen de clubs die zich meldden. Je wacht op iets beters.' : 'Er is nog steeds geen club. Je blijft alleen trainen.'; sluitVenster(); }
 export function sluitVenster(){

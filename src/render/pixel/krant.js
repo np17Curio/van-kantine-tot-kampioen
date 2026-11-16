@@ -29,7 +29,7 @@ export function rubriekVan(item){
   const t = (item.kop + ' ' + item.tekst).toLowerCase(), b = String(item.bron || '').toLowerCase();
   if (/roddel|weekend|privé|prive|story|glossy/.test(b)) return 'RODDEL';
   if (/tekent|transfer|contract|verlengt|haalt .* bij|vertrekt|huur/.test(t)) return 'TRANSFERNIEUWS';
-  if (/interland|nationale|oranje|ek |wk |eindtoernooi/.test(t)) return 'INTERLAND';
+  if (/interland|nationale|oranje|\bek\b|\bwk\b|eindtoernooi/.test(t)) return 'INTERLAND'; // (met \b: anders telt "elke week " als EK)
   return 'SPORT';
 }
 

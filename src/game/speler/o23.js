@@ -23,6 +23,7 @@ import { talentNaWedstrijd } from './talent.js';
 import { teamKracht } from '../team/kleedkamer.js';
 import { ik } from '../../core/geslacht.js';
 import { vriendInSelectie } from './journey.js';
+import { nieuwBijClub } from '../transfers/vertrek.js';
 
 /* ===================== O23 en verhuur ===================== */
 export const gemiddelde = l => l.reduce((a, b) => a + b, 0) / l.length;
@@ -115,7 +116,7 @@ export function eindeO23(){
 // Huur: alleen voor profs die bij de O23 zitten of het hele seizoen slecht spelen
 export function huurNodig(){
   const sp = S.sp;
-  if (sp.huur || (sp.sindsTransfer || 0) < 7) return false;
+  if (sp.huur || nieuwBijClub()) return false; // (je eerste jaar bij een nieuwe club verhuurt die je niet)
   return !!sp.o23 || (S.ss.c.length >= 5 && gemiddelde(S.ss.c) < 6.2);
 }
 // Huuropties: {club, land?}. Twee clubs uit je eigen land, en vanaf je 18e meestal ook een club uit het buitenland

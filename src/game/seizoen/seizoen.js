@@ -112,6 +112,8 @@ export function seizoenEinde(){
   S.car.hist.push(los ? `${seizoenLabel()}: seizoen zonder club${S.ss.wed ? ` (${S.ss.wed} wedstrijden, ${S.ss.g} goals, ${S.ss.a} assists)` : ''}` : `${seizoenLabel()}: ${plek}e met ${club().n} · ${nu.wed} wedstrijden, ${nu.g} goals, ${nu.a} assists${eerderTxt}`);
   const wissels = bepaalPromotie(), mijnWissel = los ? null : wissels.find(w => w.id === sp.club);
   if (mijnWissel && mijnWissel.naar < mijnWissel.van) prijzen.push(`Promotie naar de ${DIVS[mijnWissel.naar]}${mijnWissel.po ? ' via de nacompetitie' : ''} ${seizoenLabel()}`);
+  // gepromoveerd (ook als kampioen): de parade met de open bus door de stad, één keer per promotie (render/huldigingscene.js, soort 'promotie')
+  if (mijnWissel && mijnWissel.naar < mijnWissel.van && !S.ss.parade && !S.huldiging){ S.ss.parade = true; S.huldiging = {soort:'promotie', prijs:DIVS[mijnWissel.naar], clubId:sp.club}; }
   // hoogtepunten pas bij de eindstand: echt kampioen (de eerste titel), of gepromoveerd zonder titel (als nummer 2, 3 of via de nacompetitie)
   if (!los && plek === 1) hoogtepunt('eersteTitel', {club:club().n, div:DIVS[t]});
   else if (mijnWissel && mijnWissel.naar < mijnWissel.van) hoogtepunt('promotie', {club:club().n, plek, naar:DIVS[mijnWissel.naar], po:!!mijnWissel.po}, true);
