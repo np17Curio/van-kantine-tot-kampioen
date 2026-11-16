@@ -88,9 +88,13 @@ export function simBeker(h, u){
 }
 // Speel een bekerronde van beker k; de wedstrijd van jouw club wordt overgeslagen (die speel je zelf)
 export function speelBekerRonde(k, mijnWedstrijdApart){
-  const B = S.ss.bekers[k], paren = [], l = B.levend.slice();
+  const B = S.ss.bekers[k], paren = []; let l = B.levend.slice();
+  // Geen macht van 2 (bijv. 38 clubs)? Dan eerst een voorronde: alleen de zwakste clubs spelen, tot er precies 32 (16, 8 …) over zijn.
+  // De sterkere clubs krijgen een vrije doorgang. Zo wordt het daarna 1/16 finale, achtste finale, kwartfinale (8), halve finale (4), finale
+  B.vrij = [];
+  if (!macht2(l.length)){ const P = machtOnder(l.length), n = l.length - P, opSterkte = l.slice().sort((a, b) => CLUBS[a].s - CLUBS[b].s);
+    const spelen = new Set(opSterkte.slice(0, 2 * n)); B.vrij = l.filter(id => !spelen.has(id)); l = shuffle(l.filter(id => spelen.has(id))); }
   for (let i = 0; i + 1 < l.length; i += 2) paren.push([l[i], l[i + 1]]);
-  B.vrij = l.length % 2 ? [l[l.length - 1]] : []; // oneven: de laatste club krijgt een vrije doorgang
   const ronde = []; let mijn = null;
   for (const [h, u] of paren){
     if (mijnWedstrijdApart && (h === S.sp.club || u === S.sp.club)){ mijn = {h, u}; ronde.push({h, u, wacht:true}); continue; }
@@ -129,9 +133,12 @@ export function bekerAgenda(){
   }
   return uit.sort((a, b) => a.week - b.week);
 }
+const macht2 = n => n > 0 && (n & (n - 1)) === 0;
+const machtOnder = n => 2 ** Math.floor(Math.log2(n)); // (de grootste macht van 2 die er nog in past: 38 → 32)
 export function bekerRondeNaam(k, i){
   const B = S.ss.bekers && S.ss.bekers[k]; let c = B && B.start ? B.start : 16;
-  for (let j = 0; j < i; j++) c = Math.ceil(c / 2);
+  for (let j = 0; j < i; j++) c = macht2(c) ? c / 2 : machtOnder(c); // (na een voorronde zijn er precies 32, 16 … over)
+  if (!macht2(c)) return 'Voorronde';
   return c <= 2 ? 'Finale' : c <= 4 ? 'Halve finale' : c <= 8 ? 'Kwartfinale' : c <= 16 ? 'Achtste finale' : c <= 32 ? '1/16 finale' : `${i + 1}e ronde`;
 }
 export function bekerNu(){ const B = S.ss.bekers; if (!B) return false; return Object.keys(B).some(k => bekerSchema(k).includes(S.ronde) && B[k].winnaar === null && B[k].levend.length > 1); }

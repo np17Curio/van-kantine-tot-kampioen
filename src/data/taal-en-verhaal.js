@@ -6144,4 +6144,6 @@ export const EN_VERHAAL = {
   "Full sleeve":"Full sleeve",
   "Tekst \"Mam & Pap\"":"Text \"Mum & Dad\"",
   "Je ziet ze op je onderarmen als je in je shirt speelt. Later kun je er in de tattooshop meer laten zetten.":"You see them on your forearms when you play in your shirt. Later you can get more at the tattoo shop.",
+  "Naam aanpassen":"Change name",
+  "Andere naam":"Other name",
 };

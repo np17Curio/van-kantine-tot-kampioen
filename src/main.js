@@ -34,6 +34,7 @@ document.addEventListener('input', e => {
   const id = e.target.id;
   if (id === 'naam') tmp.naam = e.target.value;
   else if (id === 'vriendNaam') tmp.vriendNaam = e.target.value;
+  else if (id === 'partnerNaam') tmp.partnerNaam = e.target.value;
   else if (id === 'agentInput'){ tmp.agentQ = e.target.value; const box = document.getElementById('agentSugg'); if (box) box.innerHTML = suggHtml(tmp.agentQ); }
   else if (HERKOMST_IDS.includes(id)) tmp[id] = e.target.value;
 });

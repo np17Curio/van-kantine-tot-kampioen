@@ -10,7 +10,7 @@ import { krantMelding } from '../media/roddel.js';
 import { social } from '../prive/social.js';
 import { modFans, rivaal as derbyVan } from '../wedstrijd/fans-pers.js';
 import { PERS, karakter } from './persoonlijkheid.js';
-import { groeiSeizoen, plaats as plaatsRivaal, degradeerHoofdRivaal } from './rivaal.js';
+import { groeiSeizoen, plaats as plaatsRivaal, degradeerHoofdRivaal, alleRivalen, rivaalSpeler } from './rivaal.js';
 import { iedereen, zetBand as kleedBand } from '../team/kleedkamer.js';
 import { BLESSURES, ZWAAR } from './blessures.js';
 import { eersteSeizoen } from '../transfers/vertrek.js';
@@ -328,6 +328,13 @@ export function vriendOuder(){
   const tr = vriendTransfer();
   return [groei, tr].filter(Boolean).join(' ') || null;
 }
+// Clubs waar je beste vriend nooit naartoe gaat: jouw aartsrivaal en de clubs van je rivalen (alleen in je eigen land)
+function vriendVerboden(){
+  const s = new Set(); if (!vriendHier()) return s;
+  const d = derbyVan(S.sp.club); if (d != null) s.add(d);
+  try { for (const R of alleRivalen()){ const r = rivaalSpeler(R); if (r) s.add(r.id); } } catch (e) {}
+  return s;
+}
 // ---------- zijn carrière: hij wisselt van club als hij te goed (of te zwak) is voor zijn club ----------
 export function vriendTransfer(){
   const sp = S.sp, v = sp.vriend; if (!v || !vriendActief() || bijJou() || v.club == null || v.komt) return null;
@@ -337,7 +344,8 @@ export function vriendTransfer(){
   if (!cur) return null;
   const omhoog = v.k >= cur.s + 5, omlaag = v.k <= cur.s - 8; if (!omhoog && !omlaag) return null;
   const ids = hier ? [1, LAAGSTE].flatMap(t => divClubs(t)) : vriendApart() ? [1, 2].flatMap(t => andereWereldIds(land, t)) : Array.from({length:clubsLand(land) - 8}, (_, i) => 8 + i);
-  const kand = ids.filter(i => { const c = info(i); return i !== v.club && !(hier && i === sp.club) && c && c.t >= 1 && (omhoog ? c.s >= cur.s + 2 && c.s >= v.k - 6 && c.s <= v.k - 1 : c.s < cur.s && c.s >= v.k - 6); });
+  const verboden = vriendVerboden();
+  const kand = ids.filter(i => { const c = info(i); return i !== v.club && !verboden.has(i) && !(hier && i === sp.club) && c && c.t >= 1 && (omhoog ? c.s >= cur.s + 2 && c.s >= v.k - 6 && c.s <= v.k - 1 : c.s < cur.s && c.s >= v.k - 6); });
   if (!kand.length) return null;
   const naar = pick(kand), nieuw = info(naar), oud = cur.n;
   if (hier){ const sel = selectie(v.club), x = sel.find(y => y.vriend); if (x){ sel.splice(sel.indexOf(x), 1); selectie(v.club); herschik(sel); }
@@ -681,7 +689,7 @@ export function vriendWeek(eerste){
     if (J && J.verleiding && v.band < 25 && S.ronde === WINTER && v.vosJaar !== S.jaar && !S.wachtEv){ v.vosJaar = S.jaar; S.wachtEv = vosOpnieuw(); }
     // Hij vraagt of jij naar zijn club komt (hooguit eens per seizoen, als jij daar minstens wissel zou zijn)
     else if (bandWeek()) return;
-    else if ((!J || J.verleiding) && v.band >= 20 && v.lokJaar !== S.jaar && S.ronde >= 6 && !bijJou() && !vriendApart() && !sp.o23 && !sp.huur && !sp.clubloos && !eersteSeizoen() && !sp.vriendBod && !v.komt && !S.wachtEv && v.club != null && rnd() < .05 && rolBijHem() !== 'tribune'){ v.lokJaar = S.jaar; S.wachtEv = vriendLokt(); }
+    else if ((!J || J.verleiding) && v.band >= 20 && v.lokJaar !== S.jaar && S.ronde >= 6 && !bijJou() && !vriendApart() && !sp.o23 && !sp.huur && !sp.clubloos && !eersteSeizoen() && !sp.vriendBod && !v.komt && !S.wachtEv && v.club != null && !vriendVerboden().has(v.club) && rnd() < .05 && rolBijHem() !== 'tribune'){ v.lokJaar = S.jaar; S.wachtEv = vriendLokt(); }
     return;
   }
   // Geen contact meer (na een breuk op afstand): af en toe een berichtje van hem

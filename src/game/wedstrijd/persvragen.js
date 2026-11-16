@@ -1,3 +1,9 @@
+import { S } from '../../core/state.js';
+
+// Vragen over een eerste oproep voor het nationale elftal stel je niet aan iemand die al interlands heeft gespeeld
+const isInternational = () => Object.values((S.car && S.car.int) || {}).some(x => x && x.caps > 0);
+const nietOverInterland = q => !(q.id === 'xNationaal' || q.id === 'xBondscoach') || !isInternational();
+
 /* ===================== Extra persvragen ===================== */
 // Meer variatie in de persconferenties (fans-pers.js maakPers). Per vraag drie antwoorden: b (bescheiden), z (zelfverzekerd),
 // u (uitdagend), en een doel: waar een uitdagend antwoord gevolgen heeft (trainer, team, club, fans of ambitie).
@@ -48,7 +54,7 @@ export function extraHoofdvragen(soort, wij, zij){
       {id:'xRegen', doel:'club', vraag:'Hoe was het veld vandaag?', b:'"Lastig, maar voor beide ploegen hetzelfde."', z:'"Geen excuus. Goede spelers spelen overal."', u:'"Dit veld is een aardappelakker. De club moet daar echt iets aan doen."'},
     ],
   };
-  return V[soort] || [];
+  return (V[soort] || []).filter(nietOverInterland);
 }
 
 // Algemene vervolgvragen (over van alles: je toekomst, je privéleven, je idolen, de groep)
@@ -72,5 +78,5 @@ export function extraVervolgvragen(wij){
     {id:'xBeker', doel:'ambitie', vraag:'Hoe belangrijk is de beker voor jullie?', b:'"Elke prijs is mooi. We nemen het serieus."', z:'"We willen die beker winnen. Zo simpel is het."', u:'"Belangrijker dan de competitie. Daar zijn we toch al te laat."'},
     {id:'xRolmodel', doel:'fans', vraag:'Kinderen kijken naar je op. Voel je je een rolmodel?', b:'"Ja, en daar ben ik me van bewust. Ik wil een goed voorbeeld zijn."', z:'"Dat hoort erbij als je goed bent. Ik doe mijn best."', u:'"Ik ben voetballer, geen opvoeder. Ouders moeten dat zelf doen."'},
     {id:'xSalaris', doel:'club', vraag:'Verdien je genoeg bij deze club?', b:'"Ik ben tevreden. Geld is niet het belangrijkste."', z:'"Als ik zo blijf spelen, praten we daar later over."', u:'"Nee. Kijk naar wat ik lever en kijk naar mijn loonstrook."'},
-  ];
+  ].filter(nietOverInterland);
 }

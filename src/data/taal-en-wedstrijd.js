@@ -459,7 +459,7 @@ export const EN_WEDSTRIJD = {
   'Je bent nog # week geblesseerd: die wedstrijden tellen niet mee in je verwachting.':'You are injured for another # week: those matches don\'t count in your projection.',
   '(geel)':'(yellow)', '(rood)':'(red)', 'Welkom thuis, *!':'Welcome home, *!', 'De Nieuwe Maas':'The Nieuwe Maas', 'De IJssel':'The IJssel', 'De Schelde':'The Scheldt', 'De Rijn':'The Rhine', 'De Wolga':'The Volga', 'De Donau':'The Danube',
   'Verenigde Oost-Indische Compagnie':'Dutch East India Company', 'Vereniging van Oude Collectioneurs':'Society of Old Collectors', 'Vrije Overzeese Compagnie':'Free Overseas Company',
-  'Kwartfinale':'Quarter-final', 'kwartfinale':'quarter-final', 'Achtste finale':'Round of 16', 'achtste finale':'round of 16', '1/16 finale':'Round of 32', 'halve finale':'semi-final', 'finale':'final',
+  'Voorronde':'Preliminary round', 'voorronde':'preliminary round', 'Kwartfinale':'Quarter-final', 'kwartfinale':'quarter-final', 'Achtste finale':'Round of 16', 'achtste finale':'round of 16', '1/16 finale':'Round of 32', 'halve finale':'semi-final', 'finale':'final',
   'Kalm':'Calm',
   'Fel':'Fiery',
   'Gebalanceerd':'Balanced',
