@@ -732,7 +732,10 @@ export let PITCH = null; // lopende animatie
 let V3 = null, GEN = 0;
 if (typeof window !== 'undefined') import('./veld3d.js').then(m => { V3 = m; }).catch(e => console.warn('3D-veld kon niet laden', e));
 export const is3D = () => !!(V3 && instel().veld !== '2d' && V3.beschikbaar());
-function teken(cv, T, nu){ if (cv._3d && V3) V3.teken3D(T, nu); else tekenVeld(cv, T); }
+// (staat er een tussenfilmpje over het spel heen, zoals de persconferentie of een huldiging? Dan het veld eronder niet tekenen:
+//  dat zie je toch niet, en het 3D-veld kost veel rekenkracht, waardoor het filmpje ging haperen)
+const filmpjeOpen = () => !!document.querySelector('body > .cutscene:not(.uit)');
+function teken(cv, T, nu){ if (filmpjeOpen()) return; if (cv._3d && V3) V3.teken3D(T, nu); else tekenVeld(cv, T); }
 export function pitchCanvas(el){
   const b = Math.round(Math.min(el.clientWidth || 600, Math.max(320, window.innerHeight * .48 / .52))), dpr = Math.min(2, window.devicePixelRatio || 1), h = Math.round(b * .52);
   if (is3D()){ const c3 = V3.koppel3D(el, b, h, dpr); if (c3) return c3; }

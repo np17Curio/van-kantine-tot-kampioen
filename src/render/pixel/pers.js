@@ -164,5 +164,9 @@ export function maakPers(info){
   }
   // De plek van een journalist (voor de camera): het midden van zijn hoofd
   const plekVan = i => [RIJ[i][1] + 10, PH - 16];
+  // alvast klaarzetten: jouw houdingen met elke mondstand, en die van de persvoorlichter (anders bouwt de scène ze pas
+  // als ze voor het eerst nodig zijn, midden in een antwoord, en dat geeft een hapering)
+  for (const p of ['zit', 'praat1', 'praat2', 'staan']) if (POSES[p]) for (const m of [0, 1, 2]){ figuur(ik, POSES[p], false, m); figuur(pv, POSES[p], true, m); }
+  for (let i = 0; i < 8; i++) if (LOOP[i]) figuur(ik, LOOP[i], false, 0); // (en het lopen naar de tafel)
   return {teken, plekVan, fotografen:RIJ.map((r, i) => r[0] === 'f' ? i : -1).filter(i => i >= 0)};
 }
