@@ -225,7 +225,18 @@ const ZIJ_ACHTER = {
     c.line(11, 8, 21, 3, 'H'); c.line(14, 10, 24, 5, 'H');                                     // lokken die schuin omhoog naar voren lopen
     c.line(22, 6, 32, 5, 'H'); c.px(33, 5, 'H');                                               // de krul eronder
     c.line(21, 1, 31, 0, 'j'); c.px(24, 2, 'j'); c.px(29, 2, 'j'); },
-  krul: c => { c.rect(10, 4, 22, 7, 'h'); for (const [x, y] of [[11, 5], [16, 3], [22, 3], [28, 5], [9, 11], [10, 17]]){ c.circ(x, y, 3, 'h'); c.px(x - 1, y - 1, 'j'); c.px(x + 1, y + 1, 'H'); } },
+  // krullen van opzij: eerst een ronde schedel vol haar (boog bovenop, rond achterhoofd), dan bolletjes langs de rand zodat de
+  // omtrek hobbelig is, en overal kleine krulletjes (een licht- en een schaduwpuntje) die de ronding van het hoofd volgen
+  krul: c => {
+    ZIJ_DAK(c, 'h', 0, 4.5); ACHTERHOOFD(c, 'h', 6, 19); c.rect(8, 7, 3, 11, 'h');
+    for (const [x, y] of [[12, 3], [16, 1], [21, 0], [26, 1], [30, 4], [9, 7], [7, 11], [7, 15], [9, 18], [12, 20]]) c.circ(x, y, 2, 'h');
+    for (const [x, y] of [[13, 4], [18, 3], [23, 3], [28, 5], [10, 8], [15, 7], [20, 7], [25, 8], [9, 12], [13, 11], [9, 16], [12, 15], [12, 18]]){
+      c.px(x, y, 'j'); c.px(x + 1, y + 2, 'H'); } // (elk krulletje: een lichtpuntje en schuin eronder een schaduwpuntje, net als van voren)
+    for (const [x, y] of [[17, 1], [22, 0], [11, 5]]) c.px(x, y, 'j');
+    // inkepingen tussen de bolletjes: zo wordt de omtrek hobbelig (net als van voren), bovenop en aan de achterkant
+    for (const x of [14, 19, 24, 28]){ let y = 0; while (y < 10 && !c.is(x, y, 'hHj')) y++; if (y < 10) c.img.set(x, y, 0); }
+    for (const y of [9, 13, 17]){ let x = 0; while (x < 15 && !c.is(x, y, 'hHj')) x++; if (x < 15) c.img.set(x, y, 0); }
+  },
   staart: c => { ZIJ_MODEL(c); c.line(9, 9, 3, 14, 'h', 4); c.line(3, 14, 2, 21, 'h', 3); c.line(3, 15, 2, 20, 'H'); c.rect(8, 8, 2, 3, 'H'); },
   // (van opzij: een ronde bovenkant met glans, het haar valt achter het oor langs tot op de schouders en loopt in punten uit)
   lang: c => { ZIJ_MODEL(c); c.rect(5, 8, 12, 15, 'h'); for (const [x, y] of [[4, 23], [6, 24], [9, 25], [12, 24], [15, 23]]) c.rect(x, y - 1, 2, 2, 'h');
@@ -237,7 +248,8 @@ const ZIJ_ACHTER = {
   vlechten: c => { ZIJ_CORN(c); for (let y = 12; y < 26; y += 2){ c.rect(8, y, 3, 2, (y >> 1) % 2 ? 'h' : 'H'); c.rect(12, y + 1, 3, 2, (y >> 1) % 2 ? 'H' : 'h'); } },
 };
 const ZIJ_VOOR = {model:ZIJ_PONY, staart:ZIJ_PONY, kort:ZIJ_RECHT, kuif:ZIJ_RECHT, kroes:ZIJ_RECHT, cornrows:ZIJ_RECHT, vlechten:ZIJ_RECHT,
-  krul: c => { for (let x = 17; x < 32; x += 2) c.px(x, 10 + (x % 4 === 1 ? 1 : 0), 'h'); c.hline(17, 10, 15, 'h'); },
+  // (de krullen hangen vooraan als kleine plukjes over het voorhoofd; de voorste krult een beetje naar voren)
+  krul: c => { c.hline(17, 10, 15, 'h'); for (const x of [18, 22, 26, 30]){ c.px(x, 11, 'h'); c.px(x + 1, 11, 'h'); c.px(x, 12, 'H'); } c.px(32, 9, 'h'); c.px(32, 10, 'H'); },
   // (lang haar van opzij: een gordijntje dat schuin over het voorhoofd naar voren valt, boven het oog langs)
   lang: c => { c.poly([16, 9, 31, 9, 31, 11, 26, 12, 20, 13, 16, 14], 'h'); c.line(18, 10, 29, 11, 'H'); c.line(17, 12, 23, 11, 'j'); },
   afro: c => c.hline(17, 10, 15, 'h'), kaal: c => c.rect(15, 10, 1, 9, 's'), // (kaal: de achterrand van het gezicht loopt niet als een streep over de schedel)

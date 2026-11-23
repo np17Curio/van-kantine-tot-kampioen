@@ -1,3 +1,4 @@
+import { merkTekst, merkVoor } from '../../data/merken.js';
 import { S, club, ovr } from '../../core/state.js';
 import { esc } from '../../core/utils.js';
 import { CLUBS, DIVS, divClubs } from '../../data/gegevens.js';
@@ -34,6 +35,7 @@ export function vSelectie(){
       <div><span class="label">Teamsterkte</span><b>${c.s}</b>${vorig !== null ? ` ${trend(c.s, vorig)}` : ''}</div>
       <div><span class="label">Basiself gemiddeld</span><b>${gemBasis.toFixed(1).replace('.', ',')}</b></div>
       <div><span class="label">In de ${esc(DIVS[t])}</span><b>${rang}e sterkste</b></div>
+      <div><span class="label">Shirtmerk</span><b>${esc(merkTekst(merkVoor(c.n, c.s)))}</b></div>
       <div><span class="label">Gemiddelde leeftijd</span><b>${gemLft.toFixed(1).replace('.', ',')}</b></div>
       <div><span class="label">Jij</span><b>${ik}</b> <span class="muted klein-tekst">${mijnRol}</span></div>
     </div>

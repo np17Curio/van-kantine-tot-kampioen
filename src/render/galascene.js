@@ -1,3 +1,4 @@
+import { outfitVoor } from '../game/prive/kleding.js';
 import { S, seizoenLabel } from '../core/state.js';
 import { esc } from '../core/utils.js';
 import { ploegen } from './pitch.js';
@@ -29,7 +30,8 @@ async function speel(o){
     if (laag.weg) return;
     let sleutel = sp.naam; try { sleutel = ploegen().jij || sleutel; } catch (e){}
     const uit = uiterlijkVoor('jij|' + sleutel, {...(sp.uiterlijk || {}), vrouw:!!sp.vrouw});
-    const {frames, lus} = maakGala({uit, naam, presentator:uiterlijkVoor(`presentator|gala|${S.jaar || ''}`)});
+    const eigen = outfitVoor(S.sp.kleding, 'gala');
+    const {frames, lus} = maakGala({uit, naam, pak:eigen ? eigen[2] : null, presentator:uiterlijkVoor(`presentator|gala|${S.jaar || ''}`)});
     if (laag.weg) return;
     const cv = document.createElement('canvas'); cv.width = frames[0].width; cv.height = frames[0].height; cv.className = 'cs-pixel';
     cv.setAttribute('aria-hidden', 'true'); laag.vak.prepend(cv);

@@ -1,3 +1,4 @@
+import { BROEK_KAST, DAS_KAST, KLEUR_KAST, PERS_STIJLEN, UIT_STIJLEN, kies as kiesKleding, kledingWaarde } from '../../game/prive/kleding.js';
 import { BEKER_ALT } from '../../data/landen.js';
 import { S, club, mod, ovr, tmp, attr } from '../../core/state.js';
 import { act, keuzeKnop, knop, tabBalk } from '../../core/ui.js';
@@ -329,7 +330,7 @@ function vRivaal(){
       <div><span class="label">Klasse</span><b>${R.k}${R.kVorig != null && R.k !== R.kVorig ? ` <span class="${R.k > R.kVorig ? 'omhoog' : 'omlaag'}">${R.k > R.kVorig ? '↑' : '↓'}${Math.abs(R.k - R.kVorig)}</span>` : ''} <span class="muted">(jij ${ik})</span></b>${ik - R.k >= 6 ? '<span class="muted klein-tekst">Je loopt op ' + team.hem + ' uit</span>' : R.k - ik >= 6 ? '<span class="muted klein-tekst">Hij is je ver vooruit</span>' : ''}</div><div><span class="label">Dit seizoen</span><b>${st.g} G · ${st.a} A <span class="muted">(jij ${S.ss.g || 0} G · ${S.ss.a || 0} A)</span></b></div>
       <div><span class="label">Onderling</span><b>${R.onderling.w}W ${R.onderling.g}G ${R.onderling.v}V</b></div><div><span class="label">Cijferduels</span><b>${R.cijferDuels ? `${R.cijferDuels.w} gewonnen · ${R.cijferDuels.v} verloren` : '–'}</b></div><div><span class="label">Volgende duel</span><b>${d ? `week ${d.ronde + 1} · ${d.thuis ? 'thuis' : 'uit'}` : '–'}</b></div></div>
     ${acties ? `<span class="label">Wat doe je met je rivaal? <span class="niv">1 keer per week</span></span>${acties}` : ''}
-    ${R.hist.length ? `<p class="muted klein-tekst">Vorige seizoenen: ${R.hist.slice(-4).map(esc).join(' · ')}</p>` : ''}</section>${vAndereRivalen()}`;
+    ${R.hist.length ? `<p class="muted klein-tekst">Vorige seizoenen:<br>${R.hist.slice(-4).map(esc).join('<br>')}</p>` : ''}</section>${vAndereRivalen()}`;
 }
 // Je andere rivalen (naast je hoofdrivaal): kort, met de race, jullie band en de knop om er je hoofdrivaal van te maken
 function vAndereRivalen(){
@@ -539,6 +540,7 @@ function vBuitenBasis(){
       <div class="kapsels" role="group" aria-label="Gezichtshaar">${BAARD_KEUZE.map(([b, n]) => knop(n, () => naarKapperBaard(b), 'klein' + (u.baard === b ? ' aan' : ''), `data-blijf aria-pressed="${u.baard === b}" ${kapper && u.baard !== b && sp.geld >= KAPPER.knippen ? '' : 'disabled'}`)).join('')}</div>`
         : `<p class="muted klein-tekst" style="margin-top:8px">Gezichtshaar: je baard komt nog (rond je 18e).</p>`}</div></div>
     ${vTattoo()}
+    ${vKledingkast()}
     <span class="label winkelkop">Voetbalschoenen${dl ? ` · jij speelt op ${esc(dl.merk)} (${geldTxt(dl.bedrag)} per jaar, ${dl.levenslang ? 'levenslang' : `nog ${dl.jaren} ${dl.jaren === 1 ? 'seizoen' : 'seizoenen'}`})` : ''}</span>
     <p class="muted klein-tekst">Hoe beter je bent, hoe groter het merk dat je wil hebben. De grote merken nemen alleen de beste spelers. Per merk kun je het één keer per halfjaar vragen.</p>
     <div class="keuzes">${MERKEN.map(m => { const reden = kanAanvragen(m), k = schoenKans(m);
@@ -579,3 +581,26 @@ export function vEvent(){
     <p class="moment">${esc(S.ev.tekst)}</p></div>
     <div class="keuzes">${S.ev.opts.map((o, i) => `<button class="keuze" data-i="${act(() => kiesEvent(i))}"><span class="t">${o.toon ? TOON[o.toon].i + ' ' : ''}${esc(o.l)}</span>${o.toon ? `<span class="s">${TOON[o.toon].n}</span>` : ''}</button>`).join('')}</div>`;
 }
+
+// ---------- Kledingkast (game/prive/kleding.js): wat je draagt buiten het veld ----------
+// Twee voorbeeldfoto's (uitgaan en bij de pers) en per stuk kleding een rij kleurvakjes
+function vKledingkast(){
+  const sp = S.sp, K = kledingWaarde(sp.kleding);
+  const stijl = (lijst, wat) => `<div class="kapsels" role="group">${lijst.map(([id, n]) => knop(n, () => kiesKleding(wat, id), 'klein' + (K[wat] === id ? ' aan' : ''), `data-blijf aria-pressed="${K[wat] === id}"`)).join('')}</div>`;
+  const vakjes = (lijst, wat, label) => `<span class="label" style="margin-top:6px">${label}</span><div class="kapsels" role="group" aria-label="${label}">${lijst.map(([n, h]) =>
+    knop(`<span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${h};border:1px solid #0007;vertical-align:middle"></span>`, () => kiesKleding(wat, h), 'klein' + (K[wat] === h ? ' aan' : ''),
+      `data-blijf title="${esc(n)}" aria-label="${esc(n)}" aria-pressed="${K[wat] === h}" style="padding:4px 6px"`)).join('')}</div>`;
+  return `<span class="label winkelkop">Kledingkast</span>
+    <p class="muted klein-tekst">Wat je draagt buiten het veld: op de foto's in de krant (uitgaan, op straat, thuis, bij je auto, op het strand), bij persconferenties en op het gala of je bruiloft.</p>
+    <div class="rij" style="align-items:flex-start;gap:14px;flex-wrap:wrap">
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><figure class="portretfoto" style="max-width:170px;margin:0"><img data-foto="straat" alt="Jouw speler als je uitgaat"><span class="ontwikkel">Foto laden…</span><figcaption class="muted klein-tekst">Uitgaan</figcaption></figure>
+        <figure class="portretfoto" style="max-width:170px;margin:0"><img data-foto="stijlpers" alt="Jouw speler bij de pers"><span class="ontwikkel">Foto laden…</span><figcaption class="muted klein-tekst">Bij de pers</figcaption></figure></div>
+      <div style="flex:1;min-width:220px">
+        <span class="label">Als je de deur uitgaat</span>${stijl(UIT_STIJLEN, 'uit')}
+        <span class="label" style="margin-top:8px">Bij de pers en in interviews</span>${stijl(PERS_STIJLEN, 'pers')}
+        ${vakjes(KLEUR_KAST, 'jas', 'Jas')}${vakjes(BROEK_KAST, 'broek', 'Broek')}
+        ${vakjes(KLEUR_KAST, 'pak', 'Pak (ook op het gala en je bruiloft)')}${vakjes(DAS_KAST, 'das', 'Das')}
+        ${vakjes(KLEUR_KAST, 'sport', 'Trainingspak en T-shirt (ook op het strand)')}
+      </div></div>`;
+}
+

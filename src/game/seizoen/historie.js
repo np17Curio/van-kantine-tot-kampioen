@@ -6,6 +6,7 @@ import { thuisLand } from '../../data/landen.js';
 import { clubLogo } from '../../data/logos.js';
 import { ACHTERNAMEN, VOORL, stand } from '../competitie/spelers.js';
 import { ck } from '../transfers/buitenland.js';
+import { metVoorletter, ranglijst } from '../media/nieuws.js';
 
 /* ===================== Clubhistorie ===================== */
 // Elke club heeft een geschiedenis: een prijzenkast, een topscorer aller tijden, een recordspeler en legendes.
@@ -67,12 +68,48 @@ export function historieSeizoen(){
     zet(kamp, t === 1 ? 'titel' : 'div2');
     const l = E[t] = E[t] || []; if (!l.some(x => x.j === j)) l.push({j, n:CLUBS[kamp].n}); if (l.length > 40) l.shift();
   }
+  competitieSeizoen(j, land);
   const B = S.ss.bekers || {};
   if (B.nat) zet(B.nat.winnaar, 'beker');
   if (B.cl) zet(B.cl.winnaar, 'cl');
   if (B.eur) zet(B.eur.winnaar, 'eur');
 }
 
+// ---------- Competitiehistorie: per league per seizoen de kampioen, de topscorer en de assistkoning, plus de ranglijsten aller tijden ----------
+// S.compHist[land][t] = {seizoenen:[{j, kamp, top:{n, c, g}, ass:{n, c, a}}], g:{naam:{n, c, g}}, a:{naam:{n, c, a}}} (vanaf het moment dat dit bijgehouden wordt)
+const spelerNaam = x => x.jij ? S.sp.naam : metVoorletter(x);
+const clubNaam = x => (CLUBS[x.club] || {}).n || '';
+function competitieSeizoen(j, land){
+  const CH = (S.compHist = S.compHist || {})[land] = (S.compHist || {})[land] || {};
+  for (let t = 1; t <= LAAGSTE; t++){
+    const kamp = stand(t)[0]; if (kamp == null) continue;
+    const L = CH[t] = CH[t] || {seizoenen:[], g:{}, a:{}}; if (L.seizoenen.some(x => x.j === j)) continue;
+    let goals = [], assists = []; try { goals = ranglijst(t, 'g'); assists = ranglijst(t, 'a'); } catch (e){}
+    const top = goals[0], ass = assists[0];
+    L.seizoenen.push({j, kamp:CLUBS[kamp].n, top:top && top.g ? {n:spelerNaam(top), c:clubNaam(top), g:top.g, jij:!!top.jij} : null, ass:ass && ass.a ? {n:spelerNaam(ass), c:clubNaam(ass), a:ass.a, jij:!!ass.jij} : null});
+    if (L.seizoenen.length > 60) L.seizoenen.shift();
+    // aller tijden: optellen per speler (de 60 besten bewaren, anders groeit je opslag elk seizoen)
+    for (const [lijst, k] of [[goals, 'g'], [assists, 'a']]){
+      for (const x of lijst){ if (!(x[k] > 0)) continue; const n = spelerNaam(x), sl = x.jij ? 'jij' : n + '|' + clubNaam(x), r = L[k][sl] = L[k][sl] || {n, c:'', [k]:0, jij:!!x.jij}; r[k] += x[k]; r.c = clubNaam(x); } // (sleutel: naam + club, want twee spelers kunnen dezelfde korte naam hebben)
+      L[k] = Object.fromEntries(Object.entries(L[k]).sort((a, b) => b[1][k] - a[1][k]).slice(0, 60));
+    }
+  }
+}
+function vCompetitie(){
+  const land = thuisLand(), CH = (S.compHist && S.compHist[land]) || {}, E = (S.erelijst && S.erelijst[land]) || {};
+  const t = tmp.histDiv >= 1 && tmp.histDiv <= LAAGSTE ? tmp.histDiv : 1, L = CH[t] || {seizoenen:[], g:{}, a:{}};
+  const tabs = `<div class="rij" style="gap:6px;flex-wrap:wrap">${Array.from({length:LAAGSTE}, (_, i) => i + 1).map(d => knop(DIVS[d], () => { tmp.histDiv = d; }, 'klein' + (d === t ? ' aan' : ''), 'data-blijf')).join('')}</div>`;
+  const mij = (txt, jij) => jij ? `<b class="goedtxt">${esc(txt)}</b>` : esc(txt);
+  const top = k => Object.values(L[k]).sort((a, b) => b[k] - a[k]).slice(0, 5).map((x, i) => `<div class="landrij"><div>${i + 1}. ${mij(x.n, x.jij)} <span class="muted klein-tekst">${esc(x.c)}</span></div><span class="niv"><b>${x[k]}</b></span></div>`).join('') || '<p class="muted klein-tekst">Nog niets bijgehouden.</p>';
+  const titels = {}; for (const x of (E[t] || [])) titels[x.n] = (titels[x.n] || 0) + 1;
+  const meesteTitels = Object.entries(titels).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([n, k], i) => `<div class="landrij"><div>${i + 1}. ${esc(n)}</div><span class="niv"><b>${k}×</b></span></div>`).join('');
+  const seizoenen = L.seizoenen.slice().reverse().slice(0, 12).map(x => `<div class="landrij"><div><b>${jaarTxt(x.j)}</b> · 🏆 ${esc(x.kamp)}<br><span class="klein-tekst">⚽ ${x.top ? `${mij(x.top.n, x.top.jij)} (${x.top.g})` : '–'} · 🅰️ ${x.ass ? `${mij(x.ass.n, x.ass.jij)} (${x.ass.a})` : '–'}</span></div></div>`).join('');
+  return `${tabs}
+    <span class="label">Seizoen na seizoen</span>${seizoenen || '<p class="muted klein-tekst">Na dit seizoen staat hier de eerste kampioen, topscorer en assistkoning.</p>'}
+    <span class="label">Meeste goals (sinds je begon)</span>${top('g')}
+    <span class="label">Meeste assists (sinds je begon)</span>${top('a')}
+    ${meesteTitels ? `<span class="label">Meeste titels</span>${meesteTitels}` : ''}`;
+}
 // Jij bij deze club: goals en wedstrijden (records.js) en of je er een legende bent
 export function jijBij(id){
   const R = S.car && S.car.rec, ky = ck(id), c = CLUBS[id];
@@ -91,6 +128,13 @@ const clubLijst = () => { const l = [...stand(1), ...stand(LAAGSTE)]; if (S.sp &
 export const historieKnop = (id, inhoud) => knop(inhoud, () => { tmp.zijTab = 'historie'; tmp.histClub = id; }, 'linkknop', `data-blijf title="Bekijk de historie van ${esc(CLUBS[id].n)}"`);
 
 export function vHistorie(){
+  // twee delen: de historie van een club, of die van de competitie (kampioenen, topscorers, assistkoningen)
+  const modus = tmp.histModus === 'comp' ? 'comp' : 'club';
+  const keuze = `<div class="rij" style="gap:6px;margin-bottom:8px">${knop('Clubs', () => { tmp.histModus = 'club'; }, 'klein' + (modus === 'club' ? ' aan' : ''), 'data-blijf')}${knop('Competitie', () => { tmp.histModus = 'comp'; }, 'klein' + (modus === 'comp' ? ' aan' : ''), 'data-blijf')}</div>`;
+  if (modus === 'comp') return `<div class="kaart historie">${keuze}${vCompetitie()}</div>`;
+  return vClubHistorie(keuze);
+}
+function vClubHistorie(keuze){
   const lijst = clubLijst(), eigen = S.sp && !S.sp.clubloos ? S.sp.club : lijst[0];
   const id = lijst.includes(tmp.histClub) ? tmp.histClub : eigen, i = lijst.indexOf(id), c = CLUBS[id], H = historie(id), sp = S.sp;
   const jij = jijBij(id), mijn = id === sp.club && !sp.clubloos, naam = esc(sp.naam);
@@ -109,7 +153,7 @@ export function vHistorie(){
   const leg = H.legendes.map(x => `<li><b>${esc(x.n)}</b> <span class="muted">(${x.pos}, ${x.p[0]}–${x.p[1]})</span><br><span class="klein-tekst">${x.w} wed · ${x.g} goals · <i>${esc(x.typ)}</i></span></li>`);
   if (jij.legende) leg.push(`<li class="mij"><b>${naam}</b> <span class="muted">(jij)</span><br><span class="klein-tekst">${jij.w} wed · ${jij.g} goals · <i>${jij.g > H.top.g ? 'de topscorer aller tijden' : 'een legende van nu'}</i></span></li>`);
   const E = (S.erelijst && S.erelijst[thuisLand()]) || {}, ere = c.t >= 1 ? (E[c.t] || []).slice(-6).reverse() : [];
-  return `<div class="kaart historie">${nav}
+  return `<div class="kaart historie">${keuze}${nav}
     <div class="histkop">${clubLogo(id, 44)}<div><h3>${esc(c.n)}</h3><div class="muted klein-tekst">Opgericht in ${H.opgericht} · ${c.t >= 0 ? esc(DIVS[c.t]) : ''}</div></div></div>
     <span class="label">Prijzenkast</span>${kast || '<p class="muted klein-tekst">Nog geen grote prijzen. De eerste kan van jou zijn!</p>'}
     ${record('Topscorer aller tijden', H.top, H.top.g, 'goals', jij.g)}

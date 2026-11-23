@@ -55,12 +55,33 @@ const KOP = [
   kopLucht(8, [0, 0], [72, 23]), kopLucht(14, [-2, 0], [62, 25]), kopLucht(16, [4, 1], [54, 27]), kopLucht(14, [3, 1], [72, 16]),
   {x:38, lL:[20, 40], lR:[25, 45], aL:[-80, 20], aR:[80, 20], hoog:6, bal:[90, 8]},
   {...hurk},
+  // de kopbeweging zelf (het veld kiest ze op de afstand tot de bal, veld3d): 8 aanspannen (hoofd en rug naar achteren, de benen
+  // opgetrokken, de armen naar voren voor de balans), 9 de klap (het hoofd vooruit en omlaag tegen de bal, de armen zwaaien
+  // naar achteren, de benen schieten naar voren) en 10 uitkomen (het hoofd blijft voor, het lijf ontspant)
+  // (van opzij, zoals bij schieten: dan zie je het hoofd echt naar achteren en naar voren gaan)
+  {x:36, lL:[-10, 95], lR:[-20, 85], aL:[50, 40], aR:[80, 30], hoog:15, hd:[-4, -2], zij:true},
+  {x:39, lL:[40, 50], lR:[25, 40], aL:[-80, 25], aR:[-55, 35], hoog:15, hd:[6, 3], zij:true},
+  {x:39, lL:[30, 65], lR:[15, 55], aL:[-45, 20], aR:[-25, 30], hoog:12, hd:[4, 3], zij:true},
 ];
 // de gestrekte duikhouding (70×90), zoals de stijlbron hem stempelt
 const DUIK_P = {x:35, y:58, lL:[-6, 0], lR:[6, 5], aL:[-172, 0], aR:[172, 0], hand:'q', arm:2.2, hd:[0, 5]};
 const duikhouding = v => sprite(70, 90, c => speler(c, DUIK_P, v));
+// De duik in vier fasen, minder stijf dan één gestrekte plank (hoeken: 0 = omlaag, 180 = omhoog; tweede getal = hoe ver de knie/elleboog buigt):
+// afzetten (het afzetbeen gestrekt, het andere been opgetrokken, de armen gaan omhoog), vliegen (een knie opgetrokken, de armen
+// gestrekt naar de bal), het hoogste punt (helemaal uitgestrekt, de benen iets uit elkaar) en landen (knieën gebogen, de armen trekken de bal in)
+const DUIK_FASEN = [
+  {...DUIK_P, lL:[-14, 45], lR:[8, 2], aL:[-162, 14], aR:[166, -8], hd:[0, 4]},
+  {...DUIK_P, lL:[-18, 55], lR:[10, 18], aL:[-170, 6], aR:[174, -4], hd:[1, 4]},
+  {...DUIK_P, lL:[-12, 14], lR:[14, 28], aL:[-176, 0], aR:[178, 0], hd:[1, 5]},
+  {...DUIK_P, lL:[-22, 60], lR:[12, 70], aL:[-166, 34], aR:[168, -34], arm:1.8, hd:[0, 4]}, // (de armen blijven boven het hoofd: plat op de grond zou een arm anders in het gras steken)
+  // geland met de bal: hij klemt hem tegen zijn borst, de ellebogen gebogen, de knieën iets opgetrokken (de bal wordt erbij getekend)
+  {...DUIK_P, lL:[-16, 40], lR:[10, 50], aL:[-30, 125], aR:[30, -125], arm:1, hd:[0, 4], vang:true},
+  // geland zonder bal (naast, of erin): de armen komen terug langs het lijf, het lichaam ontspant
+  {...DUIK_P, lL:[-14, 30], lR:[12, 45], aL:[-18, 25], aR:[22, -30], arm:1, hd:[0, 4]},
+];
+const duikFase = (P, v) => sprite(70, 90, c => { speler(c, P, v); if (P.vang){ c.stamp(BAL, 30, 45); vuist(c, 29, 51, 'q'); vuist(c, 42, 51, 'q'); } }); // (de gevangen bal tegen zijn borst, de handschoenen er aan weerszijden om)
 const DUIK_LUCHT = [[45, 22, 2, [116, 32]], [75, 34, -4, [114, 36]], [90, 46, -6, [117, 30]], [95, 52, 6, [122, 47]], [90, 50, 18, [121, 55]], [90, 50, 19, [121, 56]]];
-import { BAL } from './rig.js';
+import { BAL, vuist } from './rig.js';
 
 // ---------- dribbelen en voorbij (stijlbron, deel 6 en 7) ----------
 // balVoor: de afstand van de bal tot de heup per frame (bij frame 2 tikt de rechtervoet hem aan). Het veld zet de 3D-bal ook op die afstand.
@@ -138,7 +159,8 @@ const SPEL = {
     ...[[45, -6], [75, -2], [90, 0], [92, 8]].map(([rot, oy]) => (c, v) => { const d = duikhouding(v).rot(rot); c.stamp(d, ANKER_X + 2 - d.w / 2, GROND - 14 + oy - d.h / 2); })]},
   // de gestrekte duikhouding uit de stijlbron, rechtop (heup op ANKER_X, voeten op de grond): het veld draait hem in de richting
   // waarin de keeper op het scherm duikt, ook als dat de diepte in is (veld3d: s.mat.rotation)
-  duikStrek:{fps:1, frames:[(c, v) => c.stamp(duikhouding(v), ANKER_X - 35, 0)]},
+  // vier beelden, die het veld kiest naar hoe ver hij in de sprong is (veld3d: 0 afzetten, 1 vliegen, 2 het hoogste punt, 3 landen)
+  duikStrek:{fps:1, frames:DUIK_FASEN.map(P => (c, v) => c.stamp(duikFase(P, v), ANKER_X - 35, 0))},
   // (armen omhoog: schuin en wat langer, anders verdwijnen ze achter het grote hoofd)
   juich:{fps:8, loop:true, frames:[met({aL:[-125, -25], aR:[125, 25], arm:1.3}), met({aL:[-118, -30], aR:[118, 30], arm:1.35, hoog:3, lL:[20, 40], lR:[25, 45]}),
     met({aL:[-130, -20], aR:[130, 20], arm:1.35, hoog:5, lL:[25, 50], lR:[30, 55], hd:[0, -1]}), met({aL:[-118, -30], aR:[118, 30], arm:1.35, hoog:3, lL:[20, 40], lR:[25, 45]})]},

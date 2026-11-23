@@ -1,4 +1,6 @@
 import { S, club, mod, ovr, seizoenLabel } from '../../core/state.js';
+import { CLUBS } from '../../data/gegevens.js';
+import { thuisLand } from '../../data/landen.js';
 import { clamp, pick, randInt, rnd } from '../../core/utils.js';
 import { selectie } from '../competitie/spelers.js';
 import { krantMelding } from '../media/roddel.js';
@@ -12,11 +14,19 @@ import { oudeClubs } from '../wedstrijd/reunie.js';
 // De eerste helft speel je bij je club, de tweede helft bij je vrienden. Een feest, geen competitiewedstrijd:
 // er verandert niets aan uitslagen, standen of statistieken.
 const VULLING = ['je oude jeugdtrainer', 'een oud-ploeggenoot uit de O23', 'je eerste aanvoerder', 'de kitman van je eerste club', 'je beste vriend van vroeger', 'je oude buurjongen'];
-export const magAfscheid = () => { const sp = S.sp; return !!(sp && sp.legendeHier && !sp.clubloos && !S.trainer && !S.eigenaar && !S.analist); };
+// Iedereen die stopt krijgt er een (eerst alleen een clublegende van zijn huidige club: dat was na een late transfer
+// bijna niemand meer). Zonder club: bij je laatste club in dit land. Een clublegende krijgt het grote feest.
+function afscheidClub(){
+  const sp = S.sp; if (!sp.clubloos && sp.club != null && CLUBS[sp.club]) return sp.club;
+  const l = ((S.car && S.car.clubs) || []).filter(x => !x.huur && (x.land || thuisLand()) === thuisLand() && CLUBS[x.club]);
+  return l.length ? l[l.length - 1].club : null;
+}
+export const magAfscheid = () => { const sp = S.sp; return !!(sp && !S.trainer && !S.eigenaar && !S.analist && afscheidClub() != null); };
 const kans = () => clamp(.55 + (ovr(S.sp) - 60) / 100, .4, .85);
 export function maakAfscheid(){
-  const sp = S.sp, c = club(), rel = sp.kleed && sp.kleed.club === ck(sp.club) ? sp.kleed.rel : {};
-  const team = selectie(sp.club).slice().sort((a, b) => (rel[b.n] ?? 50) - (rel[a.n] ?? 50)).slice(0, 8).map(x => ({n:x.n}));
+  const sp = S.sp, id = afscheidClub(), c = CLUBS[id], hier = id === sp.club && !sp.clubloos, rel = hier && sp.kleed && sp.kleed.club === ck(sp.club) ? sp.kleed.rel : {};
+  const legende = hier ? !!sp.legendeHier : (S.car.prijzen || []).includes(`Clublegende van ${c.n}`);
+  const team = selectie(id).slice().sort((a, b) => (rel[b.n] ?? 50) - (rel[a.n] ?? 50)).slice(0, 8).map(x => ({n:x.n}));
   const vrienden = [];
   for (const o of Object.values(oudeClubs())){
     if (!o || !o.rel) continue;
@@ -26,7 +36,7 @@ export function maakAfscheid(){
   if (rivMee) vrienden.unshift({n:rivaalNaam(), club:'je rivaal', rivaal:true});
   let v = 0; while (vrienden.length < 6) vrienden.push({n:VULLING[v++ % VULLING.length], club:''});
   const kids = kinderen().filter(k => S.jaar - k.jaar >= 4);
-  return {club:c.n, team, vrienden:vrienden.slice(0, 11), rivaal:R ? {naam:rivaalNaam(), mee:rivMee} : null, kind:kids.length ? pick(kids).naam : null,
+  return {club:c.n, clubId:id, legende, hier, team, vrienden:vrienden.slice(0, 11), rivaal:R ? {naam:rivaalNaam(), mee:rivMee} : null, kind:kids.length ? pick(kids).naam : null,
     stap:0, wij:0, zij:0, goals:0, log:[], min:0};
 }
 // Wat er bij elke stap te kiezen is

@@ -8,6 +8,53 @@ import { BAL as BAL_PX, inkleuren } from './pixel/rig.js';
 // Tekent dezelfde toestand als het 2D-veld (spelers en bal in meters: x 0-105, y 0-68, z = hoogte), maar dan in 3D.
 // Er is één WebGL-renderer met één canvas. Bij elke weergave wordt dat canvas in het nieuwe veld gehangen:
 // browsers staan maar een handvol WebGL-contexten toe, dus elke keer een nieuwe maken zou het spel laten vastlopen.
+// De keepersduik (zie het tekenen van de spelers): hoe lang de sprong duurt, welk deel daarvan afzetten is en hoe lang het opstaan duurt
+const DUIK_MS = 620, AFZET = .14, OPSTA_MS = 280;
+// Het weer in het veld: lucht (en mist in dezelfde kleur), licht, en een laagje op het gras (sneeuw: wit, regen: donker en nat).
+// Zonder weer (training, proefwedstrijd) blijft het zoals het was: een avond onder de lichtmasten
+const N_REGEN = 1800, N_SNEEUW = 2200;
+const WEER_LOOK = {
+  geen:{lucht:0x0b1020, mist:[0x0b1020, 90, 190], hemi:1.15, zon:1.5, zonKl:0xffffff, gras:0xffffff, laag:0x000000, rand:0x23552f},
+  zon:{lucht:0x78b4ea, mist:[0x9cc8ee, 120, 240], hemi:1.35, zon:1.95, zonKl:0xfff1d6, gras:0xffffff, laag:0x000000, rand:0x2c6338},
+  bewolkt:{lucht:0x8a96a6, mist:[0x8a96a6, 95, 210], hemi:1.12, zon:.7, zonKl:0xffffff, gras:0xf2f5f2, laag:0x000000, rand:0x284f33},
+  regen:{lucht:0x525d6b, mist:[0x5b6573, 55, 160], hemi:.95, zon:.38, zonKl:0xdde6ff, gras:0xc6d2cc, laag:0x000000, rand:0x1f4029},
+  sneeuw:{lucht:0xa3abb5, mist:[0xb3bac3, 50, 150], hemi:1.15, zon:.55, zonKl:0xffffff, gras:0xffffff, laag:0x8e949c, rand:0xd6dce3},
+};
+function zetWeer(w){
+  const soort = w && WEER_LOOK[w.soort] ? w.soort : 'geen'; if (R.weer === soort) return; R.weer = soort;
+  const L = WEER_LOOK[soort];
+  R.renderer.setClearColor(L.lucht); R.scene.fog.color.set(L.mist[0]); R.scene.fog.near = L.mist[1]; R.scene.fog.far = L.mist[2];
+  R.hemi.intensity = L.hemi; R.zon.intensity = L.zon; R.zon.color.set(L.zonKl);
+  R.veldM.color.set(L.gras); R.veldM.emissive.set(L.laag); R.randM.color.set(L.rand);
+  R.regen.visible = soort === 'regen'; R.sneeuw.visible = soort === 'sneeuw';
+}
+// Regen valt snel en een beetje schuin, sneeuw dwarrelt; wat onder het gras komt, begint weer bovenaan
+function weerBeweegt(dt, tijd){
+  if (!dt || dt > .2) return;
+  if (R.regen.visible){ const a = R.regen.geometry.attributes.position, p = a.array;
+    for (let i = 0; i < p.length; i += 6){ const dy = 24 * dt; p[i + 1] -= dy; p[i + 4] -= dy; p[i] += 3 * dt; p[i + 3] += 3 * dt; if (p[i + 4] < 0){ p[i + 1] += 28; p[i + 4] += 28; p[i] -= 3.5; p[i + 3] -= 3.5; } }
+    a.needsUpdate = true; }
+  if (R.sneeuw.visible){ const a = R.sneeuw.geometry.attributes.position, p = a.array;
+    for (let i = 0, n = 0; i < p.length; i += 3, n++){ p[i + 1] -= 1.5 * dt; p[i] += Math.sin(tijd * .8 + n) * .5 * dt; p[i + 2] += Math.cos(tijd * .6 + n * 1.7) * .3 * dt; if (p[i + 1] < 0) p[i + 1] += 28; }
+    a.needsUpdate = true; }
+}
+const KOP_KLAP_MS = 160; // (hoe lang de klap van een kopbal te zien is, daarna komt hij uit)
+// Hoe ver (in pixels van het figuur) het laagste stukje van een plaatje onder zijn draaipunt komt als het rot gedraaid is
+// (three.js draait een sprite tegen de klok in: een punt (x, y) gaat naar y' = x·sin + y·cos). De omtrek (per rij de buitenste
+// pixel links en rechts) wordt één keer per plaatje gemeten
+const OMTREK = new WeakMap();
+function onderGrond(cv, ank, rot, bouw){
+  let pt = OMTREK.get(cv);
+  if (!pt){
+    pt = []; const w = cv.width, h = cv.height, d = cv.getContext('2d').getImageData(0, 0, w, h).data, ax = ank.x * w, ay = (1 - ank.y) * h;
+    for (let y = 0; y < h; y++){ let l = -1, r = -1; for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 0){ if (l < 0) l = x; r = x; }
+      if (l >= 0){ pt.push([l + .5 - ax, ay - y - .5], [r + .5 - ax, ay - y - .5]); } }
+    OMTREK.set(cv, pt);
+  }
+  const sn = Math.sin(rot), cs = Math.cos(rot); let laagst = 0;
+  for (const [x, y] of pt) laagst = Math.min(laagst, x * bouw * sn + y * cs);
+  return -laagst;
+}
 const SCHAAL = 1.45;          // spelers iets groter dan echt, anders zijn ze vanaf de tribune te klein
 const BAL_R = .2, BAL_S = .62; // (de bal is een pixelsprite van BAL_S meter, iets groter dan echt: anders zie je hem niet)
 let R = null;                  // null = nog niet geprobeerd, false = geen WebGL
@@ -63,12 +110,21 @@ function maak(){
   cv.addEventListener('webglcontextlost', e => { e.preventDefault(); R = false; });
   const scene = new THREE.Scene(); scene.fog = new THREE.Fog(0x0b1020, 90, 190);
   const camera = new THREE.PerspectiveCamera(25, 2, .5, 400);
-  scene.add(new THREE.HemisphereLight(0xe6eeff, 0x2a4a2e, 1.15));
+  const hemi = new THREE.HemisphereLight(0xe6eeff, 0x2a4a2e, 1.15); scene.add(hemi);
   const zon = new THREE.DirectionalLight(0xffffff, 1.5); zon.position.set(-20, 60, 40); scene.add(zon);
   // omgeving: donker gras rondom, veld, tribunes, lichtmasten
-  const rand = new THREE.Mesh(new THREE.PlaneGeometry(260, 200), new THREE.MeshLambertMaterial({color:0x23552f})); rand.rotation.x = -Math.PI / 2; rand.position.y = -.02; scene.add(rand);
+  const randM = new THREE.MeshLambertMaterial({color:0x23552f}), rand = new THREE.Mesh(new THREE.PlaneGeometry(260, 200), randM); rand.rotation.x = -Math.PI / 2; rand.position.y = -.02; scene.add(rand);
   const vt = veldTex(renderer.capabilities.getMaxAnisotropy());
-  const veld = new THREE.Mesh(new THREE.PlaneGeometry(vt.w, vt.h), new THREE.MeshLambertMaterial({map:vt.t})); veld.rotation.x = -Math.PI / 2; scene.add(veld);
+  const veldM = new THREE.MeshLambertMaterial({map:vt.t}), veld = new THREE.Mesh(new THREE.PlaneGeometry(vt.w, vt.h), veldM); veld.rotation.x = -Math.PI / 2; scene.add(veld);
+  // het weer (game/wedstrijd/weer.js): regen als korte schuine streepjes, sneeuw als vlokjes; ze vallen in een blok rond het veld
+  const regenPos = new Float32Array(N_REGEN * 6);
+  for (let i = 0; i < N_REGEN; i++){ const x = (Math.random() - .5) * 130, y = Math.random() * 28, z = (Math.random() - .5) * 90; regenPos.set([x, y, z, x + .12, y - .8, z], i * 6); }
+  const regenG = new THREE.BufferGeometry(); regenG.setAttribute('position', new THREE.BufferAttribute(regenPos, 3));
+  const regen = new THREE.LineSegments(regenG, new THREE.LineBasicMaterial({color:0xcfd8e6, transparent:true, opacity:.55, depthWrite:false})); regen.visible = false; regen.frustumCulled = false; scene.add(regen);
+  const sneeuwPos = new Float32Array(N_SNEEUW * 3);
+  for (let i = 0; i < N_SNEEUW; i++) sneeuwPos.set([(Math.random() - .5) * 130, Math.random() * 28, (Math.random() - .5) * 90], i * 3);
+  const sneeuwG = new THREE.BufferGeometry(); sneeuwG.setAttribute('position', new THREE.BufferAttribute(sneeuwPos, 3));
+  const sneeuw = new THREE.Points(sneeuwG, new THREE.PointsMaterial({color:0xffffff, size:.38, transparent:true, opacity:.95, depthWrite:false})); sneeuw.visible = false; sneeuw.frustumCulled = false; scene.add(sneeuw);
   const pub = publiekTex(); pub.wrapS = THREE.RepeatWrapping;
   const tribune = (lengte, x, z, ry) => {
     const g = new THREE.Group(), tex = pub.clone(); tex.needsUpdate = true; tex.repeat.set(lengte / 30, 1);
@@ -126,7 +182,8 @@ function maak(){
     doos(L - .2, .6, .08, dugM.stoel, cx, .85, wz(73.4));                      // de rugleuning
     scene.add(g);
   }
-  return {renderer, scene, camera, doelen, bal, balSchaduw, bankjes:{}, ring, kaart, kaartM, schaduwM, spelers:{}, vorigeBal:null, vorigeNu:0, nr:null, nrSprite:null, camX:null};
+  return {renderer, scene, camera, doelen, bal, balSchaduw, bankjes:{}, ring, kaart, kaartM, schaduwM, spelers:{}, vorigeBal:null, vorigeNu:0, nr:null, nrSprite:null, camX:null,
+    hemi, zon, veldM, randM, regen, sneeuw, weer:undefined};
 }
 
 // Een speler: een platte pixelsprite (pixel/rig.js, in de stijl van art/chibi_anims.px.js) die altijd naar de camera kijkt,
@@ -213,6 +270,20 @@ function sleutelVan(e, T){
   const club = e.rol === 'wij' || e.rol === 'k' ? p.wij : p.zij;
   return 'c' + club + '|' + e.id;
 }
+// Naam en rugnummer op het shirt: jij met je eigen naam en nummer, je rivaal en je jeugdvriend met de hunne, de keeper met de
+// keeper van de club, en de anderen elk vast een van de basisspelers (op hun id: dezelfde stip is steeds dezelfde speler)
+function rugVan(e, T, jij, keeper){
+  const p = T.ploegen || {}, wij = e.rol === 'wij' || e.rol === 'k';
+  if (e.rol === 'R') return {nr:'', naam:''};
+  if (jij) return {nr:T.nr || '', naam:p.jijNaam || ''};
+  const lijst = (wij ? p.rugWij : p.rugZij) || [], vind = n => lijst.find(x => x.n && n && n.endsWith(x.n));
+  const bekend = T.rivaal && e.id === T.rivaal.id ? T.rivaal.naam : T.vriend && e.id === T.vriend.id ? T.vriend.naam : null;
+  if (bekend){ const x = vind(bekend); return {nr:x ? x.nr : 2 + hashGetal(bekend) % 30, naam:bekend}; }
+  if (!lijst.length) return {nr:keeper ? 1 : 2 + hashGetal(e.id + (e.rol || '')) % 20, naam:''};
+  if (keeper){ const k = lijst.find(x => x.pos === 'K'); return {nr:k ? k.nr : 1, naam:k ? k.n : ''}; }
+  const veld = lijst.filter(x => x.pos !== 'K'), x = veld[hashGetal(e.id + '|' + (e.rol || '')) % veld.length];
+  return x ? {nr:x.nr || '', naam:x.n} : {nr:'', naam:''};
+}
 // Het uiterlijk en tenue van deze speler (een vaste dobbelsteen per sleutel: dezelfde speler ziet er altijd hetzelfde uit)
 function kleed(s, e, T){
   const p = T.ploegen || {}, sl = sleutelVan(e, T), tenue = tenueVoor(e.rol, p.tenues);
@@ -220,7 +291,8 @@ function kleed(s, e, T){
   if (s.sleutel === sleutel) return;
   const jij = sl.startsWith('jij|'), keeper = e.rol === 'K' || e.rol === 'k';
   const uit = uiterlijkVoor(jij ? 'jij|' + (p.jij || 'x') : sl, jij ? p.jijUit : null);
-  s.look = lookVan(uit, tenue, {handschoen:keeper, band:jij && !!p.band, rugnummer:jij ? T.nr : ''}); s.sleutel = sleutel; s.rust = (hashGetal(sleutel) % 1000) / 250;
+  const rug = rugVan(e, T, jij, keeper);
+  s.look = lookVan(uit, tenue, {handschoen:keeper, band:jij && !!p.band, rugnummer:rug.nr, rugnaam:rug.naam}); s.sleutel = sleutel; s.rust = (hashGetal(sleutel) % 1000) / 250;
 }
 // Een foto (voor de krant) met dezelfde renderer, maar in een eigen buffer: het canvas van het veld blijft ongemoeid
 // en er komt geen tweede WebGL-context bij. Geeft een 2D-canvas terug (of null zonder WebGL).
@@ -285,18 +357,20 @@ export function kijk3D(T){ if (!R) return; vrijeCamera(T); R.renderer.render(R.s
 export function teken3D(T, nu){
   if (!R) return;
   const echtDt = R.vorigeNu ? (nu - R.vorigeNu) / 1000 : 0;
+  zetWeer(T.weer); weerBeweegt(echtDt, nu / 1000);
   const dt = Math.min(.1, Math.max(0, echtDt)); R.vorigeNu = nu;
   const tijd = nu / 1000, bal = T.bal, gezien = new Set();
   const juichWij = T.tekst === 'GOAL!' || /^Raak/.test(T.tekst || ''), juichZij = T.tekst === 'Tegengoal';
   // de rechterkant van het beeld, in de wereld: daarmee weten we of een speler naar links of naar rechts in beeld kijkt
   const m = R.camera.matrixWorld.elements, rechtsX = m[0], rechtsZ = m[2];
-  let balAanVoet = null; // (dribbelen: de bal ligt dan per frame op de afstand uit de stijlbron)
+  let balAanVoet = null, balVast = false; // (balVast: de keeper ligt met de bal in zijn handen, dan tekent hij hem zelf) // (dribbelen: de bal ligt dan per frame op de afstand uit de stijlbron)
   for (const e of Object.values(T.ents)){
     let s = R.spelers[e.id];
     if (!s){ s = R.spelers[e.id] = maakSpeler(); s.schaduw = schaduw(); R.scene.add(s.root); }
     kleed(s, e, T);
     s.root.visible = s.schaduw.visible = true; gezien.add(e.id);
     const keeper = e.rol === 'K' || e.rol === 'k', z = e.z || 0;
+    if (!(z > .25) || keeper) s.kopRaak = null; // (de kopbal is voorbij: de volgende begint weer met aanspannen)
     const nieuw = s.x === null, vx = nieuw || !dt ? 0 : (e.x - s.x) / dt, vy = nieuw || !dt ? 0 : (e.y - s.y) / dt;
     s.x = e.x; s.y = e.y;
     const v = Math.hypot(vx, vy);
@@ -322,19 +396,52 @@ export function teken3D(T, nu){
     let naam, i = 0, lift = z, rot = 0;
     if (actief && !(info.boven && v > 2.5)){ naam = actief; i = frameOp(naam, (nu - s.poseStart) / 1000); }
     else if (tr !== null){ const kc = T.trap.kc || .4; naam = 'schiet'; i = tr < kc ? Math.min(3, Math.floor(tr / kc * 4)) : Math.min(7, 4 + Math.floor((tr - kc) / (1 - kc) * 4)); }
-    else if (keeper && z > .25){
-      // Duiken: meestal langs de doellijn, dus vanuit de tv-camera de diepte in. Het gestrekte lichaam kantelt vanaf de voeten
-      // naar de kant waar hij op het scherm heen springt, platter naarmate hij hoger in de lucht is
-      naam = 'duikStrek'; lift = z * .9;
-      const nv = Math.hypot(vx, vy); if (nv > .3) s.duikDir = [vx / nv, -vy / nv];
-      const d = s.duikDir || [0, 1], px = wx(e.x), pz = wz(e.y);
-      const a = V1.set(px, lift + .8, pz).project(R.camera), b = V2.set(px + d[0], lift + .8, pz + d[1]).project(R.camera);
-      const sx = (b.x - a.x) * R.camera.aspect, sy = b.y - a.y;
-      // (hoogstens iets voorbij horizontaal: recht naar de camera toe zou hem anders ondersteboven zetten)
-      rot = Math.max(-1.75, Math.min(1.75, Math.atan2(-sx, sy))) * Math.min(1, z / .5);
+    else if (keeper && (z > .04 || s.duikT0)){
+      // Een echte duik. Het script zegt alleen hoe hoog de bal is (z); hier maken we er een sprong van: eerst afzetten (door de
+      // knieën), dan een boog door de lucht (het hoogst halverwege, hoger bij een hoge bal), steeds platter, en dan landt hij
+      // languit op het gras en blijft even liggen tot hij opstaat. Meestal langs de doellijn, dus vanuit de tv-camera de diepte
+      // in: het gestrekte lichaam kantelt naar de kant waar hij op het scherm heen springt
+      // (een nieuwe duik: ook als hij net weer opstond, of als de tijd terugsprong, bij het opnieuw afspelen)
+      if (z > .04 && (!s.duikT0 || s.opstaT0 || nu < s.duikT0)){ s.duikT0 = nu; s.duikMax = 0; s.opstaT0 = null; s.duikVang = undefined; }
+      if (z > .04) s.duikMax = Math.max(s.duikMax, z);
+      const tempo = T.snel || 1, p = (nu - s.duikT0) / (DUIK_MS * tempo); // (in een vertraagde herhaling duurt de sprong langer)
+      if (z <= .04){ s.opstaT0 = s.opstaT0 || nu; if (nu - s.opstaT0 > OPSTA_MS * tempo) s.duikT0 = s.opstaT0 = null; naam = 'duik'; i = 1; } // (weer opstaan: door de knieën)
+      else if (p < AFZET){ naam = 'duik'; i = 1; }                                                                                    // afzetten
+      else {
+        naam = 'duikStrek';
+        const q = Math.min(1, (p - AFZET) / (1 - AFZET)), top = Math.min(1.6, .45 + s.duikMax * 1.2);
+        i = q < .2 ? 0 : q < .45 ? 1 : q < .8 ? 2 : 3;                    // (afzetten, vliegen, het hoogste punt, landen: niet één stijve houding)
+        // Geland: heeft hij de bal (die ligt dan bij hem), dan klemt hij hem tegen zijn borst; ging de bal naast of erin, dan komen
+        // zijn armen terug langs zijn lijf. (Eén keer kiezen bij het landen, dan blijft het zo tot hij opstaat)
+        if (q >= .8){ if (s.duikVang === undefined) s.duikVang = Math.hypot(bal.x - e.x, bal.y - e.y) < 2.2 && (bal.z || 0) < 2.4; i = s.duikVang ? 4 : 5; if (s.duikVang) balVast = true; }
+        else s.duikVang = undefined;
+        lift = top * Math.sin(Math.PI * q);                              // de boog: omhoog, het hoogst halverwege, terug op het gras
+        const plat = .45 + .55 * Math.min(1, q * 1.7);                   // (bij het afzetten nog half rechtop, in de lucht al snel plat)
+        // Langs de doellijn duiken, naar de kant van de bal: niet in de richting waarin hij beweegt (het script schuift hem ook
+        // naar achteren, naar zijn lijn, en dan viel hij half het doel in)
+        if (q < .6){ const zij = Math.abs(vy) > .3 ? Math.sign(vy) : Math.sign(bal.y - e.y) || (s.duikDir ? -s.duikDir[1] : 1); s.duikDir = [0, -zij]; }
+        const d = s.duikDir || [0, 1], px = wx(e.x), pz = wz(e.y);
+        const a = V1.set(px, lift + .8, pz).project(R.camera), b = V2.set(px + d[0], lift + .8, pz + d[1]).project(R.camera);
+        const sx = (b.x - a.x) * R.camera.aspect, sy = b.y - a.y;
+        // (hoogstens iets voorbij horizontaal: recht naar de camera toe zou hem anders ondersteboven zetten)
+        rot = Math.max(-1.75, Math.min(1.75, Math.atan2(-sx, sy))) * plat;
+        // Nooit het doel in: wijst zijn lijf (van de voeten naar het hoofd) op het scherm naar zijn eigen doel, dan spiegelen we de
+        // duik, zodat hij vóór het doel ligt. (Een duik langs de doellijn gaat vanuit de camera bijna recht de diepte in: dan bepaalt
+        // een klein verschil of hij links of rechts valt, en dat was vaak het net in)
+        { const naarDoel = e.x > 52.5 ? 1 : -1, g1 = V1.set(px, lift + .8, pz).project(R.camera), g2 = V2.set(px + naarDoel, lift + .8, pz).project(R.camera);
+          const gx = (g2.x - g1.x) * R.camera.aspect, gy = g2.y - g1.y;
+          if (-Math.sin(rot) * gx + Math.cos(rot) * gy > 0) rot = -rot; }
+      }
     }
-    else if (keeper && z > .04){ naam = 'duik'; i = 1; } // (afzetten en neerkomen)
-    else if (z > .25){ naam = 'kop'; i = z < .7 ? 2 : z < 1.2 ? 3 : 4; lift = Math.max(0, z * 1.1 - .55); }
+    else if (z > .25){
+      // Een kopbal: geen vaste plaatjes op hoogte, maar de beweging op de bal. Komt de bal eraan, dan spant hij aan (hoofd en rug naar
+      // achteren); is hij bij zijn hoofd, dan de klap (het hoofd vooruit tegen de bal); daarna komt hij uit (het hoofd blijft voor)
+      naam = 'kop'; lift = Math.max(0, z * 1.1 - .55);
+      const tempo = T.snel || 1, db = Math.hypot(bal.x - e.x, bal.y - e.y), dichtbij = db < 1.2 && (bal.z || 0) > .6;
+      if (dichtbij && !s.kopRaak) s.kopRaak = nu;
+      const sinds = s.kopRaak ? nu - s.kopRaak : null;
+      i = sinds === null ? 8 : sinds < KOP_KLAP_MS * tempo ? 9 : 10;
+    }
     else if (v > .25){
       // rennen of wandelen, met de beeldjes op de afgelegde afstand (anders glijden de voeten)
       s.fase += v * dt; const ren = v > 2.6, pas = ren ? 2.2 + v * .1 : 1.5;
@@ -350,6 +457,9 @@ export function teken3D(T, nu){
     const cv = frame(s.look, naam, i, s.flip), tex = texVan(cv);
     if (s.mat.map !== tex){ const eerst = !s.mat.map; s.mat.map = tex; if (eerst) s.mat.needsUpdate = true; }
     const ank = anker(naam, s.flip), mpp = HOOGTE * (s.look.lengte || 1) / FIGUUR_PX;
+    // Een duik: het plaatje draait om zijn voeten, dus een deel van zijn lijf komt onder dat draaipunt. Precies zo ver tillen we hem op
+    // (gemeten aan de echte omtrek van dit beeld bij deze hoek): dan ligt hij op het gras, niet erin en niet erboven zwevend
+    if (naam === 'duikStrek') lift = Math.max(lift, onderGrond(cv, ank, rot, s.look.bouw || 1) * mpp);
     s.sprite.center.set(ank.x, ank.y); s.sprite.scale.set(ank.w * mpp * (s.look.bouw || 1), ank.h * mpp, 1);
     s.sprite.position.set(wx(e.x), lift, wz(e.y));
     s.schaduw.position.set(wx(e.x), .015, wz(e.y)); s.schaduw.scale.setScalar(1 - Math.min(.5, lift * .3));
@@ -384,7 +494,7 @@ export function teken3D(T, nu){
     // rollen: de bal draait precies zo ver als hij over het gras gaat (afstand / straal); naar rechts met de klok mee
     if (d > 1e-4 && d < 20 && !(bal.z > .3)){ const naarRechts = Math.abs(dx) > Math.abs(dz) * .25 ? dx >= 0 : dz < 0; R.bal.material.rotation -= Math.min(.35, d / (BAL_S / 2)) * (naarRechts ? 1 : -1); } } // (hooguit .35 per beeld: sneller zie je het niet meer draaien, alleen flikkeren)
   R.vorigeBal = {x:bx, z:bz};
-  R.bal.position.set(bx, by, bz);
+  R.bal.position.set(bx, by, bz); R.bal.visible = !balVast; R.balSchaduw.visible = !balVast;
   R.balSchaduw.position.set(bx, .016, bz); R.balSchaduw.material.opacity = .32 * Math.max(.25, 1 - (bal.z || 0) / 4);
   // net bolt na een doelpunt
   for (const k of ['L', 'R']){ const d = R.doelen[k], b = k === T.netKant ? (T.netBol || 0) : 0; d.achter.position.x = d.X + d.dx * (1.8 + b * 1.1); }

@@ -50,7 +50,7 @@ export function vStatus(){
     <div class="statusnaam" title="${esc(sp.o23 ? '' : STATUS_UITLEG[n])}">${sp.o23 ? 'Bij de O23' : statusNaam(n)}</div>
     <div class="segs" title="${esc(STATUS_KORT.join(' → '))}">${segs}</div>
     ${!sp.o23 && n >= 2 && n < AANV ? vAanvoerderEisen() : ''}
-    <p class="muted klein-tekst">${sp.o23 ? 'Bewijs jezelf bij de O23 om terug te komen bij de selectie.' : d ? `Volgende: <b>${d.naam}</b> · nog ${d.nodig.join(' en ')}` : 'Hoger kan niet. Je naam staat voor altijd in de clubboeken.'}</p>
+    <p class="muted klein-tekst">${sp.o23 ? 'Bewijs jezelf bij de O23 om terug te komen bij de selectie.' : d ? `Volgende: <b>${d.naam}</b> · nog ${d.nodig.join(', ')}` : 'Hoger kan niet. Je naam staat voor altijd in de clubboeken.'}</p>
   </div>`;
 }
 // De seizoenskalender: per week het logo van je tegenstander (T = thuis, U = uit), gespeelde wedstrijden in de kleur van de uitslag

@@ -452,6 +452,7 @@ export const EN_WEDSTRIJD = {
   'Clubsterkte':'Club strength', 'Speelstijl':'Playing style', 'de aanbiedingen':'the offers', 'Ambitieus':'Ambitious',
   'op sterkte 1e van # in de *':'on strength 1st of # in the *', 'op sterkte 2e van # in de *':'on strength 2nd of # in the *', 'op sterkte 3e van # in de *':'on strength 3rd of # in the *',
   // nog Nederlands in het Engels (aap-test)
+  'Je afscheid':'Your farewell', 'Als dank voor alles organiseert * een afscheidswedstrijd. Je laatste club speelt tegen je vrienden: oud-ploeggenoten van al je clubs.':'As thanks for everything * organise a farewell match. Your last club plays against your friends: former teammates from all your clubs.',
   'Speel minstens # wedstrijden: nu #. Anders tel je niet mee.':'Play at least # matches: now #. Otherwise you don\'t count.',
   'Door je blessure haal je de # wedstrijden niet meer die je minstens moet spelen (nu #). Dit seizoen tel je niet mee.':'Because of your injury you can no longer reach the # matches you need to play (now #). You don\'t count this season.',
   'Je haalt de # wedstrijden niet meer die je minstens moet spelen (nu #). Dit seizoen tel je niet mee.':'You can no longer reach the # matches you need to play (now #). You don\'t count this season.',

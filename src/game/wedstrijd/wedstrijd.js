@@ -1,3 +1,4 @@
+import { WEER, wedstrijdWeer, weerEffect, weerEffectTekst } from './weer.js';
 import { partnerNaWedstrijd } from '../prive/partner.js';
 import { S, club, mod, ovr, tmp, waarde } from '../../core/state.js';
 import { maakOpdrachten, sterrenNa } from './opdrachten.js';
@@ -86,7 +87,9 @@ export function planWedstrijd(M, T, O, vast){
   // Speel je mee, dan komen jouw goals en assists uit je momenten. De rest van het spel weegt het sterkteverschil zwaarder mee,
   // zodat een zwakke ploeg niet alles wint omdat jij goed bent.
   const r4 = Math.pow(T / O, 4);
-  const bgUs = vast ? vast.us : poisson(1.3 * r4 * BG.wij * (tmp.simBezig ? SIM_BG.wij : 1)), bgThem = vast ? vast.them : poisson(1.3 / r4 * BG.zij * (tmp.simBezig ? SIM_BG.zij : 1));
+  const wg = weerEffect().goals; // (sneeuw: minder goals, regen: iets meer)
+  { const w = wedstrijdWeer(), wt = weerEffectTekst(w); if (w && !M.weerLog){ M.weerLog = true; M.log.push({m:"0'", t:`${wt || 'Prima voetbalweer.'} (${WEER[w.soort].i} ${w.temp}°C)`, k:'info'}); } } // (het weer in het verslag)
+  const bgUs = vast ? vast.us : poisson(1.3 * r4 * BG.wij * wg * (tmp.simBezig ? SIM_BG.wij : 1)), bgThem = vast ? vast.them : poisson(1.3 / r4 * BG.zij * wg * (tmp.simBezig ? SIM_BG.zij : 1));
   // Wedstrijdverslag: kansen voor beide ploegen (hoe beter het team, hoe meer kansen), kaarten, rust en blessuretijd
   const kansUs = clamp(poisson(1.5 + lu * 2), 1, 7), kansThem = clamp(poisson(1.5 + lt * 2), 1, 7);
   for (let i = 0; i < kansUs; i++) M.ev.push({type:'kansUs', min:randInt(3, 89)});

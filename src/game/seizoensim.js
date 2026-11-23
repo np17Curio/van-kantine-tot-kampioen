@@ -14,7 +14,7 @@ import { rustWeek, simuleer, startWedstrijd } from './wedstrijd/wedstrijd.js';
 
 /* ===================== Het seizoen simuleren ===================== */
 // Speelt week na week door, en stopt bij de grote momenten: de transferperiode, een verhaalhoofdstuk, een interland,
-// een eindtoernooi, een derby, een transferbod en het einde van het seizoen. Kleine keuzes maakt het spel zelf, zoals een gewone
+// een eindtoernooi, een derby, een bekerwedstrijd, een transferbod en het einde van het seizoen. Kleine keuzes maakt het spel zelf, zoals een gewone
 // speler: niet elke week de perfecte training en niet altijd de veiligste optie in de wedstrijd (anders groei je sneller dan als je zelf speelt).
 // Ben je geblesseerd als je op simuleren klikt, dan stopt het niet bij wedstrijden (ook niet bij een derby: je zit toch
 // op de tribune), maar wel zodra je weer fit bent.
@@ -31,9 +31,9 @@ function weekKeuzes(){
       if (r < .6 && k) doeActiviteit('train', k); else if (r < .75) doeActiviteit('video'); else if (r < .85) doeActiviteit('mentaal'); else doeActiviteit('rust'); }
   }
 }
-// Halve finales en finales van een beker speel je zelf (als je meedoet)
+// Elke bekerwedstrijd waarin je meedoet speel je zelf (niet alleen de halve finale en de finale): het simuleren stopt ervoor
 function grootBeker(){
-  const M = S.M; if (!M || !M.beker || !/^(Halve finale|Finale)$/.test(M.beker.ronde) || !(M.rol === 'basis' || M.rol === 'invaller')) return null;
+  const M = S.M; if (!M || !M.beker || M === BEGIN_M || !(M.rol === 'basis' || M.rol === 'invaller')) return null;
   return `de ${M.beker.ronde.toLowerCase()} van de ${M.beker.naam} tegen ${M.zij} speel je zelf`;
 }
 const naEind = M => M && M.inter ? naInterland() : M && M.po ? naNacompetitie() : M && M.beker ? naBeker() : naWedstrijd();
@@ -41,7 +41,10 @@ export function simuleerSeizoen(){
   tmp.simBezig = true; // (trager groeien: week.js)
   try { return simuleerDoor(); } finally { tmp.simBezig = false; }
 }
+// (de wedstrijd waar je op stond toen je op simuleren drukte: die speel je dan bewust niet zelf, dus die stopt het niet)
+let BEGIN_M = null;
 function simuleerDoor(){
+  BEGIN_M = S.fase === 'match' ? S.M : null;
   const sp = S.sp, tel = {wed:0, W:0, G:0, V:0, g:0}, start = S.ronde, totFit = sp.blessure > 0; let reden = null, stil = 0, vorige = '';
   const geblesseerd = () => sp.blessure > 0;
   const telWed = M => { if (!M || M.geteldSim) return; M.geteldSim = true; tel.wed++; tel[M.us > M.them ? 'W' : M.us < M.them ? 'V' : 'G']++; tel.g += M.goals || 0; };

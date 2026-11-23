@@ -1,3 +1,4 @@
+import { kledingSleutel } from '../game/prive/kleding.js';
 import { shirtSponsor } from '../data/shirtsponsors.js';
 import { S, club } from '../core/state.js';
 import { CLUBS } from '../data/gegevens.js';
@@ -31,6 +32,7 @@ export const FOTO_SOORTEN = {
   blessure:{alt:'op krukken', prijs:null},
   juich:{alt:'juichend na een doelpunt', prijs:null},
   straat:{alt:'op straat', prijs:null},
+  auto:{alt:'bij de auto', prijs:null},
   veld:{alt:'op het veld', prijs:null},
 };
 const KLAAR = new Map();
@@ -40,11 +42,11 @@ const MUREN = [['#0f1a33', '#c6f432'], ['#1a1030', '#f3c44f'], ['#0d2a22', '#fff
 function fotoCtx(img){
   if (img && img.dataset.uit){ const [huid, haar, kapsel, lengte, bmi, vrouw] = img.dataset.uit.split(','); return {sleutel:img.dataset.sleutel || 'nieuw', uiterlijk:{huid:+huid, haar:+haar, kapsel, ...(lengte ? {lengte:+lengte, bmi:+bmi} : {}), ...(vrouw !== undefined ? {vrouw:vrouw === '1'} : {})}, club:'', muur:'#0f1a33', accent:'#c6f432', tenue:STANDAARD, ...(img.dataset.draai !== undefined ? {draai:+img.dataset.draai} : {}), ...(img.dataset.leeftijd ? {leeftijd:+img.dataset.leeftijd} : {})}; }
   const c = club(), [muur, accent] = MUREN[(S.sp.club || 0) % MUREN.length];
-  const pl = ploegen(); return {sleutel:pl.jij, naam:S.sp.naam, uiterlijk:S.sp.uiterlijk || null, club:c ? c.n : '', muur, accent, tenue:clubTenue(S.sp.club), clubId:S.sp.club, logo:logoBron(S.sp.club), band:!!pl.band, leeftijd:S.sp.leeftijd, sponsor:S.sp.clubloos || S.sp.o23 ? null : shirtSponsor(c, thuisLand())}; // (de shirtsponsor van je club)
+  const pl = ploegen(); return {kleding:S.sp.kleding || null, sleutel:pl.jij, naam:S.sp.naam, uiterlijk:S.sp.uiterlijk || null, club:c ? c.n : '', muur, accent, tenue:clubTenue(S.sp.club), clubId:S.sp.club, logo:logoBron(S.sp.club), band:!!pl.band, leeftijd:S.sp.leeftijd, sponsor:S.sp.clubloos || S.sp.o23 ? null : shirtSponsor(c, thuisLand())}; // (de shirtsponsor van je club)
 }
 // (het uiterlijk als losse velden: huid en haar zijn getallen, opgeteld zouden huid 1 + haar 2 en huid 2 + haar 1 dezelfde foto geven)
 const uitSleutel = u => u ? [u.huid, u.haar, u.kapsel, u.lengte ?? '', u.bmi ?? '', u.schoen ?? '', u.baard || '', u.vrouw ? 'v' : ''].join(',') : '';
-const sleutelVan = (soort, ctx) => [soort, ctx.sleutel, ctx.club, ctx.draai ?? '', ctx.band ? 'C' : '', uitSleutel(ctx.uiterlijk), ctx.leeftijd || '', jijTattoo()].join('|'); // (ouder worden of een nieuwe tattoo: een nieuwe foto)
+const sleutelVan = (soort, ctx) => [soort, ctx.sleutel, ctx.club, ctx.draai ?? '', ctx.band ? 'C' : '', uitSleutel(ctx.uiterlijk), ctx.leeftijd || '', jijTattoo(), kledingSleutel(ctx.kleding)].join('|'); // (ouder worden of een nieuwe tattoo: een nieuwe foto)
 export function foto(soort, img){
   const ctx = fotoCtx(img), key = sleutelVan(soort, ctx);
   if (!KLAAR.has(key)){
@@ -60,8 +62,10 @@ function krantFoto(item){
   if (!(S && S.sp)) return null;
   const ctx = fotoCtx();
   if (item.foto && FOTO_SOORTEN[item.foto.soort]) return {cv:maakPixelFoto(item.foto.soort, {...ctx, ...clubVanFoto(item.foto), foto:item.foto}, {w:180, h:72, canvas:true}), onder:item.foto.onder, door:PAPARAZZO.includes(item.foto.soort) ? 'Paparazzo' : 'Studio Doorbraak'};
-  if (rubriekVan(item) === 'TRANSFERNIEUWS' && String(item.kop).includes(S.sp.naam) && !S.sp.clubloos && S.sp.club != null){
-    let nr = null; try { nr = shirtNummer(); } catch (e){}
+  // Een nieuw rugnummer (rugnummers.js: "X krijgt rugnummer 10") of een transfer: jij met je shirt omhoog, met je naam en het nummer op de rug
+  const rugKop = String(item.kop || '').match(/krijgt rugnummer (\d+)/);
+  if ((rugKop || rubriekVan(item) === 'TRANSFERNIEUWS') && String(item.kop).includes(S.sp.naam) && !S.sp.clubloos && S.sp.club != null){
+    let nr = rugKop ? +rugKop[1] : null; if (nr == null) try { nr = shirtNummer(); } catch (e){}
     const delen = String(S.sp.naam).trim().split(/\s+/), naam = delen.length > 1 ? delen.slice(1).join(' ') : delen[0];
     const {uitsnede} = maakContract({uit:uiterlijkVoor('jij|' + ctx.sleutel, {...(S.sp.uiterlijk || {}), vrouw:!!S.sp.vrouw}), tenue:ctx.tenue, nr, naam, logoImg:ctx.logo, alleenUitsnede:true}); // (met het echte clublogo op de sponsorwand)
     return {cv:uitsnede(), onder:`${S.sp.naam} toont ${ik.zijn} nieuwe shirt${nr ? ` met rugnummer ${nr}` : ''}.`, door:'Pixel Pers'};
@@ -78,7 +82,7 @@ function clubVanFoto(f){
   const c = CLUBS[f.clubId]; if (!c) return {};
   return {club:c.n, tenue:clubTenue(f.clubId), clubId:f.clubId, logo:logoBron(f.clubId), band:!!f.band, sponsor:shirtSponsor(c, thuisLand())};
 }
-const PAPARAZZO = ['huis', 'bruiloft', 'strand', 'stad', 'straat'];
+const PAPARAZZO = ['huis', 'bruiloft', 'strand', 'stad', 'straat', 'auto'];
 // Hoort er een foto bij dit artikel? Alleen als het over jou gaat (je naam staat erin); anders geen foto (nieuws over andere clubs, de stand …).
 // Welke foto: wat er in het artikel staat beslist, niet de rubriek (een roddel kan ook in een sportkrant staan). Van boven naar beneden:
 // geblesseerd → op krukken; vakantie → het strand; uitgaan, feesten, casino → 's avonds in de stad; ander privénieuws (de liefde,
@@ -106,6 +110,9 @@ export function autoFoto(item){
   const r = sp.relatie, p = r && r.naam && t.includes(r.naam) ? r.naam : null, paar = p ? {partner:p, partnerVrouw:partnerVrouw()} : {};
   if (BLESSURE.test(l)) return {soort:'blessure', onder:`${naam} op krukken.`};
   if (VELD.test(l)) return GOAL.test(l) ? {soort:'juich', onder:`Feest bij ${naam} na het doelpunt.`} : WINST.test(l) ? {soort:'juich', onder:`Feest bij ${naam}.`} : {soort:'veld', onder:`${naam} op het veld.`};
+  // een auto (sportwagen, nieuwe auto, rijbewijs): jij naast je auto, in de kleur uit het artikel of die van jouw auto
+  if (/sportwagen|\bauto\b|rijbewijs|nieuwe wagen/.test(l)){ const auto = /sportwagen/.test(l) ? 'sport' : sp.auto || 'nieuw', kleur = ({gele:'geel', rode:'rood', grijz:'grijs'})[(l.match(/geel|gele|rood|rode|zwart|wit|blauw|groen|grijs|grijz|oranje/) || [])[0]] || (l.match(/geel|rood|zwart|wit|blauw|groen|grijs|oranje/) || [])[0] || null; // (knalgele → geel)
+    return {soort:'auto', auto, kleur, onder:`${naam} met ${auto === 'sport' ? 'de sportwagen' : 'de auto'}.`}; }
   if (VAKANTIE.test(l)) return {soort:'strand', ...paar, onder:p ? `${naam} en ${p} genieten van de zon.` : `${naam} geniet van de zon.`};
   if (NACHT.test(l)) return {soort:'stad', ...paar, onder:p ? `${naam} en ${p} 's avonds in de stad.` : `${naam} 's avonds in de stad.`};
   if (PRIVE.test(l) || p || rubriekVan(item) === 'RODDEL') return {soort:'straat', ...paar, onder:p ? `${naam} en ${p} in de stad.` : `${naam} in de stad.`};

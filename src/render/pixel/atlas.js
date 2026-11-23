@@ -1,6 +1,8 @@
 /* ===================== Pixelspelers: uiterlijk, kleuren en een cache van frames ===================== */
 // Een 'look' = alles wat bepaalt hoe een figuur eruitziet: {kapsel, vrouw, kleding, patroon, handschoen, kleuren:{sleutel:'#hex'}}.
 // frame(look, anim, i, flip) geeft een canvas (98×92 met de omlijning); dezelfde look + animatie + frame wordt één keer getekend.
+import { MERKEN } from '../../data/merken.js';
+import { kleurAfstand } from '../../data/tenues.js';
 import { HAAR, HUID, SCHOENEN } from '../../data/uiterlijk.js';
 import { ANIMS, ANKER_X, tekenFrame } from './animaties.js';
 import { GROND, inkleuren } from './rig.js';
@@ -27,7 +29,7 @@ export function lookVan(uit = {}, tenue = null, opties = {}){
   const s = HUID[uit.huid] || HUID[0], h = HAAR[uit.haar] || HAAR[0], schoen = SCHOENEN[uit.schoen] || '#16171c';
   const zwartHaar = helder(h) < 40;
   const k = {
-    s, S:donker(s, .13), p:meng(s, '#ff6f6f', .35),
+    s, S:donker(s, .13), _:donker(s, .3), p:meng(s, '#ff6f6f', .35),
     h, H:zwartHaar ? licht(h, .12) : donker(h, .35), j:zwartHaar ? licht(h, .3) : licht(h, .28),
     r:t.shirt, R:donker(t.shirt, .3), w:t.accent, W:donker(t.accent, .16),
     o:t.sok || t.shirt, O:donker(t.sok || t.shirt, .3), u:t.broek, U:donker(t.broek, .3),
@@ -47,12 +49,16 @@ export function lookVan(uit = {}, tenue = null, opties = {}){
   const tat = uit.tattoo || '';
   if (tat) tattooKleuren(k);
   if (opties.kleuren) Object.assign(k, opties.kleuren); // (eigen kleuren, zoals de eigenaar in de contractscène)
-  const patroon = kleding === 'tenue' ? (t.patroon || 'effen') : 'effen';
+  // het kledingmerk op de borst (data/merken.js): als code achter het patroon ('strepen#vortiq'), het logo in kleur '|'
+  const merk = kleding === 'tenue' && t.merk && MERKEN[t.merk] ? t.merk : '';
+  const patroon = kleding === 'tenue' ? (t.patroon || 'effen') + (merk ? '#' + merk : '') : 'effen';
+  if (merk){ const kies = [MERKEN[merk].goud ? '#ffd23a' : null, '#ffffff', '#16171c'].filter(Boolean), afst = c => kleurAfstand(c, t.shirt); // (het logo staat op een vlakje in de shirtkleur)
+    k['|'] = kies.find(c => afst(c) > 150) || kies.sort((a, b) => afst(b) - afst(a))[0]; }
   let baard = opties.snor ? 'snor' : !uit.vrouw && uit.baard && uit.baard !== 'geen' ? uit.baard : '';
   if (!opties.snor && uit.leeftijd && baard){ if (uit.leeftijd < 17) baard = ''; else if (uit.leeftijd < 19 && baard === 'baard') baard = 'stoppels'; } // (op je vijftiende nog geen baard)
   const kapsel = (uit.kapsel || 'model') + (oud || tat ? '@' + (oud || '00000') : '') + (tat ? '~' + tat : '');
-  const sleutel = [kapsel, uit.vrouw ? 'v' : '', opties.snor ? 'snor' : baard, kleding, patroon, opties.handschoen ? 'q' : '', opties.band ? 'C' : '', opties.rugnummer || '', ...Object.values(k)].join('|');
-  return {kapsel, vrouw:!!uit.vrouw, snor:!!opties.snor, baard, kleding, patroon, handschoen:!!opties.handschoen, band:!!opties.band, rugnummer:opties.rugnummer || '', kleuren:k, sleutel,
+  const sleutel = [kapsel, uit.vrouw ? 'v' : '', opties.snor ? 'snor' : baard, kleding, patroon, opties.handschoen ? 'q' : '', opties.band ? 'C' : '', opties.rugnummer || '', opties.rugnaam || '', ...Object.values(k)].join('|');
+  return {kapsel, vrouw:!!uit.vrouw, snor:!!opties.snor, baard, kleding, patroon, handschoen:!!opties.handschoen, band:!!opties.band, rugnummer:opties.rugnummer || '', rugnaam:opties.rugnaam || '', kleuren:k, sleutel,
     lengte:uit.lengte || 1, bouw:uit.bouw || 1};
 }
 
@@ -64,9 +70,9 @@ export const aantal = naam => anim(naam).frames.length;
 // Welk frame na t seconden (loop: rond; anders blijft het laatste staan)
 export function frameOp(naam, t){ const a = anim(naam), n = a.frames.length, i = Math.floor(Math.max(0, t) * a.fps); return a.loop ? i % n : Math.min(n - 1, i); }
 export function frame(look, naam, i, flip = false){
-  const a = anim(naam), vorm = [look.kapsel, look.vrouw ? 'v' : '', look.kleding, look.patroon, look.handschoen ? 'q' : '', look.band ? 'C' : '', look.rugnummer || '', look.snor ? 's' : look.baard || '', naam, i].join('|');
+  const a = anim(naam), vorm = [look.kapsel, look.vrouw ? 'v' : '', look.kleding, look.patroon, look.handschoen ? 'q' : '', look.band ? 'C' : '', look.rugnummer || '', look.rugnaam || '', look.snor ? 's' : look.baard || '', naam, i].join('|');
   let img = SLEUTELS.get(vorm);
-  if (!img){ img = tekenFrame(a, i, {kapsel:look.kapsel, vrouw:look.vrouw, kleding:look.kleding, patroon:look.patroon, handschoen:look.handschoen, band:look.band, nr:look.rugnummer, snor:look.snor, baard:look.baard, bal:false}); SLEUTELS.set(vorm, img); }
+  if (!img){ img = tekenFrame(a, i, {kapsel:look.kapsel, vrouw:look.vrouw, kleding:look.kleding, patroon:look.patroon, handschoen:look.handschoen, band:look.band, nr:look.rugnummer, rugnaam:look.rugnaam, snor:look.snor, baard:look.baard, bal:false}); SLEUTELS.set(vorm, img); }
   const sl = look.sleutel + '#' + naam + '#' + i + (flip ? 'f' : '');
   let cv = CANVAS.get(sl);
   if (!cv){

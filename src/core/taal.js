@@ -6,7 +6,8 @@
 import { EN as EN1 } from '../data/taal-en.js';
 import { EN_WEDSTRIJD } from '../data/taal-en-wedstrijd.js';
 import { EN_VERHAAL } from '../data/taal-en-verhaal.js';
-const EN = {...EN_VERHAAL, ...EN1, ...EN_WEDSTRIJD};
+import { EN_EXTRA } from '../data/taal-en-extra.js';
+const EN = {...EN_VERHAAL, ...EN1, ...EN_WEDSTRIJD, ...EN_EXTRA};
 
 let TAAL = 'nl';
 try { TAAL = localStorage.getItem('taal') === 'en' ? 'en' : 'nl'; } catch (e){}
@@ -39,7 +40,7 @@ const onthoud = (el, a, nl, en) => { const o = ORIG.get(el) || {}; o[a] = o[a] &
 
 // ---------- het woordenboek: exacte zinnen en patronen ----------
 const EXACT = new Map(), PATRONEN = [];
-const KORT_OK = new Set(['* haalt * (*)', '* haalt * (*).', '(jij # G · # A)', 'tegen *', 'door *', 'voor *', 'Hoeveel is *?', '=# punten', '↑# punten', '↓# punten', '=# punt', '↑# punt', '↓# punt', '=# punten.', '↑# punten.', '↓# punten.', '=# punt.', '↑# punt.', '↓# punt.']); // (kort, maar ze komen los in een opsomming voor: "FC Bierbuik, tegen SV Grenswacht")
+const KORT_OK = new Set(['* tegen *.', '* haalt * (*)', '* haalt * (*).', '(jij # G · # A)', 'tegen *', 'door *', 'voor *', 'Hoeveel is *?', '=# punten', '↑# punten', '↓# punten', '=# punt', '↑# punt', '↓# punt', '=# punten.', '↑# punten.', '↓# punten.', '=# punt.', '↑# punt.', '↓# punt.']); // (kort, maar ze komen los in een opsomming voor: "FC Bierbuik, tegen SV Grenswacht")
 const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 for (const [nl0, en] of Object.entries(EN)){
   const nl = nl0.replace(/^@/, ''); // (@ = een tooltip; in het woordenboek alleen als geheugensteuntje)
@@ -78,9 +79,16 @@ function zoek(t, streng = false){
 }
 // Een opsomming splitsen op ", ", maar niet binnen haakjes: "J. Moreno (middenvelder, van SC Regenjas), H. Samaras (keeper)"
 function splitKomma(t){ const uit = []; let d = 0, b = 0; for (let i = 0; i < t.length; i++){ const c = t[i]; if (c === '(') d++; else if (c === ')') d = Math.max(0, d - 1); else if (d === 0 && c === ',' && t[i + 1] === ' '){ uit.push(t.slice(b, i)); b = i + 2; i++; } } uit.push(t.slice(b)); return uit; }
+// Een tekst in losse zinnen (niet na een voorletter, "O. Dubois", en niet na een rangnummer, "in de 1. Lig")
+const zinnen = t => t.split(/(?<=(?<!\b[A-Z]|\bde \d)[.!?]["')]?)\s+(?=[A-Z"'(])/);
+// Heeft elke zin op zich een volledige vertaling? Dan die (een los patroon over meerdere zinnen laat vaak een stuk Nederlands staan)
+function perZin(t){ const z = zinnen(t); if (z.length < 2 || z.length > 40) return null; const los = z.map(x => zoek(x, true) ?? (nogNl(x) ? null : x)); return los.every(x => x !== null) && los.some((x, i) => x !== z[i]) ? los.join(' ') : null; } // (een zin met alleen een naam, "SC Wadden?", blijft gewoon staan)
 // Ook met een kopje ervoor ("Vanaf de bank: ...") of "(jij)" erachter
 function zoekMeer(t){
   const z = zoek(t, true); if (z !== null) return z;
+  const pz = perZin(t); if (pz !== null) return pz;
+  // een opsomming met " · " (ook binnen een gat van een patroon: "samen met Zoë · Luna · 4k volgers"): per stukje
+  if (t.includes(' · ')){ const d = t.split(' · '), v = d.map(x => zoekMeer(x) ?? x); if (v.some((x, i) => x !== d[i])) return v.join(' · '); }
   // tussen aanhalingstekens (een persvraag): de zin zonder de tekens vertalen
   const q = t.match(/^"([\s\S]+)"$/); if (q){ const v = zoekMeer(q[1]); if (v !== null) return `"${v}"`; }
   else if (!t.includes('"') && t.length > 12){ const v = zoek('"' + t + '"', true); if (v !== null && /^".*"$/.test(v)) return v.slice(1, -1); } // (en andersom: een persantwoord zonder de tekens)
@@ -91,8 +99,8 @@ function zoekMeer(t){
   // een emoji ervoor ("💃 Heupen los!")
   const e = t.match(/^(\p{Extended_Pictographic}\uFE0F?\s+)([\s\S]+)$/u); if (e){ const z = zoek(e[2]); if (z !== null) return e[1] + z; }
   // een paar losse zinnen achter elkaar: per zin (of per groepje zinnen) vertalen
-  const zin = t.split(/(?<=(?<!\b[A-Z])[.!?]["')]?)\s+(?=[A-Z"'(])/); // (niet na een voorletter: "O. Dubois")
-  if (zin.length > 1 && zin.length <= 10){
+  const zin = zinnen(t);
+  if (zin.length > 1 && zin.length <= 40){
     const uit = []; let raak = false;
     for (let i = 0; i < zin.length; ){
       let j = zin.length, v = null;
@@ -114,25 +122,29 @@ const PIXEL = {'PERSCONFERENTIE':'PRESS CONFERENCE', 'OPSTELLING':'LINE-UPS', 'D
   'BEDANKT':'THANK YOU', 'LEGENDE':'LEGEND', // (de spandoeken bij je afscheid: render/pixel/afscheid.js)
   'PROMOTIE!':'PROMOTED!', 'TOPDIVISIE':'TOP DIVISION', 'EERSTE DIVISIE':'FIRST DIVISION'}; // (het spandoek in de promotieparade: render/pixel/parade.js)
 export const vertaalPixel = s => TAAL === 'en' ? (PIXEL[s] ?? PIXEL[String(s).toUpperCase()] ?? s) : s;
+const rangtelwoord = n => n % 100 >= 11 && n % 100 <= 13 ? 'th' : n % 10 === 1 ? 'st' : n % 10 === 2 ? 'nd' : n % 10 === 3 ? 'rd' : 'th';
 const CACHE = new Map(); // (dezelfde tekst komt bij elke weergave terug)
 export function vertaal(tekst){
   if (TAAL !== 'en' || !tekst) return tekst;
   const c = CACHE.get(tekst); if (c !== undefined) return c;
-  const v = vertaal1(tekst); if (CACHE.size > 20000) CACHE.clear(); CACHE.set(tekst, v); return v;
+  let v = vertaal1(tekst);
+  if (v !== tekst) v = v.replace(/\b(\d+)th\b/g, (_, n) => n + rangtelwoord(+n)); // (de woordenboeken maken van "2e" altijd "2th": hier het juiste achtervoegsel)
+  if (CACHE.size > 20000) CACHE.clear(); CACHE.set(tekst, v); return v;
 }
 function vertaal1(tekst){
   const m = tekst.match(/^(\s*)([\s\S]*?)(\s*)$/), kern = m[2]; if (!kern || !/[A-Za-zÀ-ÿ]/.test(kern)) return tekst;
   // eerst de hele tekst precies; lukt dat niet en staan er " · " in, dan per stukje (vóór de losse komma's en zinnen)
-  let uit = zoek(kern, true);
-  // een regel uit het wedstrijdverslag: "[Schieten] Je schot gaat ruim over."
-  if (uit === null){ const h = kern.match(/^\[([^\]]+)\] ([\s\S]+)$/); if (h){ const a = zoek(h[1]) ?? h[1], b = zoekMeer(h[2]) ?? h[2]; if (a !== h[1] || b !== h[2]) uit = `[${a}] ${b}`; } }
+  // een regel uit het wedstrijdverslag: "[Schieten] Je schot gaat ruim over." (eerst: anders neemt een patroon het [label] onvertaald mee)
+  let uit = null;
+  { const h = kern.match(/^\[([^\]]+)\] ([\s\S]+)$/); if (h){ const a = zoek(h[1]) ?? h[1], b = zoekMeer(h[2]) ?? h[2]; if (a !== h[1] || b !== h[2]) uit = `[${a}] ${b}`; } }
+  if (uit === null) uit = perZin(kern) ?? zoek(kern, true);
   // een stukje dat met ". " of ", " begint (na een vetgedrukte naam): de rest vertalen
   if (uit === null){ const p = kern.match(/^([.,:;] )([\s\S]+)$/); if (p){ const z = vertaal(p[2]); if (z !== p[2]) uit = p[1] + z; } }
   if (uit === null && kern.includes(' · ')){ const delen = kern.split(' · '), v = delen.map(d => zoekMeer(d) ?? d); if (v.every((x, i) => x !== delen[i] || !nogNl(x))) uit = v.join(' · '); }
-  if (uit === null) uit = zoekMeer(kern);
-  // een stukje met een "·" ervoor of erachter (losse effecten op een tegel: " · fitheid ")
+  // een stukje met een "·" ervoor of erachter (losse effecten op een tegel: " · fitheid "). Eerst dit proberen: anders wint een halve vertaling van het geheel
   if (uit === null && /^· /.test(kern)){ const z = vertaal(kern.slice(2)); if (z !== kern.slice(2)) uit = '· ' + z; }
   if (uit === null && / ·$/.test(kern)){ const z = vertaal(kern.slice(0, -2)); if (z !== kern.slice(0, -2)) uit = z + ' ·'; }
+  if (uit === null) uit = zoekMeer(kern);
   if (uit === null && kern.includes(' · ')){ const delen = kern.split(' · '), v = delen.map(d => zoekMeer(d) ?? d); if (v.some((x, i) => x !== delen[i])) uit = v.join(' · '); }
   if (uit === null && /:$/.test(kern)){ const z = zoek(kern.slice(0, -1)); if (z !== null) uit = z + ':'; }
   return uit === null ? tekst : m[1] + uit + m[3];

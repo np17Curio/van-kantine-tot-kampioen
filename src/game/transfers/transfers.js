@@ -1,4 +1,5 @@
 import { partnerTransfer } from '../prive/partner.js';
+import { bewaarVoorTransfer } from './ongedaan.js';
 import { hoogtepunt } from '../speler/hoogtepunten.js';
 import { S, club, gemCijfer, mod, ovr, salarisVoor, seizoenLabel, tmp, waarde } from '../../core/state.js';
 import { geldTxt, randInt, rnd, shuffle } from '../../core/utils.js';
@@ -211,6 +212,7 @@ export function openVenster(soort){
 
 // Voert een clubwissel uit en geeft een tekst terug over wat er gebeurt
 export function wissel(o, hoe){
+  try { bewaarVoorTransfer(`Transfer naar ${clubInfo(o).n}`); } catch (e){} // (eerst een kopie van je spel: dan kun je deze transfer nog terugdraaien, ongedaan.js)
   const sp = S.sp, oc = club(), oud = {n:oc.n, t:oc.t, s:oc.s}, oudStatus = sp.status, teksten = [], oudId = sp.club, oudLand = thuisLand(), landWissel = isBuitenland(o);
   const los = sp.clubloos, naarRivaal = !los && !landWissel && rivaal(oudId) === o.club, naarDoel = isDoel(o); // vóór de landwissel bepalen
   if (hoe === 'geforceerd') modFans(-20, oudId);

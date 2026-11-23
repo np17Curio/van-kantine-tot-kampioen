@@ -1,3 +1,4 @@
+import { WEER, wedstrijdWeer, weerEffectTekst } from '../../game/wedstrijd/weer.js';
 import { S, club, statWaarde, attr, tmp } from '../../core/state.js';
 import { vDoelenBalk, vSterren } from './sterren.js';
 import { act, keuzeKnop, knop, render } from '../../core/ui.js';
@@ -56,7 +57,7 @@ export function scorebord(){
   const oppId = M.opp ?? (M.eerste && M.eerste.opp), lg = id => !M.inter && !M.selectie && id != null && CLUBS[id] ? clubLogo(id, 34) : '';
   const [l, r] = M.thuis ? [lg(S.sp.club) + `<span>${mij}</span>`, `<span>${hun}</span>` + lg(oppId)] : [lg(oppId) + `<span>${hun}</span>`, `<span>${mij}</span>` + lg(S.sp.club)];
   return `<div class="score"><div class="team ${M.thuis ? 'mij' : ''}">${l}</div>
-    <div class="stand">${stand2()}<span class="min">${M.derby ? '<b style="color:var(--fout)">DERBY</b> · ' : ''}${M.klaar ? 'EINDE' : M.min + "'"}</span></div>
+    <div class="stand">${stand2()}<span class="min">${M.derby ? '<b style="color:var(--fout)">DERBY</b> · ' : ''}${M.klaar ? 'EINDE' : M.min + "'"}</span>${(w => w ? `<span class="min weer" title="${esc(weerEffectTekst(w) || WEER[w.soort].n)}">${WEER[w.soort].i} ${w.temp}°C</span>` : '')(wedstrijdWeer())}</div>
     <div class="team r ${!M.thuis ? 'mij' : ''}">${r}</div>${vStamina(M)}</div>`;
 }
 // Hoeveel energie heb je nog? Alleen zolang jij in het veld staat (of net gewisseld bent)

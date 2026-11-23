@@ -1,4 +1,5 @@
 import { CLUBS } from './gegevens.js';
+import { merkVoor } from './merken.js';
 
 /* ===================== Tenues van clubs en landen ===================== */
 // Een tenue: {shirt, accent, broek, sok, patroon}. Patronen: effen, strepen (verticaal), banen (horizontaal),
@@ -17,7 +18,8 @@ const kaleNaam = n => n.replace(/ O19$/, '').replace(/ Vrouwen$/, '');
 export function clubTenue(id){
   const c = CLUBS[id]; if (!c) return tenue(K.wit, K.zwart, 'effen');
   const naam = kaleNaam(c.n);
-  return uniekeTenues()[naam] || basisTenue(naam);
+  // (met het kledingmerk erbij: hoe sterker de club, hoe groter het merk; data/merken.js)
+  return {...(uniekeTenues()[naam] || basisTenue(naam)), merk:merkVoor(naam, c.s)};
 }
 // Elke club een eigen tenue: geen twee clubs met precies dezelfde kleuren en hetzelfde patroon. Botst het tenue van een club
 // met dat van een andere, dan krijgt hij (op alfabet, dus altijd hetzelfde) een ander patroon, omgedraaide kleuren of een andere kleurcombinatie
@@ -58,14 +60,15 @@ const LAND = {
   Denemarken:[K.rood, K.wit, 'effen', K.wit, K.rood], Noorwegen:[K.rood, K.wit, 'bies', K.wit, K.marine], Zwitserland:[K.rood, K.wit, 'effen', K.rood, K.rood],
 };
 export function landTenue(naam){
-  const l = LAND[naam]; if (l) return tenue(...l);
-  const [shirt, accent] = PALET[hash('land|' + naam) % PALET.length]; return tenue(shirt, accent, 'effen');
+  const merk = merkVoor('land|' + naam, 74 + hash('landmerk|' + naam) % 12); // (een land speelt altijd bij een groot merk)
+  const l = LAND[naam]; if (l) return {...tenue(...l), merk};
+  const [shirt, accent] = PALET[hash('land|' + naam) % PALET.length]; return {...tenue(shirt, accent, 'effen'), merk};
 }
 // Uittenue: de kleuren omgedraaid (of wit/donker als dat te veel op elkaar lijkt)
 export function uitTenue(t){
   const nieuwShirt = kleurAfstand(t.accent, t.shirt) > 120 ? t.accent : licht(t.shirt) ? K.marine : K.wit;
   const accent = nieuwShirt === t.accent ? t.shirt : t.accent;
-  return {shirt:nieuwShirt, accent, patroon:t.patroon === 'blokken' || t.patroon === 'strepen' ? 'effen' : t.patroon, broek:nieuwShirt, sok:nieuwShirt};
+  return {shirt:nieuwShirt, accent, patroon:t.patroon === 'blokken' || t.patroon === 'strepen' ? 'effen' : t.patroon, broek:nieuwShirt, sok:nieuwShirt, merk:t.merk};
 }
 const rgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
 export function kleurAfstand(a, b){ const [r1, g1, b1] = rgb(a), [r2, g2, b2] = rgb(b), rm = (r1 + r2) / 2;

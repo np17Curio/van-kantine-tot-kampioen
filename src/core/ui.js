@@ -1,4 +1,5 @@
 import { S, bewaar, tmp } from './state.js';
+import { maakOngedaan, vOngedaan } from '../game/transfers/ongedaan.js';
 import { muziekNaRender } from './muziek.js';
 import { taal, vertaal } from './taal.js';
 import { vToernooi, vToernooiEinde } from '../game/interlands/toernooi.js';
@@ -48,6 +49,9 @@ export function render(){
   resetActs(); muziekNaRender(!!S); // (startscherm: menumuziek, in het spel: de spelmuziek)
   const veld = document.getElementById('veld'), trainerFase = S && (/^(trainer|analist|eigenaar)/.test(S.fase) || (S.fase === 'event' && S.trainer && !S.trainer.gestopt)); // (een privégebeurtenis als trainer)
   veld.innerHTML = tmp.beweging ? vBeweging() : S && tmp.vrijTrainen ? vVrijTrainen() : S && tmp.stats ? vStats() : S ? ({selectie:vSelectie, selectieKeuze:vSelectieKeuze, proef:vProef, week:vWeek, oproep:vOproep, event:vEvent, match:vMatch, matchEnd:vMatchEnd, venster:vVenster, clubloos:vClubloos, afscheid:vAfscheid, seizoenEinde:vSeizoenEinde, ontwikkeling:vOntwikkeling, toernooi:vToernooi, toernooiEinde:vToernooiEinde, einde:vEinde, trainerAanbod:vTrainerAanbod, trainerCursus:vTrainerCursus, trainerLive:vTrainerLive, trainer:vTrainer, trainerUitslag:vTrainerUitslag, trainerSeizoen:vTrainerSeizoen, analist:vAnalist, analistUitslag:vAnalistUitslag, analistSeizoen:vAnalistSeizoen, eigenaarAanbod:vEigenaarAanbod, eigenaar:vEigenaar, eigenaarSeizoen:vEigenaarSeizoen}[S.fase] || vStart)() : vStart();
+  // Net een transfer gedaan (en nog geen wedstrijd gespeeld)? Bovenaan een knop om hem ongedaan te maken (transfers/ongedaan.js)
+  if (S && !tmp.beweging && !tmp.stats && ['week', 'venster', 'event'].includes(S.fase)){ const o = vOngedaan();
+    if (o) veld.insertAdjacentHTML('afterbegin', `<div class="paneel ongedaan"><span class="label">Spijt van je transfer?</span><div class="rij" style="gap:8px;align-items:center;flex-wrap:wrap">${knop(`↶ ${o.label} ongedaan maken`, maakOngedaan, 'klein', 'data-bevestig="Je gaat terug naar het moment vlak voor deze transfer. Alles wat je daarna deed, vervalt." data-ja="Ja, ongedaan maken"')}<span class="muted klein-tekst">Kan tot je volgende wedstrijd.</span></div></div>`); }
   // (de zijkant scrolt zelf: na het opnieuw tekenen dezelfde scrollpositie houden, anders springt hij bij elke klik naar boven)
   const zij = document.getElementById('zij'), zijScroll = zij.scrollTop;
   zij.innerHTML =S && /^(analist|eigenaar)/.test(S.fase) ? (vZijNa() || vZijStart()) : S && S.trainer && trainerFase ? vZijTrainer() : S && S.fase !== 'einde' && !trainerFase && !S.selectie ? vZij() : vZijStart();

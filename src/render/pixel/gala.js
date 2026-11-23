@@ -193,8 +193,8 @@ function licht(g, f, spot){
 export function maakGala(info = {}){
   const naam = zonderAccent(info.naam || 'DE WINNAAR').replace(/[^A-Z0-9 .'-]/g, '').trim().slice(0, 22) || 'DE WINNAAR';
   const achter = inkleuren(zaal(), STIJL), voorAchter = inkleuren(tafelsAchter(), STIJL), voorVoor = inkleuren(tafelsVoor(), STIJL), kath = inkleuren(katheder(), STIJL);
-  // jij, in een zwarte smoking met een gouden das
-  const ik = lookVan(info.uit || {}, null, {kleding:'pak', pak:'#15161c', pak2:'#0b0c10', das:'#d4a72c'});
+  // jij, in een zwarte smoking met een gouden das (of het pak en de das uit je eigen kledingkast: info.pak)
+  const ik = lookVan(info.uit || {}, null, info.pak ? {kleding:'pak', ...info.pak} : {kleding:'pak', pak:'#15161c', pak2:'#0b0c10', das:'#d4a72c'});
   const vIk = {kapsel:ik.kapsel, vrouw:ik.vrouw, kleding:'pak', patroon:'effen', baard:ik.baard};
   const palIk = {...ik.kleuren, w:'#ffffff', ...GOUD};
   const SP = [], spelerCv = f => SP[f] || (SP[f] = inkleuren(spelerBeeld(f, vIk), palIk));

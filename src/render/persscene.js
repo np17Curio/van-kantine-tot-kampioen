@@ -1,3 +1,4 @@
+import { outfitVoor } from '../game/prive/kleding.js';
 import { hashGetal, uiterlijkVoor } from './pixel/uiterlijk.js';
 import { BX, JOURNALISTEN, PH, PW, P_FPS, SX, DEUR, maakPers, mondBij } from './pixel/pers.js';
 import { ploegen } from './pitch.js';
@@ -68,7 +69,7 @@ async function speel(o){
     let sleutel = sp.naam; try { sleutel = ploegen().jij || sleutel; } catch (e){}
     const delen = String(sp.naam || '').trim().split(/\s+/), achternaam = delen.length > 1 ? delen.slice(1).join(' ') : delen[0] || '';
     const zaal = maakPers({uit:uiterlijkVoor('jij|' + sleutel, {...(sp.uiterlijk || {}), vrouw:!!sp.vrouw}), uitPv:uiterlijkVoor('persvoorlichter|' + c.n),
-      tenue, trainer:o.trainer, naam:achternaam, logoImg:logoBron}); // (in de pixelscène: het logo zonder tekst, als scherp pixellogo)
+      tenue, trainer:o.trainer, naam:achternaam, logoImg:logoBron, outfit:outfitVoor(sp.kleding, 'pers')}); // (in de pixelscène: het logo zonder tekst, als scherp pixellogo)
     const Z = 3, cv = document.createElement('canvas'); cv.width = PW * Z; cv.height = PH * Z; cv.className = 'cs-pixel';
     cv.setAttribute('aria-hidden', 'true'); laag.vak.prepend(cv);
     const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;

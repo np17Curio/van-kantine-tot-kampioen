@@ -125,7 +125,9 @@ export function maakPers(info){
   }
   const cams = [false, true].map(l => inkleuren(tvCamera(l), pal));
   // jij: in het trainingspak van de club (als trainer: in pak); de persvoorlichter in pak met een das in de clubkleur
-  const ik = lookVan(info.uit || {}, info.trainer ? null : {...t, broek:'#262b36', sok:'#262b36'}, {kleding:info.trainer ? 'pak' : 'training', nr:2});
+  // (je eigen kledingkast: info.outfit = [kleding, tenue, opties] uit game/prive/kleding.js, of null voor het trainingspak van de club)
+  const ik = info.outfit ? lookVan(info.uit || {}, info.outfit[1], {...info.outfit[2], kleding:info.outfit[0]})
+    : lookVan(info.uit || {}, info.trainer ? null : {...t, broek:'#262b36', sok:'#262b36'}, {kleding:info.trainer ? 'pak' : 'training', nr:2});
   const pv = lookVan(info.uitPv || {}, null, {kleding:'pak', nr:3, das:t.shirt});
   const cache = new Map();
   const figuur = (look, P, flip, mond = 0) => {

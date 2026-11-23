@@ -1,3 +1,4 @@
+import { weerEffect } from './weer.js';
 import { S } from '../../core/state.js';
 import { clamp, randInt, rnd } from '../../core/utils.js';
 import { pers } from '../speler/persoonlijkheid.js';
@@ -8,7 +9,7 @@ import { lichaamStamina } from '../speler/lichaam.js';
 // Met een goede conditie raak je minder snel leeg. Is je stamina op, dan haalt de trainer je eraf.
 const SOORT = {drib:1.2, verd:1.2, afw:1.2, pas:.9, kalm:.4};
 export const WAARSCHUW = 8;
-const zuinig = () => (1.25 - (S.sp.a.cond ?? 50) / 200) * pers('stamina') * lichaamStamina(); // (zwaarder: sneller moe)
+const zuinig = () => (1.25 - (S.sp.a.cond ?? 50) / 200) * pers('stamina') * lichaamStamina() * (S.M ? weerEffect().stamina : 1); // (zwaarder: sneller moe; sneeuw en hitte ook: weer.js)
 // Leeftijd: vanaf je 30e raak je sneller leeg, vooral in het laatste half uur. Een goede conditie blijft helpen.
 const lft = () => S.sp.leeftijd ?? 25;
 // (de eerste jaren na je 29e gaat het snel, daarna wat geleidelijker)

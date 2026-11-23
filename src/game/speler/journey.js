@@ -1,7 +1,7 @@
 import { S, club, mod, ovr, salarisVoor, seizoenLabel, waarde } from '../../core/state.js';
 import { clamp, pick, randInt, rnd } from '../../core/utils.js';
 import { AANTAL_RONDES, CLUBS, DIVS, LAAGSTE, liefNamen, clubsLand, divClubs, WINTER, rondeInWeek, weekFactor, LINIE_VAN, POS } from '../../data/gegevens.js';
-import { thuisLand } from '../../data/landen.js';
+import { SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
 import { andereWereldClub, andereWereldIds, clubPlek, vreemdeClub } from '../transfers/buitenland.js';
 import { interDrempel, landenVoor } from '../interlands/interlands.js';
 import { OPBOUW, selectie, stand, startElf } from '../competitie/spelers.js';
@@ -351,6 +351,8 @@ export function vriendTransfer(){
   let kans = omhoog ? clamp((v.k - cur.s - 3) / 10, .2, .75) : .4;
   if ((sp.sindsTransfer ?? 99) < 8) kans *= .3;
   if (rnd() > kans) return null;
+  // Soms kiest hij bij een stap omhoog voor een ander land: het buitenland, of (speelt hij al in het buitenland) terug naar jouw land
+  if (omhoog && !vriendApart() && v.k >= 60 && rnd() < .3){ const t = vriendNaarLand(cur); if (t) return t; }
   const ids = hier ? [1, LAAGSTE].flatMap(t => divClubs(t)) : vriendApart() ? [1, 2].flatMap(t => andereWereldIds(land, t)) : Array.from({length:clubsLand(land) - 8}, (_, i) => 8 + i);
   const verboden = vriendVerboden();
   const kand = ids.filter(i => { const c = info(i); return i !== v.club && !verboden.has(i) && !(hier && i === sp.club) && c && c.t >= 1 && (omhoog ? c.s >= cur.s + 2 && c.s >= v.k - 6 && c.s <= v.k - 1 : c.s < cur.s && c.s >= v.k - 6); });
@@ -362,6 +364,24 @@ export function vriendTransfer(){
   const div = hier ? DIVS[nieuw.t] : nieuw.div || '';
   krantMelding(`${v.voornaam} ${v.n} ${omhoog ? 'maakt de stap' : 'vertrekt'} naar ${nieuw.n}`, `De ${vr.jeugdvriend} van ${sp.naam} (klasse ${v.k}) ${omhoog ? `was te goed voor ${oud}` : `kwam bij ${oud} nauwelijks aan spelen toe`}. ${vr.Hij} tekent bij ${nieuw.n}${div ? ` (${div})` : ''}.`);
   return `${v.voornaam} maakt de overstap van ${oud} naar ${nieuw.n}${div ? ` (${div})` : ''}!`;
+}
+// Een overstap naar een ander land (cur = zijn huidige club). Geeft de tekst voor het weekoverzicht, of null als er niets past
+function vriendNaarLand(cur){
+  const sp = S.sp, v = sp.vriend, land = vriendLand(), thuis = thuisLand(), hier = vriendHier();
+  const nl = pick(SPEEL_LANDEN.filter(l => l !== land)); if (!nl) return null;
+  const naarHier = nl === thuis, verboden = vriendVerboden();
+  const info = id => naarHier ? CLUBS[id] : vreemdeClub(nl, id);
+  const ids = naarHier ? [1, LAAGSTE].flatMap(t => divClubs(t)) : Array.from({length:clubsLand(nl) - 8}, (_, i) => 8 + i);
+  const kand = ids.filter(i => { const c = info(i); return c && c.t >= 1 && !(naarHier && (i === sp.club || verboden.has(i))) && c.s >= cur.s + 2 && c.s >= v.k - 6 && c.s <= v.k - 1; });
+  if (!kand.length) return null;
+  const naar = pick(kand), nieuw = info(naar), oud = cur.n; v.transferJaar = S.jaar; (v.vorigeClubs = v.vorigeClubs || []).push(oud);
+  if (hier){ const sel = selectie(v.club), x = sel.find(y => y.vriend); if (x){ sel.splice(sel.indexOf(x), 1); selectie(v.club); herschik(sel); } } // (weg uit de selectie bij jou in het land)
+  v.land = nl;
+  if (naarHier){ plaatsVriend(naar, false); const y = vriendSpeler(); if (y){ y.k = v.k; y.lft = v.lft; } herschik(selectie(naar)); }
+  else v.club = naar;
+  krantMelding(naarHier ? `${v.voornaam} ${v.n} keert terug: ${nieuw.n} haalt ${vr.hem} uit ${land}` : `${v.voornaam} ${v.n} vertrekt naar het buitenland`,
+    naarHier ? `De ${vr.jeugdvriend} van ${sp.naam} (klasse ${v.k}) speelde in ${land} en tekent nu bij ${nieuw.n}.` : `De ${vr.jeugdvriend} van ${sp.naam} (klasse ${v.k}) was te goed voor ${oud} en tekent bij ${nieuw.n} in ${nl}.`);
+  return naarHier ? `${v.voornaam} komt terug uit ${land} en tekent bij ${nieuw.n}!` : `${v.voornaam} vertrekt naar het buitenland: ${nieuw.n} (${nl})!`;
 }
 // Oude opslag: zijn talent lag vast en hij bleef ver achter. Eén keer: een even groot talent, en zo nodig een doorbraak
 function vriendTalent(){

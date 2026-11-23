@@ -13,6 +13,7 @@ import { ohStart, vOnderhandel } from '../../game/transfers/onderhandelen.js';
 import { blijf, blijfWachten, teken, zonderClub } from '../../game/transfers/transfers.js';
 import { vMarkt } from '../../game/transfers/markt.js';
 import { clubLogo } from '../../data/logos.js';
+import { merkTekst, merkVoor } from '../../data/merken.js';
 import { vriendNaam } from '../../game/speler/journey.js';
 
 export function rolRij(id, cObj){
@@ -27,7 +28,7 @@ export function bodKaart(o, label){
   const c = clubInfo(o), V = S.venster, bl = isBuitenland(o);
   const kanVragen = V.modus === 'normaal' && !o.gevraagd && !o.laatsteDans && (o.verlenging || c.t <= 3);
   return `<div class="bod ${o.club === S.sp.club && !bl ? 'huidig' : ''} ${o.viaAgent || o.viaVriend ? 'door' : ''}"><span class="label">${o.laatsteDans ? `Je eerste club · je laatste seizoen${bl ? ` · 🌍 ${esc(o.land)}` : ''}` : o.huurKoop ? 'Koopoptie: je huurclub wil je definitief overnemen' : o.viaVriend ? `Via je jeugdvriend ${esc(vriendNaam())}${bl ? ` · 🌍 ${esc(o.land)}` : ''}` : o.viaAgent ? 'Droomclub · geregeld door je zaakwaarnemer' : o.doorstroom ? '1e elftal van je eigen club' : o.verlenging ? 'Je huidige club · nieuw contract' : bl ? `🌍 ${esc(o.land)} · ${NIVEAU[c.t]} · ${esc(c.div)}` : `${NIVEAU[c.t]} · ${DIVS[c.t]}`}</span><div class="club">${bl ? '' : clubLogo(o.club, 40)}<span>${esc(c.n)}</span></div>
-    <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>Stand</dt><dd>${esc(clubPlek(o))}</dd><dt>${salarisLabel(c.t)}</dt><dd>${geldTxt(o.salaris)}</dd><dt>Contract</dt><dd>${o.jaren} jaar</dd>${o.som ? `<dt>Bod op jou</dt><dd>${geldTxt(o.som)}</dd>` : ''}</dl>
+    <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>Shirtmerk</dt><dd>${esc(merkTekst(merkVoor(c.n, c.s)))}</dd><dt>Stand</dt><dd>${esc(clubPlek(o))}</dd><dt>${salarisLabel(c.t)}</dt><dd>${geldTxt(o.salaris)}</dd><dt>Contract</dt><dd>${o.jaren} jaar</dd>${o.som ? `<dt>Bod op jou</dt><dd>${geldTxt(o.som)}</dd>` : ''}</dl>
     ${o.laatsteDans && o.oudSalaris > o.salaris ? `<p class="fouttxt klein-tekst">Je levert ${Math.round((1 - o.salaris / o.oudSalaris) * 100)}% in: nu verdien je ${geldTxt(o.oudSalaris)} per jaar.</p>` : ''}
     ${rolRij(o.club, bl ? c : null)}
     ${bl ? `<p class="muted klein-tekst">Je verhuist naar ${esc(o.land)}: nieuwe competitie, nieuwe clubs, nieuwe kranten, een nieuwe taal.</p>` : ''}
@@ -39,14 +40,14 @@ export function bodKaart(o, label){
 export function huidigKaart(){
   const c = club(), sp = S.sp, V = S.venster;
   return `<div class="bod huidig"><span class="label">Je huidige club · ${NIVEAU[c.t]}</span><div class="club">${clubLogo(sp.club, 40)}<span>${esc(c.n)}</span></div>
-    <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>Stand</dt><dd>${esc(clubPlek({club:sp.club}))}</dd><dt>${salarisLabel(c.t)}</dt><dd>${geldTxt(sp.salaris)}</dd><dt>Contract</dt><dd>nog ${Math.max(sp.contract, 0)} jaar</dd></dl>
+    <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>Shirtmerk</dt><dd>${esc(merkTekst(merkVoor(c.n, c.s)))}</dd><dt>Stand</dt><dd>${esc(clubPlek({club:sp.club}))}</dd><dt>${salarisLabel(c.t)}</dt><dd>${geldTxt(sp.salaris)}</dd><dt>Contract</dt><dd>nog ${Math.max(sp.contract, 0)} jaar</dd></dl>
     ${rolRij(sp.club)}
     <div class="rij">${knop(V.huurOpties && V.huurOpties.length ? (V.eigenHuur ? 'Ik bedenk me: ik blijf' : 'Nee, ik blijf en vecht voor mijn plek') : V.bods.length ? 'Nee, ik blijf hier' : 'Verder', blijf, V.bods.length || (V.huurOpties && V.huurOpties.length) ? 'hoofd tweede' : 'hoofd', 'style="font-size:1.05rem;padding:10px 16px"')}</div></div>`;
 }
 export function huurKaart(x){
   const o = typeof x === 'number' ? {club:x} : x, bl = isBuitenland(o), c = clubInfo(o);
   return `<div class="bod huur"><span class="label">Huur tot de zomer · ${bl ? `🌍 ${esc(o.land)} · ${NIVEAU[c.t]} · ${esc(c.div)}` : `${NIVEAU[c.t]} · ${DIVS[c.t]}`}</span><div class="club">${bl ? '' : clubLogo(o.club, 40)}<span>${esc(c.n)}</span></div>
-    <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>Stand</dt><dd>${esc(clubPlek(o))}</dd><dt>Salaris</dt><dd>betaalt je eigen club</dd><dt>Daarna</dt><dd>terug naar ${esc(club().n)}</dd></dl>
+    <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>Shirtmerk</dt><dd>${esc(merkTekst(merkVoor(c.n, c.s)))}</dd><dt>Stand</dt><dd>${esc(clubPlek(o))}</dd><dt>Salaris</dt><dd>betaalt je eigen club</dd><dt>Daarna</dt><dd>terug naar ${esc(club().n)}</dd></dl>
     <div class="rol"><span class="label">Jouw rol daar</span><b>Vaste waarde</b><span class="risico r-veilig">Basisspeler</span></div>
     ${bl ? `<p class="muted klein-tekst">Je verhuist een seizoen naar ${esc(o.land)}: nieuwe competitie, nieuwe clubs, een nieuwe taal. In de zomer ga je terug naar ${esc(club().n)}.</p>` : ''}
     <div class="rij">${knop(`Op huur naar ${esc(c.n)}`, () => gaHuren(o), 'hoofd middel')}</div></div>`;

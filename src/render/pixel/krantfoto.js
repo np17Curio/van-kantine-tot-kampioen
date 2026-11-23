@@ -2,6 +2,7 @@
 // Jouw speler op de foto in de krant (render/krantfoto.js), in de stijl van art/chibi_anims.px.js: voor een persmuur met
 // clublogo's en de sponsor, of in het stadion bij een ererondje, met de prijs in de handen. Een pixelbeeld van 120×80,
 // 6× vergroot (720×480, net als de oude 3D-foto). Geen three.js.
+import { outfitVoor } from '../../game/prive/kleding.js';
 import { STANDAARD } from '../../data/tenues.js';
 import { BAL, Doek, GROND, HEUP, ROMP_EXTRA, Img, inkleuren, opGrond, speler, sprite, vuist } from './rig.js';
 import { donker, lookVan } from './atlas.js';
@@ -58,7 +59,8 @@ const POSE = {
   bruiloft:{...BASIS, aL:[-12, 18], aR:[28, 55]},                     // arm in arm
   strand:{...BASIS, aL:[-15, 20], aR:[120, 30], arm:1.25},          // zwaaien naar de camera
   stad:{...BASIS, aL:[-12, 18], aR:[150, 70], arm:1.2},
-  straat:{...BASIS, aL:[-15, 20], aR:[120, 30], arm:1.25},          // overdag op straat: zwaaien             // een hand omhoog tegen het flitslicht
+  straat:{...BASIS, aL:[-15, 20], aR:[120, 30], arm:1.25},
+  auto:{...BASIS, aL:[-15, 20], aR:[120, 30], arm:1.25},            // zwaaiend naast je auto          // overdag op straat: zwaaien             // een hand omhoog tegen het flitslicht
   blessure:{...BASIS, aL:[-22, 8], aR:[22, 8]},                     // op krukken
   juich:{...BASIS, aL:[-125, -25], aR:[125, 25], arm:1.3},          // allebei de armen omhoog na een goal
   aanvoerder:{...BASIS, aL:[-18, 12], aR:[28, 12]},                  // de arm met de band iets van het lijf, zodat je hem goed ziet
@@ -186,6 +188,26 @@ function stadAchter(FW, FH, dag){
     if (!dag) for (const [x, y] of [[8, 30], [FW - 30, 26], [28, 18]]){ c.line(x - 4, y, x + 4, y, 'w'); c.line(x, y - 4, x, y + 4, 'w'); c.rect(x - 1, y - 1, 3, 3, 'w'); } // flitsen
   });
 }
+// Een auto van opzij (neus naar rechts): een lage sportwagen met spoiler, of een gewone auto. q/Q = lak, g = glas,
+// w = velgen, L = koplamp, r = achterlicht. Met een zwarte rand eromheen (outline)
+function autoSprite(sport){
+  const w = sport ? 46 : 40, h = sport ? 16 : 19;
+  return sprite(w, h, c => {
+    if (sport){
+      c.rect(2, 7, 42, 5, 'q'); c.rect(0, 9, 46, 3, 'q'); c.poly([13, 7, 19, 2, 31, 2, 38, 7], 'q');
+      c.poly([15, 7, 20, 3, 25, 3, 25, 7], 'g'); c.poly([27, 7, 27, 3, 30, 3, 35, 7], 'g');
+      c.hline(2, 10, 42, 'Q'); c.rect(1, 6, 6, 1, 'Q'); c.rect(2, 5, 1, 2, 'Q'); c.rect(43, 9, 2, 1, 'L'); c.rect(0, 9, 2, 1, 'r');
+      for (const x of [10, 36]){ c.circ(x, 12, 3, 'k'); c.circ(x, 12, 1, 'w'); }
+    } else {
+      c.rect(1, 9, 38, 6, 'q'); c.poly([8, 9, 12, 3, 28, 3, 33, 9], 'q');
+      c.poly([10, 9, 13, 4, 19, 4, 19, 9], 'g'); c.poly([21, 9, 21, 4, 27, 4, 31, 9], 'g');
+      c.hline(1, 12, 38, 'Q'); c.rect(37, 10, 2, 2, 'L'); c.rect(1, 10, 1, 2, 'r');
+      for (const x of [9, 31]){ c.circ(x, 15, 3, 'k'); c.circ(x, 15, 1, 'w'); }
+    }
+  }).outline(107);
+}
+const AUTO_KLEUR = {geel:'#ffd21a', rood:'#e0262b', zwart:'#2a2a33', wit:'#f2f2f5', blauw:'#2f62d6', groen:'#2f9e4f', grijs:'#8a8f9a', oranje:'#ff8a1a'};
+const donkerHex = (hex, f) => '#' + [1, 3, 5].map(i => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - f)).toString(16).padStart(2, '0')).join('');
 function stadion(naam, FW, FH){
   return sprite(FW, FH, c => {
     c.rect(0, 0, FW, 12, 'K');
@@ -203,10 +225,15 @@ function stadion(naam, FW, FH){
 export function maakPixelFoto(soort, ctx = {}, {w:FW = 120, h:FH = 80, canvas:alleenCanvas = false} = {}){
   const tenue = ctx.tenue || STANDAARD, muur = ctx.muur || '#0f1a33', accent = ctx.accent || '#c6f432';
   const uit = ctx.wie ? uiterlijkVoor(ctx.wie) : uiterlijkVoor('jij|' + (ctx.sleutel || 'nieuw'), ctx.leeftijd ? {...(ctx.uiterlijk || {}), leeftijd:ctx.leeftijd} : ctx.uiterlijk || undefined); // (je leeftijd: pixel/leeftijd.js)
-  const F = ctx.foto || {}, prive = ['huis', 'bruiloft', 'strand', 'stad', 'straat', 'blessure'].includes(soort), gala = soort === 'goudenbal', aanv = soort === 'aanvoerder';
+  const F = ctx.foto || {}, prive = ['huis', 'bruiloft', 'strand', 'stad', 'straat', 'auto', 'blessure'].includes(soort), gala = soort === 'goudenbal', aanv = soort === 'aanvoerder';
   const JURK = {shirt:'#fbfbff', accent:'#e8e2f2', patroon:'effen', broek:'#fbfbff', sok:'#fbfbff'};
-  const kleed = (u, vrouw) => soort === 'huis' || soort === 'strand' || soort === 'stad' || soort === 'straat' ? ['casual', tenue, {}] : soort === 'blessure' ? ['training', tenue, {}] : gala ? ['pak', null, {pak:'#1b1d24', pak2:'#0f1016', das:'#c9a227'}] : soort === 'bruiloft' ? (vrouw ? ['tenue', JURK, {}] : ['pak', null, {pak:'#1b1d24', pak2:'#0f1016', das:'#c9a227'}]) : ['tenue', tenue, {band:aanv || !!ctx.band}];
-  const [kl, tn, opt] = kleed(uit, uit.vrouw);
+  // jouw eigen kledingkast (game/prive/kleding.js: ctx.kleding) gaat voor, behalve in het clubtenue of met een blessure
+  const eigen = gel => outfitVoor(ctx.kleding, gel);
+  const kleedIk = (u, vrouw) => { const gel = soort === 'strand' ? 'strand' : ['huis', 'stad', 'straat', 'auto'].includes(soort) ? 'uit' : gala || (soort === 'bruiloft' && !vrouw) ? 'gala' : null;
+    if (soort === 'stijlpers') return eigen('pers') || ['training', {...tenue, broek:'#262b36', sok:'#262b36'}, {}]; // (het voorbeeld in je kledingkast)
+    return (gel && eigen(gel)) || kleed(u, vrouw); };
+  const kleed = (u, vrouw) => soort === 'huis' || soort === 'strand' || soort === 'stad' || soort === 'straat' || soort === 'auto' ? ['casual', tenue, {}] : soort === 'blessure' ? ['training', tenue, {}] : gala ? ['pak', null, {pak:'#1b1d24', pak2:'#0f1016', das:'#c9a227'}] : soort === 'bruiloft' ? (vrouw ? ['tenue', JURK, {}] : ['pak', null, {pak:'#1b1d24', pak2:'#0f1016', das:'#c9a227'}]) : ['tenue', tenue, {band:aanv || !!ctx.band}];
+  const [kl, tn, opt] = kleedIk(uit, uit.vrouw);
   const look = lookVan(uit, tn, {...opt, kleding:kl});
   const v = {kapsel:look.kapsel, vrouw:look.vrouw, kleding:kl, patroon:look.patroon, jurk:soort === 'bruiloft' && !!uit.vrouw, band:aanv ? false : prive || gala ? false : look.band, baard:look.baard};
   const sp = inkleuren(spelerBeeld(soort, v), {...look.kleuren, ...GOUD, ...BRUID});
@@ -235,7 +262,7 @@ export function maakPixelFoto(soort, ctx = {}, {w:FW = 120, h:FH = 80, canvas:al
   const achter = soort === 'huis' ? inkleuren(huisAchter(FW, FH, F.type || 'huis'), {L:'#8fd3ff', l:'#b8e4ff', W:'#ffffff', g:'#3f9a4a', G:'#4caf55', B:'#b5603f', b:'#8e4630', V:'#efe9df', D:'#7a2e2a', k:'#2a2430', w:'#bfe6ff', d:'#6b4226', r:'#d62828', '<':'#f3c44f'})
     : gala ? inkleuren(galaAchter(FW, FH), {M:'#140f26', l:'#211a3b', y:'#8a6b1e', Y:'#f3c44f', w:'#ffffff', F:'#0b0816', f:'#f3c44f'})
     : soort === 'strand' ? inkleuren(strandAchter(FW, FH), {L:'#8fd3ff', l:'#b8e4ff', y:'#ffe066', Y:'#ffd03a', w:'#ffffff', B:'#2f7fd0', b:'#6cb4f0', Z:'#f1d79a', z:'#d9bb78', d:'#6b4226', r:'#e05a5a'})
-    : soort === 'straat' ? inkleuren(stadAchter(FW, FH, true), {M:'#9fd3ff', w:'#ffffff', V:'#c98b6a', v:'#b07656', Y:'#dff1ff', y:'#7fa6c4', F:'#b9b4ac', f:'#a29d95', d:'#5a5f6e'})
+    : soort === 'straat' || soort === 'auto' ? inkleuren(stadAchter(FW, FH, true), {M:'#9fd3ff', w:'#ffffff', V:'#c98b6a', v:'#b07656', Y:'#dff1ff', y:'#7fa6c4', F:'#b9b4ac', f:'#a29d95', d:'#5a5f6e'})
     : soort === 'stad' ? inkleuren(stadAchter(FW, FH), {M:'#141a33', w:'#ffffff', V:'#262d4a', v:'#1d2340', Y:'#ffd56b', y:'#3a3f5c', F:'#2b2b33', f:'#3a3a44', d:'#5a5f6e'})
     : soort === 'bruiloft' ? inkleuren(bruiloftAchter(FW, FH), {P:'#f6dfe6', p:'#f1d2db', g:'#cfc4b6', w:'#ffffff', G:'#3f8a4a', r:'#e05a7a', y:'#ffd34d'})
     : inkleuren(ererondje ? stadion(zonderAccent(ctx.club || 'KAMPIOEN').slice(0, 16), FW, FH) : persmuur(naam, FW, FH, !!ctx.logo),
@@ -250,6 +277,13 @@ export function maakPixelFoto(soort, ctx = {}, {w:FW = 120, h:FH = 80, canvas:al
   g.drawImage(achter, 0, 0);
   if (aanv){ for (const [cv, dx, dy] of groep) g.drawImage(cv, FW / 2 + dx - (X0 + 1), FH - 80 + dy); g.drawImage(sp, FW / 2 - 14 - (X0 + 1), FH - 80); } // (jij vooraan, net links van het midden)
   else if (partner){ const d = soort === 'bruiloft' ? 11 : 14; g.drawImage(sp, FW / 2 - d - (X0 + 1), FH - 80); g.drawImage(partner, FW / 2 + d - (96 - X0 - 1), FH - 80); }
+  else if (soort === 'auto'){ // je auto rechts op de stoep, jij ervoor links
+    const sport = F.auto === 'sport', kl = AUTO_KLEUR[F.kleur] || (sport ? AUTO_KLEUR.geel : F.auto === 'oud' ? AUTO_KLEUR.groen : AUTO_KLEUR.blauw);
+    const car = inkleuren(autoSprite(sport), {q:kl, Q:donkerHex(kl, .28), g:'#9fd8ff', k:'#1a1414', w:'#c8c8d0', L:'#fff6b0', r:'#e0262b'});
+    const z = FW >= 150 ? 3 : 2.4, cw = Math.round(car.width * z), ch = Math.round(car.height * z); // (groot: een echte auto is langer en breder dan jij)
+    g.drawImage(car, FW - cw + Math.round(cw * .08), FH - ch + 1, cw, ch); // (rechts in beeld, de neus loopt net buiten de foto)
+    g.drawImage(sp, FW * .17 - (X0 + 1), FH - 80);
+  }
   else g.drawImage(sp, (soort === 'huis' ? FW * .3 : FW / 2) - (X0 + 1), FH - 80 + (ererondje ? 4 : 0)); // (de voeten net boven de onderrand; voor het huis iets naar links)
   if (alleenCanvas) return klein;
   // 6× vergroot, met een lichte vignet (zoals een krantenfoto; de pixels blijven scherp)

@@ -1,3 +1,4 @@
+import { weerEffect } from './weer.js';
 import { S, mod, statWaarde } from '../../core/state.js';
 import { clamp, pick, rnd, shuffle } from '../../core/utils.js';
 import { CLUBS, MOMENT_POOL, TEAMGENOTEN } from '../../data/gegevens.js';
@@ -36,15 +37,15 @@ export const MOMENTS = {
       mis:()=>({t:'Je blijft hangen in je dribbel en verliest de bal.', d:-.3})},
     {l:'Eén-twee spelen', st:'pas', b:58, ok:()=>({t:'Een perfecte één-twee. Je krijgt de bal terug in de loop!', d:.3, next:'eenOpEen'}), mis:()=>({t:'Je teamgenoot snapt niet wat je wil. Bal kwijt.', d:-.2})},
     {l:'Breed op de opkomende back', st:'pas', b:46, ok:()=>assistKans(.3, 'Je legt de bal breed op'), mis:()=>({t:'Je pass is te zacht en wordt onderschept.', d:-.3})},
-    {l:'Schijnbeweging en krullen', st:'drib', b:64, ok:()=>goal('Schijnbeweging naar links, krullen met rechts. In de verre hoek!', 1.5), mis:()=>({t:'De krul draait net naast. Het publiek zucht.', d:-.2})},
+    {l:'Schijnbeweging en krullen', st:'drib', schot:true, b:64, ok:()=>goal('Schijnbeweging naar links, krullen met rechts. In de verre hoek!', 1.5), mis:()=>({t:'De krul draait net naast. Het publiek zucht.', d:-.2})},
     {l:'Hakje', st:'drib', b:70, ok:()=>assistKans(.65, 'Een brutaal hakje voor'), mis:()=>({t:'Je hakje gaat recht in de voeten van de tegenstander. Het publiek fluit.', d:-.5})}]},
   eenOpEen:{teksten:['Je bent alleen door! Alleen de keeper staat nog tussen jou en de goal.','Je loopt weg bij de laatste man. De keeper komt uit z\'n doel.'], opts:[
     {l:'Hard schieten', vast:true, st:'afw', b:56, ok:()=>goal('Je jaagt hem keihard tegen de touwen!', 1.3), mis:()=>({t:'De keeper redt met een voet.', d:-.3})},
-    {l:'Keeper omspelen', st:'drib', b:62, ok:()=>goal('Je speelt de keeper uit en schuift hem in het lege doel. Wat een rust!', 1.5), mis:()=>({t:'De keeper duikt op de bal. Kans verkeken.', d:-.3})},
+    {l:'Keeper omspelen', st:'drib', schot:true, b:62, ok:()=>goal('Je speelt de keeper uit en schuift hem in het lege doel. Wat een rust!', 1.5), mis:()=>({t:'De keeper duikt op de bal. Kans verkeken.', d:-.3})},
     {l:'Stiften', st:'afw', b:68, ok:()=>goal('Een heerlijke stift over de keeper heen. Het stadion ontploft!', 1.8), mis:()=>({t:'Je stift is te zacht. De keeper vangt hem rustig.', d:-.5})},
     {l:'Breed leggen voor open doel', st:'pas', b:50, ok:()=>assistKans(.85, 'Onbaatzuchtig! Je legt hem breed op'), mis:()=>({t:'Je breedtepass wordt nog net onderschept.', d:-.3})},
-    {l:'Panna door de benen', st:'drib', b:70, ok:()=>goal('Panna door de benen van de keeper en binnen! Dit gaat de hele wereld rond.', 1.9), mis:()=>({t:'De keeper sluit ' + team.zijn + ' benen. Je bent de bal kwijt.', d:-.5})},
-    {get l(){ return `Wachten tot ${team.hij} gaat liggen`; }, st:'kalm', b:58, ok:()=>goal('IJskoud. Je wacht tot de keeper gaat liggen en tikt hem erover.', 1.4), mis:()=>({t:'Je wacht te lang. Een verdediger haalt je nog in.', d:-.4})}]},
+    {l:'Panna door de benen', st:'drib', schot:true, b:70, ok:()=>goal('Panna door de benen van de keeper en binnen! Dit gaat de hele wereld rond.', 1.9), mis:()=>({t:'De keeper sluit ' + team.zijn + ' benen. Je bent de bal kwijt.', d:-.5})},
+    {get l(){ return `Wachten tot ${team.hij} gaat liggen`; }, st:'kalm', schot:true, b:58, ok:()=>goal('IJskoud. Je wacht tot de keeper gaat liggen en tikt hem erover.', 1.4), mis:()=>({t:'Je wacht te lang. Een verdediger haalt je nog in.', d:-.4})}]},
   counter:{teksten:['Je verovert de bal op eigen helft. De tegenstander staat helemaal open: er ligt een counter klaar.','Hun corner wordt weggekopt en de bal komt bij jou. Drie tegen twee!'], opts:[
     {l:'Lange bal op de spits', st:'pas', b:62, ok:()=>assistKans(.6, 'Je lange bal valt precies voor de voeten van'), mis:()=>({t:'Je lange bal rolt over de achterlijn.', d:-.3})},
     {l:'Zelf oprukken', st:'cond', b:55, ok:()=>({t:'Je sprint met de bal over het hele veld!', d:.3, next:'rand'}), mis:()=>({t:'Je wordt ingehaald en de bal is weg.', d:-.2})},
@@ -71,7 +72,7 @@ export const MOMENTS = {
     {l:'Hard door het midden', st:'afw', b:48, ok:()=>goal('Keihard door het midden. De keeper lag al.', 1.0), mis:()=>({t:'De keeper blijft staan en vangt hem.', d:-.7})},
     {l:'Panenka', st:'afw', b:60, ok:()=>goal('Een panenka! Brutaal en perfect. Dit wordt een meme.', 1.8), mis:()=>({t:'Je panenka is te zacht en de keeper vangt hem lachend. Dit wordt ook een meme...', d:-1.0})},
     {l:'Hoog in de kruising', st:'afw', b:56, ok:()=>goal('Onhoudbaar in de kruising!', 1.2), mis:()=>({t:'Te hoog. De bal vliegt over de lat.', d:-.7})},
-    {l:'Aanloop met stopje', st:'kalm', b:55, ok:()=>goal('Je stopt even in je aanloop, de keeper valt al. Binnen!', 1.2), mis:()=>({t:'De keeper trapt er niet in en pakt hem.', d:-.8})}]},
+    {l:'Aanloop met stopje', st:'kalm', schot:true, b:55, ok:()=>goal('Je stopt even in je aanloop, de keeper valt al. Binnen!', 1.2), mis:()=>({t:'De keeper trapt er niet in en pakt hem.', d:-.8})}]},
   verdedigen:{teksten:['Hun snelle buitenspeler komt met snelheid op je af.','Hun spits krijgt de bal in de rug en draait richting jullie doel.'], opts:[
     {l:'Sliding', st:'verd', b:58, kaart:'geel', ok:()=>({t:'Een schone sliding. Bal gewonnen!', d:.6}),
       mis:()=>{ const r = tegenKans(.5, 'Je glijdt eroverheen. ' + team.Hij + ' is voorbij en scoort.', 'Je glijdt eroverheen, maar de keeper redt.', -.8, -.3); r.geel = rnd() < .45; return r; }},
@@ -204,8 +205,8 @@ MOMENTS.vriendKeeperTegen = {
   opts:[
     {l:'Hard schieten', st:'afw', b:58, toon:'bal', ok:()=>({...goal(`Keihard, in de hoek. ${vn()} kan er niets aan doen en schudt lachend ${vr.zijn} hoofd.`, 1.3), vriend:0}), mis:()=>({t:`${vn()} redt! En ${vr.hij} laat het je nooit vergeten.`, d:-.3, vriend:1})},
     {get l(){ return `Stiften over ${vr.hem} heen`; }, st:'afw', b:68, toon:'bal', ok:()=>({...goal(`Een stift over ${vn()} heen. ${vr.Hij} kijkt de bal na en lacht: "Dat deed je vroeger ook al."`, 1.6), vriend:0}), mis:()=>({t:`${vn()} blijft staan en vangt hem. "Die ken ik al tien jaar, maatje."`, d:-.5, vriend:1})},
-    {get l(){ return `Panna door ${vr.zijn} benen`; }, st:'drib', b:72, toon:'fel', ok:()=>({...goal(`PANNA door de benen van ${vn()}, en binnen! Het hele stadion joelt. ${vr.Hij} kijkt je ongelovig aan.`, 1.8), vriend:-2}), mis:()=>({t:`${vn()} zet ${vr.zijn} benen dicht en pakt de bal. "Nice try."`, d:-.5, vriend:-1})},
-    {get l(){ return `${vr.Hem} uitspelen, net als op het pleintje`; }, st:'drib', b:62, toon:'kalm', ok:()=>({...goal(`Een schijnbeweging, ${vn()} gaat liggen, en jij schuift hem in het lege doel. Jullie moeten allebei lachen.`, 1.4), vriend:1}), mis:()=>({t:`${vn()} duikt naar je voeten en pakt de bal. ${vr.Hij} wijst naar je: "Te voorspelbaar."`, d:-.3, vriend:1})}]};
+    {get l(){ return `Panna door ${vr.zijn} benen`; }, st:'drib', schot:true, b:72, toon:'fel', ok:()=>({...goal(`PANNA door de benen van ${vn()}, en binnen! Het hele stadion joelt. ${vr.Hij} kijkt je ongelovig aan.`, 1.8), vriend:-2}), mis:()=>({t:`${vn()} zet ${vr.zijn} benen dicht en pakt de bal. "Nice try."`, d:-.5, vriend:-1})},
+    {get l(){ return `${vr.Hem} uitspelen, net als op het pleintje`; }, st:'drib', schot:true, b:62, toon:'kalm', ok:()=>({...goal(`Een schijnbeweging, ${vn()} gaat liggen, en jij schuift hem in het lege doel. Jullie moeten allebei lachen.`, 1.4), vriend:1}), mis:()=>({t:`${vn()} duikt naar je voeten en pakt de bal. ${vr.Hij} wijst naar je: "Te voorspelbaar."`, d:-.3, vriend:1})}]};
 MOMENTS.vriendVrij = {
   get teksten(){ return [`${vn()} staat helemaal vrij aan de andere kant van de zestien en steekt ${vr.zijn} hand op.`, `Je dribbelt richting de goal. ${vn()} sprint mee in de rug van ${vr.zijn} tegenstander en roept je naam.`, `Een counter! Jij hebt de bal, ${vn()} loopt naast je. Twee tegen één.`]; },
   opts:[
@@ -276,6 +277,12 @@ Object.assign(MOMENTS, {
 export const TOP_EXTRA = {afw:1, pas:.3, drib:.3, verd:0, cond:0, kalm:0};
 export const KALM_KNIK = 64; // tot deze sterkte telt de tegenstander bij kalmte-acties gewoon mee
 export const TOP_VANAF = 82; // vanaf welke sterkte een tegenstander extra lastig is (geleidelijk, geen sprong)
+// Topcompetitie: vanaf een tegenstander van sterkte 62 staan verdedigers en keepers beter, dus scoren (en in mindere mate dribbelen en
+// passen) wordt per punt sterkte extra lastig. En je vorm, moraal en focus helpen daar minder: ook in de flow krijg je weinig cadeau
+export const LIGA_VANAF = 62, LIGA_EXTRA = {afw:.6, drib:.3, pas:.15, verd:0, cond:0, kalm:0};
+// (een 'schot' = elke keuze waarmee je zelf scoort: ook de keeper omspelen, een panna of een stopje bij de penalty)
+export const isSchot = opt => opt.st === 'afw' || !!opt.schot;
+const ligaDemp = (opt, oppS) => isSchot(opt) ? Math.min(.7, Math.max(0, oppS - LIGA_VANAF) / 18) : 0;
 // Focus: hoe hoger, hoe meer er lukt. Vanaf 80 zit je in de flow (extra bonus), onder de 35 gaat het snel mis
 export const FLOW = 80, SLECHTE_FOCUS = 35;
 // In de flow (vanaf 80) gaat het echt beter, en hoe dieper in de flow hoe meer: focus 80 +11, focus 96 +23 procentpunten per actie
@@ -287,11 +294,12 @@ export function focusStaat(f){ return f >= FLOW ? {k:'In de flow', cls:'r-veilig
 // Stamina: hoe vermoeider, hoe vaker het misgaat (onder de 25 ben je echt leeg)
 export const staminaEffect = st => { const e = (st - 60) / 300 - (st < 25 ? .06 : 0); return e < 0 ? e * pers('staminaStraf') : e; };
 // Bij een grote voorsprong zet de tegenstander de bus: nog eens scoren wordt lastiger (−5% per goal boven 2, hooguit −15%)
-const voorsprongRem = (opt, M) => opt.st === 'afw' && M.us - M.them > 2 ? Math.min(.15, (M.us - M.them - 2) * .05) : 0;
+const voorsprongRem = (opt, M) => isSchot(opt) && M.us - M.them > 2 ? Math.min(.15, (M.us - M.them - 2) * .05) : 0;
 // Afwerken: elke goal die je deze wedstrijd al maakte maakt het volgende schot lastiger (ze dekken je extra, de keeper is gewaarschuwd),
 // elke keeper redt er wel eens een, en ook de beste spits mist: een schot slaagt hooguit in AFW.max van de gevallen
 export const AFW = {perGoal:.08, maxRem:.24, keeper:.04, max:.78};
-export const afwerkRem = (opt, M) => opt.st === 'afw' ? AFW.keeper + Math.min(AFW.maxRem, (M.goals || 0) * AFW.perGoal) : 0;
+export const afwerkRem = (opt, M) => isSchot(opt) ? AFW.keeper + Math.min(AFW.maxRem, (M.goals || 0) * AFW.perGoal) : 0;
+const vormBonus = (x, demp) => x > 0 ? x * (1 - demp) : x; // (alleen het positieve deel wordt gedempt: slecht in vorm blijft slecht)
 export function kans(opt){
   const sp = S.sp, M = S.M;
   const oppS = M.oppS ?? CLUBS[M.opp].s;
@@ -300,8 +308,11 @@ export function kans(opt){
   const top = Math.max(0, oppS - TOP_VANAF);
   // Kalmte (rustig blijven, niet reageren) wordt tegen een betere ploeg maar half zo veel lastiger: kalmte groeit niet mee met je klasse
   const tegen = opt.st === 'kalm' && oppS > KALM_KNIK ? (KALM_KNIK - 48) + (oppS - KALM_KNIK) * .5 : oppS - 48;
-  const moeilijk = opt.b + tegen + top * (TOP_EXTRA[opt.st] || 0) + (M.pending && M.pending.zeker ? 12 : 0); // (keeper: een schot dat anders zeker binnen was, is lastig te redden)
-  return clamp(.5 + (M.pending && M.pending.rivaal ? M.rivaalBonus || 0 : 0) + (statWaarde(opt.st) - moeilijk) / 45 + sp.vorm * .03 + staminaEffect(stamina(M)) + (sp.moraal - 50) / 500 + focusEffect(sp.focus ?? 65) + (opt.st === 'pas' && telt(M) ? (chemie() - 50) / 600 : 0) + (sp.items.analist ? .02 : 0) + tactiekKans(opt.st) + persKans(opt.st, M.pending && M.pending.type) + lichaamKans(opt, M.pending && M.pending.type) + karakterKans(opt) + (M.revanche || 0) - voorsprongRem(opt, M) - afwerkRem(opt, M), .05, opt.st === 'afw' ? AFW.max : .9); // (ook een wereldspeler mist soms: hooguit 90%, een schot hooguit AFW.max)
+  const liga = Math.max(0, oppS - LIGA_VANAF);
+  // het weer (weer.js): regen en sneeuw maken dribbelen, passen en keepen lastiger
+  const we = weerEffect(), weer = (isSchot(opt) ? we.moeilijk.afw : we.moeilijk[opt.st]) || 0, weerKeeper = M.pending && MOMENTS[M.pending.type] && MOMENTS[M.pending.type].keeper ? we.keeper : 0;
+  const moeilijk = weer + weerKeeper + opt.b + tegen + top * (TOP_EXTRA[opt.st] || 0) + liga * (isSchot(opt) ? LIGA_EXTRA.afw : LIGA_EXTRA[opt.st] || 0) + (M.pending && M.pending.zeker ? 12 : 0); // (keeper: een schot dat anders zeker binnen was, is lastig te redden)
+  return clamp(.5 + (M.pending && M.pending.rivaal ? M.rivaalBonus || 0 : 0) + (statWaarde(opt.st) - moeilijk) / 45 + vormBonus(sp.vorm * .03 + (sp.moraal - 50) / 500 + focusEffect(sp.focus ?? 65), ligaDemp(opt, oppS)) + staminaEffect(stamina(M)) + (opt.st === 'pas' && telt(M) ? (chemie() - 50) / 600 : 0) + (sp.items.analist ? .02 : 0) + tactiekKans(opt.st) + persKans(opt.st, M.pending && M.pending.type) + lichaamKans(opt, M.pending && M.pending.type) + karakterKans(opt) + (M.revanche || 0) - voorsprongRem(opt, M) - afwerkRem(opt, M), .05, isSchot(opt) ? AFW.max : .9); // (ook een wereldspeler mist soms: hooguit 90%, een schot hooguit AFW.max)
 }
 export function risico(p){ return p > .7 ? ['Veilig','r-veilig'] : p >= .45 ? ['Gemiddeld','r-gem'] : ['Riskant','r-riskant']; }
 export const KAART_MOMENTEN = ['tackle', 'opstootje', 'provocatie', 'verdedigen'];

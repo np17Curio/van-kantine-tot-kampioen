@@ -1,8 +1,10 @@
+import { wedstrijdWeer } from '../game/wedstrijd/weer.js';
 import { S, bewaar } from '../core/state.js';
 import { knop } from '../core/ui.js';
 import { rnd } from '../core/utils.js';
 import { vertaal } from '../core/taal.js';
-import { rugnummer } from '../game/team/rugnummers.js';
+import { rugnummer, rugTeam } from '../game/team/rugnummers.js';
+import { selectie } from '../game/competitie/spelers.js';
 import { clubTenue, landTenue, wedstrijdTenues } from '../data/tenues.js';
 import { isAanvoerder } from '../game/team/aanvoerder.js';
 import { rivaalNaam } from '../game/speler/rivaal.js';
@@ -748,7 +750,7 @@ export function pitchCanvas(el){
 }
 // Jouw keuzemoment: in 2D één plaatje, in 3D staan de spelers rustig te ademen tot je kiest
 export function pitchStatisch(el, type){
-  const cv = pitchCanvas(el), sc = pitchScene(type), T = {ents:sc.ents, bal:sc.bal, cam:sc.cam, zoom:sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(), rivaal:rivaalInBeeld(sc.ents)}; T.vriend = vriendInBeeld(sc.ents, T.rivaal && T.rivaal.id);
+  const cv = pitchCanvas(el), sc = pitchScene(type), T = {ents:sc.ents, bal:sc.bal, cam:sc.cam, zoom:sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(), rivaal:rivaalInBeeld(sc.ents), weer:wedstrijdWeer()}; T.vriend = vriendInBeeld(sc.ents, T.rivaal && T.rivaal.id);
   if (!cv._3d) return tekenVeld(cv, T);
   const id = (PITCH = {stop:false, klaar:() => {}}), gen = GEN; let vorige = 0;
   const frame = nu => {
@@ -779,7 +781,13 @@ export function vriendInBeeld(ents, bezet){
   const id = keeper ? (mee ? 'k' : 'K') : (mee ? ['A', 'B', 'C'] : ['X', 'Y', 'Z']).find(k => k !== bezet && ents[k] && ents[k].rol === rol);
   return id && ents[id] ? {id, naam:vriendNaam(), mee} : null;
 }
-export function ploegen(){ const sp = S && S.sp; if (!sp) return {}; if (!sp.uitSleutel) sp.uitSleutel = Math.random().toString(36).slice(2, 10); return {wij:sp.club, zij:S.M ? S.M.opp : null, jij:sp.uitSleutel, jijUit:sp.uiterlijk || null, tenues:tenuesVanWedstrijd(), band:!S.trainer && !sp.clubloos && isAanvoerder() && !(S.M && (S.M.inter || S.M.selectie))}; }
+export function ploegen(){ const sp = S && S.sp; if (!sp) return {}; if (!sp.uitSleutel) sp.uitSleutel = Math.random().toString(36).slice(2, 10); return {wij:sp.club, zij:S.M ? S.M.opp : null, jij:sp.uitSleutel, jijUit:sp.uiterlijk || null, tenues:tenuesVanWedstrijd(), band:!S.trainer && !sp.clubloos && isAanvoerder() && !(S.M && (S.M.inter || S.M.selectie)),
+  jijNaam:sp.naam, rugWij:opstelling(sp.club, true), rugZij:S.M && !S.M.inter && !S.M.selectie ? opstelling(S.M.opp, false) : null}; }
+// De basisspelers van een club met naam en rugnummer (voor de rug van de shirts in het 3D-veld). Bij jouw club zonder jou zelf
+function opstelling(id, eigen){
+  if (id == null) return null;
+  try { rugTeam(id); return selectie(id).filter(x => x.basis && !(eigen && x.jij)).map(x => ({n:x.n, nr:x.nr, pos:x.pos})); } catch (e){ return null; }
+}
 // De tenues van deze wedstrijd: landen bij een interland, anders de clubs (bij een kleurconflict speelt de uitploeg in het uittenue)
 export function tenuesVanWedstrijd(){
   const M = S && S.M, sp = S && S.sp; if (!M || !sp) return null;
@@ -796,7 +804,7 @@ export function pitchSpeel(el, a, klaar, opt = {}){
   const cv = pitchCanvas(el), {sc, st} = animScript(a), snel = (instel().anim === 'snel' ? .5 : 1) * (opt.herhaling ? HERHALING_TRAAG : 1) * ((typeof window !== 'undefined' && window.__pitchTraag) || 1);
   const T = {geenJuichJ:!!a.dansNa, bord:a.soort === 'wissel' ? {uit:a.uit ?? null, in:a.in ?? null} : null, ents:sc.ents, bal:{...sc.bal}, cam:sc.cam, zoom:opt.herhaling && sc.ents.J ? .55 : sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(), rivaal:rivaalInBeeld(sc.ents),
     onder:opt.herhaling ? `⟲ HERHALING · ${a.min ?? ''}' · ${S.sp.naam}` : a.onder || (a.soort === 'shootout' ? 'Strafschoppen' : null)};
-  T.vriend = vriendInBeeld(sc.ents, T.rivaal && T.rivaal.id); T.herhaling = !!opt.herhaling;
+  T.vriend = vriendInBeeld(sc.ents, T.rivaal && T.rivaal.id); T.herhaling = !!opt.herhaling; T.snel = snel; T.weer = wedstrijdWeer(); // (het weer: game/wedstrijd/weer.js) // (snel: de keepersduik in veld3d duurt even lang als de stap)
   let i = -1, t0 = 0, van = null, fx = null, fxT = 0, eind = 0, aanzet = 0;
   const id = (PITCH = {stop:false, klaar}), gen = GEN;
   const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
