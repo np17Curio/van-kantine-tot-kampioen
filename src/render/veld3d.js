@@ -508,7 +508,8 @@ export function teken3D(T, nu){
   // T.cam is in pitch.js al afgevlakt; hier alleen nog een klein beetje, en een stukje vooruit kijken naar waar de bal heen gaat
   const vooruit = J || R.vorigeBalX === undefined || !dt ? 0 : Math.max(-6, Math.min(6, (bx - R.vorigeBalX) / dt * .25)); R.vorigeBalX = bx;
   R.camX = R.camX === null ? doelX : R.camX + (doelX + vooruit - R.camX) * Math.min(1, dt * (J ? 3 : 7));
-  const kijkDoel = J ? wz(J.y) : 2;
+  // kijkY (pitch.js): speel je op de flank, dan kijkt de camera naar jouw kant en schuift hij half mee met de bal (een voorzet naar de zestien)
+  const kijkDoel = J ? wz(J.y) : T.kijkY != null ? Math.max(-20, Math.min(20, wz(T.kijkY) * .55 + bz * .45)) : 2;
   R.kijkZ = R.kijkZ === undefined || R.kijkZ === null || !dt ? kijkDoel : R.kijkZ + (kijkDoel - R.kijkZ) * Math.min(1, dt * 3);
   R.zoom = R.zoom === undefined || !dt ? zoom : R.zoom + (zoom - R.zoom) * Math.min(1, dt * 3);
   R.camera.position.set(R.camX, 14 * R.zoom, R.kijkZ + 40 * R.zoom); R.camera.lookAt(R.camX, 0, R.kijkZ);

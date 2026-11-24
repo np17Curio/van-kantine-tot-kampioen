@@ -53,21 +53,31 @@ function fansVak(){
 }
 // de spelersbus van opzij (neus naar rechts), veel groter dan een speler (BS keer de basismaat), in de clubkleuren met de naam erop
 const BS = 1.45;
-function busSprite(naam, deurOpen){
+// niveau (hoe groter de club, hoe mooier): 1 een oude witte bus met een streep in de clubkleur en wat roestplekjes, 2 een gewone
+// touringcar in de clubkleuren, 3 een moderne bus met getinte ramen en een sierlijn, 4 een luxe bus: onderkant zwart, donkere
+// ramen, gouden lijnen en de naam groot in goud
+function busSprite(naam, deurOpen, niveau = 2){
   const r = v => Math.round(v * BS);
   return sprite(r(200), r(74), c => {
     const R = (x, y, w, h, k) => c.rect(r(x), r(y), Math.max(1, r(w)), Math.max(1, r(h)), k);
-    R(2, 4, 190, 58, '1'); R(2, 56, 190, 6, '2'); c.poly([r(182), r(4), r(196), r(14), r(196), r(62), r(182), r(62)], '1');
-    R(2, 4, 190, 3, '2');
-    R(6, 11, 140, 20, 'v'); for (let x = 6; x < 146; x += 18){ c.rect(r(x), r(11), 1, r(20), 'V'); c.rect(r(x) + 2, r(12), r(6), 1, 'W'); } // (de ramen stoppen voor de deur)
-    c.poly([r(170), r(11), r(186), r(11), r(195), r(22), r(195), r(34), r(170), r(34)], 'v'); c.line(r(174), r(13), r(184), r(22), 'W');
-    R(2, 36, 190, 4, '3'); tekst(c, r(90), r(42), naam.slice(0, 22), '3', {align:'c', scale:2});
-    R(2, 53, 190, 2, '3');
+    const romp = niveau === 1 ? 'W' : '1', raam = niveau >= 3 ? 'C' : 'v', glans = niveau >= 3 ? 'c' : 'W', sier = niveau === 4 ? 'o' : '3';
+    R(2, 4, 190, 58, romp); R(2, 56, 190, 6, niveau === 1 ? 'G' : '2'); c.poly([r(182), r(4), r(196), r(14), r(196), r(62), r(182), r(62)], romp);
+    if (niveau === 4){ R(2, 40, 190, 22, 'K'); c.poly([r(182), r(40), r(196), r(40), r(196), r(62), r(182), r(62)], 'K'); }
+    R(2, 4, 190, 3, niveau === 1 ? 'G' : '2');
+    R(6, 11, 140, 20, raam); for (let x = 6; x < 146; x += 18){ c.rect(r(x), r(11), 1, r(20), niveau >= 3 ? 'K' : 'V'); if (niveau !== 1) c.rect(r(x) + 2, r(12), r(6), 1, glans); }
+    c.poly([r(170), r(11), r(186), r(11), r(195), r(22), r(195), r(34), r(170), r(34)], raam); c.line(r(174), r(13), r(184), r(22), glans);
+    if (niveau === 1){ R(2, 36, 190, 4, '1'); tekst(c, r(90), r(42), naam.slice(0, 22), '1', {align:'c'}); for (const [x, y] of [[20, 50], [60, 47], [110, 52], [140, 45]]) R(x, y, 2, 2, 'T'); }
+    else {
+      R(2, 36, 190, 4, sier); tekst(c, r(90), r(42), naam.slice(0, 22), sier, {align:'c', scale:2});
+      R(2, 53, 190, 2, sier);
+      if (niveau >= 3) c.poly([r(2), r(52), r(60), r(36), r(70), r(36), r(12), r(52)], sier);
+      if (niveau === 4){ R(2, 33, 190, 1, 'o'); R(180, 4, 12, 3, 'o'); }
+    }
     // de deur: over de hele hoogte (groter dan een speler), net achter de voorruit, met twee glazen panelen en een opstapje
     R(148, 9, 22, 54, 'K');                                                                    // de deuropening met een zwarte rand
     if (deurOpen){ R(150, 11, 18, 51, 'c'); R(150, 11, 18, 3, 'C'); R(146, 11, 3, 51, 'W'); R(149, 58, 20, 3, 'G'); R(151, 61, 16, 2, 'W'); } // open: het donkere interieur, de deur opzij geklapt
     else { R(150, 11, 18, 51, '2'); c.rect(r(159), r(11), 1, r(51), 'K'); R(151, 13, 7, 26, 'v'); R(160, 13, 7, 26, 'v'); R(151, 42, 7, 18, '2'); R(160, 42, 7, 18, '2'); R(152, 14, 2, 10, 'W'); }
-    R(192, 46, 4, 5, 'l'); R(2, 46, 3, 6, 'r');
+    R(192, 46, 4, 5, niveau >= 3 ? 'w' : 'l'); R(2, 46, 3, 6, 'r');
     for (const x of [34, 128]){ c.circ(r(x), r(64), r(9), 'z'); c.circ(r(x), r(64), r(4), 'W'); c.circ(r(x), r(64), 1, 'z'); }
   }).outline(K('k'));
 }
@@ -75,13 +85,35 @@ function busSprite(naam, deurOpen){
 const TAS = sprite(15, 11, c => { c.line(4, 0, 4, 3, 'k'); c.line(10, 0, 10, 3, 'k'); c.hline(4, 0, 7, 'k');
   c.rect(0, 3, 15, 8, '1'); c.rect(0, 9, 15, 2, '2'); c.rect(0, 5, 15, 1, '3'); c.rect(6, 6, 3, 2, '3'); }).outline(K('k'));
 // ---------- binnen: de kleedkamer ----------
-function kleedkamer(){
+// niveau: 1 een kale amateurkleedkamer (beton, spijkers als haken, een peertje aan een draad, een scheur in de muur), 2 gewone tegels,
+// 3 een eigen kluisje in de clubkleur per speler en een tv aan de muur, 4 luxe: donkerhouten kluisjes met gouden naamplaatjes, het
+// clublogo groot op de muur, een ledstrip in de clubkleur en tapijt in de clubkleur
+function kleedkamer(niveau = 2){
   return sprite(BW, BH, c => {
+    if (niveau === 1){
+      c.rect(0, 0, BW, BH, 'g'); for (const [x, y] of [[20, 20], [90, 50], [160, 30], [60, 70]]) c.rect(x, y, 6, 3, 'G');
+      c.line(140, 6, 146, 20, 'G'); c.line(146, 20, 143, 34, 'G');
+      c.vline(110, 0, 8, 'k'); c.circ(110, 10, 3, 'l'); c.px(109, 9, 'w');
+      c.rect(0, 86, BW, 4, 't'); for (let x = 6; x < BW; x += 52) c.rect(x, 90, 3, 12, 'T');
+      c.rect(0, 102, BW, BH - 102, 'S'); c.hline(0, 102, BW, 'T');
+      for (const x of KLEED_X) c.rect(x, 30, 1, 3, 'k');
+      return;
+    }
+    if (niveau === 4){
+      c.rect(0, 0, BW, BH, 'C'); c.hline(0, 27, BW, '1'); c.hline(0, 28, BW, '3');
+      c.circ(BW / 2, 13, 11, '1'); c.circ(BW / 2, 13, 8, '3'); c.circ(BW / 2, 13, 5, '1'); c.rect(BW / 2 - 1, 6, 3, 14, '3');
+      for (const x of KLEED_X){ c.rect(x - 15, 31, 30, 53, 'T'); c.rect(x - 14, 32, 28, 51, 't'); c.vline(x, 32, 51, 'T'); c.rect(x - 6, 33, 12, 3, 'o'); }
+      c.rect(0, 84, BW, 6, 'T'); c.rect(0, 90, BW, 4, 'T'); for (let x = 4; x < BW; x += 36) c.rect(x, 90, 4, 12, 'T');
+      c.rect(0, 102, BW, BH - 102, '2'); c.hline(0, 110, BW, '1');
+      return;
+    }
     c.rect(0, 0, BW, BH, 'b'); c.rect(0, 0, BW, 6, 'B'); for (let y = 10; y < 84; y += 8) c.hline(0, y, BW, 'B');
+    if (niveau === 3) for (const x of KLEED_X){ c.rect(x - 15, 22, 30, 62, '2'); c.rect(x - 14, 23, 28, 60, '1'); c.vline(x, 23, 60, '2'); for (let y = 26; y < 34; y += 2) c.hline(x - 10, y, 6, '2'); }
     c.rect(0, 84, BW, 6, 't'); c.rect(0, 90, BW, 4, 'T');
     for (let x = 4; x < BW; x += 36) c.rect(x, 90, 4, 12, 'T');
     c.rect(0, 102, BW, BH - 102, 'g'); for (let x = 0; x < BW; x += 10) c.vline(x, 102, BH - 102, 'G');
-    c.rect(196, 14, 20, 16, 'W'); c.rect(198, 16, 16, 12, 'w'); c.line(200, 20, 210, 24, 'r'); c.px(204, 18, 'K'); c.px(208, 25, 'K');
+    if (niveau === 3){ c.rect(92, 4, 36, 15, 'K'); c.rect(94, 6, 32, 11, 'V'); c.line(98, 14, 108, 9, 'w'); c.line(108, 9, 118, 13, 'w'); }
+    else { c.rect(196, 14, 20, 16, 'W'); c.rect(198, 16, 16, 12, 'w'); c.line(200, 20, 210, 24, 'r'); c.px(204, 18, 'K'); c.px(208, 25, 'K'); }
     for (const x of KLEED_X) c.rect(x - 1, 30, 3, 3, 'Y');
   });
 }
@@ -122,8 +154,9 @@ export function maakBus(info = {}){
   const [l1, l2] = LUCHT[info.weer] || LUCHT.geen;
   const pal = {...STIJL, 1:t.shirt, 2:donker(t.shirt, .3), 3:t.accent || '#ffffff', L:l1, 4:l2, 5:'#f1c7a5', 6:'#c98d62', 7:'#7a4a2e', n:'#2a1f1c', N:'#8a5a2b'};
   const club = zonderAccent(info.club || 'FC'), tegen = zonderAccent(info.tegen || '');
-  const achterBuiten = inkleuren(buiten(club), pal), fans = inkleuren(fansVak(), pal), binnenCv = inkleuren(kleedkamer(), pal);
-  const bus = [inkleuren(busSprite(club, false), pal), inkleuren(busSprite(club, true), pal)];
+  const niveau = Math.max(1, Math.min(4, info.niveau || 2)); // (hoe groter de club, hoe mooier de bus en de kleedkamer)
+  const achterBuiten = inkleuren(buiten(club), pal), fans = inkleuren(fansVak(), pal), binnenCv = inkleuren(kleedkamer(niveau), pal);
+  const bus = [inkleuren(busSprite(club, false, niveau), pal), inkleuren(busSprite(club, true, niveau), pal)];
   const pijl = inkleuren(PIJL, STIJL), tas = inkleuren(TAS, pal);
   // de spelers: in het trainingspak van de club, en later in het tenue (jij met je eigen naam en nummer)
   const trainingT = {...t, broek:'#262b36', sok:'#262b36'};

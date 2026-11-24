@@ -1,3 +1,4 @@
+import { mijnPlek, plekGesprekNodig, plekOpnieuwMag, plekPastTekst, plekTekst, plekkenVoor, vraagPlek } from '../../data/plekken.js';
 import { BROEK_KAST, DAS_KAST, KLEUR_KAST, PERS_STIJLEN, UIT_STIJLEN, kies as kiesKleding, kledingWaarde } from '../../game/prive/kleding.js';
 import { BEKER_ALT } from '../../data/landen.js';
 import { S, club, mod, ovr, tmp, attr } from '../../core/state.js';
@@ -69,7 +70,7 @@ export function vWeek(){
   if (tmp.weekSleutel !== sleutel){ tmp.weekSleutel = sleutel; tmp.weekTab = 'week'; }
   const tab = WEEK_TABS.some(([k]) => k === tmp.weekTab) ? tmp.weekTab : 'week';
   const badges = {
-    week: !w.gedaan || (w.school && !w.school.klaar) || S.sp.geboorte ? '!' : '',
+    week: !w.gedaan || (w.school && !w.school.klaar) || S.sp.geboorte || plekGesprekNodig() ? '!' : '',
     team: teamOpen() || '',
     prive: w.theorie && !w.theorie.klaar ? '!' : '',
   };
@@ -224,7 +225,7 @@ function vDezeWeek(){
     ${S.ronde === 0 ? `<h2>${eersteKeer ? `Welkom bij ${esc(club().n)}` : 'Nieuw seizoen'}</h2>` : ''}`;
   if (eersteKeer) html += `<p>${esc(welkomTekst(sp))}</p>`;
   else if (S.ronde === 0) html += `<p>Een nieuw seizoen bij ${esc(club().n)} in de ${DIVS[club().t]}. Alles begint weer bij nul.</p>`;
-  html += `</div>` + (fx ? vVooruitblik(fx, opp, vo) : vSpeelvrij());
+  html += `</div>` + vPlekGesprek() + (fx ? vVooruitblik(fx, opp, vo) : vSpeelvrij());
   // interviews en een weerzien: niet verplicht, dus ingeklapt (met één zin erboven)
   const iv = (kop, zin, inhoud, sl) => inhoud ? blok({label:kop, inhoud:`<p class="muted klein-tekst">${zin}</p>`, meer:inhoud, meerLabel:'Lees en reageer', sleutel:sl + '-' + S.jaar + '-' + S.ronde}) : '';
   const ivRiv = vRivaalInterview(fx);
@@ -263,8 +264,30 @@ function vKrantBlok(items){
   return blok({label:`In de krant · ${items.length}`, sleutel:'kranten-' + S.jaar + '-' + S.ronde, meerLabel:'Lees de kranten', inhoud:`<ul class="koppen">${koppen}</ul>${items.length > 3 ? `<p class="muted klein-tekst">en nog ${items.length - 3}</p>` : ''}`, meer:vKrant(lijst, '')});
 }
 
+// Je plek in het team (data/plekken.js). Bij een nieuwe club geef je aan waar je wilt spelen en de trainer beslist
+function plekKnoppen(){
+  const sp = S.sp;
+  return `<div class="keuzes">${plekkenVoor(sp.pos).map(([id, n, u]) => keuzeKnop(`${id} · ${esc(n)}`, `${esc(u)} · ${plekPastTekst(id)}`, () => vraagPlek(id), `data-blijf aria-pressed="${id === sp.plekVoorkeur}"`)).join('')}</div>`;
+}
+function vPlekGesprek(){
+  const u = S.week && S.week.plekUitslag;
+  if (u && !plekGesprekNodig()) return `<section class="paneel"><span class="label">Gesprek met de trainer · jouw plek</span><p>${esc(u.tekst)}</p></section>`;
+  if (!plekGesprekNodig()) return '';
+  return `<section class="paneel"><span class="label">Nieuwe club · gesprek met de trainer</span>
+    <p>De trainer van ${esc(club().n)} wil weten waar je het liefst speelt. Hij kijkt of het past bij je kwaliteiten en bij zijn ploeg, en dan beslist hij.</p>
+    ${plekKnoppen()}<p class="muted klein-tekst">Je plek bepaalt wat je in een wedstrijd doet: een verdedigende middenvelder pakt vaker ballen af, een aanvallende middenvelder krijgt meer kansen en geeft meer assists. Kies je niets, dan vraagt je zaakwaarnemer het voor je.</p></section>`;
+}
+function vPlek(){
+  const sp = S.sp; if (sp.pos === 'KEEPER' || sp.o23 || sp.clubloos) return '';
+  if (plekGesprekNodig()) return vPlekGesprek();
+  const g = sp.plekGesprek, opnieuw = plekOpnieuwMag();
+  const zin = g && g.ok ? 'De trainer gaf je de plek die je wilde.' : `Je wilde graag ${esc(sp.plekVoorkeur || '')} spelen, maar de trainer koos voor ${esc(mijnPlek())}.`;
+  return `<section class="paneel"><span class="label">Jouw plek · ${esc(plekTekst())}</span><p class="muted">${zin}</p>
+    ${opnieuw ? `<p>Een nieuw seizoen: je mag de trainer nog een keer vragen of je ergens anders mag spelen.</p>${plekKnoppen()}`
+      : `<p class="muted klein-tekst">${g && !g.ok && !g.opnieuw ? 'Volgend seizoen mag je het de trainer nog een keer vragen.' : 'Bij een nieuwe club kun je weer aangeven waar je wilt spelen.'}</p>`}</section>`;
+}
 function vTeamTab(){
-  const h = vSelectie() + vTactiek() + vAanvoerder() + vKleedkamer() + vFans();
+  const h = vPlek() + vSelectie() + vTactiek() + vAanvoerder() + vKleedkamer() + vFans();
   return h || `<p class="muted">Bij de O23 heb je geen eigen kleedkamer. Bewijs jezelf eerst.</p>`;
 }
 function vCarriereTab(){

@@ -1,3 +1,4 @@
+import { mijnPlek } from '../../data/plekken.js';
 import { taal } from '../../core/taal.js';
 import { muziekAan } from '../../core/muziek.js';
 import { S, club, ovr, seizoenLabel } from '../../core/state.js';
@@ -23,7 +24,7 @@ export function vHud(inSpel){
   return `<div class="hudspeler">
       <div class="hudovr" title="Klasse (overall)">${ovr(sp)}</div>
       <div class="hudnaam"><b>${sp.o23 || sp.clubloos ? '' : `<span class="muted">#${rugnummer()}</span> `}${esc(sp.naam)}</b>
-        <span class="niv">${POS[sp.pos].n} · ${sp.leeftijd} jr · ${sp.clubloos ? 'zonder club' : esc(c.n)}${sp.o23 ? ' O23' : ''}${sp.huur ? ` · gehuurd van ${esc(huurOuder().n)}` : ''}</span></div>
+        <span class="niv">${POS[sp.pos].n}${sp.pos === 'KEEPER' ? '' : ` (${mijnPlek()})`} · ${sp.leeftijd} jr · ${sp.clubloos ? 'zonder club' : esc(c.n)}${sp.o23 ? ' O23' : ''}${sp.huur ? ` · gehuurd van ${esc(huurOuder().n)}` : ''}</span></div>
     </div>
     <div class="hudmeters">${meter('FIT', 'Fitheid', sp.fit)}${meter('FOC', 'Focus', sp.focus ?? 65, true)}${meter('MOR', 'Moraal', sp.moraal)}</div>
     <div class="hudinfo">

@@ -67,3 +67,7 @@
 .opstelling li .nr{color:var(--mist);font-family:var(--f-mono);text-align:right}
 .opstelling li.mij{background:var(--hover);color:var(--lamp)}
 .opstelling .wissels{opacity:.85}
+
+/* Tijdens een wedstrijd: een smallere zijbalk, zodat het veld groter in beeld komt */
+@media (min-width:1280px){body[data-fase="match"] .grid{grid-template-columns:minmax(0,1fr) clamp(250px,18vw,320px)}}
+@media (max-width:1279px){body[data-fase="match"] .grid{grid-template-columns:minmax(0,1fr)}} /* (op een kleiner scherm: de zijbalk onder het veld) */

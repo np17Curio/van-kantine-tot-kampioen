@@ -1,3 +1,4 @@
+import { mijnPlek } from '../../data/plekken.js';
 import { S, club, gemCijfer, ovr, salarisLabel, seizoenLabel, sterren, tmp, waarde, attr } from '../../core/state.js';
 import { knop, tabBalk } from '../../core/ui.js';
 import { meer } from './sjablonen.js';
@@ -163,7 +164,7 @@ export function vZij(){
   const spelerKaart = () => `<div class="kaart">
       <div>${knop(tmp.stats ? 'Terug naar het spel' : '📊 Mijn carrière', () => { tmp.stats = !tmp.stats; }, 'klein')}</div>
       <div class="speler"><div class="ovr">${ovr(sp)}<small>KLASSE</small></div>
-        <div><div class="naam">${sp.o23 || sp.clubloos ? '' : `<span class="muted">#${rugnummer()}</span> `}${esc(sp.naam)}</div><div class="muted">${POS[sp.pos].n} · ${sp.leeftijd} jaar · ${lengteTxt(lichaam().lengte)} · ${gewichtVan(lichaam().lengte, lichaam().bmi)} kg · ${sp.clubloos ? 'zonder club' : esc(c.n)}${sp.o23 ? ' O23' : ''}${sp.huur ? ` (gehuurd van ${esc(huurOuder().n)})` : ''}</div><div class="label" title="Verwachting van scouts">Talent ${sterren(sp.pot)}</div>${(() => { const M = mijnLeague(); if (!M) return ''; const b = besteLeagues()[0], beter = M.oordeel === 'tegoed' || M.oordeel === 'tehoog'; return `<div class="muted klein-tekst" title="Zie Carrière: Jouw niveau">Niveau: ${OORDEEL[M.oordeel].n.toLowerCase()} ${M.oordeel === 'past' ? 'in' : 'voor'} de ${esc(M.naam)}${beter && b ? ` · beter: ${esc(b.naam)}` : ''}</div>`; })()}</div></div>
+        <div><div class="naam">${sp.o23 || sp.clubloos ? '' : `<span class="muted">#${rugnummer()}</span> `}${esc(sp.naam)}</div><div class="muted">${POS[sp.pos].n}${sp.pos === 'KEEPER' ? '' : ` (${mijnPlek()})`} · ${sp.leeftijd} jaar · ${lengteTxt(lichaam().lengte)} · ${gewichtVan(lichaam().lengte, lichaam().bmi)} kg · ${sp.clubloos ? 'zonder club' : esc(c.n)}${sp.o23 ? ' O23' : ''}${sp.huur ? ` (gehuurd van ${esc(huurOuder().n)})` : ''}</div><div class="label" title="Verwachting van scouts">Talent ${sterren(sp.pot)}</div>${(() => { const M = mijnLeague(); if (!M) return ''; const b = besteLeagues()[0], beter = M.oordeel === 'tegoed' || M.oordeel === 'tehoog'; return `<div class="muted klein-tekst" title="Zie Carrière: Jouw niveau">Niveau: ${OORDEEL[M.oordeel].n.toLowerCase()} ${M.oordeel === 'past' ? 'in' : 'voor'} de ${esc(M.naam)}${beter && b ? ` · beter: ${esc(b.naam)}` : ''}</div>`; })()}</div></div>
       ${vStatus()}
       <div class="balken2">${balk('Fitheid', sp.fit, 'st')}${balk('Moraal', sp.moraal, 'st')}${balk('Focus', sp.focus ?? 65, 'st')}${balk('Vertrouwen', sp.vert, 'st')}</div>
       <p class="seizoenregel"><span class="label">Dit seizoen</span> <b>${S.ss.wed} wed · ${S.ss.g} G · ${S.ss.a} A</b>${gem === null ? '' : ` · gem. <b>${gem.toFixed(1).replace('.', ',')}</b>`}</p>

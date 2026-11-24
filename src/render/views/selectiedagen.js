@@ -1,3 +1,4 @@
+import { mijnPlek as veldPlek } from '../../data/plekken.js';
 import { vriendApart, vriendClubInfo } from '../../game/speler/journey.js';
 import { clubPlek } from '../../game/transfers/buitenland.js';
 import { S, ovr, salarisLabel } from '../../core/state.js';
@@ -31,7 +32,7 @@ export function vSelectie(){
       <p>${n ? `Je cijfers tot nu toe: <b>${Sel.cijfers.map(fmt1).join(' · ')}</b> (gemiddeld ${fmt1(g)}).` : `${esc(V.kort)} Je speelt ${SELECTIE_WED} selectiewedstrijden met andere talenten van jouw niveau. Scouts van alle clubs kijken mee.`}</p>
       <p class="muted">${SEL_UITLEG} Daarna kies je uit de clubs die je willen hebben.</p>
       <div class="ladder"><div><span class="label">≥ ${fmt1(7.5)}</span><b>${esc(DIVS[1])}</b></div><div><span class="label">≥ ${fmt1(6.5)}</span><b>${esc(DIVS[2])}</b></div><div><span class="label">lager</span><b>O23 van een club uit de ${esc(DIVS[2])}</b></div></div>
-      <p class="muted klein-tekst">${POS[sp.pos].n} · ${sp.leeftijd} jaar · klasse ${ovr(sp)} · fitheid ${Math.round(sp.fit)}</p>
+      <p class="muted klein-tekst">${POS[sp.pos].n}${sp.pos === 'KEEPER' ? '' : ` (${veldPlek()})`} · ${sp.leeftijd} jaar · klasse ${ovr(sp)} · fitheid ${Math.round(sp.fit)}</p>
     </div>` + vRanglijst() + knop(`Speel selectiewedstrijd ${n + 1}`, startSelectie);
 }
 export function vSelectieEnd(){

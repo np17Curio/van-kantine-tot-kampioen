@@ -33,7 +33,8 @@ async function speel(M){
     const namen = basis.map(x => x.n); namen.splice(2, 0, '');
     let nr = ''; try { nr = rugnummer(); } catch (e){}
     const w = wedstrijdWeer();
-    const sc = maakBus({uit, maten, namen, naam:sp.naam, nr, tenue:clubTenue(sp.club), club:c ? c.n : '', tegen, soort:finale ? 'finale' : 'derby', weer:w ? w.soort : null});
+    const s = c ? c.s : 60, niveau = s >= 78 ? 4 : s >= 69 ? 3 : s >= 55 ? 2 : 1; // (een topclub: een luxe bus en kleedkamer)
+    const sc = maakBus({niveau, uit, maten, namen, naam:sp.naam, nr, tenue:clubTenue(sp.club), club:c ? c.n : '', tegen, soort:finale ? 'finale' : 'derby', weer:w ? w.soort : null});
     if (laag.weg) return;
     const cv = document.createElement('canvas'); cv.width = sc.W; cv.height = sc.H; cv.className = 'cs-pixel'; cv.setAttribute('aria-hidden', 'true');
     laag.vak.prepend(cv); const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;

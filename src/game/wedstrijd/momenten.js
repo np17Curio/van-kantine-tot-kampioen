@@ -1,3 +1,4 @@
+import { PLEK_AFWERKEN, PLEK_MOMENTEN, mijnPlek } from '../../data/plekken.js';
 import { weerEffect } from './weer.js';
 import { S, mod, statWaarde } from '../../core/state.js';
 import { clamp, pick, rnd, shuffle } from '../../core/utils.js';
@@ -39,6 +40,14 @@ export const MOMENTS = {
     {l:'Breed op de opkomende back', st:'pas', b:46, ok:()=>assistKans(.3, 'Je legt de bal breed op'), mis:()=>({t:'Je pass is te zacht en wordt onderschept.', d:-.3})},
     {l:'Schijnbeweging en krullen', st:'drib', schot:true, b:64, ok:()=>goal('Schijnbeweging naar links, krullen met rechts. In de verre hoek!', 1.5), mis:()=>({t:'De krul draait net naast. Het publiek zucht.', d:-.2})},
     {l:'Hakje', st:'drib', b:70, ok:()=>assistKans(.65, 'Een brutaal hakje voor'), mis:()=>({t:'Je hakje gaat recht in de voeten van de tegenstander. Het publiek fluit.', d:-.5})}]},
+  // Op de flank (vleugelspelers en opkomende backs: data/plekken.js): langs je man, een voorzet, tot de achterlijn, of naar binnen snijden
+  vleugel:{teksten:['Je krijgt de bal op de flank. De back van de tegenstander staat tegenover je.', 'Een lange bal van achteruit landt bij jou langs de zijlijn. Je hebt ruimte.', 'Je staat breed aan de zijlijn en krijgt de bal in de voeten. In de zestien lopen je teamgenoten zich vrij.'], opts:[
+    {l:'Langs je man en voorzetten', st:'drib', b:58, ok:()=>assistKans(.5, 'Je gaat langs de back en draait de bal voor op'), mis:()=>({t:'De back zet zijn lichaam ertussen. Bal kwijt.', d:-.2})},
+    {l:'Direct voorzetten', vast:true, st:'pas', b:52, ok:()=>assistKans(.42, 'Je voorzet krult precies op het hoofd van'), mis:()=>({t:pick(['Je voorzet gaat over iedereen heen.', 'Je voorzet wordt weggekopt.']), d:-.2})},
+    {l:'Tot de achterlijn dribbelen en terugleggen', st:'drib', b:62, ok:()=> rnd() < .2 ? {t:'Je gaat tot de achterlijn en wordt in de zestien neergehaald. Penalty!', d:.3, next:'penalty'} : assistKans(.6, 'Je gaat tot de achterlijn en legt terug op'), mis:()=>({t:'Je dribbelt de bal over de achterlijn. Doelschop.', d:-.2})},
+    {l:'Naar binnen snijden en schieten', st:'drib', schot:true, b:66, ok:()=>goal(pick(['Je snijdt naar binnen en krult hem in de verre hoek!', 'Naar binnen, op je goede been, en raak!']), 1.4), mis:()=>({t:pick(['Je schot vanaf de zijkant gaat naast.', 'De keeper heeft je schot makkelijk.']), d:-.2})},
+    {l:'Eén-twee met je back', st:'pas', b:56, ok:()=>({t:'Een één-twee langs de lijn en je staat ineens aan de rand van de zestien!', d:.3, next:'rand'}), mis:()=>({t:'Je back speelt de bal niet terug. Weg kans.', d:-.2})},
+    {l:'Terug naar het middenveld', st:'pas', b:30, ok:()=>({t:'Je houdt de bal en speelt veilig terug. Balbezit.', d:.05}), mis:()=>({t:'Zelfs je terugspeelbal is onderschept.', d:-.3})}]},
   eenOpEen:{teksten:['Je bent alleen door! Alleen de keeper staat nog tussen jou en de goal.','Je loopt weg bij de laatste man. De keeper komt uit z\'n doel.'], opts:[
     {l:'Hard schieten', vast:true, st:'afw', b:56, ok:()=>goal('Je jaagt hem keihard tegen de touwen!', 1.3), mis:()=>({t:'De keeper redt met een voet.', d:-.3})},
     {l:'Keeper omspelen', st:'drib', schot:true, b:62, ok:()=>goal('Je speelt de keeper uit en schuift hem in het lege doel. Wat een rust!', 1.5), mis:()=>({t:'De keeper duikt op de bal. Kans verkeken.', d:-.3})},
@@ -279,6 +288,7 @@ export const KALM_KNIK = 64; // tot deze sterkte telt de tegenstander bij kalmte
 export const TOP_VANAF = 82; // vanaf welke sterkte een tegenstander extra lastig is (geleidelijk, geen sprong)
 // Topcompetitie: vanaf een tegenstander van sterkte 62 staan verdedigers en keepers beter, dus scoren (en in mindere mate dribbelen en
 // passen) wordt per punt sterkte extra lastig. En je vorm, moraal en focus helpen daar minder: ook in de flow krijg je weinig cadeau
+export const AFWERK_POS = {MID:6, VERD:8}; // (extra moeilijkheid bij een schot, per positie: 6 punten ≈ 13% minder kans)
 export const LIGA_VANAF = 62, LIGA_EXTRA = {afw:.6, drib:.3, pas:.15, verd:0, cond:0, kalm:0};
 // (een 'schot' = elke keuze waarmee je zelf scoort: ook de keeper omspelen, een panna of een stopje bij de penalty)
 export const isSchot = opt => opt.st === 'afw' || !!opt.schot;
@@ -311,7 +321,9 @@ export function kans(opt){
   const liga = Math.max(0, oppS - LIGA_VANAF);
   // het weer (weer.js): regen en sneeuw maken dribbelen, passen en keepen lastiger
   const we = weerEffect(), weer = (isSchot(opt) ? we.moeilijk.afw : we.moeilijk[opt.st]) || 0, weerKeeper = M.pending && MOMENTS[M.pending.type] && MOMENTS[M.pending.type].keeper ? we.keeper : 0;
-  const moeilijk = weer + weerKeeper + opt.b + tegen + top * (TOP_EXTRA[opt.st] || 0) + liga * (isSchot(opt) ? LIGA_EXTRA.afw : LIGA_EXTRA[opt.st] || 0) + (M.pending && M.pending.zeker ? 12 : 0); // (keeper: een schot dat anders zeker binnen was, is lastig te redden)
+  // afwerken is het vak van een spits: een middenvelder (en nog meer een verdediger) scoort minder makkelijk, die geeft eerder de assist
+  const posSchot = isSchot(opt) ? (PLEK_AFWERKEN[mijnPlek()] ?? AFWERK_POS[sp.pos] ?? 0) : 0; // (per plek: data/plekken.js)
+  const moeilijk = posSchot + weer + weerKeeper + opt.b + tegen + top * (TOP_EXTRA[opt.st] || 0) + liga * (isSchot(opt) ? LIGA_EXTRA.afw : LIGA_EXTRA[opt.st] || 0) + (M.pending && M.pending.zeker ? 12 : 0); // (keeper: een schot dat anders zeker binnen was, is lastig te redden)
   return clamp(.5 + (M.pending && M.pending.rivaal ? M.rivaalBonus || 0 : 0) + (statWaarde(opt.st) - moeilijk) / 45 + vormBonus(sp.vorm * .03 + (sp.moraal - 50) / 500 + focusEffect(sp.focus ?? 65), ligaDemp(opt, oppS)) + staminaEffect(stamina(M)) + (opt.st === 'pas' && telt(M) ? (chemie() - 50) / 600 : 0) + (sp.items.analist ? .02 : 0) + tactiekKans(opt.st) + persKans(opt.st, M.pending && M.pending.type) + lichaamKans(opt, M.pending && M.pending.type) + karakterKans(opt) + (M.revanche || 0) - voorsprongRem(opt, M) - afwerkRem(opt, M), .05, isSchot(opt) ? AFW.max : .9); // (ook een wereldspeler mist soms: hooguit 90%, een schot hooguit AFW.max)
 }
 export function risico(p){ return p > .7 ? ['Veilig','r-veilig'] : p >= .45 ? ['Gemiddeld','r-gem'] : ['Riskant','r-riskant']; }
@@ -328,7 +340,8 @@ export const pOpts = p => p.idx.map(i => MOMENTS[p.type].opts[i]);
 export function kiesMomentType(){
   // De speelstijl van je club bepaalt mee wat voor momenten je krijgt
   const basis = MOMENT_POOL[S.sp.pos], pool = {}; let tot = 0;
-  for (const k in basis){ pool[k] = basis[k] * tactiekMoment(k) * persMomentFactor(k) * lichaamMomentFactor(k); tot += pool[k]; }
+  const pm = PLEK_MOMENTEN[mijnPlek()] || {}; // (je plek: een CDM vaker tackles, een CAM vaker kansen: data/plekken.js)
+  for (const k of new Set([...Object.keys(basis), ...Object.keys(pm)])){ pool[k] = (k in basis ? basis[k] * (pm[k] ?? 1) : pm[k]) * tactiekMoment(k) * persMomentFactor(k) * lichaamMomentFactor(k); tot += pool[k]; }
   let r = rnd() * tot; for (const k in pool){ r -= pool[k]; if (r <= 0) return k; }
   return Object.keys(pool)[0];
 }

@@ -38,7 +38,7 @@ export function lichaamEffecten(L = lichaam()){
   const r = refLengte(L);
   return {kop:(L.lengte - r) * .004, snel:(r - L.lengte) * .002 + (22.5 - L.bmi) * .01, duel:(L.bmi - 22.5) * .012, stamina:(L.bmi - 22.5) * .015};
 }
-const KOP = ['kopduel', 'corner', 'verdCorner'], SNEL = ['counter', 'diepteBal', 'eenOpEen'], DUEL = ['tackle', 'verdedigen', 'opstootje'];
+const KOP = ['kopduel', 'corner', 'verdCorner'], SNEL = ['counter', 'diepteBal', 'eenOpEen', 'vleugel'], DUEL = ['tackle', 'verdedigen', 'opstootje'];
 // Plus of min op de slagingskans van een actie (type: het soort moment)
 export function lichaamKans(opt, type){
   const e = lichaamEffecten(), l = opt.l || ''; let d = 0;

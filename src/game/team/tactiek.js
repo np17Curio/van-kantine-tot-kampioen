@@ -7,11 +7,11 @@ import { ck } from '../transfers/buitenland.js';
 // Elke club speelt in een vaste stijl. w: welke eigenschappen daarin tellen, m: welke wedstrijdmomenten je vaker krijgt
 export const TACTIEKEN = {
   tikitaka:{n:'Tiki-taka',       d:'Kort combineren, veel balbezit en geduldig zoeken naar de opening.',
-    w:{pas:.45, drib:.25, afw:.1, verd:.1, cond:.1}, m:{rand:1.4, diepteBal:1.6, opbouw:1.5, counter:.6, kopduel:.5}},
+    w:{pas:.45, drib:.25, afw:.1, verd:.1, cond:.1}, m:{rand:1.4, diepteBal:1.6, opbouw:1.5, counter:.6, kopduel:.5, vleugel:.8}},
   lang:    {n:'Lange ballen',    d:'Snel en direct de bal naar voren, koppen en de tweede bal winnen.',
     w:{afw:.3, cond:.3, verd:.2, pas:.2}, m:{kopduel:2, corner:1.5, vrijeTrap:1.3, diepteBal:.6}},
   vleugels:{n:'Via de vleugels', d:'Het veld breed maken, je man uitspelen en voorzetten geven.',
-    w:{drib:.35, cond:.3, pas:.25, afw:.1}, m:{eenOpEen:1.3, corner:1.4, kopduel:1.3}},
+    w:{drib:.35, cond:.3, pas:.25, afw:.1}, m:{vleugel:1.6, eenOpEen:1.3, corner:1.4, kopduel:1.3}},
   bus:     {n:'Parkeer de bus',  d:'Met z\'n allen achter de bal, niets weggeven en hopen op één kans.',
     w:{verd:.45, cond:.3, pas:.15, afw:.1}, m:{verdedigen:2, tackle:1.6, verdCorner:1.5, counter:1.3, rand:.6}},
   counter: {n:'Counteren',       d:'De tegenstander laten komen en bij balwinst in een paar passes voor het doel staan.',

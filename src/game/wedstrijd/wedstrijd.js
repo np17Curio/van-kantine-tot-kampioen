@@ -1,3 +1,4 @@
+import { PLEK_BIJDRAGE, mijnPlek, plekGesprekAuto } from '../../data/plekken.js';
 import { huurAftrap, huurClausule, huurGoal, huurNaWedstrijd } from './huurduel.js';
 import { WEER, wedstrijdWeer, weerEffect, weerEffectTekst } from './weer.js';
 import { partnerNaWedstrijd } from '../prive/partner.js';
@@ -59,7 +60,7 @@ export const SIM_BG = {wij:1, zij:1};
 const BIJDRAGE_POS = {SPITS:.55, MID:.45, VERD:.18, KEEPER:0};
 export function verwachteBijdrage(rol){
   const sp = S.sp, ss = S.ss || {}, wed = ss.wed || 0, echt = wed ? ((ss.g || 0) + (ss.a || 0)) / wed : 0, w = wed / (wed + 6);
-  const v = (BIJDRAGE_POS[sp.pos] ?? .3) * (1 - w) + echt * w;
+  const v = (PLEK_BIJDRAGE[mijnPlek()] ?? BIJDRAGE_POS[sp.pos] ?? .3) * (1 - w) + echt * w; // (per plek: data/plekken.js)
   return v * (rol === 'invaller' ? .35 : 1);
 }
 import { pers } from '../speler/persoonlijkheid.js';
@@ -291,6 +292,7 @@ export function keeperRol(rol){
 }
 export function startWedstrijd(){
   S.krantWacht = [];
+  plekGesprekAuto(); // (nieuwe club en nog niet over je plek gepraat: dat gebeurt nu)
   if (!fixture(S.ronde)) return rustWeek();
   if (!(S.sp.geschorst > 0) && S.sp.o23 && S.sp.blessure <= 0 && S.sp.fit >= 20) return startO23();
   const sp = S.sp, c = club(), fx = fixture(S.ronde), opp = CLUBS[fx.opp];

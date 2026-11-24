@@ -1,3 +1,4 @@
+import { geldigePlek } from '../../data/plekken.js';
 import { S, VERSIE, club, ovr, seizoenLabel, setS } from '../../core/state.js';
 import { clamp, pick, randInt } from '../../core/utils.js';
 import { AANV, CLUBS, LAAGSTE, LEGENDE, OPST_BASIS, POS, STATUS, divClubs, zetClubs, ELITE_NAAM, landBasis, niveauVan } from '../../data/gegevens.js';
@@ -185,7 +186,7 @@ export function nieuwSpel(naam, pos, herkomst, land, opties = {}){
   // Nog geen club: eerst de selectiewedstrijden (selectie.js). Tot dan staat er een voorlopige club in sp.club (voor de weergave)
   const id = pick(divClubs(LAAGSTE)), klasse = ovr({pos, a});
   const status = 8, niveau = 0;
-  const sp = {naam, pos, leeftijd:lft, a, pot:Math.max(randInt(...V.pot), klasse + (V.id === 'bewijs' ? 10 : 6)), fit:90, vorm:0, moraal:60, rep:V.rep + (Array.isArray(opties.pers) ? opties.pers.reduce((a, id) => a + ((PERS[id] && PERS[id].fx.rep) || 0), 0) : 0), vert:V.vert,
+  const sp = {naam, pos, plek:geldigePlek(pos, opties.plek), plekVoorkeur:geldigePlek(pos, opties.plek), leeftijd:lft, a, pot:Math.max(randInt(...V.pot), klasse + (V.id === 'bewijs' ? 10 : 6)), fit:90, vorm:0, moraal:60, rep:V.rep + (Array.isArray(opties.pers) ? opties.pers.reduce((a, id) => a + ((PERS[id] && PERS[id].fx.rep) || 0), 0) : 0), vert:V.vert,
     salaris:0, contract:1, club:id, geld:V.geld, blessure:0, items:{}, transferWens:false,
     relatie:null, rijbewijs:V.rijbewijs, rij:{lessen:V.rijbewijs ? 5 : 0, theorie:V.rijbewijs}, woning:V.woning, auto:V.auto, hond:false, status, clubWed:0, clubSz:0, statusNiveau:niveau, sindsTransfer:10, legendeHier:false,
     focus:65, school:{cijfers:[], gehad:[]}, ouders:{boos:false, trots:false},

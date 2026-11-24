@@ -69,11 +69,13 @@ export function startElf(id, metJou, vulPos){
   return {elf, bank};
 }
 // Een speler kiezen naar zijn gewicht (g = scoort vaak, a = geeft vaak assists).
-// Je jeugdvriend scoort naar zijn niveau: minstens als de beste op zijn linie, en vaker naarmate hij beter is dan zijn ploeggenoten
+// Je jeugdvriend scoort naar zijn niveau: hij is een van de belangrijkste spelers van zijn ploeg (minstens 25% meer dan de beste op zijn
+// linie, als spits nog wat meer), en vaker naarmate hij beter is dan zijn ploeggenoten
+export const VRIEND_SCOOR = {min:1.25, max:2.2, spits:1.2};
 export function scoorGewicht(x, k, gem){
   if (!x.vriend || (k !== 'g' && k !== 'a')) return x[k] || 0;
-  const top = (OPBOUW[x.pos] || {g:[1], a:[1]})[k][0], f = Math.max(1, Math.min(2, 1 + ((x.k || 0) - gem) / 10));
-  return Math.max(x[k] || 0, top) * f * (x.basis ? 1 : 1 / 3);
+  const top = (OPBOUW[x.pos] || {g:[1], a:[1]})[k][0], f = Math.max(VRIEND_SCOOR.min, Math.min(VRIEND_SCOOR.max, 1 + ((x.k || 0) - gem) / 10));
+  return Math.max(x[k] || 0, top) * f * (k === 'g' && x.pos === 'A' ? VRIEND_SCOOR.spits : 1) * (x.basis ? 1 : 1 / 3);
 }
 export function gewogen(lijst, k){
   const metV = lijst.some(x => x.vriend), b = metV ? lijst.filter(x => x.basis && x.k !== undefined && !x.vriend) : [], gem = b.length ? b.reduce((a, x) => a + x.k, 0) / b.length : 60;

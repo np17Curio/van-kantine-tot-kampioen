@@ -1,3 +1,4 @@
+import { mijnPlek } from '../../data/plekken.js';
 import { S, club, tmp } from '../../core/state.js';
 import { knop } from '../../core/ui.js';
 import { esc } from '../../core/utils.js';
@@ -18,7 +19,7 @@ export function vStats(){
   const kast = (l, leeg) => l.length ? `<div class="prijzen">${l.map(p => `<span class="prijs">${esc(p)}</span>`).join('')}</div>` : `<p class="muted">${leeg}</p>`;
   const int = Object.entries(C.int || {});
   const tegel = (l, w) => `<div class="tegel"><span class="label">${l}</span><b>${w}</b></div>`;
-  return `<div class="verhaal"><span class="label">Mijn carrière</span><h2>${esc(sp.naam)}</h2><p class="muted">${POS[sp.pos].n} · ${sp.leeftijd} jaar · ${esc(CLUBS[sp.club].n)}</p></div>
+  return `<div class="verhaal"><span class="label">Mijn carrière</span><h2>${esc(sp.naam)}</h2><p class="muted">${POS[sp.pos].n}${sp.pos === 'KEEPER' ? '' : ` (${mijnPlek()})`} · ${sp.leeftijd} jaar · ${esc(CLUBS[sp.club].n)}</p></div>
     <div class="tegels">
       ${tegel('Wedstrijden', C.wed)}${tegel('Goals', C.g)}${tegel('Assists', C.a)}${tegel('Gem. cijfer', gem)}
       ${tegel(vrouwenWereld() ? 'Speelster van de Wedstrijd' : 'Man of the Match', C.motm || 0)}${tegel('Sterren ⭐', `${C.sterren || 0}${C.perfect ? ` <span class="muted klein-tekst">(${C.perfect}× perfect)</span>` : ''}`)}${tegel('Kampioen', tel(/^Kampioen/))}${tegel('Bekers', tel(new RegExp(`^(${BEKER_ALT}|Champions League|Europa Cup|Jeugdbeker)`)))}${tegel('Gouden Bal', tel(/^Gouden Bal/))}

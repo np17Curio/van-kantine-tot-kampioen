@@ -1,5 +1,6 @@
 import { wedstrijdWeer } from '../game/wedstrijd/weer.js';
 import { S, bewaar } from '../core/state.js';
+import { plekKant } from '../data/plekken.js';
 import { knop } from '../core/ui.js';
 import { rnd } from '../core/utils.js';
 import { vertaal } from '../core/taal.js';
@@ -57,6 +58,8 @@ function pitchSceneBasis(type){
     laatsteMinuut:[e('J',76,34,'wij'), e('A',91,30,'wij'), e('B',89,41,'wij'), e('X',93,34,'zij'), e('Y',86,28,'zij'), e('Z',88,40,'zij'), e('K',104,34,'K')],
     eenOpEen: [e('J',90,33,'wij'), e('A',87,45,'wij'), e('X',83,36,'zij'), e('K',101,34,'K')],
     keeperFout:[e('J',95,32,'wij'), e('A',88,42,'wij'), e('X',90,28,'zij'), e('K',99,40,'K')],
+    // op de flank (rechts = de kant van de camera, kleine y; links wordt gespiegeld): de back tegenover je, teamgenoten in de zestien
+    vleugel:  [e('J',78,8,'wij'), e('X',83,10,'zij'), e('A',95,30,'wij'), e('B',90,40,'wij'), e('Y',96,33,'zij'), e('Z',92,26,'zij'), e('K',104,34,'K')],
     counter:  [e('J',55,34,'wij'), e('A',71,22,'wij'), e('B',72,47,'wij'), e('X',79,30,'zij'), e('Y',80,41,'zij'), e('K',104,34,'K')],
     diepteBal:[e('J',60,34,'wij'), e('A',73,26,'wij'), e('B',70,46,'wij'), e('X',79,29,'zij'), e('Y',79,40,'zij'), e('K',104,34,'K')],
     vrijeTrap:[e('J',78,34,'wij'), e('A',91,26,'wij'), e('B',92,42,'wij'), e('X',87,31.5,'zij'), e('Y',87,33,'zij'), e('Z',87,34.5,'zij'), e('K',103,35,'K')],
@@ -84,6 +87,10 @@ function pitchSceneBasis(type){
   L.tegenGoal = L.tegenKans = [e('X',12,31,'zij'), e('Y',17,58,'zij'), e('Z',21,38,'zij'), e('A',10,33.5,'wij'), e('B',14,41,'wij'), e('J',27,29,'wij'), e('k',1,34,'k')];
   L.shootout = [e('S',92.5,34,'wij'), e('J',84,44,'wij'), e('A',84,40,'wij'), e('X',84,28,'zij'), e('Y',84,24,'zij'), e('K',104.6,34,'K')];
   const lijst = (L[type] || L.rand).map(p => ({...p}));
+  // Vleugelspelers en backs staan op hun eigen flank: rechts aan de kant van de camera, links aan de overkant (data/plekken.js)
+  const kant = plekKant();
+  if (type === 'vleugel' && kant === 'L') lijst.forEach(p => { p.y = 68 - p.y; });
+  else if (kant && ['counter', 'diepteBal'].includes(type)){ const j = lijst.find(p => p.id === 'J'); if (j) j.y = kant === 'R' ? 11 : 57; }
   const ents = {}; lijst.forEach(p => ents[p.id] = p);
   // Beide keepers staan altijd in hun doel: ook bij een tegengoal na balverlies of een schot vanaf eigen helft
   if (!ents.K) ents.K = e('K', 104, 34, 'K');
@@ -92,10 +99,11 @@ function pitchSceneBasis(type){
   const bal = type === 'corner' ? {x:104.3, y:67, z:0} : type === 'verdCorner' ? {x:0.8, y:67, z:0} : type === 'kopduel' || type === 'volley' ? {x:ents.A.x, y:ents.A.y, z:0}
     : type === 'penalty' ? {x:94, y:34, z:0} : type === 'keeperFout' ? {x:97.5, y:35, z:0} : ['verdedigen', 'tackle'].includes(type) ? {x:ents.X.x, y:ents.X.y, z:0}
     : type === 'wissel' ? {x:52.5, y:34, z:0} : type === 'provocatie' || type === 'opstootje' ? {x:64, y:40, z:0} : type === 'toespraak' ? {x:56, y:30, z:0} : type === 'juichen' || type === 'dans' ? {x:105.4, y:34, z:.2} : type === 'shootout' ? {x:94, y:34, z:0} : /^tegen/.test(type) ? {x:ents.X.x + .8, y:ents.X.y, z:0} : /^team/.test(type) ? {x:ents.C.x + .8, y:ents.C.y, z:0} : {x:ents.J.x + .8, y:ents.J.y, z:0};
-  const cam = /^tegen/.test(type) ? 18 : ['verdedigen', 'verdCorner'].includes(type) ? 18 : type === 'opbouw' ? 24 : type === 'tackle' ? 44 : ['counter', 'diepteBal'].includes(type) ? 68 : ['provocatie', 'opstootje'].includes(type) ? 60 : type === 'toespraak' || type === 'wissel' ? 52.5 : 87;
+  const cam = type === 'vleugel' ? 80 : kant && ['counter', 'diepteBal'].includes(type) ? 61 : /^tegen/.test(type) ? 18 : ['verdedigen', 'verdCorner'].includes(type) ? 18 : type === 'opbouw' ? 24 : type === 'tackle' ? 44 : ['counter', 'diepteBal'].includes(type) ? 68 : ['provocatie', 'opstootje'].includes(type) ? 60 : type === 'toespraak' || type === 'wissel' ? 52.5 : 87;
   // Duels, tackles, juichen en de toespraak gebeuren op een paar meter: daar zoomt de camera verder in, op de plek van de actie
   const dichtbij = ['provocatie', 'opstootje', 'tackle', 'verdedigen', 'juichen', 'toespraak', 'wissel', 'dans'].includes(type);
-  return {ents, bal, cam, zoom:type === 'dans' ? .3 : dichtbij ? .6 : type === 'penalty' || type === 'shootout' ? .8 : 1, camY:type === 'wissel' ? 62 : dichtbij && ents.J ? ents.J.y : 34};
+  return {ents, bal, cam, zoom:type === 'dans' ? .3 : dichtbij ? .6 : type === 'penalty' || type === 'shootout' ? .8 : 1, camY:type === 'wissel' ? 62 : dichtbij && ents.J ? ents.J.y : 34,
+    kijkY:(type === 'vleugel' || (kant && ['counter', 'diepteBal'].includes(type))) && ents.J ? (ents.J.y < 34 ? (ents.J.y + 34) / 2 : ents.J.y * .3 + 34 * .7) : undefined}; // (op de flank: de camera kijkt tussen jou en de zestien in)
 }
 
 // Wachtrij: jouw acties en wat anderen doen, in volgorde afgespeeld
@@ -738,8 +746,10 @@ export const is3D = () => !!(V3 && instel().veld !== '2d' && V3.beschikbaar());
 //  dat zie je toch niet, en het 3D-veld kost veel rekenkracht, waardoor het filmpje ging haperen)
 const filmpjeOpen = () => !!document.querySelector('body > .cutscene:not(.uit)');
 function teken(cv, T, nu){ if (filmpjeOpen()) return; if (cv._3d && V3) V3.teken3D(T, nu); else tekenVeld(cv, T); }
+// Hoe hoog het veld mag worden, als deel van de schermhoogte (hoe hoger, hoe groter het veld in beeld)
+const VELD_HOOGTE = .68;
 export function pitchCanvas(el){
-  const b = Math.round(Math.min(el.clientWidth || 600, Math.max(320, window.innerHeight * .48 / .52))), dpr = Math.min(2, window.devicePixelRatio || 1), h = Math.round(b * .52);
+  const b = Math.round(Math.min(el.clientWidth || 600, Math.max(320, window.innerHeight * VELD_HOOGTE / .52))), dpr = Math.min(2, window.devicePixelRatio || 1), h = Math.round(b * .52);
   if (is3D()){ const c3 = V3.koppel3D(el, b, h, dpr); if (c3) return c3; }
   // 2D: een canvas met WebGL kan niet ook 2D tekenen. Hing hier nog het 3D-canvas (overgeschakeld naar 2D, of WebGL viel weg), dan een nieuw canvas
   let cv = el.querySelector('canvas');
@@ -750,7 +760,7 @@ export function pitchCanvas(el){
 }
 // Jouw keuzemoment: in 2D één plaatje, in 3D staan de spelers rustig te ademen tot je kiest
 export function pitchStatisch(el, type){
-  const cv = pitchCanvas(el), sc = pitchScene(type), T = {ents:sc.ents, bal:sc.bal, cam:sc.cam, zoom:sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(), rivaal:rivaalInBeeld(sc.ents), weer:wedstrijdWeer()}; T.vriend = vriendInBeeld(sc.ents, T.rivaal && T.rivaal.id);
+  const cv = pitchCanvas(el), sc = pitchScene(type), T = {ents:sc.ents, bal:sc.bal, cam:sc.cam, zoom:sc.zoom, camY:sc.camY, kijkY:sc.kijkY, nr:rugnummerVeilig(), ploegen:ploegen(), rivaal:rivaalInBeeld(sc.ents), weer:wedstrijdWeer()}; T.vriend = vriendInBeeld(sc.ents, T.rivaal && T.rivaal.id);
   if (!cv._3d) return tekenVeld(cv, T);
   const id = (PITCH = {stop:false, klaar:() => {}}), gen = GEN; let vorige = 0;
   const frame = nu => {
@@ -802,7 +812,7 @@ export const rugnummerVeilig = () => { try { return S.M && (S.M.inter || S.M.o23
 export function pitchSpeel(el, a, klaar, opt = {}){
   // (window.__pitchTraag: alleen voor tests, om een trage headless browser elk moment te laten vastleggen)
   const cv = pitchCanvas(el), {sc, st} = animScript(a), snel = (instel().anim === 'snel' ? .5 : 1) * (opt.herhaling ? HERHALING_TRAAG : 1) * ((typeof window !== 'undefined' && window.__pitchTraag) || 1);
-  const T = {geenJuichJ:!!a.dansNa, bord:a.soort === 'wissel' ? {uit:a.uit ?? null, in:a.in ?? null} : null, ents:sc.ents, bal:{...sc.bal}, cam:sc.cam, zoom:opt.herhaling && sc.ents.J ? .55 : sc.zoom, camY:sc.camY, nr:rugnummerVeilig(), ploegen:ploegen(), rivaal:rivaalInBeeld(sc.ents),
+  const T = {geenJuichJ:!!a.dansNa, bord:a.soort === 'wissel' ? {uit:a.uit ?? null, in:a.in ?? null} : null, ents:sc.ents, bal:{...sc.bal}, cam:sc.cam, zoom:opt.herhaling && sc.ents.J ? .55 : sc.zoom, camY:sc.camY, kijkY:sc.kijkY, nr:rugnummerVeilig(), ploegen:ploegen(), rivaal:rivaalInBeeld(sc.ents),
     onder:opt.herhaling ? `⟲ HERHALING · ${a.min ?? ''}' · ${S.sp.naam}` : a.onder || (a.soort === 'shootout' ? 'Strafschoppen' : null)};
   T.vriend = vriendInBeeld(sc.ents, T.rivaal && T.rivaal.id); T.herhaling = !!opt.herhaling; T.snel = snel; T.weer = wedstrijdWeer(); // (het weer: game/wedstrijd/weer.js) // (snel: de keepersduik in veld3d duurt even lang als de stap)
   let i = -1, t0 = 0, van = null, fx = null, fxT = 0, eind = 0, aanzet = 0;

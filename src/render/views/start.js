@@ -1,3 +1,4 @@
+import { geldigePlek, plekkenVoor } from '../../data/plekken.js';
 import { herstel } from '../../core/migratie.js';
 import { herstelSeizoenDelen } from '../../game/seizoen/seizoen.js';
 import { SLOTS, laad, saves, setS, tmp, vrijeSlot, wis } from '../../core/state.js';
@@ -95,6 +96,12 @@ function vSlotKeuze(){
   if (vrijeSlot()) return '';
   return `<div class="paneel"><span class="label">Alle ${SLOTS} plekken zijn vol. Welke carrière mag weg?</span><div class="rij" style="gap:6px;flex-wrap:wrap">${saves().map(x => knop(`${x.slot}. ${esc(x.naam || '')}`, () => { tmp.slot = x.slot; }, 'klein' + (tmp.slot === x.slot ? ' aan' : ''), 'data-blijf')).join('')}</div></div>`;
 }
+// Je plek binnen je positie (data/plekken.js): CB of back, CDM/CM/CAM of op de flank, spits of buitenspeler
+function plekKeuze(){
+  const pos = tmp.pos || 'SPITS'; if (pos === 'KEEPER') return '';
+  const nu = geldigePlek(pos, tmp.plek);
+  return `<span class="label" style="margin-top:8px">Plek</span><div class="rij" style="gap:6px;flex-wrap:wrap">${plekkenVoor(pos).map(([id, n]) => knop(`${id} · ${esc(n)}`, () => { tmp.plek = id; }, 'klein' + (id === nu ? ' aan' : ''), `data-blijf aria-pressed="${id === nu}"`)).join('')}</div>`;
+}
 const POS_UITLEG = {SPITS:'Goals maken, schieten, dribbelen', MID:'Passen, counters, vrije trappen', VERD:'Tackles, kopduels, opbouwen', KEEPER:'Reddingen, uittrappen, de baas in de zestien'};
 // Je beste vriend(in): naam, positie en of het een jongen of een meisje is (groeit samen met jou op).
 // Is het iemand van het andere geslacht, dan speelt die in de andere competitie: nooit met of tegen jou
@@ -128,7 +135,7 @@ function vNieuw(slot, bezet, posKnop){
   const {speler, lichaam} = vUiterlijk(), tab = START_TABS.some(([k]) => k === tmp.startTab) ? tmp.startTab : 'speler', i = START_TABS.findIndex(([k]) => k === tab);
   const inhoud = {
     speler,
-    lichaam:`${lichaam}<div><span class="label">Positie</span><div class="keuzes posities" style="margin-top:6px">${posKnop('SPITS')}${posKnop('MID')}${posKnop('VERD')}${posKnop('KEEPER')}</div></div>`,
+    lichaam:`${lichaam}<div><span class="label">Positie</span><div class="keuzes posities" style="margin-top:6px">${posKnop('SPITS')}${posKnop('MID')}${posKnop('VERD')}${posKnop('KEEPER')}</div>${plekKeuze()}</div>`,
     verhaal:`${vLeeftijd()}${vPersoonlijkheid()}`,
     vriend:`<div class="startkolommen"><div class="startkolom">${vVriend()}</div>
     <div class="startkolom"><div style="display:grid;gap:8px"><span class="label">Afkomst</span>${vHerkomstKeuze()}<p class="muted klein-tekst">Hiermee bepaal je voor welke landen je later interlands kunt spelen.</p></div>
@@ -136,7 +143,7 @@ function vNieuw(slot, bezet, posKnop){
       <p class="muted klein-tekst">Hier begin je je carrière. Elk land heeft zijn eigen competitie, clubs en kranten.</p></div></div></div>`,
   }[tab];
   const volgende = i + 1 < START_TABS.length ? knop(`Volgende: ${START_TABS[i + 1][1].replace(/^\d · /, '')} →`, () => { tmp.startTab = START_TABS[i + 1][0]; }, 'klein', 'data-blijf') : '';
-  const start = slot ? knop('Start carrière', () => { nieuwSpel((tmp.naam || '').trim() || (tmp.vrouw ? 'Lieke de Raket' : 'Daan de Kanon'), tmp.pos, herkomstUitTmp(), opgroeiKeuze(), {leeftijd:tmp.leeftijd || 15, uiterlijk:tmp.uiterlijk, sleutel:tmp.uitSleutel, pers:tmp.pers || [], tattoos:startTattoos(), slot, vrouw:!!tmp.vrouw, valtOp:valtOp(), vriend:{naam:(tmp.vriendNaam || '').trim(), pos:tmp.vriendPos || tmp.pos, vrouw:tmp.vriendVrouw === undefined ? !!tmp.vrouw : tmp.vriendVrouw}}); }, 'hoofd', bezet ? `data-bevestig="De carrière van ${esc(bezet.naam)} wordt overschreven." data-ja="Ja, overschrijven"` : '') : '<p class="muted klein-tekst">Kies eerst welke carrière mag worden overschreven.</p>';
+  const start = slot ? knop('Start carrière', () => { nieuwSpel((tmp.naam || '').trim() || (tmp.vrouw ? 'Lieke de Raket' : 'Daan de Kanon'), tmp.pos, herkomstUitTmp(), opgroeiKeuze(), {plek:tmp.plek, leeftijd:tmp.leeftijd || 15, uiterlijk:tmp.uiterlijk, sleutel:tmp.uitSleutel, pers:tmp.pers || [], tattoos:startTattoos(), slot, vrouw:!!tmp.vrouw, valtOp:valtOp(), vriend:{naam:(tmp.vriendNaam || '').trim(), pos:tmp.vriendPos || tmp.pos, vrouw:tmp.vriendVrouw === undefined ? !!tmp.vrouw : tmp.vriendVrouw}}); }, 'hoofd', bezet ? `data-bevestig="De carrière van ${esc(bezet.naam)} wordt overschreven." data-ja="Ja, overschrijven"` : '') : '<p class="muted klein-tekst">Kies eerst welke carrière mag worden overschreven.</p>';
   return `<div class="startform"><div class="startlinks">${tmp.portretHtml}${tmp.verrasHtml}${start}</div>
     <div class="startvelden">${tabBalk(START_TABS, tab, k => { tmp.startTab = k; })}<div class="aanmaakkeuzes">${inhoud}</div><div class="rij">${volgende}</div>${vSlotKeuze()}</div></div>`;
 }
