@@ -137,8 +137,17 @@ function speelOpkomstScene(M){
 // Aftrap: eerst de opkomst (het introscherm blijft eronder staan), daarna pas de wedstrijd
 function aftrapMetOpkomst(M){
   if (toonDebuut(M)) return speelDebuutScene(M);
+  // een derby of een finale: eerst de spelersbus en de kleedkamer (render/busscene.js), dan de opkomst
+  if (toonBus(M)){ M.busGezien = true; return speelBusScene(M).then(() => { if (S && S.M === M && M.intro) aftrapMetOpkomst(M); }); }
   if (!toonOpkomst(M)) return aftrap();
   speelOpkomstScene(M).then(() => { if (S && S.M === M && M.intro){ aftrap(); render(); } });
+}
+// De spelersbus (render/busscene.js): alleen bij de grote wedstrijden van je club, een keer per wedstrijd
+const toonBus = M => !!(M && !M.inter && !M.selectie && !M.o23 && !M.trainer && !tmp.simBezig && !M.busGezien && (M.derby || (M.beker && M.beker.finale))
+  && (instel().opkomst || 'belangrijk') !== 'uit');
+let BUS = null;
+function speelBusScene(M){
+  return (BUS || (BUS = import('../busscene.js'))).then(m => m.speelBus(M)).catch(e => console.warn('bus', e));
 }
 // Je interlanddebuut (render/debuutscene.js): het volkslied en de hand van de bondscoach. Eén keer (M.debuut uit startInterland;
 // S.car.debuutScene onthoudt dat hij gespeeld is), niet als de opkomst-animaties uit staan

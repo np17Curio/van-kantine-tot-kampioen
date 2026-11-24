@@ -45,9 +45,9 @@ export function simuleerSeizoen(){
 let BEGIN_M = null;
 function simuleerDoor(){
   BEGIN_M = S.fase === 'match' ? S.M : null;
-  const sp = S.sp, tel = {wed:0, W:0, G:0, V:0, g:0}, start = S.ronde, totFit = sp.blessure > 0; let reden = null, stil = 0, vorige = '';
+  const sp = S.sp, tel = {wed:0, W:0, G:0, V:0, g:0, a:0}, start = S.ronde, totFit = sp.blessure > 0; let reden = null, stil = 0, vorige = '';
   const geblesseerd = () => sp.blessure > 0;
-  const telWed = M => { if (!M || M.geteldSim) return; M.geteldSim = true; tel.wed++; tel[M.us > M.them ? 'W' : M.us < M.them ? 'V' : 'G']++; tel.g += M.goals || 0; };
+  const telWed = M => { if (!M || M.geteldSim) return; M.geteldSim = true; tel.wed++; tel[M.us > M.them ? 'W' : M.us < M.them ? 'V' : 'G']++; tel.g += M.goals || 0; tel.a += M.assists || 0; };
   for (let n = 0; n < 2000; n++){
     const f = S.fase, sleutel = `${f}|${S.jaar}|${S.ronde}|${S.M ? S.M.idx : ''}`;
     if (sleutel === vorige){ if (++stil > 3){ reden = 'er moet iets gekozen worden'; break; } } else { stil = 0; vorige = sleutel; }
@@ -71,7 +71,7 @@ function simuleerDoor(){
     }
     reden = 'hier kies je zelf'; break;
   }
-  const weken = Math.max(0, S.ronde - start), samen = tel.wed ? ` ${tel.wed} ${tel.wed === 1 ? 'wedstrijd' : 'wedstrijden'} gesimuleerd: ${tel.W}W ${tel.G}G ${tel.V}V, ${tel.g} ${tel.g === 1 ? 'goal' : 'goals'} van jou.` : '';
+  const weken = Math.max(0, S.ronde - start), samen = tel.wed ? ` ${tel.wed} ${tel.wed === 1 ? 'wedstrijd' : 'wedstrijden'} gesimuleerd: ${tel.W}W ${tel.G}G ${tel.V}V, ${tel.g} ${tel.g === 1 ? 'goal' : 'goals'} en ${tel.a} ${tel.a === 1 ? 'assist' : 'assists'} van jou.` : '';
   S.simMelding = `⏸ Gesimuleerd tot week ${Math.min(S.ronde + 1, 99)}: ${reden || 'klaar'}.${samen}`;
   if (S.week && S.fase === 'week') S.week.tekst.unshift(S.simMelding);
   if (S.fase === 'match' && S.M && S.M.log) S.M.log.unshift({m:'', t:S.simMelding, k:'info'});

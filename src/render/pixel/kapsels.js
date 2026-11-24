@@ -25,7 +25,8 @@ const RUIS = (x, y) => (((x * 73856093) ^ (y * 19349663) ^ (x * y * 83492791)) >
 const STOPPELS = (c, x0, y0, x1, y1, k = 'h') => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (RUIS(x, y) < 42 && c.is(x, y, 'sS')) c.px(x, y, k); };
 // Een buzzcut: een dicht, kort laagje haar over de schedel. Donker langs de rand (de haargrens), één rustige glans
 // bovenop (licht van linksboven) en een paar donkere korreltjes voor de textuur. Geen ruitjes: dan lijkt het een netje.
-const BUZZ = (c, x0, y0, x1, y1, glans = [14, 3]) => {
+// kort: nog korter (de millimeter): een egaal laagje zonder glans, en een zachte haargrens onderaan
+const BUZZ = (c, x0, y0, x1, y1, glans = [14, 3], kort = false) => {
   const vak = new Set();
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (c.is(x, y, 'sS')) vak.add(x + ',' + y);
   const in_ = (x, y) => vak.has(x + ',' + y);
@@ -33,6 +34,8 @@ const BUZZ = (c, x0, y0, x1, y1, glans = [14, 3]) => {
     const [x, y] = p.split(',').map(Number), r = RUIS(x, y);
     const rand = !in_(x, y + 1); // (alleen de haargrens onderaan: een donkere rand rondom maakt er een helm van)
     const dx = x - glans[0], dy = y - glans[1], licht = dx * dx * .3 + dy * dy * 1.6 < 7;
+    // (de millimeter: een egaal laagje dicht op de huid, zonder glans; onderaan een zachte haargrens waar de huid doorheen komt)
+    if (kort){ if (rand){ if (r < 55) c.px(x, y, 'H'); } else c.px(x, y, r < 12 ? 'H' : 'h'); continue; }
     c.px(x, y, rand ? (r < 70 ? 'H' : 'h') : licht ? 'j' : r < 9 ? 'H' : 'h');
   }
 };
@@ -47,6 +50,13 @@ const FADE = (c, x0, y0, x1, y1) => {
       c.px(x, y, d <= 0 || (!buur && RUIS(x, y) < kans) ? 'h' : 'S'); // (onder de rand steeds minder losse stoppels, nooit twee naast elkaar)
     }
   }
+};
+// Een nette fade (een verloop): van boven (vlak onder het haar) naar beneden steeds minder haar, met een vast patroon (geen
+// willekeurige vlekjes): bovenaan bijna dicht in de donkere haarkleur, halverwege half om half, onderaan alleen nog de huid
+const VERLOOP = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]; // (een 4×4 bayer-patroon: een gelijkmatige overgang)
+const FADE_NET = (c, x0, y0, x1, y1) => {
+  for (let y = y0; y <= y1; y++){ const dicht = 1 - (y - y0 + .5) / (y1 - y0 + 1); // (1 bovenaan, 0 onderaan)
+    for (let x = x0; x <= x1; x++) if (c.is(x, y, 'sS')) c.px(x, y, VERLOOP[y & 3][x & 3] / 16 < dicht ? 'H' : 's'); }
 };
 // Kaalgeschoren (de zijkanten van een hanenkam): de huid net iets donkerder, met hier en daar een stoppeltje
 const GESCHOREN = (c, x0, y0, x1, y1) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (c.is(x, y, 'sS')) c.px(x, y, RUIS(x, y) < 6 && !c.is(x - 1, y, 'h') ? 'h' : 'S'); };
@@ -149,9 +159,9 @@ Object.assign(ACHTER, {
   stekels: c => { c.rect(9, 5, 24, 6, 'h'); c.rect(8, 8, 2, 5, 'h'); c.rect(32, 8, 2, 5, 'h');
     for (let x = 9; x < 31; x += 4){ c.poly([x, 6, x + 2, 0, x + 4, 6], 'h'); c.px(x + 2, 2, 'j'); c.vline(x + 3, 3, 4, 'H'); } },
   hanenkam: c => { KAAL(c); GESCHOREN(c, 10, 2, 31, 9); c.rect(17, 0, 8, 11, 'h'); c.rect(16, 3, 10, 8, 'h'); c.vline(16, 3, 8, 'H'); c.vline(25, 3, 8, 'H'); c.vline(23, 1, 9, 'H'); c.rect(18, 0, 3, 4, 'j'); },
-  fade: c => { KAAL(c); c.rect(8, 7, 3, 5, 's'); c.rect(31, 7, 3, 5, 's'); FADE(c, 8, 6, 10, 12); FADE(c, 31, 6, 33, 12); // (alleen de slapen: het voorhoofd blijft schoon)
+  fade: c => { KAAL(c); c.rect(8, 7, 3, 5, 's'); c.rect(31, 7, 3, 5, 's'); FADE_NET(c, 8, 6, 10, 12); FADE_NET(c, 31, 6, 33, 12); // (alleen de slapen: het voorhoofd blijft schoon)
     c.rect(10, 2, 22, 7, 'h'); c.rect(9, 4, 1, 3, 'h'); c.rect(32, 4, 1, 3, 'h'); c.hline(11, 9, 20, 'H'); c.rect(12, 1, 18, 1, 'h'); for (const x of [14, 19, 24, 29]) c.line(x - 3, 3, x, 7, 'H'); c.rect(12, 2, 5, 1, 'j'); },
-  millimeter: c => { KAAL(c); c.rect(8, 8, 2, 4, 's'); c.rect(32, 8, 2, 4, 's'); BUZZ(c, 8, 2, 33, 11, [15, 4]); },
+  millimeter: c => { KAAL(c); c.rect(8, 8, 2, 4, 's'); c.rect(32, 8, 2, 4, 's'); BUZZ(c, 8, 2, 33, 11, [15, 4], true); },
   scheiding: c => { KORT(c); c.rect(15, 1, 17, 4, 'h'); c.rect(9, 4, 4, 6, 'h'); c.rect(13, 1, 2, 9, 's'); c.px(14, 0, 's'); c.line(16, 3, 31, 7, 'H'); c.line(17, 6, 31, 10, 'H'); c.line(16, 1, 26, 1, 'j'); c.line(10, 5, 12, 5, 'j'); },
   // middenscheiding: een dunne scheiding bovenop, en de lokken buigen van daaruit naar beide kanten (met glans erop)
   midden: c => { c.rect(8, 3, 26, 9, 'h'); c.rect(10, 1, 22, 2, 'h'); c.rect(13, 0, 16, 1, 'h'); c.rect(7, 8, 3, 9, 'h'); c.rect(32, 8, 3, 9, 'h');
@@ -260,8 +270,10 @@ const ZIJ_VOOR = {model:ZIJ_PONY, staart:ZIJ_PONY, kort:ZIJ_RECHT, kuif:ZIJ_RECH
 Object.assign(ZIJ_ACHTER, {
   stekels: c => { ZIJ_KORT(c); for (let x = 10; x < 30; x += 4){ c.poly([x, 6, x + 1, 0, x + 4, 5], 'h'); c.px(x + 1, 2, 'j'); } },
   hanenkam: c => { ZIJ_ACHTER.kaal(c); GESCHOREN(c, 9, 3, 31, 19); c.rect(11, 1, 20, 4, 'h'); c.rect(13, 0, 16, 1, 'h'); for (const x of [15, 20, 25]) c.line(x, 1, x - 2, 4, 'H'); c.rect(14, 1, 4, 1, 'j'); },
-  fade: c => { ZIJ_ACHTER.kaal(c); FADE(c, 9, 6, 31, 19); c.rect(11, 2, 21, 5, 'h'); c.rect(13, 1, 17, 1, 'h'); for (const x of [17, 22, 27]) c.line(x - 3, 3, x, 6, 'H'); c.rect(15, 2, 5, 1, 'j'); },
-  millimeter: c => { ZIJ_ACHTER.kaal(c); BUZZ(c, 9, 1, 31, 19, [17, 3]); },
+  // (van opzij: een compacte schedel, kort haar bovenop, en daaronder een egaal verloop naar de huid in de nek)
+  fade: c => { ZIJ_DAK(c, 's', 2, 4); ACHTERHOOFD(c, 's', 8, 15); ZIJ_DAK(c, 'h', 1, 4); for (let x = 9; x <= 16; x++) for (let y = 7; y <= 10; y++) if (c.is(x, y, 'h')) c.px(x, y, 's');
+    FADE_NET(c, 9, 7, 16, 14); /* (alleen achter het oor: het voorhoofd blijft gewoon) */ for (const x of [17, 22, 27]) c.line(x - 3, 2, x, 5, 'H'); c.rect(15, 2, 5, 1, 'j'); },
+  millimeter: c => { ZIJ_DAK(c, 's', 2, 4); ACHTERHOOFD(c, 's', 8, 15); BUZZ(c, 9, 1, 31, 14, [17, 3], true); }, // (een kleine ronde schedel, het haar tot oorhoogte: geen dikke bos achterop)
   scheiding: c => { ZIJ_KORT(c); c.rect(13, 1, 19, 3, 'h'); c.hline(15, 1, 14, 'j'); c.line(18, 4, 30, 8, 'H'); c.line(16, 6, 25, 9, 'H'); },
   midden: c => { ZIJ_MODEL(c); c.rect(8, 8, 9, 9, 'h'); c.line(14, 3, 24, 9, 'H'); c.hline(9, 16, 7, 'H'); },
   knot: c => { ZIJ_KORT(c); for (const [a, b] of [[27, 15], [23, 12], [19, 11]]) c.line(a, 4, b, 9, 'H'); c.rect(14, 2, 6, 1, 'j'); // (lokken naar achteren)
@@ -292,15 +304,17 @@ const RUG = {
     for (const x of [10, 15, 21, 27, 32]) c.line(x, 6, x + (x < 21 ? -1 : x > 21 ? 1 : 0), 23, 'H'); c.line(13, 3, 19, 1, 'j'); c.line(14, 4, 20, 2, 'j'); },
   kaal: c => { c.rect(10, 4, 22, 18, 's'); c.rect(12, 2, 18, 2, 's'); c.rect(29, 5, 3, 17, 'S'); c.rect(13, 5, 4, 1, 'S'); },
   afro: c => { c.ellipse(21, 9, 16, 10, 'h'); for (let y = 0; y < 20; y += 3) for (let x = 6; x < 37; x += 4){ const xx = x + (y % 2) * 2; if (c.is(xx, y, 'h')) c.px(xx, y, 'H'); } },
-  kroes: c => { RUG_KORT(c); for (let y = 4; y < 18; y += 2) for (let x = 9 + (y % 4 ? 1 : 0); x < 33; x += 3) c.px(x, y, 'H'); },
+  // (kort kroeshaar: tot net onder oorhoogte, met een zachte haargrens; daaronder de blote nek, geen helm tot op de schouders)
+  kroes: c => { RUG.kaal(c); c.rect(9, 4, 24, 12, 'h'); c.rect(11, 3, 20, 1, 'h'); c.rect(12, 2, 18, 1, 'h'); for (let x = 9; x < 33; x++) if ((x * 7) % 3) c.px(x, 16, 'H');
+    for (let y = 4; y < 16; y += 2) for (let x = 9 + (y % 4 ? 1 : 0); x < 33; x += 3) c.px(x, y, 'H'); },
   cornrows: RUG_CORN,
   vlechten: c => { RUG_CORN(c); for (let y = 14; y < 26; y += 2){ c.rect(11, y, 3, 2, (y >> 1) % 2 ? 'h' : 'H'); c.rect(28, y, 3, 2, (y >> 1) % 2 ? 'H' : 'h'); } },
 };
 Object.assign(RUG, {
   stekels: c => { RUG_KORT(c); for (let x = 9; x < 31; x += 4){ c.poly([x, 6, x + 2, 0, x + 4, 6], 'h'); c.px(x + 2, 2, 'j'); } },
   hanenkam: c => { RUG.kaal(c); GESCHOREN(c, 10, 2, 31, 21); c.rect(18, 0, 6, 22, 'h'); c.vline(22, 1, 20, 'H'); c.rect(19, 0, 2, 3, 'j'); },
-  fade: c => { RUG.kaal(c); FADE(c, 9, 9, 32, 22); c.rect(9, 3, 24, 7, 'h'); c.rect(11, 2, 20, 1, 'h'); for (const x of [14, 20, 26]) c.vline(x, 3, 6, 'H'); c.rect(15, 3, 3, 1, 'j'); },
-  millimeter: c => { RUG.kaal(c); BUZZ(c, 10, 2, 31, 20, [17, 4]); },
+  fade: c => { RUG.kaal(c); c.rect(9, 3, 24, 5, 'h'); c.rect(11, 2, 20, 1, 'h'); FADE_NET(c, 9, 8, 32, 16); for (const x of [14, 20, 26]) c.vline(x, 3, 4, 'H'); c.rect(15, 3, 3, 1, 'j'); }, // (van achteren: het verloop tot net onder de oren, daaronder de blote nek)
+  millimeter: c => { RUG.kaal(c); BUZZ(c, 10, 2, 31, 15, [17, 4], true); }, // (tot oorhoogte: daaronder de blote nek)
   scheiding: RUG_KORT,
   midden: c => { RUG_VOL(c); c.hline(8, 21, 26, 'H'); },
   knot: c => { c.rect(9, 4, 24, 15, 'h'); c.rect(11, 3, 20, 1, 'h'); for (const [a, b] of [[12, 18], [18, 20], [24, 22], [30, 24]]) c.line(a, 16, b, 7, 'H'); // (glad, met lokken naar de knot)

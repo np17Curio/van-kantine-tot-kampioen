@@ -120,6 +120,7 @@ const PIXEL = {'PERSCONFERENTIE':'PRESS CONFERENCE', 'OPSTELLING':'LINE-UPS', 'D
   'DE SPORTKRANT':'THE SPORTS PAPER', 'VOETBAL VANDAAG':'FOOTBALL TODAY', 'STUDIO VOETBAL':'FOOTBALL STUDIO', 'EUROPEES VOETBALNIEUWS':'EUROPEAN FOOTBALL NEWS',
   '1E GOAL':'1ST GOAL', 'HERHALING':'REPLAY', 'De Sportkrant':'The Sports Paper', 'Voetbal Vandaag':'Football Today', 'Studio Voetbal':'Football Studio', 'Europees Voetbalnieuws':'European Football News',
   'BEDANKT':'THANK YOU', 'LEGENDE':'LEGEND', // (de spandoeken bij je afscheid: render/pixel/afscheid.js)
+  'SPELERS':'PLAYERS', 'FINALE':'FINAL', // (de spelersbus: render/pixel/bus.js)
   'PROMOTIE!':'PROMOTED!', 'TOPDIVISIE':'TOP DIVISION', 'EERSTE DIVISIE':'FIRST DIVISION'}; // (het spandoek in de promotieparade: render/pixel/parade.js)
 export const vertaalPixel = s => TAAL === 'en' ? (PIXEL[s] ?? PIXEL[String(s).toUpperCase()] ?? s) : s;
 const rangtelwoord = n => n % 100 >= 11 && n % 100 <= 13 ? 'th' : n % 10 === 1 ? 'st' : n % 10 === 2 ? 'nd' : n % 10 === 3 ? 'rd' : 'th';

@@ -378,19 +378,19 @@ function dik(c, x0, y0, x1, y1, kleur, b){ c.line(R(x0), R(y0), R(x1), R(y1), 'k
 // (de kleuren zelf komen uit de look: atlas.js lookVan)
 const LEDEN = {
   tenue:   {dij:'s', dij2:'S', kous:'o', kous2:'O', mouw:'r', mouw2:'R', onder:'s', onder2:'S', kort:true}, // (kort: korte mouwen, de onderste helft van de bovenarm is huid)
-  casual:  {dij:'e', dij2:'E', kous:'e', kous2:'E', mouw:'c', mouw2:'C', onder:'c', onder2:'C'},
-  pak:     {dij:'c', dij2:'C', kous:'c', kous2:'C', mouw:'c', mouw2:'C', onder:'c', onder2:'C'},
-  training:{dij:'u', dij2:'U', kous:'u', kous2:'U', mouw:'r', mouw2:'R', onder:'r', onder2:'R'},
+  casual:  {dij:'e', dij2:'E', kous:'e', kous2:'E', mouw:'c', mouw2:'C', onder:'c', onder2:'C', gympen:true},
+  pak:     {dij:'c', dij2:'C', kous:'c', kous2:'C', mouw:'c', mouw2:'C', onder:'c', onder2:'C', gympen:true},
+  training:{dij:'u', dij2:'U', kous:'u', kous2:'U', mouw:'r', mouw2:'R', onder:'r', onder2:'R', gympen:true}, // (gympen: schoenen zonder noppen, buiten het veld)
 };
 // Voetbalschoen van opzij, neus naar rechts: een enkelkraag, de wreef met witte veters, een lange voet die naar de neus toe
 // smaller wordt, een hiel, en een zool met noppen (tussen de noppen zit geen zwarte rand, zo zie je ze los staan)
 const SCHOEN = [[-2, 0, 2, 'b'], [-1, -1, 4, 'b'], [0, -2, 6, 'b'], [1, -2, 6, 'z']]; // (laag uitgesneden: de achterkant loopt schuin af naar de hiel)
 const NOPPEN = [-1, 2, 5]; // (de x van de noppen onder de zool)
-export function schoen(c, fx, fy, kleur, zool){
+export function schoen(c, fx, fy, kleur, zool, gympen = false){
   for (const [dy, x0, x1] of SCHOEN) for (let x = x0; x <= x1; x++) c.rect(fx + x - 1, fy + dy - 1, 3, 3, 'k');
   for (const [dy, x0, x1, deel] of SCHOEN) for (let x = x0; x <= x1; x++) c.px(fx + x, fy + dy, deel === 'z' ? zool : kleur);
   c.img.set(fx + 7, fy - 1, 0); c.img.set(fx + 6, fy - 2, 0); // (een ronde neus: de hoek van de rand eraf)
-  for (let x = -3; x <= 7; x++) if (!NOPPEN.includes(x)) c.img.set(fx + x, fy + 2, 0); // noppen
+  if (!gympen) for (let x = -3; x <= 7; x++) if (!NOPPEN.includes(x)) c.img.set(fx + x, fy + 2, 0); // noppen (een gymp heeft een gladde zool)
   c.px(fx - 2, fy, zool);                                                          // een klein hielstukje in de kleur van de zool
   c.px(fx + 1, fy - 2, 'i'); c.px(fx + 2, fy - 1, 'i'); c.px(fx + 3, fy - 1, 'i');  // veters
   c.px(fx + 6, fy, zool);                                                          // de neus iets donkerder
@@ -443,11 +443,11 @@ export function vuist(c, x, y, kleur){
 // De schoen draait mee met het scheenbeen: zwaait je onderbeen naar achteren (tijdens het rennen), dan wijst de neus naar
 // beneden en de zool naar achteren, zoals bij een echte voet. Eerst de schoen recht tekenen op een klein doek, dan elke pixel
 // van het doel terugrekenen naar dat doek (zo komen er geen gaten in). Naar voren (de hak op de grond) blijft hij recht
-function schoenGedraaid(c, fx, fy, kleur, zool, hoek){
+function schoenGedraaid(c, fx, fy, kleur, zool, hoek, gympen = false){
   // (in stappen: recht, schuin of helemaal gekanteld; een kleine draaiing maakt de pixels alleen maar rafelig)
   const stap = hoek <= -113 ? -135 : hoek <= -68 ? -90 : hoek <= -28 ? -45 : 0;
-  if (!stap){ schoen(c, fx, fy, kleur, zool); return; }
-  const OX = 5, OY = 5, los = new Img(16, 10); schoen(new Doek(los), OX, OY, kleur, zool);
+  if (!stap){ schoen(c, fx, fy, kleur, zool, gympen); return; }
+  const OX = 5, OY = 5, los = new Img(16, 10); schoen(new Doek(los), OX, OY, kleur, zool, gympen);
   const r = rad(stap), vx = Math.cos(r), vy = -Math.sin(r), ox = Math.sin(r), oy = Math.cos(r); // langs de voet en langs het been
   for (let y = -9; y <= 9; y++) for (let x = -9; x <= 9; x++){
     const lx = Math.round(x * vx + y * vy), ly = Math.round(x * ox + y * oy), k = los.get(lx + OX, ly + OY);
@@ -459,7 +459,7 @@ function tekenBeen(c, hx, hy, pose, voor, T, staat = false){
   const {kx, ky, fx, fy} = beenPunten(hx, hy, pose);
   dik(c, hx, hy, kx, ky, voor ? T.dij : T.dij2, 4);
   dik(c, kx, ky, kx + (fx - kx) * .78, ky + (fy - ky) * .78, voor ? T.kous : T.kous2, 4); // (iets korter, zie tekenBeenV)
-  schoenGedraaid(c, R(fx), R(fy), voor ? 'y' : 'Y', voor ? 'a' : 'A', staat ? 0 : pose[0] - pose[1]); // (de hoek van het scheenbeen)
+  schoenGedraaid(c, R(fx), R(fy), voor ? 'y' : 'Y', voor ? 'a' : 'A', staat ? 0 : pose[0] - pose[1], !!T.gympen); // (de hoek van het scheenbeen)
 }
 function tekenArm(c, sx, sy, pose, voor, handKleur, f, T, band, inkt){
   const {ex, ey, hx, hy} = armPunten(sx, sy, pose, f);
@@ -482,15 +482,15 @@ function tekenBeenV(c, hx, hy, pose, voor, T, rug){
   const p = beenPunten(0, 0, pose), ky = hy + p.ky, fy = R(hy + (rug ? p.fy : Math.max(p.fy, p.ky + 2))), x = R(hx);
   dik(c, hx, hy, hx, ky, voor ? T.dij : T.dij2, 4);
   dik(c, hx, ky, hx, fy - 2, voor ? T.kous : T.kous2, 4); // (iets korter: anders steekt de zwarte rand van de kous onder de schoen uit)
-  schoenV(c, x, fy, voor ? 'y' : 'Y', voor ? 'a' : 'A', rug);
+  schoenV(c, x, fy, voor ? 'y' : 'Y', voor ? 'a' : 'A', rug, !!T.gympen);
 }
 // Een schoen van voren (de neus wijst naar je toe: breed en rond, veters bovenop) of van achteren (de hiel, met een donkere hielkap)
 const SCHOEN_V = [[-2, -1, 1], [-1, -2, 2], [0, -2, 2], [1, -2, 2, 'z']]; // (laag: geen hoge hak die bol uitsteekt)
-function schoenV(c, x, fy, kleur, zool, rug){
+function schoenV(c, x, fy, kleur, zool, rug, gympen = false){
   for (const [dy, x0, x1] of SCHOEN_V) for (let xx = x0; xx <= x1; xx++) c.rect(x + xx - 1, fy + dy - 1, 3, 3, 'k');
   for (const [dy, x0, x1, deel] of SCHOEN_V) for (let xx = x0; xx <= x1; xx++) c.px(x + xx, fy + dy, deel === 'z' ? zool : kleur);
   c.img.set(x - 3, fy - 2, 0); c.img.set(x + 3, fy - 2, 0);                           // (ronde schouders van de schoen)
-  for (let xx = -3; xx <= 3; xx++) if (xx !== -2 && xx !== 2) c.img.set(x + xx, fy + 2, 0); // twee noppen onder de zool
+  if (!gympen) for (let xx = -3; xx <= 3; xx++) if (xx !== -2 && xx !== 2) c.img.set(x + xx, fy + 2, 0); // twee noppen onder de zool
   if (rug){ c.px(x, fy - 1, zool); c.px(x, fy, zool); } // een smalle hielkap (geen brede bolle hiel)
   else { c.px(x, fy - 2, 'i'); c.px(x - 1, fy - 1, 'i'); c.px(x + 1, fy - 1, 'i'); c.px(x - 2, fy, zool); c.px(x + 2, fy, zool); } // veters, en de neus rond
 }

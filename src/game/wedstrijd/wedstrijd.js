@@ -1,3 +1,4 @@
+import { huurAftrap, huurClausule, huurGoal, huurNaWedstrijd } from './huurduel.js';
 import { WEER, wedstrijdWeer, weerEffect, weerEffectTekst } from './weer.js';
 import { partnerNaWedstrijd } from '../prive/partner.js';
 import { S, club, mod, ovr, tmp, waarde } from '../../core/state.js';
@@ -45,10 +46,22 @@ import { krantMelding } from '../media/roddel.js';
 import { merkenNaWedstrijd } from '../prive/merken.js';
 
 /* ===================== Wedstrijd ===================== */
-// Achtergrondgoals als jij meespeelt (naast jouw momenten): factor voor jullie en voor de tegenstander
-export const BG = {wij:.5, zij:.85};
-// Bij "seizoen simuleren": minder achtergrondgoals voor jullie en meer voor de tegenstander, zodat een middenmoter niet vanzelf kampioen wordt
-export const SIM_BG = {wij:.8, zij:1.1};
+// Achtergrondgoals als jij meespeelt (naast jouw momenten). Voor jullie: de goals die de ploeg op eigen kracht zou maken, min wat
+// jij er naar verwachting zelf aan bijdraagt (goals en assists, zie verwachteBijdrage), voor BIJDRAGE_TEL. Zo speelt een ploeg met jou
+// erin ongeveer op zijn eigen sterkte (een vaste halvering liet een goede ploeg met een jonge speler of een verdediger erin degraderen),
+// en tilt een speler die meer doet dan verwacht zijn ploeg een beetje op. Voor de tegenstander: een factor (jij verdedigt ook mee)
+export const BG = {wij:1, zij:.85, minimum:.3};
+export const BIJDRAGE_TEL = .8;
+// Bij "seizoen simuleren" (geen aparte straf meer: de bijdrage hierboven past zich al aan aan hoe goed je echt speelt)
+export const SIM_BG = {wij:1, zij:1};
+// Hoeveel goals plus assists jij per wedstrijd naar verwachting zelf maakt: eerst een schatting per positie, dan steeds meer je echte
+// cijfers van dit seizoen (na 6 wedstrijden telt dat al half). Een invaller speelt korter, dus minder
+const BIJDRAGE_POS = {SPITS:.55, MID:.45, VERD:.18, KEEPER:0};
+export function verwachteBijdrage(rol){
+  const sp = S.sp, ss = S.ss || {}, wed = ss.wed || 0, echt = wed ? ((ss.g || 0) + (ss.a || 0)) / wed : 0, w = wed / (wed + 6);
+  const v = (BIJDRAGE_POS[sp.pos] ?? .3) * (1 - w) + echt * w;
+  return v * (rol === 'invaller' ? .35 : 1);
+}
 import { pers } from '../speler/persoonlijkheid.js';
 import { naRivaalDuel, rivaalNaam, rivaalTegen, sleutel, rivaal, RIVAAL_MOMENTEN, rivaalVoorzet, ploegRivaal, zetBand } from '../speler/rivaal.js';
 import { ik, team, vr } from '../../core/geslacht.js';
@@ -89,7 +102,8 @@ export function planWedstrijd(M, T, O, vast){
   const r4 = Math.pow(T / O, 4);
   const wg = weerEffect().goals; // (sneeuw: minder goals, regen: iets meer)
   { const w = wedstrijdWeer(), wt = weerEffectTekst(w); if (w && !M.weerLog){ M.weerLog = true; M.log.push({m:"0'", t:`${wt || 'Prima voetbalweer.'} (${WEER[w.soort].i} ${w.temp}°C)`, k:'info'}); } } // (het weer in het verslag)
-  const bgUs = vast ? vast.us : poisson(1.3 * r4 * BG.wij * wg * (tmp.simBezig ? SIM_BG.wij : 1)), bgThem = vast ? vast.them : poisson(1.3 / r4 * BG.zij * wg * (tmp.simBezig ? SIM_BG.zij : 1));
+  const eigen = 1.3 * r4, muUs = Math.max(eigen * BG.minimum, eigen * BG.wij - BIJDRAGE_TEL * verwachteBijdrage(M.rol));
+  const bgUs = vast ? vast.us : poisson(muUs * wg * (tmp.simBezig ? SIM_BG.wij : 1)), bgThem = vast ? vast.them : poisson(1.3 / r4 * BG.zij * wg * (tmp.simBezig ? SIM_BG.zij : 1));
   // Wedstrijdverslag: kansen voor beide ploegen (hoe beter het team, hoe meer kansen), kaarten, rust en blessuretijd
   const kansUs = clamp(poisson(1.5 + lu * 2), 1, 7), kansThem = clamp(poisson(1.5 + lt * 2), 1, 7);
   for (let i = 0; i < kansUs; i++) M.ev.push({type:'kansUs', min:randInt(3, 89)});
@@ -247,6 +261,7 @@ export function verslag(e, M){
       if (e.wat === 'ruzie'){ mod('focus', -3); return {t:`Na een mislukte combinatie staan jij en ${n} ineens neus aan neus. "Speel die bal dan ook!" De aanvoerder moet jullie uit elkaar halen. Je focus is even weg (focus −3).`, k:'gevaar'}; }
       if (e.wat === 'botsing') return {t:`Jij en ${n} gaan allebei voor dezelfde bal en knallen tegen elkaar op. Op de tribune wordt gelachen. ${H} staat op zonder je aan te kijken.`, k:'mis'};
       return {t:`Je pass komt net niet aan. ${n} gooit ${z} armen in de lucht en foetert je uit, recht voor de dug-out. De trainer kijkt het hoofdschuddend aan.`, k:'info'}; }
+    case 'huurInfo': return {t:e.t, k:'info'}; // (verhuurd, tegen je eigen club: huurduel.js)
     case 'oudMaat': return {t:pick([`Je oude maatje ${e.naam} probeert je af te stoppen. Jullie grijnzen allebei.`, `${e.naam} zet je stevig onder druk en geeft je daarna een knipoog. Net als vroeger op de training.`]), k:'info'};
     case 'reunieMoment': return reunieMomentTekst(e, M, jijSpeelt && !M.rood && M.gewisseld === undefined);
     case 'oudVijand': return {t:pick([`${e.naam}, met wie je nooit door één deur kon, schopt je net iets te hard. "Welkom terug," sist ${team.hij}.`, `${e.naam} blijft de hele tijd tegen je praten. ${team.Hij} wil je gek maken.`]), k:'gevaar'};
@@ -279,7 +294,7 @@ export function startWedstrijd(){
   if (!fixture(S.ronde)) return rustWeek();
   if (!(S.sp.geschorst > 0) && S.sp.o23 && S.sp.blessure <= 0 && S.sp.fit >= 20) return startO23();
   const sp = S.sp, c = club(), fx = fixture(S.ronde), opp = CLUBS[fx.opp];
-  let rol, reden = '';
+  let rol, reden = '', huurVerbod = false;
   if (sp.blessure > 0) rol = 'blessure';
   else if (sp.geschorst > 0) rol = 'geschorst';
   else if (sp.fit < 20) rol = 'rust';
@@ -297,6 +312,8 @@ export function startWedstrijd(){
     if (S.keeperKeus) reden = ''; 
   }
 
+  // verhuurd en nu tegen je eigen club: soms mag dat niet volgens je huurcontract (huurduel.js)
+  { const cl = rol === 'basis' || rol === 'invaller' || rol === 'bank' ? huurClausule(fx.opp) : null; if (cl){ rol = 'tribune'; reden = cl; huurVerbod = true; } }
   const T = teamKracht(c.s, {speelt:rol === 'basis' || rol === 'invaller', thuis:fx.thuis, tactiek:matchup(clubTactiek(sp.club), clubTactiek(fx.opp))});
   const O = opp.s + (fx.thuis ? 0 : 2) + vormBonus(fx.opp);
   const M = {opp:fx.opp, oppS:opp.s, wij:c.n, zij:opp.n, thuis:fx.thuis, rol, us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' || sp.pos === 'KEEPER' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false, derby:isDerby(fx.opp), fel:!!S.ss.rivaalFel};
@@ -307,7 +324,7 @@ export function startWedstrijd(){
 
   if (rol === 'blessure' || rol === 'rust' || rol === 'tribune' || rol === 'bank' || rol === 'ouders' || rol === 'geschorst'){
     const [a, b] = simGoals(T, O, false);
-    M.log.push({m:'', t: rol === 'geschorst' ? `Je bent geschorst${sp.geschorst > 1 ? ` (nog ${sp.geschorst} wedstrijden)` : ''}. Je kijkt vanaf de tribune hoe je ploeg het zonder jou doet.` : rol === 'ouders' ? 'Je ouders houden je thuis: "Eerst je cijfers ophalen, dan mag je weer voetballen."' : rol === 'blessure' ? (sp.verlof ? 'Je bent met zwangerschapsverlof. Je ploeg speelt zonder jou.' : 'Je zit geblesseerd op de tribune.') : rol === 'rust' ? 'Je bent compleet kapot. De trainer laat je rusten.' : rol === 'bank' ? 'Je zit de hele wedstrijd op de bank. De trainer brengt je niet in.' + reden : 'De trainer laat je buiten de selectie. Je kijkt vanaf de tribune.' + reden, k:'mis'});
+    M.log.push({m:'', t: rol === 'geschorst' ? `Je bent geschorst${sp.geschorst > 1 ? ` (nog ${sp.geschorst} wedstrijden)` : ''}. Je kijkt vanaf de tribune hoe je ploeg het zonder jou doet.` : rol === 'ouders' ? 'Je ouders houden je thuis: "Eerst je cijfers ophalen, dan mag je weer voetballen."' : rol === 'blessure' ? (sp.verlof ? 'Je bent met zwangerschapsverlof. Je ploeg speelt zonder jou.' : 'Je zit geblesseerd op de tribune.') : rol === 'rust' ? 'Je bent compleet kapot. De trainer laat je rusten.' : rol === 'bank' ? 'Je zit de hele wedstrijd op de bank. De trainer brengt je niet in.' + reden : huurVerbod ? reden.trim() : 'De trainer laat je buiten de selectie. Je kijkt vanaf de tribune.' + reden, k:'mis'});
     M.log.push({m:"1'", t:`Aftrap! ${rol === 'bank' ? (sp.pos === 'KEEPER' ? 'Je zit op de bank als reservekeeper.' : 'Je zit op de bank.') : rol === 'ouders' ? 'Je volgt de wedstrijd thuis via de livestream.' : 'Je kijkt vanaf de tribune.'}`, k:''});
     if (derbyRegel) M.log.push(derbyRegel);
     if (M.rivaal) M.log.push({m:"1'", t:`Je rivaal ${rivaalNaam()} staat in de basis bij ${opp.n}. Jij ${rol === 'bank' ? 'zit op de bank en ziet ' + team.hem + ' warmlopen' : 'kijkt toe'}. Dat doet pijn.`, k:'info'});
@@ -318,6 +335,7 @@ export function startWedstrijd(){
   }
   if (derbyRegel) M.log.push(derbyRegel);
   reunieAftrap(M);
+  huurAftrap(M, rol === 'invaller' ? 62 : 1); // (tegen de club die jou uitleende: huurduel.js)
   fansVoorAftrap(M);
   if (M.rivaal){ M.log.push({m:"1'", t:`Je rivaal ${rivaalNaam()} staat in de basis bij ${opp.n}. Bij de opkomst kijkt ${team.hij} je strak aan. Vandaag laat je zien wie de beste is.`, k:'info'});
     const R = rivaal();
@@ -471,6 +489,7 @@ export function kies(i){
   if (out.juich){ M.juich = out.juich; if (M.reunie){ modFans(out.oudFans || 0, M.reunie.club); modFans(out.nieuwFans || 0); } }
   M.pending = null;
   if (varWacht && !M.rood){ M.log.push({m, t:'📺 VAR-check! De scheidsrechter legt zijn hand bij zijn oor en loopt naar het scherm...', k:'var'}); M.varKeuze = {uitslag:varWacht, m, vt:opt.vt ? (opt.merk ? 2 : 1) : 0}; return; }
+  if (out.goal) huurGoal(M, m); // (een goal tegen de club die jou uitleende)
   // tegen je oude club kies je bij élke goal of (en hoe) je juicht
   if (out.goal && M.reunie && !M.rood){ M.juichGekozen = true; M.pending = bouwMoment('juichen'); return; }
   // jouw goal: hoe vier je hem? (de eventuele vervolgactie komt daarna)
@@ -647,6 +666,7 @@ export function eindeWedstrijd(){
   fansNaWedstrijd(M, speelde);
   if (speelde) merkenNaWedstrijd(M); // je eigen merken: goals en topcijfers geven hype
   reunieNaWedstrijd(M, speelde);
+  huurNaWedstrijd(M, speelde);
   if (speelde) recordsNaWedstrijd(M);
   M.nieuws = maakNieuws(M, speelde);
   // Een nieuwe status (basisplaats, fanfavoriet, aanvoerder, terug naar de bank) staat meteen in de krant van deze wedstrijd

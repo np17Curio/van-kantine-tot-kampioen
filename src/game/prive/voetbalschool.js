@@ -1,6 +1,7 @@
 import { S, mod, seizoenLabel } from '../../core/state.js';
 import { clamp, geldTxt, pick, randInt, rnd } from '../../core/utils.js';
-import { CLUBS, geldF } from '../../data/gegevens.js';
+import { CLUBS, LAAGSTE, divClubs, geldF } from '../../data/gegevens.js';
+import { thuisLand } from '../../data/landen.js';
 import { KRANTEN } from '../media/nieuws.js';
 import { RODDELBLADEN, krantMelding } from '../media/roddel.js';
 import { isProf } from './sponsors.js';
@@ -16,6 +17,8 @@ import { vrouwenWereld } from '../../core/geslacht.js';
 // bij jouw club (als jeugdspeler, x.kamptalent), of bij jouw ploeg als je dan trainer bent.
 export const SCHOOL_PRIJS = () => Math.round(25000 * geldF());
 export const KAMP_WEKEN = 4; // de eerste vier weken van het seizoen: dat is je zomer
+// De amateurclub waar je school mee samenwerkt: in Nederland een echte amateurclub, in een ander land een kleine club uit dat land
+const amateurClub = () => { if (thuisLand() === 'Nederland') return pick(AMATEUR); const l = divClubs(LAAGSTE).filter(i => CLUBS[i]); return l.length ? CLUBS[pick(l)].n : pick(AMATEUR); };
 const AMATEUR = ['VV De Zwaluwen', 'SV Kantinezicht', 'RKSV Vooruit', 'VV Oranje Boys', 'SC Het Veldje', 'VV Blauw-Wit \'54', 'SV De Kraaien'];
 const JONGENS = ['Sem', 'Daan', 'Milan', 'Jayden', 'Noah', 'Luuk', 'Bram', 'Ryan', 'Thijs', 'Mo', 'Ilias', 'Finn', 'Yusuf', 'Jesse', 'Owen', 'Senna'];
 const MEIDEN = ['Lieke', 'Noa', 'Sara', 'Yara', 'Fenna', 'Isa', 'Zoë', 'Lina', 'Jill', 'Amira', 'Roos', 'Femke', 'Nina', 'Esmee', 'Liv', 'Sanne'];
@@ -43,7 +46,7 @@ export function kampReden(k){
 export function startSchool(){
   const sp = S.sp; if (sp.vschool || !isProf() || sp.geld < SCHOOL_PRIJS()) return;
   sp.geld -= SCHOOL_PRIJS();
-  sp.vschool = {naam:`Voetbalschool ${sp.naam}`, jaar:S.jaar, amateur:pick(AMATEUR), kampen:0, kinderen:0, laatste:null};
+  sp.vschool = {naam:`Voetbalschool ${sp.naam}`, jaar:S.jaar, amateur:amateurClub(), kampen:0, kinderen:0, laatste:null};
   mod('rep', 2); mod('moraal', 4);
   S.car.hist.push(`${seizoenLabel()}: Voetbalschool ${sp.naam} opgericht`);
   krantMelding(`${sp.naam} begint eigen voetbalschool`, `"Ik wil kinderen leren wat ik zelf op het veldje leerde," zegt de prof. Elke zomer komt er een kamp.`, RODDELBLADEN);

@@ -38,7 +38,7 @@ export function lookVan(uit = {}, tenue = null, opties = {}){
   // pak (stijlbron: BAAS): nette bruine schoenen; vrijetijdskleding (CASUAL): jas, spijkerbroek en witte schoenen
   if (kleding === 'pak'){ const pk = opties.pak || PAKKEN[(opties.nr || 0) % PAKKEN.length]; k.c = pk; k.C = opties.pak2 || donker(pk, .3); k.t = opties.das || DASSEN[((opties.nr || 0) >> 3) % DASSEN.length]; k.y = '#7a4a2a'; k.Y = '#6f4630'; k.a = k.A = '#3b2a22'; }
   if (kleding === 'casual'){ Object.assign(k, {c:'#34343e', C:'#22222a', e:'#4a6fb0', E:'#33508a', y:'#f4f4f8', Y:'#c4c4d0', a:'#3a3a44', A:'#24242c'}); }
-  if (kleding === 'training'){ k.u = t.broek || '#16171c'; k.U = donker(k.u, .3); }
+  if (kleding === 'training'){ k.u = t.broek || '#16171c'; k.U = donker(k.u, .3); k.y = '#f4f4f8'; k.Y = '#c4c4d0'; k.a = '#8a8f9a'; k.A = '#6b707b'; } // (bij het trainingspak: witte gympen, geen voetbalschoenen)
   // (een donkere schoen op een donkere omlijning: iets lichter, anders zie je hem niet)
   if (helder(k.y) < 30){ k.y = '#2b2d36'; k.Y = '#1f2028'; }
   if (!k.a){ k.a = donker(k.y, .35); k.A = donker(k.y, .5); } // de zolen

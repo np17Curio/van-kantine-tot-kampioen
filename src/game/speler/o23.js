@@ -1,3 +1,4 @@
+import { huurIndrukBijTerugkeer } from '../wedstrijd/huurduel.js';
 import { hoogtepunt } from './hoogtepunten.js';
 import { S, club, mod, ovr, seizoenLabel, tmp } from '../../core/state.js';
 import { sterrenNa } from '../wedstrijd/opdrachten.js';
@@ -183,6 +184,7 @@ export function terugVanHuur(){
   else if (g !== null && g >= 6.4){ sp.status = Math.max(h.status, Math.min(24, h.status + 6)); sp.vert = 45; tekst = `Je speelde redelijk bij ${huurNaam} (gemiddeld ${fmt1(g)}). Terug bij ${ouder.n} moet je knokken voor een basisplaats.`; }
   else { sp.status = Math.min(h.status, 12); sp.vert = 30; tekst = `Je huurperiode bij ${huurNaam} liep niet goed${g !== null ? ` (gemiddeld ${fmt1(g)})` : ''}. ${ouder.n} is nog niet overtuigd.`; }
   sp.statusNiveau = statusNiveau();
+  tekst += huurIndrukBijTerugkeer(h); sp.statusNiveau = statusNiveau(); // (hoe je het deed tegen je eigen club: huurduel.js)
   S.car.hist.push(`${seizoenLabel()}: terug van huur bij ${huurNaam} naar ${ouder.n}`);
   if (weg) tekst = `${h.ouderLand === thuisStart() ? 'Terug thuis' : `Terug in ${h.ouderLand}`} na een seizoen in ${huurLand}. ` + tekst;
   // Wat wil je eigen club? Ging het goed of redelijk: terug in de selectie. Zo niet: opnieuw verhuren (nog een lang contract)

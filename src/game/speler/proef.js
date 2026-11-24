@@ -145,14 +145,18 @@ export function volgendeOefening(){
 }
 
 // ---------- de oefenwedstrijd (net als een selectiewedstrijd, maar dan met de club van je proeftraining) ----------
-const TEGEN = ['VV De Zwaluwen', 'SV Noordkust', 'FC Polderland', 'RKSV De Hoeve', 'VV Oranjewit', 'SC Lindenoord'];
+// De tegenstander: een echte club uit het land waar je begint (in Engeland een Engelse club), ongeveer even sterk als de club van je proeftraining
+function proefTegenstander(P){
+  const c = CLUBS[P.club], l = [...divClubs(LAAGSTE), ...divClubs(1)].filter(i => i !== P.club && CLUBS[i]).sort((a, b) => Math.abs(CLUBS[a].s - c.s) - Math.abs(CLUBS[b].s - c.s));
+  return l.length ? CLUBS[pick(l.slice(0, 5))].n : 'FC ' + c.n.split(' ').pop();
+}
 export function startProefWed(){
   const sp = S.sp, P = proefStand(); if (!P) return;
   const c = CLUBS[P.club], wijS = c.s - 2 + randInt(0, 2), oppS = c.s - 4 + randInt(0, 4), thuis = true;
   const T = teamKracht(wijS, {speelt:true, thuis, bonus:false}), O = oppS;
   P.stap = 'wed';
   // (vlag selectie: alles wat voor een selectiewedstrijd geldt, geldt hier ook: geen opdrachten, geen opkomst, geen clublogo's)
-  const M = {o23:true, selectie:true, proef:true, oppS, wij:c.n, zij:pick(TEGEN), thuis, rol:'basis', us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' || sp.pos === 'KEEPER' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false};
+  const M = {o23:true, selectie:true, proef:true, oppS, wij:c.n, zij:proefTegenstander(P), thuis, rol:'basis', us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' || sp.pos === 'KEEPER' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false};
   S.M = M;
   planWedstrijd(M, T, O);
   M.log.push({m:"1'", t:`Oefenwedstrijd bij ${c.n}. De trainer en de technisch directeur staan langs de lijn met hun armen over elkaar. ${AGENT} zit op de tribune en steekt zijn duim op.`, k:''});

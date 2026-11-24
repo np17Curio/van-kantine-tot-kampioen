@@ -18,8 +18,8 @@ import { eersteSeizoen } from '../transfers/vertrek.js';
 import { ik, team, vp, vr, vriendVrouw } from '../../core/geslacht.js';
 
 /* ===================== Jouw jeugdvriend ===================== */
-// Je beste vriend uit de jeugd doet mee met de selectiedagen en tekent misschien bij dezelfde club. In de winter van je eerste
-// seizoen probeert een gladde zaakwaarnemer hem weg te halen (de verleiding): of jullie dan rivalen worden of vrienden blijven,
+// Je beste vriend uit de jeugd doet mee met de selectiedagen en tekent misschien bij dezelfde club. In een winterstop (op zijn
+// vroegst in je derde seizoen) probeert een gladde zaakwaarnemer hem weg te halen (de verleiding): of jullie dan rivalen worden of vrienden blijven,
 // hangt af van jullie band (die bouw je elke week op, VRIEND_ACTIES) en van wat je zegt. In gesprekken kies je een toon.
 export const vriendRoute = () => !!(S.sp && S.sp.journey && S.sp.journey.route === 'vriend');
 // De laatbloeier (23): geen selectiedagen maar een telefoontje van je zaakwaarnemer en een proeftraining (proef.js)
@@ -95,9 +95,11 @@ export function maakJourney(sp, keuze = {}){
 }
 export const zetBand = d => { const v = S.sp.vriend; v.band = clamp(v.band + d, -100, 100); };
 
-// ---------- De verleiding: in de winter van je eerste seizoen probeert een zaakwaarnemer je vriend weg te halen ----------
+// ---------- De verleiding: in een winterstop (op zijn vroegst in je derde seizoen) probeert een zaakwaarnemer je vriend weg te halen ----------
 // Je antwoord (en jullie band) beslist of jullie vrienden blijven of rivalen worden (breukUitkomst). Een gewoon weekbericht met keuzes.
 function verleidingInhoud(d){
+  // (een oudere opslag kan nog een bod van je aartsrivaal klaar hebben staan: dan alsnog een andere club)
+  if (!d.apart && (d.derby || vriendVerboden().has(d.naar))){ const n = breukDoel(); if (n.naar != null){ d.naar = n.naar; d.derby = false; } }
   const sp = S.sp, v = sp.vriend, vn = v.voornaam, o = (l, toon, f) => ({l, toon, f}), breuk = (soort, band = 0) => breukUitkomst(soort, band, d.naar);
       // Een vriend(in) in de andere wereld: een grotere club daar. Jullie worden geen rivalen, hooguit groeien jullie wat uit elkaar
       if (d.apart){ const naarN = vriendClubInfo(d.naar).n, zijnN = vriendClubNaam() || 'een andere club';
@@ -176,17 +178,22 @@ function vriendIds(){
   if (!vriendHier()) return Array.from({length:clubsLand(land) - 8}, (_, i) => 8 + i).filter(i => vreemdeClub(land, i).t >= 1);
   return [1, LAAGSTE].flatMap(t => divClubs(t));
 }
-// De breuk: hij/zij vertrekt naar een club in de league van je eigen club (het liefst je aartsrivaal) en wordt je vaste rivaal.
+// De breuk: hij/zij vertrekt naar een andere club in de league van je eigen club (nooit je aartsrivaal of de club van een van je
+// rivalen: daar gaat je beste vriend niet heen) en kan je rivaal worden.
 // Op afstand (een andere competitie): een grotere club daar, en geen rivalen
 export function breukDoel(){
   const sp = S.sp, v = sp.vriend;
   if (opAfstand()){ const cur = vriendClubInfo(v.club), l = vriendIds().filter(i => i !== v.club && !(vriendHier() && i === sp.club)).map(i => [i, vriendClubInfo(i)]).filter(([, c]) => c && c.t >= 1 && cur && c.s > cur.s).sort((a, b) => a[1].s - b[1].s).map(x => x[0]);
     return {naar:l.length ? l[Math.min(l.length - 1, randInt(0, 2))] : null, derby:false, zelfde:false, apart:true}; }
   const mijn = mijnVasteClub(), t = CLUBS[mijn].t, huur = sp.huur ? sp.club : null, derby = derbyVan(mijn), zijn = v ? v.club : null, zelfde = zijn === mijn;
-  const mag = i => i !== mijn && i !== zijn && i !== huur, mijnNaam = CLUBS[mijn].n;
-  if (derby != null && CLUBS[derby].t === t && mag(derby)) return {naar:derby, derby:true, zelfde, mijnNaam};
-  const l = divClubs(t).filter(mag).sort((a, b) => CLUBS[b].s - CLUBS[a].s);
-  return {naar:l.length ? l[randInt(0, Math.min(2, l.length - 1))] : null, derby:false, zelfde, mijnNaam};
+  const verboden = vriendVerboden(); if (derby != null) verboden.add(derby);
+  const mag = i => i !== mijn && i !== zijn && i !== huur && !verboden.has(i), mijnNaam = CLUBS[mijn].n;
+  // Het moet voor hém een stap omhoog zijn: een sterkere club, in zijn eigen competitie of hoger (nooit terug naar een lagere league).
+  // Het liefst een club uit jouw competitie (dan wordt het spannend), en dan een bescheiden stap: een van de zwakste die sterker zijn
+  const cur = zijn != null ? CLUBS[zijn] : null, omhoog = i => !cur || (CLUBS[i].t <= cur.t && CLUBS[i].s > cur.s);
+  const kies = l => l.length ? l.sort((a, b) => CLUBS[a].s - CLUBS[b].s)[randInt(0, Math.min(2, l.length - 1))] : null;
+  const naar = kies(divClubs(t).filter(i => mag(i) && omhoog(i))) ?? kies([1, LAAGSTE].flatMap(x => divClubs(x)).filter(i => mag(i) && omhoog(i)));
+  return {naar, derby:false, zelfde, mijnNaam};
 }
 // Wat er gebeurt na het gesprek: 'blijft' (hij zegt nee tegen de zaakwaarnemer), 'vriend' (hij vertrekt, jullie blijven vrienden)
 // of 'rivaal' (hij vertrekt en wordt je rivaal)
@@ -725,7 +732,7 @@ export function vriendWeek(eerste){
     if (J && J.verleiding && v.band < 25 && S.ronde === WINTER && v.vosJaar !== S.jaar && !S.wachtEv){ v.vosJaar = S.jaar; S.wachtEv = vosOpnieuw(); }
     // Hij vraagt of jij naar zijn club komt (hooguit eens per seizoen, als jij daar minstens wissel zou zijn)
     else if (bandWeek()) return;
-    else if ((!J || J.verleiding) && v.band >= 20 && v.lokJaar !== S.jaar && S.ronde >= 6 && !bijJou() && !vriendApart() && !sp.o23 && !sp.huur && !sp.clubloos && !eersteSeizoen() && !sp.vriendBod && !v.komt && !S.wachtEv && v.club != null && !vriendVerboden().has(v.club) && rnd() < .05 && rolBijHem() !== 'tribune'){ v.lokJaar = S.jaar; S.wachtEv = vriendLokt(); }
+    else if ((!J || J.verleiding || S.jaar - J.jaar >= 1) && v.band >= 20 && v.lokJaar !== S.jaar && S.ronde >= 6 && !bijJou() && !vriendApart() && !sp.o23 && !sp.huur && !sp.clubloos && !eersteSeizoen() && !sp.vriendBod && !v.komt && !S.wachtEv && v.club != null && !vriendVerboden().has(v.club) && rnd() < .05 && rolBijHem() !== 'tribune'){ v.lokJaar = S.jaar; S.wachtEv = vriendLokt(); }
     return;
   }
   // Geen contact meer (na een breuk op afstand): af en toe een berichtje van hem
@@ -819,15 +826,19 @@ function vosOpnieuw(){
     {l:'"Ga maar, het maakt me niet uit."', toon:'fel', f(){ breukUitkomst('rivaal', -40, d.naar); return `${vn} vertrekt naar ${CLUBS[d.naar].n}. Vanaf nu zijn jullie rivalen.`; }}]};
 }
 
-// ---------- elke week: de verleiding (winter van je eerste seizoen, als je vriend nog je vriend is) ----------
+// ---------- elke week: de verleiding (een winterstop, op zijn vroegst in je derde seizoen, als je vriend nog je vriend is) ----------
+// Niet al na een half jaar: jullie moeten eerst een tijd samen (of naast elkaar) gespeeld hebben. Is hij net van club gewisseld,
+// dan wacht het een jaar. Na zes seizoenen komt het niet meer
+export const VERLEIDING_VANAF = 2, VERLEIDING_TOT = 6;
 export function verleidingWeek(eerste){
   const sp = S.sp, J = journey(); if (!J || J.verleiding || S.trainer || eerste || sp.clubloos || !sp.vriend) return;
-  if (S.jaar !== J.jaar){ J.verleiding = true; return; } // (het eerste seizoen is voorbij: geen verleiding meer)
-  if (S.ronde < WINTER) return;
-  if (S.ronde > WINTER){ J.verleiding = true; return; } // (de winterstop is voorbij: dan komt dit gesprek niet meer)
+  const jaren = S.jaar - J.jaar;
+  if (jaren > VERLEIDING_TOT){ J.verleiding = true; return; }
+  if (jaren < VERLEIDING_VANAF || S.ronde !== WINTER) return;
+  const v = sp.vriend; if (v.transferJaar != null && S.jaar - v.transferJaar < 2) return; // (net bij een nieuwe club: eerst laten wennen)
   if (!vriendActief()) return;
+  const d = breukDoel(); if (d.naar == null) return; // (geen club die voor hem een stap omhoog is: dan een volgende winterstop)
   J.verleiding = true;
-  const d = breukDoel(); if (d.naar == null) return;
   const ev = verleidingEvent({...d, band:Math.round(sp.vriend.band)}); if (!ev) return;
   // in de winterstop zelf; staat er al iets anders klaar, dan komt dat erna
   const ander = S.wachtEv; // (kiesEvent wist S.volgEv eerst: daarom hangt het andere bericht aan de antwoorden)
