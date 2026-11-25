@@ -1,3 +1,5 @@
+import { clubFormatie, formatieVan } from '../../game/team/formatie.js';
+import { mijnPlek } from '../../data/plekken.js';
 import { WEER, wedstrijdWeer, weerEffectTekst } from '../../game/wedstrijd/weer.js';
 import { S, club, statWaarde, attr, tmp } from '../../core/state.js';
 import { vDoelenBalk, vSterren } from './sterren.js';
@@ -90,11 +92,23 @@ const ROL = {basis:['Je staat in de basis', 'r-veilig'], invaller:['Je begint op
   blessure:['Je bent geblesseerd', 'r-riskant'], geschorst:['Je bent geschorst', 'r-riskant'], rust:['Je krijgt rust', 'r-gem'], o23:['Je speelt bij de O23', 'r-gem']};
 // De elf van een club (aangevuld uit de bank als er iemand ontbreekt) en de wissels. Jij staat erbij als je in de basis staat
 // De elf en de wissels (startElf), met rugnummers
-export function elftal(id, metJou, vulPos){ rugTeam(id); const r = startElf(id, metJou, vulPos); if (metJou) r.elf.push({jij:true, n:S.sp.naam, pos:LINIE[S.sp.pos], nr:rugnummer()}); return r; }
-const spelerRij = x => `<li class="${x.jij ? 'mij' : ''}"><span class="nr">${x.nr ? x.nr : ''}</span><span>${x.jij ? `<b>${esc(x.n)} (jij)</b>${isAanvoerder() ? ' <span class="tag" title="Aanvoerder">C</span>' : ''}` : esc(metVoorletter(x))}${x.vriend ? ' 🤝' : ''}${x.rivaal ? ' ⚔️' : ''}</span></li>`;
+export function elftal(id, metJou, vulPos){ rugTeam(id); const r = startElf(id, metJou, vulPos); r.elf = r.elf.map(x => ({...x})); if (metJou) r.elf.push({jij:true, n:S.sp.naam, pos:LINIE[S.sp.pos], nr:rugnummer()}); geefPlekken(r.elf, id, metJou); return r; }
+// Iedereen in de elf krijgt een plek uit de formatie van de club (formatie.js), van links naar rechts per linie. Jij staat op je eigen plek
+function geefPlekken(elf, id, metJou){
+  const f = formatieVan(id), jij = metJou ? elf.find(x => x.jij) : null, mijn = jij ? mijnPlek() : null, uit = [];
+  for (const l of ['K', 'V', 'M', 'A']){
+    const volg = l === 'K' ? ['GK'] : f[l], vrij = volg.map((_, i) => i), g = elf.filter(x => x.pos === l), plaats = new Map();
+    if (jij && jij.pos === l){ const i = volg.indexOf(mijn); plaats.set(jij, i >= 0 ? vrij.splice(vrij.indexOf(i), 1)[0] : 99); jij.plek = mijn; }
+    g.filter(x => !x.jij).forEach(x => { const i = vrij.length ? vrij.shift() : 99; plaats.set(x, i); x.plek = volg[i] || (l === 'K' ? 'GK' : ''); });
+    // op volgorde van de formatie, van links naar rechts (zo staan ze ook op het opstellingsscherm)
+    uit.push(...g.sort((a, b) => plaats.get(a) - plaats.get(b)));
+  }
+  elf.splice(0, elf.length, ...uit, ...elf.filter(x => !uit.includes(x)));
+}
+const spelerRij = x => `<li class="${x.jij ? 'mij' : ''}"><span class="nr">${x.nr ? x.nr : ''}</span><span>${x.plek ? `<span class="plekcode">${x.plek}</span> ` : ''}${x.jij ? `<b>${esc(x.n)} (jij)</b>${isAanvoerder() ? ' <span class="tag" title="Aanvoerder">C</span>' : ''}` : esc(metVoorletter(x))}${x.vriend ? ' 🤝' : ''}${x.rivaal ? ' ⚔️' : ''}</span></li>`;
 function vElftal(id, titel, metJou, toonBank, opBank){
   const {elf, bank} = elftal(id, metJou, id === S.sp.club ? null : 'M'), tel = p => elf.filter(x => x.pos === p).length;
-  const formatie = `${tel('V')}-${tel('M')}-${tel('A')}`;
+  const formatie = clubFormatie(id) || `${tel('V')}-${tel('M')}-${tel('A')}`;
   const mij = !metJou && toonBank && opBank ? [{jij:true, n:S.sp.naam, pos:LINIE[S.sp.pos], nr:rugnummer()}] : [];
   return `<div class="opstelling"><div class="opkop">${clubLogo(id, 28)}<div><b>${esc(titel)}</b><span class="muted klein-tekst">${formatie} · sterkte ${CLUBS[id].s}</span></div></div>
     ${LINIES.map(([p, l]) => { const g = elf.filter(x => x.pos === p); return g.length ? `<span class="label">${l}</span><ol>${g.map(spelerRij).join('')}</ol>` : ''; }).join('')}

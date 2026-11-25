@@ -6,7 +6,7 @@ import { KRANTEN } from '../media/nieuws.js';
 import { krantMelding } from '../media/roddel.js';
 import { social, volgersTxt } from '../prive/social.js';
 import { onrust } from '../speler/kalmte.js';
-import { fmt1 } from '../speler/o23.js';
+import { fmt1, huurOuder } from '../speler/o23.js';
 import { recenteGoudenBal, statusNiveau, statusPunten } from '../speler/status.js';
 import { isAanvoerder } from '../team/aanvoerder.js';
 import { iedereen } from '../team/kleedkamer.js';
@@ -170,6 +170,8 @@ function situatieVragen(M){
   if (M.goals >= 3) L.push({id:'sHattrick', doel:'ambitie', vraag:`Een hattrick tegen ${CLUBS[M.opp].n}! Neem je de wedstrijdbal mee naar huis?`, b:'"Die bal gaat naar mijn familie. Zonder hen stond ik hier niet."', z:'"Natuurlijk. En ik hoop dat er nog veel ballen bij komen."', u:'"Eén bal? Ik had er vandaag vijf moeten maken."'});
   if (M.blessureVeld) L.push({id:'sBlessure', eerst:!M.rood, doel:'club', vraag:'Je moest geblesseerd van het veld. Hoe gaat het nu?', b:'"Het doet pijn, maar de medische staf zorgt goed voor me. Ik kom sterker terug."', z:'"Ik ben zo terug. Echt, over een paar weken sta ik er weer."', u:'"Als ze die man eerder een kaart hadden gegeven, stond ik er nog. Dit had voorkomen kunnen worden."'});
   if (M.ploegRivaal) L.push({id:'sPloegRivaal', doel:'team', vraag:`Het schuurde zichtbaar tussen jou en ${M.ploegRivaal.naam}. Wat is er aan de hand in de kleedkamer?`, b:'"We zijn het niet altijd eens, maar op het veld spelen we voor hetzelfde shirt. Dat lossen we samen op."', z:'"Concurrentie maakt ons scherp. De trainer kiest wie er speelt, en dat ben ik."', u:`"Vraag het ${team.hem} zelf maar. Ik speel tenminste de bal naar een vrije man."`});
+  // Gehuurd: de pers wil weten of je wilt blijven, hoe je eigen club meekijkt... (doel 'huur': je antwoord telt bij beide clubs)
+  if (S.sp.huur && !M.rood && rnd() < .55){ const q = huurVraag(M); if (q) L.push(q); }
   if (aanv && !M.rood){
     const AANV_VRAGEN = verl ? [
       {id:'sAanvVerlies', doel:'team', vraag:'Als aanvoerder: hoe krijg je de groep na deze nederlaag weer op de rit?', b:'"Ik praat met iedereen apart. Samen staan we hier ook weer uit op."', z:'"Ik ga voorop op de training. De rest volgt vanzelf."', u:`"Sommige ${ploeg} moeten zich eens afvragen of ze dit shirt wel verdienen."`},
@@ -183,6 +185,27 @@ function situatieVragen(M){
     L.push(pick(AANV_VRAGEN));
   }
   return L;
+}
+// Vragen als je gehuurd bent. Bescheiden: trouw aan je eigen club (die hoort het graag). Zelfverzekerd: je laat het open.
+// Uitdagend: je wilt bij de huurclub blijven (de fans daar smullen ervan, je eigen club is er niet blij mee, en de huurclub
+// wil je eerder kopen)
+function huurVraag(M){
+  let ouder = ''; try { ouder = huurOuder().n; } catch (e){} if (!ouder) return null;
+  const wij = club().n, g = M.cijfer || 6, goed = g >= 7;
+  const V = [
+    {id:'hBlijven', doel:'huur', vraag:`Je bent gehuurd van ${ouder}. Zou je na dit seizoen bij ${wij} willen blijven?`,
+      b:`"Ik ben hier om te groeien. In de zomer ga ik terug naar ${ouder}, en daar wil ik mijn kans pakken."`, z:'"Ik geniet hier elke week. In de zomer kijken we wat het beste is."', u:`"Als het aan mij ligt, blijf ik hier. Bij ${ouder} kreeg ik die kans niet."`},
+    {id:'hOuderKijkt', doel:'huur', vraag:`Kijken ze bij ${ouder} mee naar jouw wedstrijden?`,
+      b:`"Ik hoop het. Ik wil laten zien dat ik klaar ben voor het eerste van ${ouder}."`, z:'"Dat moeten ze zeker doen. Ik speel hier elke week een goede wedstrijd."', u:'"Dat mogen ze. Misschien zien ze dan wat ze hebben laten gaan."'},
+    {id:'hVerschil', doel:'huur', vraag:`Wat is het grootste verschil tussen ${wij} en ${ouder}?`,
+      b:'"Hier krijg ik speeltijd, daar train ik met de besten. Allebei goud waard."', z:'"Hier speel ik elke week. Dat merk je aan alles."', u:`"Hier vertrouwen ze me. Bij ${ouder} zat ik alleen maar op de bank."`},
+    {id:'hFansHuur', doel:'huur', vraag:goed ? `De fans van ${wij} zingen je naam al. Gaan ze je missen als je teruggaat?` : `Het lukt nog niet helemaal bij ${wij}. Was deze huurperiode wel een goed idee?`,
+      b:goed ? `"Ik ga hen ook missen. Maar mijn contract ligt bij ${ouder}."` : '"Zeker. Ik leer hier elke week, ook van de mindere dagen."',
+      z:goed ? '"Ik geef ze dit seizoen alles. Daarna zien we wel."' : '"Geef me een paar weken. Dan zie je de echte ik."',
+      u:goed ? `"Laat ${wij} me maar kopen. Dan hoeven ze me niet te missen."` : `"Het ligt niet aan mij. ${ouder} had me nooit moeten wegsturen."`},
+  ];
+  const recent = S.persRecent || [], vrij = V.filter(x => !recent.includes(x.id));
+  return vrij.length ? pick(vrij) : null;
 }
 // Een vraag over je jeugdvriend, als je tegen zijn club speelde (doel 'vriend': je antwoord raakt jullie band)
 function vriendVraag(M){
@@ -225,6 +248,13 @@ export function persAntwoord(i, q){
   const citaat = o.t.replace(/^"|"$/g, '');
   if (v.doel === 'rivaalSpeler' && o.s === 'b') zetBand(5);
   if (v.doel === 'vriend'){ try { zetVriendBand(o.s === 'b' ? 5 : o.s === 'z' ? 1 : -8); } catch (e){} }
+  // Gehuurd: wat je zegt hoort je eigen club ook (sp.huur.indruk: telt mee als je terugkomt), en de huurclub onthoudt of je wilt blijven
+  if (v.doel === 'huur' && sp.huur){
+    const h = sp.huur, ouder = (() => { try { return huurOuder().n; } catch (e){ return 'je eigen club'; } })();
+    if (o.s === 'b'){ h.indruk = clamp((h.indruk || 0) + 2, -10, 15); h.blijfWens = false; }
+    if (o.s === 'u'){ h.indruk = clamp((h.indruk || 0) - 4, -10, 15); h.blijfWens = true; modFans(sc(5)); }
+    v.huurExtra = o.s === 'b' ? ` Bij ${ouder} lezen ze het graag: dat telt mee als je terugkomt.` : o.s === 'u' ? ` De fans van ${club().n} smullen ervan en de club weet nu dat je wilt blijven. Bij ${ouder} zijn ze minder blij: dat onthouden ze.` : '';
+  }
   let uit;
   if (o.s === 'b'){ const r = sc(1), vt = sc(2), fa = sc(2), mo = sc(1); mod('rep', r); mod('vert', vt); modFans(fa); mod('moraal', mo);
     uit = `Een netjes antwoord. De trainer knikt goedkeurend en de fans waarderen je bescheidenheid. Reputatie ${pl(r)} · vertrouwen ${pl(vt)} · fans ${pl(fa)} · moraal ${pl(mo)}.`; }
@@ -237,6 +267,7 @@ export function persAntwoord(i, q){
     if (v.doel === 'vriend'){ uit += `${vriendNaam()} leest het ook. Je telefoon blijft de hele avond stil.`; krant(kop, `Na het duel met jeugdvriend ${vriendNaam()} haalt ${naam} uit.`); }
     else if (v.doel === 'rivaalSpeler'){ zetBand(-10); const R = rivaalObj(); if (R) R.reactie = true; uit += `Je rivaal leest het ook. Hij gaat reageren, dat weet je zeker.`; krant(kop, `Na het duel haalt ${naam} uit naar ${ik.zijn} rivaal ${rivaalNaam()}.`); }
     else if (v.doel === 'rivaal'){ const fa = sc(4); modFans(fa); mod('moraal', sc(1)); S.ss.rivaalFel = true; uit += `De fans smullen ervan (fans ${pl(fa)}), maar bij ${P.zij} zijn ze woedend. De volgende derby wordt extra fel: meer kans op kaarten en opstootjes.`; krant(kop, `Na de derby gooide ${naam} olie op het vuur. Bij ${P.zij} hangen ze het artikel op in de kleedkamer.`); }
+    else if (v.doel === 'huur'){ krant(kop, `${naam}, gehuurd van ${(() => { try { return huurOuder().n; } catch (e){ return 'een andere club'; } })()}, wil bij ${club().n} blijven.`); }
     else if (v.doel === 'trainer'){ const vt = sc(-8), mo = sc(-2); onrust(3, 'Gedoe met de trainer'); mod('vert', vt); mod('moraal', mo); statusPunten(-2); uit += `De trainer leest het de volgende ochtend in de krant en is er niet blij mee. Vertrouwen ${pl(vt)} · moraal ${pl(mo)}.`; krant(kop, `${naam} wijst naar de trainer. "Dit lossen we intern op," zegt de club.`); }
     else if (v.doel === 'team'){ const b = sc(-4), vt = sc(-3), mo = sc(-2); iedereen(b); mod('vert', vt); mod('moraal', mo); uit += `Je teamgenoten zijn er niet blij mee. Band met iedereen ${pl(b)} · vertrouwen ${pl(vt)} · moraal ${pl(mo)}.`; krant(kop, `Onrust bij ${club().n}: ${naam} haalt uit naar ${ik.zijn} eigen teamgenoten.`); }
     else if (v.doel === 'club'){ const fa = sc(-10), r = sc(2); modFans(fa); mod('rep', r); uit += `Grote clubs horen het wel, maar de fans van je eigen club zijn beledigd. Fans ${pl(fa)} · reputatie ${pl(r)}.`; krant(kop, `Opvallende woorden van ${naam}. De supporters van ${club().n} reageren boos op social media.`); }
@@ -245,7 +276,7 @@ export function persAntwoord(i, q){
     else if (v.doel === 'scheids'){ const boete = Math.max(100, Math.min(25000, Math.round(sp.salaris * .01 / 50) * 50)), fa = sc(2); sp.geld = Math.max(0, sp.geld - boete); modFans(fa); uit += `De bond geeft je een boete van ${geldTxt(boete)}. De fans vinden het wel stoer (fans ${pl(fa)}).`; krant(kop, `${naam} krijgt een boete van ${geldTxt(boete)} voor ${ik.zijn} uitspraken over de scheidsrechter.`); }
     else { const r = sc(-1), fa = sc(2); mod('rep', r); modFans(fa); mod('moraal', sc(1)); uit += `Bij ${P.zij} vinden ze het respectloos. Reputatie ${pl(r)}, maar je eigen fans lachen erom (fans ${pl(fa)}).`; krant(kop, `${naam} steekt na afloop de draak met ${P.zij}.`); }
   }
-  v.uit = uit;
+  v.uit = (uit + (v.huurExtra || '')).replace(/  +/g, ' ');
   P.klaar = persOpen(P) < 0;
   return uit;
 }

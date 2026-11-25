@@ -11,7 +11,7 @@ import { regelBreedte, tekst } from './font.js';
 
 export const SW = 380, SH = 200, OP_FRAMES = 216, OP_FPS = 10;
 const T2 = 78, T3 = 140, T4 = 176, WACHT = 12, STAP = 6, AFSTAND = 30, TG = 300, TW = TG + 380;
-const SPOT = 30, PIJL_H = 76; // (jouw close-up: 3 seconden; de pijl staat zo hoog boven de voeten)
+const SPOT = 30, PIJL_H = 76, FINALE_INTRO = 42; // (finale: eerst de beker op een sokkel, vuurwerk en confetti) // (jouw close-up: 3 seconden; de pijl staat zo hoog boven de voeten)
 const RIJ_AFSTAND = 28, RIJ_VOET = 170, RIJ_MARGE = 40, VB = 170, VH = 146, VELD = {thuis:[12, 46], uit:[198, 46]};
 export const FLITS3 = [[56, 60, 40], [60, 220, 55], [64, 130, 30], [68, 300, 70], [73, 80, 75]];
 export const DEEL = {tunnel:0, rij:T2, handen:T3, opstelling:T4};
@@ -62,6 +62,12 @@ function stadion(w, info){
     c.rect(0, 20, w, 88, 'C');
     for (let y = 28; y < 106; y += 10) c.hline(0, y, w, 'c');
     fans(c, 0, 0, 19, w, 88, 3, info.leeg); fans(c, 1, 0, 19, w, 88, 9, info.leeg);
+    // Finale: een enorme tifo over de bovenste helft van de tribune, in de clubkleuren, met om de zoveel meter FINALE erop
+    if (info.finale){
+      for (let x = 0; x < w; x += 24){ c.rect(x, 19, 12, 42, '1'); c.rect(x + 12, 19, 12, 42, '3'); }
+      c.rect(0, 60, w, 2, '2');
+      for (let x = 60; x < w - 40; x += 260){ c.rect(x, 28, 104, 22, 'K'); box(c, x, 28, 104, 22, 'o'); tekst(c, x + 52, 33, 'FINALE', 'o', {align:'c', scale:2}); }
+    }
     c.rect(0, 106, w, 3, 'b'); c.rect(0, 109, w, 13, 'K'); c.rect(0, 109, w, 1, 'b'); c.rect(0, 121, w, 1, 'b');
     { let x = 8, i = 0; while (x < w){ const [t, k] = info.reclame[i % info.reclame.length]; tekst(c, x, 113, t, k); x += t.length * 4 + 24; i++; } }
     { let y = 122, h = 7, i = 0; while (y < SH){ c.rect(0, y, w, h, i % 2 ? 'G' : 'g'); y += h; h += 3; i++; } }
@@ -146,6 +152,55 @@ function stijlInfo(){
     kleuren:{1:STIJL.r, 2:STIJL.R, 3:STIJL.w, 4:STIJL.v, 5:STIJL.o}};
 }
 
+// ---------- de finale: de beker, vuurwerk, confetti en vuurpotten ----------
+const BEKER = sprite(26, 32, c => {
+  c.rect(4, 0, 18, 2, 'O'); c.rect(5, 2, 16, 3, 'o');                                         // de rand
+  c.rect(6, 5, 14, 6, 'o'); c.rect(7, 11, 12, 3, 'o'); c.rect(9, 14, 8, 2, 'o');              // de kelk
+  c.rect(16, 5, 4, 6, 'O'); c.rect(15, 11, 4, 3, 'O'); c.rect(8, 3, 2, 9, 'M'); c.px(10, 4, 'w'); // schaduw en glans
+  c.rect(0, 3, 4, 1, 'o'); c.rect(0, 3, 1, 7, 'o'); c.rect(0, 9, 6, 1, 'o');                   // de oren
+  c.rect(22, 3, 4, 1, 'O'); c.rect(25, 3, 1, 7, 'O'); c.rect(20, 9, 6, 1, 'O');
+  c.rect(11, 16, 4, 6, 'o'); c.rect(13, 16, 2, 6, 'O');                                       // de voet
+  c.rect(8, 22, 10, 2, 'o'); c.rect(6, 24, 14, 5, 'K'); c.rect(6, 24, 14, 1, 'm'); c.rect(8, 26, 10, 1, 'o'); c.rect(5, 29, 16, 3, 'K');
+});
+// het openingsbeeld: het stadion met de beker op een witte sokkel midden op het veld
+function finaleBeeld(info){
+  return sprite(SW, SH, c => {
+    c.stamp(stadion(SW, info), 0, 0);
+    const x = SW / 2;
+    c.rect(x - 22, 150, 44, 4, 'X'); c.rect(x - 18, 128, 36, 22, 'x'); c.rect(x - 18, 128, 36, 2, 'w'); c.rect(x + 12, 130, 6, 20, 'X');
+    tekst(c, x, 137, 'FINALE', '2', {align:'c'});
+    c.stamp(BEKER.outline(K('k')), x - 14, 95);
+  });
+}
+// vuurwerk: pijlen die uiteenspatten boven de tribune, in de clubkleuren en goud
+function vuurwerk(b, f, kleuren, n = 5){
+  for (let i = 0; i < n; i++){
+    const t = f + i * 11, ronde = Math.floor(t / 26), leeftijd = t % 26; if (leeftijd > 17) continue;
+    const h = hash(i, ronde, 5), cx = 24 + h % (SW - 48), cy = 10 + (h >> 8) % 55, kl = kleuren[(h >> 4) % kleuren.length], r = leeftijd * 1.7;
+    b.fillStyle = kl;
+    for (let k = 0; k < 14; k++){ const a = k / 14 * Math.PI * 2, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r + leeftijd * leeftijd * .04, s = leeftijd < 9 ? 2 : 1; b.fillRect(Math.round(x), Math.round(y), s, s); }
+    if (leeftijd < 3){ b.fillStyle = '#ffffff'; b.fillRect(cx - 1, cy - 1, 3, 3); }
+  }
+}
+// confetti die naar beneden dwarrelt
+function confetti(b, f, kleuren, n = 70){
+  for (let i = 0; i < n; i++){
+    const h = hash(i, 3, 9), snel = 1 + (h >> 16) % 3, x = Math.round((h % SW) + Math.sin(f * .2 + i) * 4), y = Math.round(((h >> 8) % (SH + 10) + f * snel) % (SH + 10)) - 10;
+    b.fillStyle = kleuren[i % kleuren.length]; b.fillRect(x, y, i % 2 ? 2 : 1, i % 2 ? 1 : 2);
+  }
+}
+// vuurpotten langs de reclameborden: vlammen die opspringen (wx: de plek in de wereld, camX: waar de camera staat)
+function vuurpotten(b, f, camX, breed){
+  for (let wx = 30; wx < breed; wx += 90){
+    const sx = wx - camX; if (sx < -6 || sx > SW + 6) continue;
+    const h = 8 + hash(wx, f >> 1, 3) % 16;
+    b.fillStyle = '#3a3a44'; b.fillRect(sx - 3, 104, 6, 3);
+    b.fillStyle = '#e0262b'; b.fillRect(sx - 2, 104 - h, 5, h);
+    b.fillStyle = '#ff9a1f'; b.fillRect(sx - 1, 106 - h, 3, h - 2);
+    b.fillStyle = '#ffd84a'; b.fillRect(sx, 108 - h, 1, h - 5);
+  }
+}
+
 // info (in het spel, uit opkomstscene.js) = {thuis, uit: {naam, formatie, aanv (index), naamKleur, balk, balkCijfer,
 //   elf:[{naam, nr, xy, rond, cijfer, jij, persoon}]}, scheids:[{naam, persoon}], reclame, titel, tunnelNaam, kleuren (1-5: clubkleuren), leeg}
 // Geeft {teken(g, f): beeld f op een 2D-context van (SW+2)×(SH+2), flitsen(f): flitst er iemand}
@@ -189,15 +244,21 @@ export function maakOpkomst(info = {}){
   const jijBalk = jijId && (() => { const w = wie(jijId);
     return inkleuren(sprite(SW, 18, c => { c.rect(0, 0, SW, 18, 'O'); c.rect(0, 0, SW, 1, 'w'); c.rect(0, 17, SW, 1, 'Y'); c.rect(10, 3, 26, 12, 'K'); tekst(c, 23, 7, w.nr || '-', 'y', {align:'c'}); tekst(c, 44, 5, w.naam, 'k', {scale:2}); }), STIJL); })();
   const spotTitel = jijId && balk('IN DE BASIS', 'y');
+  // Finale: een openingsbeeld met de beker, een eigen titel, en vuurwerk, confetti en vuurpotten tijdens de opkomst
+  const FIN = info.finale ? FINALE_INTRO : 0, finKleur = [pal[1], pal[3], '#ffd84a', '#ffffff'];
+  const finCv = FIN && inkleuren(finaleBeeld(info), pal);
+  const finTitel = FIN && inkleuren(sprite(SW, 30, c => { c.rect(0, 0, SW, 30, 'K'); c.rect(0, 29, SW, 1, 'o'); tekst(c, SW / 2, 3, 'DE FINALE', 'o', {align:'c', scale:2}); tekst(c, SW / 2, 20, info.finale.naam, 'w', {align:'c'}); }), STIJL);
+  const finBalk = FIN && balk(`FINALE  -  ${info.finale.naam}`, 'o');
+  let camNu = 0, breedNu = SW; // (waar de camera staat, voor de vuurpotten)
 
   const binnen = document.createElement('canvas'); binnen.width = SW; binnen.height = SH;
   const b = binnen.getContext('2d'); b.imageSmoothingEnabled = false;
-  function teken(g, f){
-    b.clearRect(0, 0, SW, SH);
+  function tekenBasis(f){
+    b.clearRect(0, 0, SW, SH); camNu = 0; breedNu = SW;
     let spot = -1; if (EXTRA && f >= T3){ if (f < T3 + EXTRA) spot = f - T3; else f -= EXTRA; } // (de close-up van jou zit tussen de rij en het handjes schudden)
     if (f < T2){
       // 1. de tunnel: wachten, dan naar buiten; de camera loopt mee met de kop van de stoet
-      const gelopen = Math.max(0, f - WACHT) * STAP, camX = Math.max(0, Math.min(TW - SW, BAAN.achter.start + gelopen - 200));
+      const gelopen = Math.max(0, f - WACHT) * STAP, camX = Math.max(0, Math.min(TW - SW, BAAN.achter.start + gelopen - 200)); camNu = camX - TG; breedNu = TW - TG;
       b.drawImage(tunnelCv, -camX, 0);
       for (const baan of [BAAN.achter, BAAN.voor]) baan.ids.forEach((id, i) => {
         const x = baan.start - i * AFSTAND + gelopen - camX; if (x < -40 || x > SW + 40) return;
@@ -205,10 +266,10 @@ export function maakOpkomst(info = {}){
         if (id === jijId) b.drawImage(pijlCv, Math.round(x) - 6, baan.voet - PIJL_H + (f % 6 < 3 ? 0 : 1));
       });
       for (const [ff, x, y] of FLITS3) if (ff === f || ff + 1 === f) b.drawImage(flitsCv, x, y);
-      if (f < WACHT) b.drawImage(titelCv, 0, 0);
+      if (f < WACHT) b.drawImage(FIN ? finBalk : titelCv, 0, 0);
     } else if (f < T3){
       // 2. de rij: de camera schuift langs, de naambalk toont wie in het midden staat
-      const camX = Math.round((f - T2) / (T3 - T2 - 1) * (RIJ_W - SW));
+      const camX = Math.round((f - T2) / (T3 - T2 - 1) * (RIJ_W - SW)); camNu = camX; breedNu = RIJ_W;
       b.drawImage(rijCv, -camX, 0);
       const j = Math.max(0, Math.min(OPRIJ.length - 1, Math.round((camX + SW / 2 - RIJ_MARGE - 20) / RIJ_AFSTAND)));
       if (jijId){ const px = jijX - camX; if (px > -10 && px < SW + 10) b.drawImage(pijlCv, px - 6, RIJ_VOET - PIJL_H + (f % 6 < 3 ? 0 : 1)); }
@@ -237,11 +298,29 @@ export function maakOpkomst(info = {}){
       b.drawImage(opstCv, dx, 0);
       if (f >= T4) rondjes.forEach((r, k) => { if (k < f - T4 + 1) b.drawImage(r.cv, r.x - 7, r.y - 7); });
     }
+    return spot;
+  }
+  // Het openingsbeeld van de finale: de camera zoomt uit van de beker naar het hele stadion, met vuurwerk en confetti
+  function tekenFinale(f){
+    const z = 2.4 - 1.4 * Math.min(1, f / 26), cw = SW / z, ch = SH / z, cx = SW / 2 - cw / 2, cy = Math.min(SH - ch, 118 - ch * .62);
+    b.clearRect(0, 0, SW, SH); b.drawImage(finCv, cx, cy, cw, ch, 0, 0, SW, SH);
+    vuurwerk(b, f, finKleur, 6); confetti(b, f, finKleur, 50);
+    if (f > 8) b.drawImage(finTitel, 0, 0);
+  }
+  function teken(g, f){
+    if (FIN && f < FIN) tekenFinale(f);
+    else {
+      const spot = tekenBasis(f - FIN), ff = f - FIN;
+      // de finale: vuurpotten langs de borden, vuurwerk boven de tribune en confetti tijdens de rij en het handjes schudden
+      if (FIN && spot < 0 && ff >= T2 - 8 && ff < T4 + EXTRA){ vuurpotten(b, ff, camNu, breedNu); vuurwerk(b, ff, finKleur, 3); confetti(b, ff, finKleur, 40); }
+      if (FIN && ff < T2 && ff > WACHT) confetti(b, ff, finKleur, 25);
+    }
     // de omlijning om het hele beeld, zoals pxl (de hoeken blijven leeg)
     g.clearRect(0, 0, SW + 2, SH + 2); g.fillStyle = STIJL.k; g.fillRect(1, 0, SW, SH + 2); g.fillRect(0, 1, SW + 2, SH); g.drawImage(binnen, 1, 1);
   }
-  const flitsen = f => (f < T2 && FLITS3.some(([ff]) => ff === f)) || (EXTRA > 0 && f === T3 + 2);
-  return {teken, flitsen, W:SW + 2, H:SH + 2, frames:OP_FRAMES + EXTRA};
+  const flitsenBasis = f => (f < T2 && FLITS3.some(([ff]) => ff === f)) || (EXTRA > 0 && f === T3 + 2);
+  const flitsen = f => FIN && f < FIN ? f === 3 || f === 17 || f === 30 : flitsenBasis(f - FIN) || (FIN > 0 && f - FIN >= T2 && f - FIN < T3 && (f - FIN) % 13 === 0);
+  return {teken, flitsen, W:SW + 2, H:SH + 2, frames:OP_FRAMES + EXTRA + FIN, intro:FIN};
 }
 // voor het spel: de breedte van een tekst (om lange namen in te korten)
 export const breedte = s => regelBreedte(s);

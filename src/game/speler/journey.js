@@ -1,4 +1,4 @@
-import { S, club, mod, ovr, salarisVoor, seizoenLabel, waarde } from '../../core/state.js';
+import { S, club, mod, ovr, salarisVoor, seizoenLabel, somVoor, waarde } from '../../core/state.js';
 import { clamp, pick, randInt, rnd } from '../../core/utils.js';
 import { AANTAL_RONDES, CLUBS, DIVS, LAAGSTE, liefNamen, clubsLand, divClubs, WINTER, rondeInWeek, weekFactor, LINIE_VAN, POS } from '../../data/gegevens.js';
 import { SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
@@ -588,7 +588,7 @@ export function vriendBodVenster(soort){
   const bl = K.land !== thuisLand(); // (een overstap naar het buitenland kan ook in de winterstop)
   sp.vriendBod = null;
   const c = zijnClubInfo();
-  const bod = {club:K.club, ...(bl ? {land:K.land} : {}), salaris:Math.round(salarisVoor(c.t, ovr(sp), c.s) / 100) * 100, jaren:sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4), som:waarde(sp), viaVriend:true};
+  const bod = {club:K.club, ...(bl ? {land:K.land} : {}), salaris:Math.round(salarisVoor(c.t, ovr(sp), c.s) / 100) * 100, jaren:sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4), som:somVoor(sp, c), viaVriend:true};
   return {bod, tekst:`${v.voornaam} heeft ${vr.zijn} trainer overgehaald: ${c.n}${bl ? ` uit ${K.land}` : ''} wil je hebben!`};
 }
 

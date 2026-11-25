@@ -1,4 +1,4 @@
-import { mijnPlek, plekGesprekNodig, plekOpnieuwMag, plekPastTekst, plekTekst, plekkenVoor, vraagPlek } from '../../data/plekken.js';
+import { clubPlekken, mijnFormatie, mijnPlek, plekGesprekNodig, plekOpnieuwMag, plekPastTekst, plekTekst, plekkenVoor, vraagPlek } from '../../data/plekken.js';
 import { BROEK_KAST, DAS_KAST, KLEUR_KAST, PERS_STIJLEN, UIT_STIJLEN, kies as kiesKleding, kledingWaarde } from '../../game/prive/kleding.js';
 import { BEKER_ALT } from '../../data/landen.js';
 import { S, club, mod, ovr, tmp, attr } from '../../core/state.js';
@@ -92,7 +92,9 @@ function vVriendVergelijk(){
   const rv = v.weg && sp.rivaal && sp.rivaal.exVriend, clNaam = rv ? (CLUBS[sp.rivaal.club] || {}).n : vriendClubNaam();
   const jij = {k:jk, g:S.ss.g || 0, a:S.ss.a || 0, cg:S.car.g || 0, ca:S.car.a || 0}, al = v.carriereJaar === S.jaar, hij = {k:hk, g:st.g, a:st.a, cg:C.g + (al ? 0 : st.g), ca:C.a + (al ? 0 : st.a), ic:(v.int && v.int.caps) || 0};
   jij.ic = Object.values(S.car.int || {}).reduce((t, x) => t + (x.caps || 0), 0);
-  jij.pr = (S.car.prijzen || []).filter(p => ECHTE_PRIJS().test(p)).length; // (alleen echte prijzen: titels en bekers, net als in Mijn carrière; geen diploma's of topscorerstitels) hij.pr = (v.prijzen || []).length; jij.sz = (S.car.seizoenen || []).length; hij.sz = C.seizoenen || 0; // (na het seizoensein zitten zijn cijfers al in zijn carrière)
+  // (alleen echte prijzen: titels en bekers, net als in Mijn carrière; geen diploma's of topscorerstitels)
+  jij.pr = (S.car.prijzen || []).filter(p => ECHTE_PRIJS().test(p)).length; hij.pr = (v.prijzen || []).length;
+  jij.sz = new Set((S.car.seizoenen || []).map(x => x.s)).size; hij.sz = C.seizoenen || 0; // (na het seizoensein zitten zijn cijfers al in zijn carrière)
   const cel = (x, y) => `<td class="${x > y ? 'goedtxt' : ''}"><b>${x}</b></td>`, rij = (l, k) => `<tr><td class="muted">${l}</td>${cel(jij[k], hij[k])}${cel(hij[k], jij[k])}</tr>`;
   const hoofd = sp.pos === 'SPITS' ? 'g' : 'a', w = hoofd === 'g' ? 'goals' : 'assists';
   const vx = !rv && vriendSpeler(), bankTip = vx && !vx.basis && !v.o23 ? ` ${vn} zit bij ${vr.zijn} club vaak op de bank (er staan betere spelers op ${vr.zijn} plek), dus ${vr.hij} scoort minder.` : '';
@@ -267,14 +269,21 @@ function vKrantBlok(items){
 // Je plek in het team (data/plekken.js). Bij een nieuwe club geef je aan waar je wilt spelen en de trainer beslist
 function plekKnoppen(){
   const sp = S.sp;
-  return `<div class="keuzes">${plekkenVoor(sp.pos).map(([id, n, u]) => keuzeKnop(`${id} · ${esc(n)}`, `${esc(u)} · ${plekPastTekst(id)}`, () => vraagPlek(id), `data-blijf aria-pressed="${id === sp.plekVoorkeur}"`)).join('')}</div>`;
+  const mag = clubPlekken() || plekkenVoor(sp.pos).map(([id]) => id);
+  return `<div class="keuzes">${plekkenVoor(sp.pos).filter(([id]) => mag.includes(id)).map(([id, n, u]) => keuzeKnop(`${id} · ${esc(n)}`, `${esc(u)} · ${plekPastTekst(id)}`, () => vraagPlek(id), `data-blijf aria-pressed="${id === sp.plekVoorkeur}"`)).join('')}</div>`;
+}
+// Welke formatie je club speelt, en welke plekken je dan niet kunt kiezen (een 4-4-2 heeft geen CAM)
+function vFormatieZin(){
+  const sp = S.sp, mag = clubPlekken(); if (!mag) return '';
+  const weg = plekkenVoor(sp.pos).map(([id]) => id).filter(id => !mag.includes(id));
+  return `<p class="muted klein-tekst">${esc(club().n)} speelt ${mijnFormatie()}.${weg.length ? ` Plekken die daar niet in zitten: ${weg.join(', ')}.` : ''}</p>`;
 }
 function vPlekGesprek(){
   const u = S.week && S.week.plekUitslag;
   if (u && !plekGesprekNodig()) return `<section class="paneel"><span class="label">Gesprek met de trainer · jouw plek</span><p>${esc(u.tekst)}</p></section>`;
   if (!plekGesprekNodig()) return '';
   return `<section class="paneel"><span class="label">Nieuwe club · gesprek met de trainer</span>
-    <p>De trainer van ${esc(club().n)} wil weten waar je het liefst speelt. Hij kijkt of het past bij je kwaliteiten en bij zijn ploeg, en dan beslist hij.</p>
+    <p>De trainer van ${esc(club().n)} wil weten waar je het liefst speelt. Hij kijkt of het past bij je kwaliteiten en bij zijn ploeg, en dan beslist hij.</p>${vFormatieZin()}
     ${plekKnoppen()}<p class="muted klein-tekst">Je plek bepaalt wat je in een wedstrijd doet: een verdedigende middenvelder pakt vaker ballen af, een aanvallende middenvelder krijgt meer kansen en geeft meer assists. Kies je niets, dan vraagt je zaakwaarnemer het voor je.</p></section>`;
 }
 function vPlek(){
@@ -282,7 +291,7 @@ function vPlek(){
   if (plekGesprekNodig()) return vPlekGesprek();
   const g = sp.plekGesprek, opnieuw = plekOpnieuwMag();
   const zin = g && g.ok ? 'De trainer gaf je de plek die je wilde.' : `Je wilde graag ${esc(sp.plekVoorkeur || '')} spelen, maar de trainer koos voor ${esc(mijnPlek())}.`;
-  return `<section class="paneel"><span class="label">Jouw plek · ${esc(plekTekst())}</span><p class="muted">${zin}</p>
+  return `<section class="paneel"><span class="label">Jouw plek · ${esc(plekTekst())}</span><p class="muted">${zin}</p>${vFormatieZin()}
     ${opnieuw ? `<p>Een nieuw seizoen: je mag de trainer nog een keer vragen of je ergens anders mag spelen.</p>${plekKnoppen()}`
       : `<p class="muted klein-tekst">${g && !g.ok && !g.opnieuw ? 'Volgend seizoen mag je het de trainer nog een keer vragen.' : 'Bij een nieuwe club kun je weer aangeven waar je wilt spelen.'}</p>`}</section>`;
 }

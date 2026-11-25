@@ -1,4 +1,4 @@
-import { S, club, mod, ovr, salarisVoor, seizoenLabel, waarde } from '../../core/state.js';
+import { S, club, mod, ovr, salarisVoor, seizoenLabel, waarde, somVoor } from '../../core/state.js';
 import { krantMelding } from '../media/roddel.js';
 import { clamp, geldTxt, pick, randInt, rnd } from '../../core/utils.js';
 import { AANTAL_RONDES, AANV, CLUBS, DIVS, WINTER } from '../../data/gegevens.js';
@@ -21,7 +21,8 @@ export function maakBodEvent(){
   S.ss.bods = (S.ss.bods || 0) + 1;
   const id = pick(kand), c = CLUBS[id], oud = eigen.n, lvl = statusNiveau();
   const w = Math.max(waarde(sp), 50000);
-  const som = betaalt ? cl.bedrag : Math.round(w * (.85 + rnd() * .6) / 10000) * 10000;
+  const som = betaalt ? cl.bedrag : Math.max(10000, somVoor(sp, c, .85 + rnd() * .6)); // (niet meer dan de club kan betalen: state.js koopkracht)
+  if (!betaalt && som < w * .6){ S.ss.bods--; return null; } // (een club die je lang niet kan betalen, biedt niet)
   const bod = {club:id, som, salaris:Math.round(salarisVoor(c.t, ovr(sp), c.s) * (1 + rnd() * .3) / 1000) * 1000, jaren: sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4)};
   // Kans dat je club het bod accepteert: hoger bod = makkelijker, aanvoerder/legende = moeilijker
   const akkoord = betaalt ? 1 : clamp(.4 + (som / w - 1) * 1.2 + (eigen.t - c.t) * .15 - Math.max(0, lvl - 1) * .08, .05, .95);

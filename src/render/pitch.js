@@ -748,8 +748,13 @@ const filmpjeOpen = () => !!document.querySelector('body > .cutscene:not(.uit)')
 function teken(cv, T, nu){ if (filmpjeOpen()) return; if (cv._3d && V3) V3.teken3D(T, nu); else tekenVeld(cv, T); }
 // Hoe hoog het veld mag worden, als deel van de schermhoogte (hoe hoger, hoe groter het veld in beeld)
 const VELD_HOOGTE = .68;
+// Het veld (met de keuzes onderin) moet helemaal in beeld passen zonder scrollen: niet hoger dan de ruimte onder het scorebord
+function veldHoogte(el){
+  const vh = window.innerHeight, boven = el.getBoundingClientRect().top + window.scrollY;
+  return Math.max(vh * .38, Math.min(vh * VELD_HOOGTE, vh - boven - 10));
+}
 export function pitchCanvas(el){
-  const b = Math.round(Math.min(el.clientWidth || 600, Math.max(320, window.innerHeight * VELD_HOOGTE / .52))), dpr = Math.min(2, window.devicePixelRatio || 1), h = Math.round(b * .52);
+  const b = Math.round(Math.min(el.clientWidth || 600, Math.max(320, veldHoogte(el) / .52))), dpr = Math.min(2, window.devicePixelRatio || 1), h = Math.round(b * .52);
   if (is3D()){ const c3 = V3.koppel3D(el, b, h, dpr); if (c3) return c3; }
   // 2D: een canvas met WebGL kan niet ook 2D tekenen. Hing hier nog het 3D-canvas (overgeschakeld naar 2D, of WebGL viel weg), dan een nieuw canvas
   let cv = el.querySelector('canvas');

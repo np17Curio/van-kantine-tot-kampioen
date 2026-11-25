@@ -1,5 +1,6 @@
 import { S, ovr } from '../core/state.js';
 import { CLUBS } from './gegevens.js';
+import { clubFormatie, plekkenBijClub } from '../game/team/formatie.js';
 
 /* ===================== Plekken: waar je precies speelt ===================== */
 // Binnen je positie (keeper, verdediger, middenvelder, spits) speel je op een eigen plek: een centrale verdediger of een back,
@@ -37,11 +38,21 @@ export const plekkenVoor = pos => PLEKKEN[pos] || PLEKKEN.MID;
 const KANT = {RB:'R', RM:'R', RW:'R', LB:'L', LM:'L', LW:'L'};
 export const plekKant = () => { const sp = S && S.sp; return sp && sp.pos !== 'KEEPER' ? KANT[mijnPlek()] || null : null; };
 export const geldigePlek = (pos, plek) => plekkenVoor(pos).some(([id]) => id === plek) ? plek : STANDAARD_PLEK[pos] || 'CM';
-// Jouw plek (oude opslag zonder plek: de standaardplek van je positie)
-export const mijnPlek = () => { const sp = S && S.sp; if (!sp) return 'CM'; return geldigePlek(sp.pos, sp.plek); };
+// De plekken die jouw club heeft voor jouw positie (de formatie van de club: game/team/formatie.js), of null zonder club
+export const clubPlekken = (sp = S && S.sp) => !sp || sp.clubloos || sp.club == null || !CLUBS[sp.club] ? null : plekkenBijClub(sp.club, sp.pos);
+export const mijnFormatie = (sp = S && S.sp) => sp && sp.club != null ? clubFormatie(sp.club) : null;
+// De best passende plek uit een lijst
+const bestePlek = (lijst, sp) => lijst.slice().sort((a, b) => plekFit(b, sp) - plekFit(a, sp))[0];
+// Jouw plek (oude opslag zonder plek: de standaardplek van je positie). Heeft je club die plek niet in zijn formatie (een CAM in
+// een 4-4-2), dan speel je op de plek in die formatie die het best bij je past
+export const mijnPlek = () => {
+  const sp = S && S.sp; if (!sp) return 'CM';
+  const p = geldigePlek(sp.pos, sp.plek), mag = clubPlekken(sp);
+  return !mag || mag.includes(p) ? p : bestePlek(mag, sp);
+};
 export const plekNaam = (plek, pos) => (plekkenVoor(pos).find(([id]) => id === plek) || [, ''])[1];
 // Kort voor op het scherm: "CDM · Verdedigende middenvelder"
-export const plekTekst = (sp = S.sp) => { const p = geldigePlek(sp.pos, sp.plek); return `${p} · ${plekNaam(p, sp.pos)}`; };
+export const plekTekst = (sp = S.sp) => { const p = sp === S.sp ? mijnPlek() : geldigePlek(sp.pos, sp.plek); return `${p} · ${plekNaam(p, sp.pos)}`; };
 // Welke kwaliteiten (sp.a) een plek vraagt: daarmee kijkt de trainer of een plek bij je past
 export const PLEK_KWAL = {
   GK:{verd:1},
@@ -65,8 +76,8 @@ export const plekPastTekst = plek => PAST_TEKST[plekPast(plek)];
 const hash = t => { let h = 2166136261; for (const c of String(t)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
 // Op een plek heeft de trainer misschien al een vaste kracht staan (per club en seizoen, zodat opnieuw laden niets verandert)
 function bezettePlek(sp){
-  const lijst = plekkenVoor(sp.pos), h = hash(`${sp.club}|${S.jaar}|${sp.pos}`);
-  return h % 2 ? lijst[(h >>> 3) % lijst.length][0] : null;
+  const lijst = clubPlekken(sp) || plekkenVoor(sp.pos).map(([id]) => id), h = hash(`${sp.club}|${S.jaar}|${sp.pos}`);
+  return lijst.length > 1 && h % 2 ? lijst[(h >>> 3) % lijst.length] : null;
 }
 const magGesprek = sp => !!sp && !sp.clubloos && !sp.o23 && sp.pos !== 'KEEPER' && sp.club != null;
 // Nieuwe club, nog niet gepraat over je plek?
@@ -77,8 +88,10 @@ export const plekOpnieuwMag = (sp = S.sp) => magGesprek(sp) && !!sp.plekGesprek 
 export function vraagPlek(plek, stil = false){
   const sp = S.sp; if (!magGesprek(sp) || geldigePlek(sp.pos, plek) !== plek) return;
   const opnieuw = plekOpnieuwMag(sp); if (!plekGesprekNodig(sp) && !opnieuw) return;
+  // (alleen plekken die in de formatie van de club bestaan: in een 4-4-2 is er geen CAM)
+  const lijst = clubPlekken(sp) || plekkenVoor(sp.pos).map(([id]) => id); if (!lijst.includes(plek)) return;
   sp.plekVoorkeur = plek;
-  const lijst = plekkenVoor(sp.pos).map(([id]) => id), bezet = bezettePlek(sp);
+  const bezet = bezettePlek(sp);
   const best = Math.max(...lijst.map(id => plekFit(id, sp))), tekort = best - plekFit(plek, sp);
   const klasse = Math.max(-8, Math.min(8, ovr(sp) - ((CLUBS[sp.club] || {}).s ?? 60))); // (ben je beter dan de club, dan past de trainer zich eerder aan)
   let p = .62 - tekort * .05 + klasse * .02 + (plek === STANDAARD_PLEK[sp.pos] ? .1 : 0) + (opnieuw ? .1 : 0);
@@ -89,7 +102,7 @@ export function vraagPlek(plek, stil = false){
   let tekst, nieuw = plek;
   if (ok) tekst = `Je zegt tegen de trainer dat je het liefst als ${plek} speelt. Hij knikt: "Dat kan. Laat maar zien dat het werkt."`;
   else {
-    nieuw = lijst.filter(id => id !== bezet && id !== plek).sort((a, b) => plekFit(b, sp) - plekFit(a, sp))[0] || oud;
+    nieuw = bestePlek(lijst.filter(id => id !== bezet && id !== plek), sp) || oud;
     const reden = plek === bezet ? '"Op die plek heb ik al een vaste kracht staan.'
       : tekort > 4 ? '"Daar ben je nog niet goed genoeg voor. Jouw kwaliteiten passen beter ergens anders.'
       : '"Eerst moet je je hier bewijzen.';
@@ -103,5 +116,15 @@ export function vraagPlek(plek, stil = false){
 // Speel of simuleer je zonder gesprek, dan vraagt je zaakwaarnemer het namens jou (je voorkeur van vroeger)
 export function plekGesprekAuto(){
   const sp = S.sp; if (!plekGesprekNodig(sp)) return;
-  vraagPlek(geldigePlek(sp.pos, sp.plekVoorkeur || sp.plek), true);
+  const wens = geldigePlek(sp.pos, sp.plekVoorkeur || sp.plek), lijst = clubPlekken(sp) || [wens];
+  vraagPlek(lijst.includes(wens) ? wens : bestePlek(lijst, sp), true); // (bestaat je wens niet in deze formatie, dan de best passende plek)
+}
+
+// Voor een aanbieding van een club (transfervenster, selectiedagen, huur): welke formatie ze spelen en of jouw favoriete plek
+// daar bestaat. Bijvoorbeeld "4-2-3-1 · CAM kan" of "4-4-2 · geen CAM, wel CM"
+export function formatieBijBod(id){
+  const sp = S.sp; if (!sp || id == null || !CLUBS[id]) return '';
+  const f = clubFormatie(id); if (sp.pos === 'KEEPER') return f;
+  const lijst = plekkenBijClub(id, sp.pos), wens = geldigePlek(sp.pos, sp.plekVoorkeur || sp.plek);
+  return lijst.includes(wens) ? `${f} · ${wens} kan` : `${f} · geen ${wens}, wel ${bestePlek(lijst, sp)}`;
 }

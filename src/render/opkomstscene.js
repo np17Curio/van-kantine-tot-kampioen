@@ -1,3 +1,4 @@
+import { clubFormatie } from '../game/team/formatie.js';
 import { hashGetal, tenueVoor, uiterlijkVoor } from './pixel/uiterlijk.js';
 import { lookVan, donker } from './pixel/atlas.js';
 import { OP_FPS, OP_FRAMES, maakOpkomst } from './pixel/opkomst.js';
@@ -62,7 +63,7 @@ function ploegInfo(M, P){
     if (!aanv) aanv = r.elf.filter(x => !x.jij).sort((a, b) => (b.k || 0) - (a.k || 0))[0];
     const bank = r.bank.slice(0, 7); if (wij && (M.rol === 'bank' || M.rol === 'invaller')) bank.unshift({jij:true, n:sp.naam, nr:null});
     const naam = o23 ? (wij ? M.wij : M.zij) || c.n + ' O23' : c.n;
-    return {id, wij, naam, kort:kort(c.n) + (o23 ? ' O23' : ''), elf:r.elf, bank, aanv, formatie:`${tel('V')}-${tel('M')}-${tel('A')}`, tactiek:(TACTIEKEN[clubTactiek(id)] || {}).n || '',
+    return {id, wij, naam, kort:kort(c.n) + (o23 ? ' O23' : ''), elf:r.elf, bank, aanv, formatie:o23 ? `${tel('V')}-${tel('M')}-${tel('A')}` : clubFormatie(id), tactiek:(TACTIEKEN[clubTactiek(id)] || {}).n || '',
       tenue:tenueVoor(wij ? 'wij' : 'zij', P.tenues), keeper:tenueVoor(wij ? 'k' : 'K', P.tenues), sponsor:shirtSponsor(c, thuisLand())};
   };
   const wij = mk(sp.club, true), zij = mk(tegenstander(M), false);
@@ -110,7 +111,7 @@ function opkomstInfo(M, ploeg, P){
     return {naam, persoon:{v:{kapsel:look.kapsel, vrouw:look.vrouw, baard:look.baard, kleding:'tenue', patroon:'effen'}, kleuren:look.kleuren, vlag}};
   });
   const th = ploeg.thuis, ui = ploeg.uit, spons = p => { const s = shirtSponsor(CLUBS[p.id], thuisLand()); return zonderAccent(s && s.naam ? s.naam : p.naam); };
-  return {thuis:team(th), uit:team(ui), scheids, leeg:o23,
+  return {thuis:team(th), uit:team(ui), scheids, leeg:o23, finale:M.beker && M.beker.finale ? {naam:zonderAccent(M.beker.naam || 'Beker').toUpperCase().slice(0, 40)} : null,
     reclame:[[spons(th), 'y'], [spons(ui), 'o'], ['GOAL!', 'w']],
     titel:zonderAccent(`${th.naam}  -  ${ui.naam}`), tunnelNaam:zonderAccent(th.naam).slice(0, 17),
     kleuren:{1:th.tenue.shirt, 2:donker(th.tenue.shirt, .3), 3:th.tenue.accent || '#ffffff', 4:ui.tenue.shirt, 5:ui.tenue.accent || '#ffffff'}};
@@ -140,7 +141,7 @@ async function speel(M){
       if (f === vorig) return;
       op.teken(g, f); vorig = f;
       if (op.flitsen(f)) laag.flits();
-      label.classList.toggle('aan', f < 70);
+      label.classList.toggle('aan', f < 70 + (op.intro || 0));
     });
   } finally {
     laag.sluit();

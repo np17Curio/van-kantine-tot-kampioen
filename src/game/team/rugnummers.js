@@ -1,3 +1,4 @@
+import { mijnPlek } from '../../data/plekken.js';
 import { S, club, mod, seizoenLabel, tmp } from '../../core/state.js';
 import { knop } from '../../core/ui.js';
 import { clamp, esc, pick, rnd } from '../../core/utils.js';
@@ -37,6 +38,12 @@ export function rugTeam(id){
   sel.forEach(x => { if (x.st === 0 && !net(x)) x.st = 1; });
   return sel;
 }
+// De nummers die bij een plek horen, de meest bekende eerst (data/plekken.js): 2 voor een rechtsback, 6 voor een CDM, 10 voor een CAM...
+export const PLEK_NUMMERS = {
+  GK:[12, 16, 13, 23, 30, 22], CB:[4, 5, 3, 6, 15, 13, 14], RB:[2, 12, 22, 15, 24], LB:[3, 5, 13, 15, 23],
+  CDM:[6, 4, 8, 16, 15, 14], CM:[8, 6, 14, 16, 18, 20], CAM:[10, 8, 14, 20, 21, 7], RM:[7, 11, 17, 16, 20, 22], LM:[11, 7, 17, 19, 20, 21],
+  ST:[9, 19, 18, 20, 21, 11, 17], RW:[7, 11, 17, 19, 22, 20], LW:[11, 7, 17, 19, 22, 21],
+};
 export function vrijNummer(bezet, van, tot){ const l = []; for (let n = van; n <= tot; n++) if (!bezet.has(n)) l.push(n); return l.length ? pick(l) : tot + 1; }
 export const teamNummers = id => new Set([1, ...rugTeam(id).map(x => x.nr)]);
 // Jouw nummer bij je huidige club. Bij een nieuwe club krijg je een nummer dat vrij is: als jonkie een hoog nummer, als ster een laag
@@ -47,7 +54,15 @@ export function rugnummer(){
   let nr, tekst; const oud = (sp.rugHist || {})[ck(sp.club)];
   if (oud && !bezet.has(oud)){ nr = oud; tekst = `Terug bij ${club().n}: je speelt weer met nummer ${nr}.`; }
   else if (wens && !bezet.has(wens) && niv >= 3 && sp.rug){ nr = wens; tekst = `Je krijgt bij ${club().n} meteen je favoriete nummer: ${nr}!`; }
-  else { nr = niv >= 2 ? vrijNummer(bezet, 2, 23) : vrijNummer(bezet, 24, 45); tekst = `Je krijgt bij ${club().n} rugnummer ${nr}.${niv < 2 ? ' Als nieuwkomer krijg je wat er over is.' : ''}`; }
+  else {
+    // Een nummer dat bij je plek past (een middenvelder geen 2, een spits liefst de 9). Als nieuwkomer een hoog nummer, maar
+    // wel een dat erop lijkt (een CM krijgt 28 of 18 in plaats van 8)
+    const plekNr = PLEK_NUMMERS[mijnPlek()] || [], vrij = n => n > 1 && !bezet.has(n);
+    const hoog = plekNr.flatMap(n => [n + 20, n + 10, n + 30]).filter(n => n >= 24 && n <= 45);
+    const keus = niv >= 2 ? plekNr.find(vrij) : hoog.find(vrij);
+    nr = keus || (niv >= 2 ? vrijNummer(bezet, 2, 23) : vrijNummer(bezet, 24, 45));
+    tekst = `Je krijgt bij ${club().n} rugnummer ${nr}.${niv < 2 ? ' Als nieuwkomer krijg je wat er over is.' : ''}`;
+  }
   sp.rug = {club:ck(sp.club), nr}; (sp.rugHist = sp.rugHist || {})[ck(sp.club)] = nr;
   sp.rugMelding = tekst;
   return nr;

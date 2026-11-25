@@ -156,9 +156,22 @@ function gezichtshaar(c, baard, zij){
     return;
   }
   snor(c, zij);                                                                               // de snor (ook bij het sikje)
+  // Sikje: de snor loopt langs de mondhoeken omlaag naar een volle sik op de kin, die een puntje onder de kaak uitsteekt.
+  // De onderlip blijft vrij (een streepje huid), zodat de mond niet in het haar verdwijnt
   if (baard === 'sikje'){
-    if (zij){ c.rect(28, 23, 4, 2, 'h'); c.px(29, 25, 'h'); c.px(30, 25, 'h'); c.hline(28, 24, 4, 'H'); }
-    else { c.px(17, 22, 'H'); c.px(23, 22, 'H'); c.rect(18, 23, 5, 2, 'h'); c.rect(19, 25, 3, 1, 'h'); c.hline(18, 24, 5, 'H'); c.px(20, 23, 'H'); } // (verbonden met de snor, rond onder de kin)
+    if (zij){
+      c.px(27, 22, 'H');                                                          // de mondhoek omlaag
+      c.rect(27, 23, 5, 2, 'h'); c.px(30, 23, 's'); c.px(31, 23, 's');             // de sik, met een stukje onderlip
+      c.rect(28, 25, 4, 1, 'H'); c.px(27, 24, 'H');                               // het puntje onder de kin, schaduw aan de kaakkant
+      c.px(29, 24, 'H');                                                          // wat textuur
+      c.hline(28, 22, 3, 'k');                                                    // de mond
+    } else {
+      c.px(16, 23, 'H'); c.px(25, 23, 'H');                                       // vanaf de mondhoeken omlaag
+      c.rect(17, 23, 8, 2, 'h'); c.rect(19, 23, 4, 1, 's');                       // de sik rond de kin, de onderlip vrij
+      c.rect(18, 25, 6, 1, 'h'); c.hline(19, 25, 4, 'H');                         // het puntje onder de kaak
+      c.px(17, 24, 'H'); c.px(24, 24, 'H'); c.px(20, 24, 'H'); c.px(22, 24, 'H');  // schaduw aan de randen en wat haartjes
+      c.hline(18, 22, 5, 'k');                                                    // de mond
+    }
   }
 }
 // De wenkbrauwen van voren: de linker tekenen en precies gespiegeld (om x = 20, het midden van de ogen) de rechter, zodat ze

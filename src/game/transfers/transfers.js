@@ -1,7 +1,7 @@
 import { partnerTransfer } from '../prive/partner.js';
 import { bewaarVoorTransfer } from './ongedaan.js';
 import { hoogtepunt } from '../speler/hoogtepunten.js';
-import { S, club, gemCijfer, mod, ovr, salarisVoor, seizoenLabel, tmp, waarde } from '../../core/state.js';
+import { S, club, gemCijfer, mod, ovr, salarisVoor, seizoenLabel, tmp, waarde, somVoor } from '../../core/state.js';
 import { geldTxt, randInt, rnd, shuffle } from '../../core/utils.js';
 import { AANV, CLUBS, DIVS, LAAGSTE, LEGENDE, MIN, NIVEAU } from '../../data/gegevens.js';
 import { thuisLand } from '../../data/landen.js';
@@ -114,7 +114,7 @@ export function maakAanbiedingen(modus){
     return {club:i, salaris:Math.round(salarisVoor(c.t, o, c.s) * (.9 + rnd() * .3) / 100) * 100,
       jaren: sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4),
       ...(modus === 'clubloos' ? {salaris:Math.round(salarisVoor(c.t, o, c.s) * .8 / 100) * 100, jaren:1} : {}),
-      som: modus === 'normaal' ? waarde(sp) : 0};
+      som: modus === 'normaal' ? somVoor(sp, c) : 0};
   }).sort((a, b) => CLUBS[a.club].t - CLUBS[b.club].t || CLUBS[b.club].s - CLUBS[a.club].s);
 }
 
@@ -173,7 +173,7 @@ export function openVenster(soort){
   if (vb && vb.bod){ bods = bods.filter(b => !(b.club === vb.bod.club && (b.land || null) === (vb.bod.land || null))); bods.unshift(vb.bod); }
   if (terug && terug.koop != null && !bods.some(b => b.club === terug.koop.club && (b.land || null) === (terug.koop.land || null))){
     const hc = clubInfo(terug.koop);
-    bods.unshift({...terug.koop, salaris:Math.round(salarisVoor(hc.t, ovr(sp), hc.s) / 100) * 100, jaren:randInt(2, 3), som:Math.round(waarde(sp) * .9), huurKoop:true}); // (de koopoptie: een vooraf afgesproken prijs)
+    bods.unshift({...terug.koop, salaris:Math.round(salarisVoor(hc.t, ovr(sp), hc.s) / 100) * 100, jaren:randInt(2, 3), som:somVoor(sp, hc, .9), huurKoop:true}); // (de koopoptie: een vooraf afgesproken prijs)
   }
   let verlenging = null, blijven = false;
   if (modus === 'normaal'){
@@ -215,6 +215,8 @@ export function wissel(o, hoe){
   try { bewaarVoorTransfer(`Transfer naar ${clubInfo(o).n}`); } catch (e){} // (eerst een kopie van je spel: dan kun je deze transfer nog terugdraaien, ongedaan.js)
   const sp = S.sp, oc = club(), oud = {n:oc.n, t:oc.t, s:oc.s}, oudStatus = sp.status, teksten = [], oudId = sp.club, oudLand = thuisLand(), landWissel = isBuitenland(o);
   const los = sp.clubloos, naarRivaal = !los && !landWissel && rivaal(oudId) === o.club, naarDoel = isDoel(o); // vóór de landwissel bepalen
+  // De huurclub koopt je (koopoptie): je blijft waar je al speelde. Geen nieuwe stad, geen nieuwe taal, geen nieuwe groep
+  const H = sp.huurStaat, blijf = !!(o.huurKoop && H && H.club === o.club && (H.land || null) === (o.land || null)); sp.huurStaat = null;
   if (hoe === 'geforceerd') modFans(-20, oudId);
   seizoenDeel(); // (midden in het seizoen: wat je bij je oude club haalde)
   if (!los && !naarRivaal) clubAfscheid(oudId, hoe); // een afscheid (en misschien erelegende) als je er veel betekende
@@ -229,7 +231,8 @@ export function wissel(o, hoe){
   sp.salaris = o.salaris; sp.contract = o.jaren; sp.sindsTransfer = 0; sp.huurTerug = false;
   if (landWissel && S.venster && S.venster.soort === 'winter') teksten.push(winterInhalen()); // midden in het seizoen naar een ander land
   S.car.clubs.push({club:o.club, van:S.jaar, land:thuisLand(), n:nieuw.n});
-  if (landWissel){ S.car.hist.push(`${seizoenLabel()}: verhuisd van ${oudLand} naar ${o.land}`); teksten.push(`Je verhuist naar ${o.land}! Je speelt voortaan in de ${DIVS[nieuw.t]}.`);
+  if (landWissel && blijf) teksten.push(`Je blijft in ${o.land}, bij de club waar je al gehuurd was.`);
+  else if (landWissel){ S.car.hist.push(`${seizoenLabel()}: verhuisd van ${oudLand} naar ${o.land}`); teksten.push(`Je verhuist naar ${o.land}! Je speelt voortaan in de ${DIVS[nieuw.t]}.`);
     if (pers('heimwee')){ mod('moraal', -pers('heimwee')); teksten.push('Je mist je familie nu al. De eerste weken in een nieuw land zijn zwaar.'); }
     if (o.land === (S.startLand || 'Nederland')) krantMelding(`${sp.naam} keert terug naar ${o.land}`, `Na ${ik.zijn} avontuur in ${oudLand} speelt ${ik.hij} weer in eigen land, bij ${nieuw.n}.`, KRANTEN[0]);
     else krantMelding(`${sp.naam} kiest voor avontuur in ${o.land}`, `De ${ik.speler} van ${oud.n} tekent bij ${nieuw.n}. "Ik wil een nieuwe uitdaging," zegt ${ik.hij}.`, KRANTEN[0]);
@@ -244,6 +247,7 @@ export function wissel(o, hoe){
   // Nieuwe status: hangt af van hoe goed en bekend je bent
   sp.clubWed = 0; sp.clubSz = 0; sp.legendeHier = false;
   sp.status = startStatus(o.club);
+  if (blijf){ sp.status = Math.max(sp.status, H.status || 0); sp.clubWed = H.clubWed || 0; sp.clubSz = H.clubSz || 0; } // (je hoeft je daar niet opnieuw te bewijzen)
   sp.statusNiveau = statusNiveau();
   teksten.push(`Je bent nu speler van ${nieuw.n}.${o.som ? ` De transfersom is ${geldTxt(o.som)}.` : ''}`);
   if (sp.naOntbinding) sp.naOntbinding = false;
@@ -256,7 +260,8 @@ export function wissel(o, hoe){
   if (sp.statusNiveau >= 3) teksten.push('De fans kennen je al: je bent meteen een fanfavoriet!');
   else if (sp.statusNiveau === 2) teksten.push('De trainer ziet je meteen als vaste waarde.');
   else teksten.push(`Je begint als ${statusNaam(sp.statusNiveau).toLowerCase()}: je moet je basisplaats nog verdienen.`);
-  if (landWissel){ const t = startBuitenland(o.land); if (t) teksten.push(t); }
+  if (landWissel && blijf && H.bl){ sp.buitenland = H.bl; sp.heimwee = H.heimwee || 0; teksten.push('Je kent de stad, de taal en de groep al.'); } // (je leven daar gaat gewoon door)
+  else if (landWissel){ const t = startBuitenland(o.land); if (t) teksten.push(t); }
   if (sp.relatie && landWissel){
     const naam = sp.relatie.naam, mee = o.partnerMee ?? (o.land === thuisStart() || rnd() < partnerKans());
     if (mee){ teksten.push(`${naam} verhuist met je mee!${kinderen().length ? ' De kinderen gaan mee.' : ''}`); if (sp.buitenland) sp.heimwee = Math.max(0, (sp.heimwee || 0) - 10); }
@@ -269,7 +274,7 @@ export function wissel(o, hoe){
   if (sp.relatie) teksten.push(...partnerTransfer(oudLand, oud, nieuw)); // (partner.js: ambitieus / heimwee)
   if (sp.agent && naarDoel) agentReset(`Gelukt! Je speelt nu bij ${nieuw.n}${landWissel ? ` in ${o.land}` : ''}. Heb je een nieuw doel? Zeg het maar.`);
   tmp.ondertekening = {clubId:o.club, jaren:o.jaren, salaris:o.salaris, som:o.som || 0}; // de animatie (contract tekenen) na de volgende weergave
-  hoogtepunt('transfer', {club:nieuw.n, oud:los ? null : oud.n, buitenland:landWissel}, true); // (hoogtepunten.js)
+  if (!blijf) hoogtepunt('transfer', {club:nieuw.n, oud:los ? null : oud.n, buitenland:landWissel}, true); // (hoogtepunten.js; niet als je bij je huurclub blijft: daar woon je al)
   return teksten.join(' ');
 }
 export function transferNieuws(hoe, oud, nieuw, o){

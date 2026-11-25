@@ -1,3 +1,4 @@
+import { linieTelling } from '../team/formatie.js';
 import { competitieNieuws } from '../media/competitienieuws.js';
 import { S, club } from '../../core/state.js';
 import { clamp, pick, randInt, rnd, shuffle } from '../../core/utils.js';
@@ -59,13 +60,20 @@ function vulAan(lijst, jeugdVan){
 // Je vriend en je rivaal gaan voor; speel jij mee, dan maakt de zwakste op jouw linie plaats; te weinig: de sterkste wissel vult aan
 const MIJN_LINIE = {SPITS:'A', MID:'M', VERD:'V', KEEPER:'K'};
 export function startElf(id, metJou, vulPos){
-  const sel = selectie(id).filter(x => !(x.bles > 0)), ik = MIJN_LINIE[S.sp.pos], plek = metJou ? 10 : 11, speciaal = x => x.vriend || x.rivaal;
+  // Hoeveel spelers per linie: de formatie van de club (game/team/formatie.js). Speel jij mee, dan is er op jouw linie één plek minder
+  const sel = selectie(id).filter(x => !(x.bles > 0)), ik = MIJN_LINIE[S.sp.pos], speciaal = x => x.vriend || x.rivaal;
+  const doel = linieTelling(id); if (metJou) doel[ik]--;
   const basis = sel.filter(x => x.basis).sort((a, b) => (speciaal(b) ? 1 : 0) - (speciaal(a) ? 1 : 0) || b.k - a.k), bank = sel.filter(x => !x.basis).sort((a, b) => b.k - a.k);
   const valAf = filter => { const kand = basis.filter(x => !speciaal(x) && filter(x)).sort((a, b) => a.k - b.k)[0] || basis.filter(filter).sort((a, b) => a.k - b.k)[0]; if (kand){ basis.splice(basis.indexOf(kand), 1); bank.unshift(kand); return true; } return false; };
-  if (metJou && basis.filter(x => x.pos === ik).length >= (OPBOUW[ik] ? OPBOUW[ik].basis : 2) && basis.length >= plek) valAf(x => x.pos === ik);
-  while (basis.length > plek && valAf(x => x.pos !== 'K')) {}
+  // te veel op een linie: de zwakste naar de bank (je vriend en je rivaal blijven staan)
+  for (const l of ['K', 'V', 'M', 'A']) while (basis.filter(x => x.pos === l).length > doel[l] && valAf(x => x.pos === l)) {}
+  bank.sort((a, b) => b.k - a.k);
+  // te weinig: de sterkste wissel van die linie (of anders de sterkste veldspeler) vult aan
   const elf = basis.slice();
-  while (elf.length < plek && bank.length){ const i = Math.max(0, bank.findIndex(x => x.pos === (vulPos || ik))); elf.push(bank.splice(i, 1)[0]); }
+  for (const l of ['K', 'V', 'M', 'A']){
+    let n = elf.filter(x => x.pos === l).length;
+    while (n < doel[l] && bank.length){ let i = bank.findIndex(x => x.pos === l); if (i < 0) i = l === 'K' ? -1 : bank.findIndex(x => x.pos !== 'K'); if (i < 0) break; elf.push(bank.splice(i, 1)[0]); n++; }
+  }
   return {elf, bank};
 }
 // Een speler kiezen naar zijn gewicht (g = scoort vaak, a = geeft vaak assists).

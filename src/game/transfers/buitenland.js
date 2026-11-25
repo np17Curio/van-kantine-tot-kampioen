@@ -1,4 +1,4 @@
-import { S, club, gemCijfer, mod, ovr, salarisVoor, waarde } from '../../core/state.js';
+import { S, club, gemCijfer, mod, ovr, salarisVoor, waarde, somVoor } from '../../core/state.js';
 import { pick, randInt, rnd } from '../../core/utils.js';
 import { CLUBS, CLUBS_LAND, DIVS, ELITE_ID, ELITE_THUIS, GAST_START, MIN, NL_CLUBS, WERELD, WINTER, clubNaam, clubsLand, divClubs, landBasis, zetClubs, zetWereld } from '../../data/gegevens.js';
 import { speelRonde, stand } from '../competitie/spelers.js';
@@ -61,7 +61,7 @@ export function buitenlandseBods(modus, winter){
 function bodVan(land, id, gescout){
   const sp = S.sp, eigen = club(), o = ovr(sp), c = vreemdeClub(land, id);
   return {club:id, land, ...(gescout ? {gescout:true} : {}), salaris:Math.round(salarisVoor(c.t, o, c.s) * (1 + rnd() * .3) / 100) * 100, jaren: sp.leeftijd >= 31 ? randInt(1, 2) : randInt(2, 4),
-      som: sp.contract > 0 && eigen.t <= 2 ? Math.round(Math.max(waarde(sp), 50000) * (.9 + rnd() * .4) / 10000) * 10000 : 0};
+      som: sp.contract > 0 && eigen.t <= 2 ? Math.max(50000, somVoor(sp, c, .9 + rnd() * .4)) : 0};
 }
 // Een club in de andere wereld (het mannen- of vrouwenvoetbal) van dat land: voor je jeugdvriend(in) van het andere geslacht.
 // Altijd de startstand van die wereld (die competities spelen we niet)

@@ -168,6 +168,9 @@ export function gaHuren(x){
 // Einde huurperiode (zomer): terug naar je eigen club, met een plek die past bij hoe je het deed
 export function terugVanHuur(){
   const sp = S.sp, h = sp.huur, huurId = sp.club, huurNaam = club().n, huurLand = thuisLand(), weg = !!h.ouderLand && h.ouderLand !== huurLand;
+  // Hoe het was bij de huurclub: koopt die je (de koopoptie), dan blijf je daar en hoef je niet opnieuw te beginnen
+  // (je status, je wedstrijden, en in het buitenland je leven daar: transfers.js wissel)
+  sp.huurStaat = {club:huurId, status:sp.status, clubWed:sp.clubWed, clubSz:sp.clubSz, ...(weg ? {land:huurLand, bl:sp.buitenland || null, heimwee:sp.heimwee || 0} : {})};
   // Een huurperiode in het buitenland: terug naar je eigen land (taal en heimwee weer zoals vóór de huur)
   if (weg){ wisselLand(h.ouderLand); sp.buitenland = h.bl || null; sp.heimwee = h.heimwee || 0; }
   const ouder = CLUBS[h.ouder], c = h.cijfers, g = c.length ? gemiddelde(c) : null;
@@ -192,5 +195,8 @@ export function terugVanHuur(){
   const oordeel = g === null || g >= 6.4 ? 'terug' : (sp.contract ?? 0) >= 2 ? 'verhuur' : 'verkoop';
   if (oordeel === 'verhuur') tekst += ` Er is nu geen plek voor je in de selectie. Je contract loopt nog ${sp.contract} jaar, dus ${ouder.n} verhuurt je opnieuw.`;
   if (oordeel === 'verkoop') tekst += ` ${ouder.n} wil verder zonder jou en zet je op de transferlijst.`;
-  return {tekst, oordeel, koop: g !== null && g >= 7 && c.length >= 5 ? {club:huurId, ...(weg ? {land:huurLand} : {})} : null};
+  // (zei je in de pers dat je wilt blijven, dan wil de huurclub je al bij een iets lager gemiddelde kopen)
+  const koopVanaf = h.blijfWens ? 6.6 : 7;
+  if (h.blijfWens && g !== null && g >= koopVanaf && g < 7 && c.length >= 5) tekst += ` ${huurNaam} weet dat je wilt blijven, en wil je graag kopen.`;
+  return {tekst, oordeel, koop: g !== null && g >= koopVanaf && c.length >= 5 ? {club:huurId, ...(weg ? {land:huurLand} : {})} : null};
 }

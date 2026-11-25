@@ -44,11 +44,32 @@ function maak(id){
   recW.g = recW.pos === 'K' ? 0 : Math.round(recW.w * (recW.pos === 'M' ? .12 : .05));
   const legendes = [{...top}, {...recW}];
   for (const pos of ['M', 'V']){ const w = int(180, 420); legendes.push({n:naam(), pos, w, g:Math.round(w * (pos === 'M' ? .15 : .04) * (.6 + r() * .8)), p:periode(int(7, 13))}); }
-  legendes.forEach(x => { x.typ = pickR(r, TYPERING[x.pos]); });
+  legendes.forEach(x => { x.typ = pickR(r, TYPERING[x.pos]); legendeAssists(x); });
   legendes.sort((a, b) => a.p[0] - b.p[0]);
   return {opgericht, prijzen, top, recW, legendes};
 }
 const pickR = (r, l) => l[Math.floor(r() * l.length)];
+// Assists van een legende (en de nul voor een keeper). Oude opslag had ze nog niet: dan nu één keer bepalen, vast per naam.
+// De man van de assists geeft er veel meer dan hij scoort; een regisseur ook een hoop
+const ASSIST_PER_WED = {A:.14, M:.2, V:.05};
+function legendeAssists(x){
+  if (x.a != null) return x.a;
+  const r = dobbel(x.n + '|a'), f = .75 + r() * .5;
+  if (x.pos === 'K'){ x.nul = x.nul ?? Math.round(x.w * (.28 + r() * .1)); return x.a = 0; }
+  const per = /assists/.test(x.typ || '') ? .38 : /regisseur/.test(x.typ || '') ? .3 : ASSIST_PER_WED[x.pos] || .1;
+  return x.a = Math.round(x.w * per * f);
+}
+// Het assistrecord van een club (ook voor oude opslag: één keer bepalen, vast per clubnaam). Is er een legende die
+// "de man van de assists" is, dan is hij de recordhouder; anders een middenvelder uit de oude doos
+function assistRecord(H, c){
+  if (H.recA) return H.recA;
+  const r = dobbel(c.n + '|assists'), man = H.legendes.find(x => /assists/.test(x.typ || ''));
+  const a = Math.max(man ? legendeAssists(man) : 0, Math.round(H.top.g * (.8 + r() * .35)));
+  if (man){ man.a = a; return H.recA = {n:man.n, pos:'M', a, p:man.p}; }
+  const van = Math.floor(H.opgericht + 15 + r() * Math.max(1, (S.jaar || 2026) - H.opgericht - 35));
+  return H.recA = {n:`${VOORL[Math.floor(r() * VOORL.length)]}. ${ACHTERNAMEN[Math.floor(r() * ACHTERNAMEN.length)]}`, pos:'M', a, p:[van, van + 9 + Math.floor(r() * 6)]};
+}
+const legendeRegel = x => x.pos === 'K' ? `${x.w} wed · ${(legendeAssists(x), x.nul)} keer de nul` : `${x.w} wed · ${x.g} goals · ${legendeAssists(x)} assists`;
 
 export function historie(id){
   const c = CLUBS[id]; if (!c) return null;
@@ -118,7 +139,8 @@ export function jijBij(id){
   const uitSeizoenen = ((S.car && S.car.seizoenen) || []).filter(x => x.club === c.n).reduce((n, x) => n + (x.g || 0), 0);
   const g = Math.max((R && R.clubG && R.clubG[ky]) || 0, uitSeizoenen), w = (R && R.clubW && R.clubW[ky]) ?? (id === S.sp.club ? S.sp.clubWed || 0 : 0);
   const legende = (S.car.prijzen || []).includes(`Clublegende van ${c.n}`) || (id === S.sp.club && S.sp.legendeHier);
-  return {g, w, legende:legende || g >= 50 || w >= 150};
+  const a = ((S.car && S.car.seizoenen) || []).filter(x => x.club === c.n).reduce((n, x) => n + (x.a || 0), 0) + (id === S.sp.club ? (S.ss && S.ss.a) || 0 : 0);
+  return {g, a, w, legende:legende || g >= 50 || w >= 150};
 }
 
 /* ---------- Het tabblad Historie ---------- */
@@ -150,13 +172,13 @@ function vClubHistorie(keuze){
       ${jijW > 0 || mijn ? `<div class="balk"><span>Jij</span><span class="b"><i style="width:${pct}%"></i></span><span>${jijW}</span></div>
       <p class="muted klein-tekst">${gebroken ? 'Het record is van jou!' : `Nog ${waarde - jijW + 1} ${eenheid} om het record te breken.`}</p>` : ''}</div>`;
   };
-  const leg = H.legendes.map(x => `<li><b>${esc(x.n)}</b> <span class="muted">(${x.pos}, ${x.p[0]}–${x.p[1]})</span><br><span class="klein-tekst">${x.w} wed · ${x.g} goals · <i>${esc(x.typ)}</i></span></li>`);
-  if (jij.legende) leg.push(`<li class="mij"><b>${naam}</b> <span class="muted">(jij)</span><br><span class="klein-tekst">${jij.w} wed · ${jij.g} goals · <i>${jij.g > H.top.g ? 'de topscorer aller tijden' : 'een legende van nu'}</i></span></li>`);
+  const leg = H.legendes.map(x => `<li><b>${esc(x.n)}</b> <span class="muted">(${x.pos}, ${x.p[0]}–${x.p[1]})</span><br><span class="klein-tekst">${legendeRegel(x)} · <i>${esc(x.typ)}</i></span></li>`);
+  if (jij.legende) leg.push(`<li class="mij"><b>${naam}</b> <span class="muted">(jij)</span><br><span class="klein-tekst">${jij.w} wed · ${jij.g} goals · ${jij.a} assists · <i>${jij.g > H.top.g ? 'de topscorer aller tijden' : sp.pos === 'MID' && jij.a > assistRecord(H, c).a ? 'de assistkoning aller tijden' : 'een legende van nu'}</i></span></li>`);
   const E = (S.erelijst && S.erelijst[thuisLand()]) || {}, ere = c.t >= 1 ? (E[c.t] || []).slice(-6).reverse() : [];
   return `<div class="kaart historie">${keuze}${nav}
     <div class="histkop">${clubLogo(id, 44)}<div><h3>${esc(c.n)}</h3><div class="muted klein-tekst">Opgericht in ${H.opgericht} · ${c.t >= 0 ? esc(DIVS[c.t]) : ''}</div></div></div>
     <span class="label">Prijzenkast</span>${kast || '<p class="muted klein-tekst">Nog geen grote prijzen. De eerste kan van jou zijn!</p>'}
-    ${record('Topscorer aller tijden', H.top, H.top.g, 'goals', jij.g)}
+    ${sp.pos === 'MID' ? record('Meeste assists', assistRecord(H, c), assistRecord(H, c).a, 'assists', jij.a) : record('Topscorer aller tijden', H.top, H.top.g, 'goals', jij.g)}
     ${record('Meeste wedstrijden', H.recW, H.recW.w, 'wedstrijden', jij.w)}
     <span class="label">Legendes</span><ul class="histleg">${leg.join('')}</ul>
     ${ere.length ? `<span class="label">Laatste kampioenen ${esc(DIVS[c.t])}</span>${ere.map(x => rij(jaarTxt(x.j), `${x.n === c.n ? '<b>' : ''}${esc(x.n)}${x.n === c.n ? '</b>' : ''}`)).join('')}` : ''}

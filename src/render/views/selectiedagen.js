@@ -1,3 +1,4 @@
+import { formatieBijBod } from '../../data/plekken.js';
 import { mijnPlek as veldPlek } from '../../data/plekken.js';
 import { vriendApart, vriendClubInfo } from '../../game/speler/journey.js';
 import { clubPlek } from '../../game/transfers/buitenland.js';
@@ -58,7 +59,7 @@ export function vSelectieKeuze(){
     return `<div class="bod ${o.soort === 'ambitie' ? 'door' : ''}"><span class="label">${SOORT[o.soort]} · ${o.o23 ? 'O23' : NIVEAU[c.t]} · ${esc(DIVS[c.t])}</span>
       <div class="club">${clubLogo(o.club, 40)}<span>${esc(c.n)}${o.o23 ? ' O23' : ''}</span></div>
       <p class="quote">${esc(o.quote)}</p>
-      <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>Jouw klasse</dt><dd>${ovr(S.sp)} <span class="${d >= 0 ? 'goedtxt' : 'fouttxt'}">(${d >= 0 ? '+' : ''}${d})</span></dd><dt>Stand</dt><dd>${esc(clubPlek({club:o.club}))}</dd><dt>${salarisLabel(c.t)}</dt><dd>${geldTxt(o.salaris)}</dd><dt>Contract</dt><dd>${o.jaren} jaar</dd><dt>Speelstijl</dt><dd>${esc(stijl ? stijl.n : '–')}</dd></dl>
+      <dl><dt>Clubsterkte</dt><dd>${c.s}</dd><dt>Jouw klasse</dt><dd>${ovr(S.sp)} <span class="${d >= 0 ? 'goedtxt' : 'fouttxt'}">(${d >= 0 ? '+' : ''}${d})</span></dd><dt>Stand</dt><dd>${esc(clubPlek({club:o.club}))}</dd><dt>${salarisLabel(c.t)}</dt><dd>${geldTxt(o.salaris)}</dd><dt>Contract</dt><dd>${o.jaren} jaar</dd><dt>Speelstijl</dt><dd>${esc(stijl ? stijl.n : '–')}</dd>${o.o23 ? '' : `<dt>Formatie</dt><dd>${esc(formatieBijBod(o.club))}</dd>`}</dl>
       <div class="rol"><span class="label">Jouw rol daar</span>${o.o23 ? '<b>Bij de O23</b><span class="risico r-gem">Bewijs je, dan haalt de trainer je naar het eerste</span>' : `<b>${r.status}</b><span class="risico ${r.plek[1]}">${r.plek[0]}</span>`}</div>
       ${vc && vc.club === o.club && vn && !vriendApart() ? `<p class="goedtxt klein-tekst">🤝 ${esc(vn)} tekent hier ook${vc.o23 ? ' (bij de O23)' : ''}.</p>` : ''}
       <div class="rij">${knop('Hier tekenen', () => tekenSelectie(i), 'hoofd', 'style="font-size:1.05rem;padding:10px 16px"')}</div></div>`;

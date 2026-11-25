@@ -1,4 +1,4 @@
-import { S, club, mod, ovr } from '../../core/state.js';
+import { S, club, mod, ovr, rondSom, waardeVoorKlasse } from '../../core/state.js';
 import { clamp, esc, geldTxt, pick, randInt, rnd } from '../../core/utils.js';
 import { BASE, CLUBS, DIVS, LAAGSTE, NL_CLUBS, divClubs, ligaVan } from '../../data/gegevens.js';
 import { LAND_DATA, SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
@@ -139,9 +139,9 @@ function vanClub(land, ster){
   const lijst = land === 'Nederland' ? NL_CLUBS : (LAND_DATA[land] || {}).clubs || [], n1 = ligaVan(land).n[0];
   const l = lijst.slice(0, ster ? Math.min(6, n1) : n1); return l.length ? clubNaam(pick(l)) : null;
 }
+// Zoals in het echt (state.js waardeVoorKlasse): naar de klasse van de speler, een ster nog wat duurder
 function transferSom(k, ster){
-  const [lo, hi] = ster ? [1e7, 3e7] : k >= 85 ? [5e6, 15e6] : k >= 75 ? [2e6, 6e6] : k >= 65 ? [6e5, 2e6] : [1e5, 6e5];
-  return Math.round((lo + rnd() * (hi - lo)) * geldF() / 1e4) * 1e4;
+  return rondSom(waardeVoorKlasse(k + (ster ? 3 : 0)) * (.75 + rnd() * .55) * geldF());
 }
 export function buitenlandAankopen(comp, soort, mijn, zonderMijn, delta = {}){
   const deals = [], hier = thuisLand(), landen = SPEEL_LANDEN.filter(l => l !== hier).concat(VER_LANDEN);
