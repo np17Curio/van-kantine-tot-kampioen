@@ -2,7 +2,7 @@ import { S, club, seizoenLabel, tmp } from '../../core/state.js';
 import { knop } from '../../core/ui.js';
 import { clamp, esc, pick, shuffle } from '../../core/utils.js';
 import { CLUBS, DIVS, LAAGSTE, divClubs, ligaVan, rondeInWeek, AANTAL_RONDES } from '../../data/gegevens.js';
-import { thuisLand } from '../../data/landen.js';
+import { thuisLand, cupNaam } from '../../data/landen.js';
 import { stand } from '../competitie/spelers.js';
 import { fmt1, gemiddelde } from '../speler/o23.js';
 import { stand2 } from '../wedstrijd/wedstrijd.js';
@@ -169,7 +169,8 @@ export const gespeeldeRondes = t => (S.ss.res && S.ss.res[t] ? S.ss.res[t].lengt
 export const ZONES = {cl:'Champions League', eur:'Europa Cup', prom:'Promoveert direct', po:'Nacompetitie om promotie', pod:'Nacompetitie tegen degradatie', degr:'Degradeert direct'};
 // Wat betekent plek i (van n) in league t? Volgens de regels van je land (LIGA in gegevens.js)
 export function zone(t, i, n){
-  const L = ligaVan(thuisLand()), po = L.po;
+  const L = ligaVan(thuisLand()), po = L.po, dicht = po.soort === 'geen'; // (dicht: een gesloten competitie zonder promotie en degradatie)
+  if (dicht) return t === 1 ? (i <= 1 ? 'cl' : i <= 3 ? 'eur' : null) : null;
   if (t === 1) return i <= 1 ? 'cl' : i <= 3 ? 'eur' : i >= n - L.omlaag ? 'degr' : po.soort === 'barrage' && i === po.boven - 1 ? 'pod' : null; // de hoogste competitie
   if (i < L.omhoog) return 'prom';
   if (po.soort === 'barrage' ? i === po.onder - 1 : i >= po.van - 1 && i <= po.tot - 1) return 'po';
@@ -177,7 +178,7 @@ export function zone(t, i, n){
   return null;
 }
 // De uitleg onder de stand
-export const zoneNaam = k => { const po = ligaVan(thuisLand()).po; return k === 'po' && po.soort === 'playoff' ? `Play-offs om promotie (nr. ${po.van}-${po.tot})` : ZONES[k]; };
+export const zoneNaam = k => { const po = ligaVan(thuisLand()).po; return k === 'po' && po.soort === 'playoff' ? `Play-offs om promotie (nr. ${po.van}-${po.tot})` : k === 'cl' || k === 'eur' ? cupNaam(k) : ZONES[k]; };
 // Gepromoveerd (▲), gedegradeerd (▼) of nieuw in de competitie, alleen in het eerste deel van het nieuwe seizoen
 const wisselTeken = id => { const w = S.nieuwInDiv; if (!w || w.jaar !== S.jaar || S.ronde > AANTAL_RONDES * .3) return ''; return w.nieuw.includes(id) ? ' <span class="wt nieuw" title="Nieuw in deze competitie">nieuw</span>' : w.op.includes(id) ? ' <span class="wt op" title="Gepromoveerd">▲</span>' : w.neer.includes(id) ? ' <span class="wt neer" title="Gedegradeerd">▼</span>' : ''; };
 export function vCompetitieKaart(){
@@ -189,7 +190,7 @@ export function vCompetitieKaart(){
     inhoud = `<div class="tabelwrap"><table class="tabel">
       <thead><tr><th>#</th><th>Club</th><th>G</th><th>DS</th><th>Pt</th><th class="vk">Vorm</th></tr></thead>
       <tbody>${st.map((id, i) => { const e = S.tab[id], z = zone(t, i, st.length); return `<tr class="${id === sp.club ? 'mij' : ''}${z ? ' z-' + z : ''}"${z ? ` title="${zoneNaam(z)}"` : ''}><td>${i + 1}</td><td><span class="clubnaam">${historieKnop(id, clubLogo(id, 16) + esc(CLUBS[id].n))}${wisselTeken(id)}</span></td><td>${e.g}</td><td>${e.dv - e.dt > 0 ? '+' : ''}${e.dv - e.dt}</td><td>${e.pt}</td><td class="vk">${vormBolletjes(id)}</td></tr>`; }).join('')}</tbody>
-    </table></div>${`<div class="zones">${Object.entries(ZONES).filter(([k]) => (t > 1 || (k !== 'prom' && k !== 'po')) && (t === 1 || (k !== 'cl' && k !== 'eur')) && (t < LAAGSTE || (k !== 'pod' && k !== 'degr')) && (k !== 'pod' || ligaVan(thuisLand()).po.soort === 'barrage')).map(([k]) => `<span class="z-${k}">${zoneNaam(k)}</span>`).join('')}</div>`}`;
+    </table></div>${`<div class="zones">${Object.entries(ZONES).filter(([k]) => (t > 1 || (k !== 'prom' && k !== 'po')) && (t === 1 || (k !== 'cl' && k !== 'eur')) && (t < LAAGSTE || (k !== 'pod' && k !== 'degr')) && (k !== 'pod' || ligaVan(thuisLand()).po.soort === 'barrage') && (ligaVan(thuisLand()).po.soort !== 'geen' || k === 'cl' || k === 'eur')).map(([k]) => `<span class="z-${k}">${zoneNaam(k)}</span>`).join('')}</div>`}`;
   } else if (tab === 'uit'){
     const n = gespeeldeRondes(t);
     if (!n) inhoud = '<p class="muted klein-tekst">Er is nog geen speelronde gespeeld.</p>';

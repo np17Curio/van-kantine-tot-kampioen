@@ -17,7 +17,7 @@ import { ik, team } from '../../core/geslacht.js';
 
 /* ===================== Eindtoernooien: WK, EK en de andere continenten ===================== */
 export const CONTINENT = {Nederland:'eu', 'België':'eu', Duitsland:'eu', Frankrijk:'eu', Spanje:'eu', Engeland:'eu', Portugal:'eu', 'Italië':'eu', 'Kroatië':'eu', Turkije:'eu', Polen:'eu', Zwitserland:'eu', Denemarken:'eu', Noorwegen:'eu', 'Tsjechië':'eu', Griekenland:'eu',
-  'Brazilië':'zam', 'Argentinië':'zam', Marokko:'af', Senegal:'af', Nigeria:'af', Ghana:'af', 'Kaapverdië':'af', Japan:'as', 'Indonesië':'as', 'Curaçao':'nam', Suriname:'nam'};
+  'Brazilië':'zam', 'Argentinië':'zam', Marokko:'af', Senegal:'af', Nigeria:'af', Ghana:'af', 'Kaapverdië':'af', Japan:'as', 'Indonesië':'as', 'Curaçao':'nam', Suriname:'nam', Mexico:'nam', 'Verenigde Staten':'nam'};
 // Extra tegenstanders op toernooien (je kunt er zelf niet voor uitkomen)
 export const EXTRA_LANDEN = [
   {n:'Oostenrijk',s:78,c:'eu'},{n:'Schotland',s:74,c:'eu'},{n:'Servië',s:76,c:'eu'},{n:'Oekraïne',s:76,c:'eu'},{n:'Zweden',s:76,c:'eu'},{n:'Wales',s:72,c:'eu'},{n:'Hongarije',s:73,c:'eu'},

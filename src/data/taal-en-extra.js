@@ -826,4 +826,13 @@ export const EN_EXTRA = {
   "Meeste assists":"Most assists",
   "de assistkoning aller tijden":"the all-time assist king",
   "* · # assists":"* · # assists",
+  // ---- Mexico en de VS ----
+  "CONCACAF Champions Cup gewonnen":"CONCACAF Champions Cup won",
+  "Leagues Cup gewonnen":"Leagues Cup won",
+  "De CONCACAF Champions Cup winnen: +*. De beker: +*.":"Winning the CONCACAF Champions Cup: +*. The cup: +*.",
+  "Noord-Amerika":"North America",
+  "Verenigde Staten":"United States",
+  "De beste ploeg van het land. Volgend seizoen wacht de *.":"The best team in the country. Next season the * awaits.",
+  "CONCACAF Champions Cup (nummers 1 en 2)":"CONCACAF Champions Cup (numbers 1 and 2)",
+  "Champions League (nummers 1 en 2)":"Champions League (numbers 1 and 2)",
 };

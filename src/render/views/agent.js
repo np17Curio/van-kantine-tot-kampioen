@@ -2,7 +2,7 @@ import { S, club, ovr, tmp } from '../../core/state.js';
 import { act, knop } from '../../core/ui.js';
 import { clamp, esc } from '../../core/utils.js';
 import { AGENTEN, DIVS, LAAGSTE, NIVEAU } from '../../data/gegevens.js';
-import { SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
+import { SPEEL_LANDEN, thuisLand, cupNaam } from '../../data/landen.js';
 import { agentGewisseld, agentNaam, magAgent, mijnAgent, wisselAgent, agentReset, clubIndex, clubsVanNiveau, doelBod, doelVan, eisenVoor, eliteClubs, eliteLand, infoVan, isHier, kaal, kiesDoel, norm, vraagAgent, wanneerBod, zoekClub } from '../../game/transfers/zaakwaarnemer.js';
 import { rolRij } from './venster.js';
 
@@ -44,7 +44,7 @@ export function vClubOverzicht(){
     const ds = clubsVanNiveau(land, t).sort((a, b) => infoVan(b).s - infoVan(a).s);
     if (!ds.length) continue;
     const div = thuis ? DIVS[t] : infoVan(ds[0]).div;
-    h += `<div class="clubgroep"><span class="label">${NIVEAU[t]} · ${esc(div)}${thuis && eigen.t === t ? ' · hier speel jij' : ''}${t === 1 ? ' · de nummers 1 en 2 spelen Champions League' : ''}</span>${ds.map(d => clubRij(d)).join('')}</div>`;
+    h += `<div class="clubgroep"><span class="label">${NIVEAU[t]} · ${esc(div)}${thuis && eigen.t === t ? ' · hier speel jij' : ''}${t === 1 ? ` · de nummers 1 en 2 spelen ${cupNaam('cl', thuis ? undefined : ds[0].land)}` : ''}</span>${ds.map(d => clubRij(d)).join('')}</div>`;
   }
   return h + `</details>`;
 }

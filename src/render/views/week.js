@@ -1,6 +1,6 @@
 import { clubPlekken, mijnFormatie, mijnPlek, plekGesprekNodig, plekOpnieuwMag, plekPastTekst, plekTekst, plekkenVoor, vraagPlek } from '../../data/plekken.js';
 import { BROEK_KAST, DAS_KAST, KLEUR_KAST, PERS_STIJLEN, UIT_STIJLEN, kies as kiesKleding, kledingWaarde } from '../../game/prive/kleding.js';
-import { BEKER_ALT } from '../../data/landen.js';
+import { BEKER_ALT, CUP_ALT } from '../../data/landen.js';
 import { S, club, mod, ovr, tmp, attr } from '../../core/state.js';
 import { act, keuzeKnop, knop, tabBalk } from '../../core/ui.js';
 import { clamp, esc, geldTxt } from '../../core/utils.js';
@@ -86,7 +86,7 @@ function teamOpen(){
 // Het interview in de week van het duel met je rivaal (niet verplicht)
 // Zondag tegen je beste vriend (bij een andere club): hij appt je, jij antwoordt met een toon
 // Jij tegen je jeugdvriend: klasse, club, dit seizoen en de hele carrière (groen = de beste)
-const ECHTE_PRIJS = () => new RegExp(`^(Kampioen|${BEKER_ALT}|Champions League|Europa Cup|Jeugdbeker)`);
+const ECHTE_PRIJS = () => new RegExp(`^(Kampioen|${BEKER_ALT}|${CUP_ALT}|Jeugdbeker)`);
 function vVriendVergelijk(){
   const sp = S.sp, v = sp.vriend, vn = v.voornaam, st = vriendStats(), C = v.carriere || {g:0, a:0}, jk = ovr(sp), hk = vriendKlasse() || 0;
   const rv = v.weg && sp.rivaal && sp.rivaal.exVriend, clNaam = rv ? (CLUBS[sp.rivaal.club] || {}).n : vriendClubNaam();

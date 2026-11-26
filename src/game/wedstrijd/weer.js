@@ -26,7 +26,8 @@ const KLIMAAT = [
 // Het land: warmer en droger in het zuiden, kouder in het noorden (sneeuw: hoeveel vaker, temperatuur: hoeveel warmer)
 const LAND = {Spanje:{sneeuw:0, warm:7, zon:.2}, Portugal:{sneeuw:0, warm:6, zon:.2}, Turkije:{sneeuw:.2, warm:6, zon:.15}, 'Italië':{sneeuw:.2, warm:5, zon:.15},
   Griekenland:{sneeuw:0, warm:8, zon:.25}, Frankrijk:{sneeuw:.6, warm:2, zon:.05}, Noorwegen:{sneeuw:2, warm:-5, zon:-.05}, Polen:{sneeuw:1.6, warm:-2, zon:0},
-  Denemarken:{sneeuw:1.2, warm:-1, zon:0}, Zwitserland:{sneeuw:1.6, warm:-1, zon:0}, 'Tsjechië':{sneeuw:1.5, warm:-2, zon:0}, Duitsland:{sneeuw:1.2, warm:0, zon:0}};
+  Denemarken:{sneeuw:1.2, warm:-1, zon:0}, Zwitserland:{sneeuw:1.6, warm:-1, zon:0}, 'Tsjechië':{sneeuw:1.5, warm:-2, zon:0}, Duitsland:{sneeuw:1.2, warm:0, zon:0},
+  Mexico:{sneeuw:0, warm:9, zon:.3}, 'Verenigde Staten':{sneeuw:.5, warm:4, zon:.12}};
 const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
 // Het weer voor een ronde (vast: dezelfde ronde in hetzelfde seizoen heeft altijd hetzelfde weer, ook als je hem opnieuw laadt)
 export function weerVoor(ronde = S.ronde, land = thuisLand(), extra = ''){

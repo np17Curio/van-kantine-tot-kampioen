@@ -58,6 +58,7 @@ const LAND = {
   'Kaapverdië':[K.blauw, K.wit, 'banen', K.blauw, K.blauw], 'Curaçao':[K.blauw, K.geel, 'bies', K.blauw, K.blauw], Suriname:[K.groen, K.wit, 'bies', K.wit, K.groen],
   'Indonesië':[K.rood, K.wit, 'helften', K.wit, K.rood], 'Tsjechië':[K.rood, K.wit, 'bies', K.blauw, K.rood], Griekenland:[K.blauw, K.wit, 'effen', K.wit, K.blauw],
   Denemarken:[K.rood, K.wit, 'effen', K.wit, K.rood], Noorwegen:[K.rood, K.wit, 'bies', K.wit, K.marine], Zwitserland:[K.rood, K.wit, 'effen', K.rood, K.rood],
+  Mexico:[K.groen, K.wit, 'bies', K.wit, K.rood], 'Verenigde Staten':[K.wit, K.marine, 'effen', K.marine, K.wit],
 };
 export function landTenue(naam){
   const merk = merkVoor('land|' + naam, 74 + hash('landmerk|' + naam) % 12); // (een land speelt altijd bij een groot merk)

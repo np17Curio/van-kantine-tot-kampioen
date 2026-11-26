@@ -1,3 +1,4 @@
+import { cupNaam } from '../../data/landen.js';
 import { S, club, gemCijfer, ovr } from '../../core/state.js';
 import { pick, randInt, rnd } from '../../core/utils.js';
 import { AANTAL_RONDES, CLUBS, DIVS, rondesVan, divClubs, GAST_START, GASTEN } from '../../data/gegevens.js';
@@ -41,7 +42,7 @@ export function goudenBalOnderdelen({gem, g, a, kamp, beker, cl, o, t, tb = 0, t
     {k:'kamp', l:kamp ? 'Kampioen (je staat nu bovenaan)' : 'Niet bovenaan: geen kampioensbonus', v:kamp ? 10 * f : 0},
   ];
   if (beker) rij.push({k:'beker', l:'Beker gewonnen', v:6 * f});
-  if (cl) rij.push({k:'cl', l:'Champions League gewonnen', v:10 * f});
+  if (cl) rij.push({k:'cl', l:`${cupNaam('cl')} gewonnen`, v:10 * f});
   rij.push({k:'klasse', l:`Klasse ${o} (alles boven de 70 telt)`, v:Math.max(0, o - 70) * .65 * f});
   if (top) rij.push({k:'klasseTop', l:`Klasse ${o} tegen de wereldtop ${top} (${o < top ? 'eronder kost punten' : o > top ? 'je bent beter dan de wereldtop' : 'even goed als de wereldtop'})`, v:klasseTop(o, top) * f});
   if (tb) rij.push({k:'tb', l:'Bonus van het WK of EK van afgelopen zomer', v:tb});
@@ -98,7 +99,7 @@ export function goudenBalStand(){
     tips.push(`Elke 0,1 hoger gemiddeld cijfer: +${r1(1.8 * f)} punten${gem !== null ? ` (nu ${c1(gem)})` : ''}.`);
     tips.push(`Elke goal +${r1(1.3 * f)}, elke assist +${r1(.8 * f)}.`);
     if (!kamp) tips.push(`Kampioen worden: +${Math.round(10 * f)}.`);
-    if (!S.ss.clWinst) tips.push(`De Champions League winnen: +${Math.round(10 * f)}. De beker: +${Math.round(6 * f)}.`);
+    if (!S.ss.clWinst) tips.push(`De ${cupNaam('cl')} winnen: +${Math.round(10 * f)}. De beker: +${Math.round(6 * f)}.`);
     tips.push(`Klasse telt zwaar: elk punt klasse levert +${r1((.65 + KL_TOP) * f)} op${o < kTop + KL_TOP_MAX / KL_TOP ? '' : ' (je zit al aan de maximale bonus tegen de wereldtop)'}. De wereldtop heeft klasse ${kTop}, jij ${o}.`);
   }
   // Wat veranderde er sinds vorige week (ten opzichte van de momentopname van een week eerder)

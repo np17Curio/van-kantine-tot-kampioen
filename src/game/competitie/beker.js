@@ -27,7 +27,7 @@ import { scorebord, vFit, vLog, statRegel } from '../../render/views/match.js';
 import { staminaNaWedstrijd } from '../wedstrijd/stamina.js';
 import { vormBonus } from './vorm.js';
 import { GAST_START, GASTEN } from '../../data/gegevens.js';
-import { SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
+import { SPEEL_LANDEN, thuisLand, AMERIKA, EUROPA_LANDEN, inAmerika } from '../../data/landen.js';
 import { ck, vreemdeClub } from '../transfers/buitenland.js';
 import { landenRanking } from './landsterkte.js';
 
@@ -58,13 +58,16 @@ export function nieuweBekers(){
 // Per plek op de ranking (zonder jouw land): [plaatsen in de Champions League, plaatsen in de Europa Cup]. Samen 14 + 6 = GASTEN
 const EURO_PLEKKEN = [[2, 0], [2, 0], [2, 0], [2, 0], [1, 1], [1, 1], [1, 1], [1, 0], [1, 0], [1, 0], [0, 1], [0, 1], [0, 1], [0, 0]];
 export function vulGasten(){
-  const hier = thuisLand(), rang = landenRanking().map(x => x.land).filter(l => l !== hier), andere = rang.concat(SPEEL_LANDEN.filter(l => l !== hier && !rang.includes(l))), cl = [], eur = [];
+  const hier = thuisLand(), nam = inAmerika(hier), cl = [], eur = [];
+  // Noord-Amerika: de CONCACAF Champions Cup en de Leagues Cup, met de clubs uit het andere land (Mexico tegen de VS): 6 + 6 plaatsen
+  const rang = nam ? AMERIKA.filter(l => l !== hier) : landenRanking().map(x => x.land).filter(l => l !== hier), andere = nam ? rang : rang.concat(EUROPA_LANDEN.filter(l => l !== hier && !rang.includes(l)));
+  const PLEKKEN = nam ? [[6, 6]] : EURO_PLEKKEN;
   let g = GAST_START;
   const zet = (land, id, rang, lijst) => { const c = vreemdeClub(land, id); Object.assign(CLUBS[g], {n:c.n, s:c.s, t:-1, gast:{land, id, rang}}); if (S.sel) delete S.sel[ck(g)]; lijst.push(g); g++; };
   andere.forEach((land, k) => {
     const top = []; for (let id = 8; id < clubsLand(land); id++){ const c = vreemdeClub(land, id); if (c.t === 1) top.push([id, c.s + rnd() * 10]); } // een gesimuleerde eindstand: de sterkste wint meestal, niet altijd
     top.sort((a, b) => b[1] - a[1]);
-    const [ncl, neur] = EURO_PLEKKEN[k] || [0, 0];
+    const [ncl, neur] = PLEKKEN[k] || [0, 0];
     top.slice(0, ncl + neur).forEach(([id], i) => { if (g < GAST_START + GASTEN) zet(land, id, i + 1, i < ncl ? cl : eur); });
   });
   S.gasten = CLUBS.slice(GAST_START, GAST_START + GASTEN).map(c => ({n:c.n, s:c.s, gast:c.gast}));
@@ -171,7 +174,7 @@ export function startBeker(k, m){
   const T = teamKracht(c.s, {speelt, thuis:thuis && !finale}), O = opp.s + (!thuis && !finale ? 2 : 0) + vormBonus(oppId);
   const M = {beker:{k, naam:BEKERS[k].naam, ronde:rondeNaam, finale}, opp:oppId, oppS:opp.s, wij:c.n, zij:opp.n, thuis, rol, us:0, them:0, min:0, ev:[], idx:0, log:[], cijfer:sp.pos === 'VERD' || sp.pos === 'KEEPER' ? 6.3 : 6.0, goals:0, assists:0, geel:false, rood:false, pending:null, klaar:false};
   S.M = M;
-  M.log.push({m:'', t:`${k === 'cl' ? 'De Champions League-hymne klinkt door het stadion. Kippenvel. ' : ''}${BEKERS[k].naam} · ${rondeNaam}${finale ? ' in een uitverkocht stadion' : ''}. ${rol === 'basis' ? 'Je staat in de basis.' : rol === 'invaller' ? 'Je begint op de bank.' + reden : rol === 'o23' ? 'Je speelt bij de O23 en kijkt vanaf de tribune.' : rol === 'blessure' ? 'Je bent geblesseerd en kijkt vanaf de tribune.' : rol === 'rust' ? 'Je bent kapot en krijgt rust.' : rol === 'bank' ? 'Je zit op de bank als reservekeeper.' : 'De trainer laat je buiten de selectie.' + reden}`, k:'rust'});
+  M.log.push({m:'', t:`${k === 'cl' && !inAmerika() ? 'De Champions League-hymne klinkt door het stadion. Kippenvel. ' : ''}${BEKERS[k].naam} · ${rondeNaam}${finale ? ' in een uitverkocht stadion' : ''}. ${rol === 'basis' ? 'Je staat in de basis.' : rol === 'invaller' ? 'Je begint op de bank.' + reden : rol === 'o23' ? 'Je speelt bij de O23 en kijkt vanaf de tribune.' : rol === 'blessure' ? 'Je bent geblesseerd en kijkt vanaf de tribune.' : rol === 'rust' ? 'Je bent kapot en krijgt rust.' : rol === 'bank' ? 'Je zit op de bank als reservekeeper.' : 'De trainer laat je buiten de selectie.' + reden}`, k:'rust'});
   if (!speelt){ const [a, b] = simGoals(T, O, false); if (reunieMet(oppId)) M.reunie = {club:oppId, type:reunieMet(oppId).type, ontvangst:ontvangst(oppId)}; planWedstrijd(M, T, O, {us:a, them:b}); }
   else { reunieAftrap(M); planWedstrijd(M, T, O); }
   S.fase = 'match';

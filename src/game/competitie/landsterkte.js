@@ -1,7 +1,7 @@
 import { S } from '../../core/state.js';
 import { clamp, randInt } from '../../core/utils.js';
 import { CLUBS, GAST_START, GASTEN, landBasis } from '../../data/gegevens.js';
-import { SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
+import { SPEEL_LANDEN, thuisLand, EUROPA_LANDEN } from '../../data/landen.js';
 import { leagueInfo } from '../speler/niveau.js';
 import { hervormStand } from '../transfers/buitenland.js';
 import { BEKERS, bekerRondeNaam } from './beker.js';
@@ -10,7 +10,7 @@ import { BEKERS, bekerRondeNaam } from './beker.js';
 // In je eigen land groeien en krimpen de clubs met hun spelers (markt.js). De andere landen ontwikkelen zich hier, één keer per seizoen:
 // een trend per land (goede en slechte generaties), wat toeval per club, Europese successen, en een rem richting de startsterkte.
 export const landSterkte = land => { const L = leagueInfo(land, 1); return L ? L.gem : 0; };
-export const landenRanking = () => SPEEL_LANDEN.map(land => ({land, gem:landSterkte(land)})).sort((a, b) => b.gem - a.gem).map((x, i) => ({...x, plek:i + 1}));
+export const landenRanking = () => EUROPA_LANDEN.map(land => ({land, gem:landSterkte(land)})).sort((a, b) => b.gem - a.gem).map((x, i) => ({...x, plek:i + 1}));
 // Europese bonus voor de gastclubs van dit seizoen: halve finale +1, finale +2, winst +3 (geld en aanzien)
 function europaBonus(){
   const B = S.ss && S.ss.bekers, uit = {}; if (!B) return uit;

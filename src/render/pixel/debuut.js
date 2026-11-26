@@ -52,6 +52,9 @@ const VLAGGEN = {
   Ghana:(g, w, h) => { banen(g, w, h, ['#ce1126', '#fcd116', '#006b3f']); ster(g, Math.round(w / 2), Math.round(h / 2), F.zwart); },
   Zwitserland:(g, w, h) => { banen(g, w, h, ['#ff0000']); const cx = Math.round(w / 2), cy = Math.round(h / 2), a = Math.round(h * .16), b = Math.round(h * .5);
     g.fillStyle = F.wit; g.fillRect(cx - a, cy - Math.round(b / 2) - 1, a * 2, b + 2); g.fillRect(cx - Math.round(b / 2) - 1, cy - a, b + 2, a * 2); },
+  Mexico:(g, w, h) => { banen(g, w, h, ['#006847', F.wit, '#ce1126'], null, true); rondje(g, Math.round(w / 2), Math.round(h / 2), 2, '#8c5a2b'); },
+  'Verenigde Staten':(g, w, h) => { banen(g, w, h, ['#b22234', F.wit, '#b22234', F.wit, '#b22234', F.wit, '#b22234']); const bw = Math.round(w * .42), bh = Math.round(h * 4 / 7);
+    g.fillStyle = '#3c3b6e'; g.fillRect(0, 0, bw, bh); g.fillStyle = F.wit; for (let y = 1; y < bh - 1; y += 2) for (let x = 1 + (y % 4 === 1 ? 0 : 1); x < bw - 1; x += 2) g.fillRect(x, y, 1, 1); },
   Denemarken:(g, w, h) => { banen(g, w, h, ['#c8102e']); kruis(g, w, h, F.wit, Math.round(w * .32), 3); },
   Noorwegen:(g, w, h) => { banen(g, w, h, ['#ba0c2f']); kruis(g, w, h, F.wit, Math.round(w * .3) - 1, 5); kruis(g, w, h, '#00205b', Math.round(w * .3), 3); },
   'Tsjechië':(g, w, h) => { banen(g, w, h, [F.wit, '#d7141a']); g.fillStyle = '#11457e'; for (let y = 0; y < h; y++){ const b = Math.round((1 - Math.abs(y + .5 - h / 2) / (h / 2)) * w * .45); g.fillRect(0, y, b, 1); } },

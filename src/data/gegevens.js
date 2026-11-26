@@ -27,6 +27,9 @@ export const LIGA = {
   Denemarken:{n:[12, 12], omlaag:1, omhoog:1, po:{soort:'barrage', boven:11, onder:2}},
   Noorwegen:{n:[16, 16], omlaag:2, omhoog:2, po:{soort:'barrage', boven:14, onder:3}},
   Zwitserland:{n:[12, 10], omlaag:1, omhoog:1, po:{soort:'barrage', boven:11, onder:2}},
+  // Noord-Amerika: gesloten competities, zoals in het echt (geen promotie en degradatie). 18 clubs: 34 wedstrijden, net als de echte MLS en Liga MX
+  Mexico:   {n:[18, 16], omlaag:0, omhoog:0, po:{soort:'geen'}},
+  'Verenigde Staten':{n:[18, 18], omlaag:0, omhoog:0, po:{soort:'geen'}},
 };
 // Het vrouwenvoetbal: dezelfde clubs (met " Vrouwen" achter de naam), met het echte aantal clubs per league (vereenvoudigd, 2026/27)
 export const LIGA_V = {
@@ -45,6 +48,8 @@ export const LIGA_V = {
   Denemarken:{n:[10, 10], omlaag:1, omhoog:1, po:{soort:'barrage', boven:9, onder:2}},
   Noorwegen:{n:[10, 12], omlaag:1, omhoog:1, po:{soort:'barrage', boven:9, onder:2}},
   Zwitserland:{n:[10, 10], omlaag:1, omhoog:1, po:{soort:'barrage', boven:9, onder:2}},
+  Mexico:   {n:[18, 12], omlaag:0, omhoog:0, po:{soort:'geen'}},
+  'Verenigde Staten':{n:[16, 10], omlaag:0, omhoog:0, po:{soort:'geen'}},
 };
 // De wereld van deze carrière ('m' of 'v'). Live: zetWereld (bij een nieuw spel en bij het laden, vóór zetClubs)
 export let WERELD = 'm';
@@ -87,6 +92,8 @@ export const LAND_NIVEAU = {
   // (Turkije: grote topclubs en veel verschil; Polen: een vlakke league; Noorwegen: één uitschieter)
   Turkije:{t1:[78, 60], t2:[58, 47]}, 'Tsjechië':{t1:[75, 58], t2:[56, 45]}, Griekenland:{t1:[75, 57], t2:[54, 44]}, Polen:{t1:[72, 58], t2:[56, 45]},
   Denemarken:{t1:[73, 57], t2:[55, 45]}, Noorwegen:{t1:[73, 55], t2:[53, 43]}, Zwitserland:{t1:[72, 56], t2:[53, 43]},
+  // Noord-Amerika: de Liga MX en de MLS zitten ongeveer op het niveau van de subtop van Europa (Portugal, België)
+  Mexico:{t1:[76, 60], t2:[57, 46]}, 'Verenigde Staten':{t1:[75, 60], t2:[57, 46]},
 };
 // Het vrouwenvoetbal, naar de UEFA-ranking voor vrouwen (Spanje, Engeland, Frankrijk en Duitsland bovenaan)
 export const LAND_NIVEAU_V = {
@@ -94,6 +101,8 @@ export const LAND_NIVEAU_V = {
   Nederland:{t1:[76, 58], t2:[56, 46]}, 'Italië':{t1:[76, 58], t2:[56, 46]}, Noorwegen:{t1:[72, 55], t2:[54, 44]}, Portugal:{t1:[70, 55], t2:[53, 44]},
   Denemarken:{t1:[70, 54], t2:[52, 43]}, 'België':{t1:[70, 54], t2:[52, 43]}, Zwitserland:{t1:[68, 53], t2:[51, 42]}, 'Tsjechië':{t1:[68, 52], t2:[50, 42]},
   Polen:{t1:[64, 51], t2:[50, 41]}, Turkije:{t1:[62, 50], t2:[49, 40]}, Griekenland:{t1:[58, 48], t2:[47, 39]},
+  // de NWSL is een van de sterkste vrouwencompetities ter wereld
+  'Verenigde Staten':{t1:[87, 66], t2:[60, 48]}, Mexico:{t1:[68, 52], t2:[50, 41]},
 };
 export const niveauVan = land => (WERELD === 'v' ? LAND_NIVEAU_V[land] || LAND_NIVEAU_V.Nederland : LAND_NIVEAU[land] || LAND_NIVEAU.Nederland);
 // Startniveau en -sterkte van elke club in een land (LAND_NIVEAU). Door promotie en degradatie verandert dat; de stand van zaken staat in S.clubs

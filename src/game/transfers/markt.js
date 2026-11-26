@@ -113,7 +113,7 @@ export function clubTransfers(soort, {zonderMijn = false} = {}){
 // ---------- Aankopen in het buitenland ----------
 // Clubs halen ook spelers bij clubs uit andere landen. In de hoogste league kan dat een echte versterking zijn,
 // en een topclub haalt soms een ster. De speler komt in de basis (neemOp) en de club wordt iets sterker (binnen MAX_DELTA).
-const VER_LANDEN = ['Brazilië', 'Argentinië', 'Kroatië', 'Servië', 'Nigeria', 'Marokko', 'Japan', 'Mexico'];
+const VER_LANDEN = ['Brazilië', 'Argentinië', 'Kroatië', 'Servië', 'Nigeria', 'Marokko', 'Japan']; // (Mexico en de VS zijn speellanden)
 const LAND_NAMEN = {
   Nederland:['De Jong', 'Van den Berg', 'Bakker', 'Visser', 'Smit', 'Meijer', 'De Boer', 'Mulder'],
   'België':['Peeters', 'Janssens', 'Maes', 'Claes', 'Goossens', 'Wouters', 'De Smet', 'Lambert'],
@@ -127,6 +127,7 @@ const LAND_NAMEN = {
   Griekenland:['Papadopoulos', 'Georgiou', 'Nikolaidis', 'Vlachos', 'Dimitriou', 'Andreou', 'Christodoulou', 'Samaras'], Polen:['Nowak', 'Kowalski', 'Wiśniewski', 'Zieliński', 'Kamiński', 'Szymański', 'Wójcik', 'Lewandowski'],
   Denemarken:['Jensen', 'Nielsen', 'Hansen', 'Pedersen', 'Andersen', 'Christensen', 'Larsen', 'Sørensen'], Noorwegen:['Johansen', 'Olsen', 'Berg', 'Haugen', 'Solberg', 'Strand', 'Lie', 'Bakke'],
   Zwitserland:['Meier', 'Schmid', 'Keller', 'Weber', 'Huber', 'Favre', 'Bernasconi', 'Brunner'],
+  'Verenigde Staten':['Johnson', 'Miller', 'Williams', 'Davis', 'Turner', 'Reyna', 'Adams', 'Morgan'],
   'Brazilië':['Souza', 'Lima', 'Carvalho', 'Ribeiro', 'Alves', 'Barbosa', 'Gomes', 'Nascimento'],
   'Argentinië':['González', 'Romero', 'Acosta', 'Benítez', 'Sosa', 'Medina', 'Herrera', 'Paredes'],
   'Kroatië':['Kovačić', 'Horvat', 'Babić', 'Marić', 'Jurić', 'Perić'], 'Servië':['Jovanović', 'Petrović', 'Nikolić', 'Marković', 'Đorđević'],

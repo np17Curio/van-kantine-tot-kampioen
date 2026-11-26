@@ -1,7 +1,7 @@
 import { S, club, mod, ovr, salarisVoor, seizoenLabel } from '../../core/state.js';
 import { clamp, pick } from '../../core/utils.js';
 import { CLUBS, DIVS, LAAGSTE, ligaVan, rondesVan, rondesVoor } from '../../data/gegevens.js';
-import { thuisLand } from '../../data/landen.js';
+import { cupNaam, thuisLand } from '../../data/landen.js';
 import { stand } from '../competitie/spelers.js';
 import { nacompetitieKlaar, simNacompetitie } from '../competitie/nacompetitie.js';
 import { KRANTEN } from '../media/nieuws.js';
@@ -21,9 +21,9 @@ export function checkKampioen(M){
   S.ss.kampioen = S.ronde + 1; M.kampioen = true;
   S.huldiging = {soort:'titel', prijs:DIVS[t], clubId:mijn}; // de huldiging met de schaal (render/huldigingscene.js, na de wedstrijd)
   mod('moraal', 12);
-  const volgende = t >= 2 && t <= LAAGSTE ? DIVS[t - 1] : null;
+  const volgende = t >= 2 && t <= LAAGSTE && ligaVan(thuisLand()).omhoog > 0 ? DIVS[t - 1] : null; // (een gesloten competitie: geen promotie)
   M.kampioenTekst = `${club().n} is kampioen van de ${DIVS[t]}!${over > 0 ? ` Met nog ${over} ${over === 1 ? 'wedstrijd' : 'wedstrijden'} te gaan kan niemand jullie meer inhalen.` : ''} De spelers rennen het veld op, de trainer wordt in de lucht gegooid en jij staat met de schaal in je handen.${volgende ? ` Volgend seizoen speelt ${club().n} in de ${volgende}!` : t === 1 ? ' Volgend seizoen spelen jullie Champions League!' : ''}`;
-  const kop = {bron:pick(KRANTEN[t]), kop:`${club().n} kampioen van de ${DIVS[t]}!`, tekst: volgende ? `De ploeg van ${S.sp.naam} promoveert naar de ${volgende}. Feest in de hele stad.` : t === 1 ? 'De beste ploeg van het land. Volgend seizoen wacht de Champions League.' : 'Na afloop wordt er tot diep in de nacht gefeest in de kantine.', wanneer:`week ${S.ronde + 1}, ${seizoenLabel()}`};
+  const kop = {bron:pick(KRANTEN[t]), kop:`${club().n} kampioen van de ${DIVS[t]}!`, tekst: volgende ? `De ploeg van ${S.sp.naam} promoveert naar de ${volgende}. Feest in de hele stad.` : t === 1 ? `De beste ploeg van het land. Volgend seizoen wacht de ${cupNaam('cl')}.` : 'Na afloop wordt er tot diep in de nacht gefeest in de kantine.', wanneer:`week ${S.ronde + 1}, ${seizoenLabel()}`};
   M.nieuws = [kop].concat(M.nieuws || []).slice(0, 3);
   S.nieuws = [kop].concat(S.nieuws || []).slice(0, 12);
 }

@@ -7,7 +7,7 @@ import { act, knop, tabBalk } from '../../core/ui.js';
 import { tattooCode } from '../pixel/tattoo.js';
 import { esc } from '../../core/utils.js';
 import { DIVS, LANDEN_LIJST, NIVEAU, POS, zetWereld } from '../../data/gegevens.js';
-import { SPEEL_LANDEN, zetLand } from '../../data/landen.js';
+import { SPEEL_LANDEN, zetLand, cupNaam, inAmerika } from '../../data/landen.js';
 import { nieuwSpel } from '../../game/speler/status.js';
 import { LEEFTIJDEN, START } from '../../game/speler/startverhaal.js';
 import { BAARD_KEUZE, HAAR, HAAR_NAAM, HUID, KAPSEL_KEUZE, SCHOENEN, SCHOEN_NAAM, willekeurigUiterlijk } from '../../data/uiterlijk.js';
@@ -163,7 +163,7 @@ const UITLEG = [
 export const hulpInhoud = () => `<dl class="uitleg">${UITLEG.map(([k, t]) => `<dt>${k}</dt><dd>${t}</dd>`).join('')}</dl>`;
 export function vZijStart(){
   return `<div class="kaart"><h3>De weg naar boven</h3>
-    <div class="ladder">${DIVS.slice(1).map((d, i) => `<div><span class="label">${NIVEAU[i + 1]}</span><b>${d}</b></div>`).reverse().join('')}<div><span class="label">Europa</span><b>Champions League (nummers 1 en 2)</b></div><div><span class="label">Elke club</span><b>O23</b></div></div>
+    <div class="ladder">${DIVS.slice(1).map((d, i) => `<div><span class="label">${NIVEAU[i + 1]}</span><b>${d}</b></div>`).reverse().join('')}<div><span class="label">${inAmerika(opgroeiKeuze()) ? 'Noord-Amerika' : 'Europa'}</span><b>${cupNaam('cl', opgroeiKeuze())} (nummers 1 en 2)</b></div><div><span class="label">Elke club</span><b>O23</b></div></div>
     <details id="hulpPanel" class="uitlegpanel" ${tmp.hulpOpen ? 'open' : ''}><summary class="label">Hoe werkt het?</summary>${hulpInhoud()}</details>
     <p class="muted klein-tekst">Tip: met de <b>?</b> rechtsboven vind je de sneltoetsen en spelregels.</p></div>`;
 }

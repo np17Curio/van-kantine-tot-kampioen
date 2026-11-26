@@ -12,7 +12,7 @@ import { ik, vr } from '../../core/geslacht.js';
 
 /* ===================== Leven in het buitenland: taal, heimwee, gezin ===================== */
 export const TAAL = {Spanje:'Spaans', 'Italië':'Italiaans', Frankrijk:'Frans', Portugal:'Portugees', Duitsland:'Duits', Engeland:'Engels', 'België':'Nederlands en Frans', Nederland:'Nederlands',
-  Turkije:'Turks', 'Tsjechië':'Tsjechisch', Griekenland:'Grieks', Polen:'Pools', Denemarken:'Deens', Noorwegen:'Noors', Zwitserland:'Duits en Frans'};
+  Turkije:'Turks', 'Tsjechië':'Tsjechisch', Griekenland:'Grieks', Polen:'Pools', Denemarken:'Deens', Mexico:'Spaans', 'Verenigde Staten':'Engels', Noorwegen:'Noors', Zwitserland:'Duits en Frans'};
 export const thuis = () => S.startLand || 'Nederland';
 export const inBuitenland = () => !!(S.sp && S.sp.buitenland && S.sp.buitenland.land === thuisLand() && thuisLand() !== thuis());
 const taal = () => (S.sp.talen || {})[thuisLand()] ?? 0;
@@ -30,7 +30,9 @@ export function startBuitenland(land){
   sp.talen = sp.talen || {};
   if (sp.talen[land] === undefined){
     const h = sp.herkomst || {}, ouder = h.vader === land || h.moeder === land;
-    sp.talen[land] = ouder ? 60 : land === 'België' && thuis() === 'Nederland' ? 50 : land === 'Engeland' ? 35 : 5;
+    // (spreek je de taal al uit een ander land, zoals Spaans uit Spanje in Mexico, dan neem je dat mee)
+    const zelfde = Object.keys(sp.talen).filter(l => l !== land && TAAL[l] && TAAL[l] === TAAL[land]).map(l => sp.talen[l]);
+    sp.talen[land] = Math.max(ouder ? 60 : land === 'België' && thuis() === 'Nederland' ? 50 : land === 'Engeland' || land === 'Verenigde Staten' ? 35 : 5, ...zelfde, TAAL[land] && TAAL[land] === TAAL[thuis()] ? 100 : 0);
   }
   sp.buitenland = {land, sinds:S.jaar, weken:0, mijlpalen:{}};
   sp.heimwee = 30 + (pers('heimwee') ? 15 : 0);
@@ -60,7 +62,7 @@ export const BUITENLAND_ACTIES = {
   stad:{n:'De stad ontdekken met teamgenoten', s:'Taal +2 · heimwee −5 · band met een teamgenoot +5'},
 };
 export const lesPrijs = () => clamp(Math.round(Math.max(150, S.sp.salaris * .01) / 10) * 10, 150, 2000);
-export const vluchtPrijs = () => ({Engeland:400, 'België':150, Duitsland:300, Frankrijk:350, Spanje:600, 'Italië':550, Portugal:700, Turkije:450, 'Tsjechië':300, Griekenland:450, Polen:300, Denemarken:250, Noorwegen:400, Zwitserland:350})[thuisLand()] ?? 500;
+export const vluchtPrijs = () => ({Mexico:1100, 'Verenigde Staten':900, Engeland:400, 'België':150, Duitsland:300, Frankrijk:350, Spanje:600, 'Italië':550, Portugal:700, Turkije:450, 'Tsjechië':300, Griekenland:450, Polen:300, Denemarken:250, Noorwegen:400, Zwitserland:350})[thuisLand()] ?? 500;
 export const kanBuitenlandActie = () => inBuitenland() && S.week && !S.week.buitenlandActie && !S.sp.clubloos;
 export function doeBuitenlandActie(id){
   const sp = S.sp, w = S.week; if (!kanBuitenlandActie()) return;

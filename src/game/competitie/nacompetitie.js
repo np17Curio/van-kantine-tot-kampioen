@@ -33,6 +33,7 @@ import { vormBonus } from './vorm.js';
 // Bij gelijkspel strafschoppen. De club die hoger eindigde speelt thuis.
 export function nacompetitieParen(){
   const po = ligaVan(thuisLand()).po, boven = stand(1), onder = stand(LAAGSTE);
+  if (!po || po.soort === 'geen') return []; // (een gesloten competitie, zoals de MLS: geen nacompetitie)
   if (po.soort === 'barrage') return boven.length >= po.boven && onder.length >= po.onder ? [{t:1, soort:'barrage', hoog:boven[po.boven - 1], laag:onder[po.onder - 1]}] : [];
   const l = onder.slice(po.van - 1, po.tot); if (l.length < 4) return [];
   return [{t:1, soort:'halve', hoog:l[0], laag:l[3]}, {t:1, soort:'halve', hoog:l[1], laag:l[2]}];

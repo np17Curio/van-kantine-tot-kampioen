@@ -36,6 +36,10 @@ const MERKEN = {
     lokaal:['Bakeriet Hansen', 'Bilverksted Olsen', 'Kafé Bryggen', 'Slakter Johansen', 'Snekker Larsen', 'Apotek Berg', 'Blomster Nilsen', 'Taxi Haugen']},
   Zwitserland:{groot:['Alpenbank', 'Gletscher Bräu', 'Swisstel', 'Energie Rhône', 'Bergwacht Versicherung', 'Bergkäserei', 'Uhrenhaus Jura', 'Schokolade Säntis', 'Lac Léman Voyages', 'Gotthard Transport'],
     lokaal:['Bäckerei Meier', 'Garage Keller', 'Restaurant Rössli', 'Metzgerei Brunner', 'Holzbau Huber', 'Apotheke Frei', 'Blumen Gerber', 'Taxi Schneider']},
+  Mexico:{groot:['Banco Azteca Sol', 'Cerveza Montaña', 'Telcel Norte', 'Energía del Golfo', 'Cemento Sierra', 'Tortillería Real', 'Aerolíneas Pacífico', 'Seguros Maya', 'Tequila Agave Azul', 'Autobuses Estrella'],
+    lokaal:['Taquería El Güero', 'Panadería La Estrella', 'Taller Hernández', 'Abarrotes Doña Lupe', 'Carnicería Ramírez', 'Farmacia del Barrio', 'Ferretería Lozano', 'Lavandería Vega']},
+  'Verenigde Staten':{groot:['Liberty Bank', 'Eagle Airlines', 'Pioneer Wireless', 'Summit Energy', 'Redwood Insurance', 'Starline Motors', 'Coastline Coffee', 'Prairie Foods', 'Skyline Tech', 'Big Sky Burgers'],
+    lokaal:["Joe's Diner", 'Main Street Hardware', "Rosie's Bakery", 'Lakeside Auto Repair', 'Corner Pharmacy', 'Hometown Plumbing', "Mike's Pizza", 'Sunset Car Wash']},
 };
 const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
 // club: {n, t} (t = 1 de hoogste league), land: het land van de club; geeft {naam} of null (geen club)

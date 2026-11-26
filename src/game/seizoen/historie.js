@@ -2,7 +2,7 @@ import { S, tmp } from '../../core/state.js';
 import { knop } from '../../core/ui.js';
 import { esc } from '../../core/utils.js';
 import { CLUBS, DIVS, LAAGSTE } from '../../data/gegevens.js';
-import { thuisLand } from '../../data/landen.js';
+import { thuisLand, cupNaam } from '../../data/landen.js';
 import { clubLogo } from '../../data/logos.js';
 import { ACHTERNAMEN, VOORL, stand } from '../competitie/spelers.js';
 import { ck } from '../transfers/buitenland.js';
@@ -13,7 +13,7 @@ import { metVoorletter, ranglijst } from '../media/nieuws.js';
 // Die wordt één keer gemaakt (vast per clubnaam, met een eigen dobbelsteen) en bewaard in S.historie[naam];
 // daarna komen de echte prijzen uit het spel erbij. De records kun jij breken (records.js).
 export const PRIJZEN = [['titel', 'Landstitels'], ['beker', 'Nationale bekers'], ['cl', 'Champions League'], ['eur', 'Europa Cup'], ['div2', 'Kampioen tweede league']];
-const prijsNaam = k => k === 'titel' ? `Landstitels (${DIVS[1]})` : k === 'div2' ? `Kampioen ${DIVS[LAAGSTE]}` : PRIJZEN.find(p => p[0] === k)[1];
+const prijsNaam = k => k === 'cl' || k === 'eur' ? cupNaam(k) : k === 'titel' ? `Landstitels (${DIVS[1]})` : k === 'div2' ? `Kampioen ${DIVS[LAAGSTE]}` : PRIJZEN.find(p => p[0] === k)[1];
 const TYPERING = {K:['de keeper met de gouden handen', 'de held van de penalty’s'], V:['de ijzeren verdediger', 'de beste aanvoerder ooit', 'de rots in de branding'], M:['de regisseur', 'het hart van het middenveld', 'de man van de assists'], A:['de koning van het strafschopgebied', 'de snelste spits ooit', 'de held van de bekerfinale']};
 export const jaarTxt = j => `${j}/${String((j + 1) % 100).padStart(2, '0')}`;
 

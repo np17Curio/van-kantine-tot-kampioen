@@ -19,7 +19,7 @@ export function afscheid(){
 // Carrièrescore: prijzen, goals, klasse en interlands
 export function carriereScore(){
   const C = S.car, p = C.prijzen, tel = re => p.filter(x => re.test(x)).length, caps = Object.values(C.int || {}).reduce((a, x) => a + x.caps, 0);
-  return tel(/^Gouden Bal/) * 15 + tel(/^Champions League/) * 8 + tel(PRIJS_LAND) * 10 + tel(/^Kampioen/) * 4 + tel(new RegExp(`^(${BEKER_ALT}|Europa Cup)`)) * 3 + tel(/^(Topscorer|Assistkoning|Speler van het Seizoen|Beste speler)/) * 2
+  return tel(/^Gouden Bal/) * 15 + tel(/^(Champions League|CONCACAF Champions Cup)/) * 8 + tel(PRIJS_LAND) * 10 + tel(/^Kampioen/) * 4 + tel(new RegExp(`^(${BEKER_ALT}|Europa Cup|Leagues Cup)`)) * 3 + tel(/^(Topscorer|Assistkoning|Speler van het Seizoen|Beste speler)/) * 2
     + tel(/^(Clublegende|Clubtopscorer|Competitierecord|Standbeeld)/) * 3 + C.g / 10 + C.a / 20 + Math.max(0, C.maxOvr - 50) * .8 + caps / 8;
 }
 export function eindTitel(sc){ return sc >= 180 ? 'Legende van het wereldvoetbal' : sc >= 110 ? 'Wereldster' : sc >= 65 ? 'Clubicoon' : sc >= 35 ? 'Degelijke prof' : sc >= 15 ? 'Werkpaard' : 'Kantinekoning'; }

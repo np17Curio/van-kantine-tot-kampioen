@@ -1,7 +1,7 @@
 import { S } from '../../core/state.js';
 import { clamp, pick, randInt, rnd } from '../../core/utils.js';
 import { CLUBS, DIVS, ELITE_LAND, ELITE_NAAM, divClubs } from '../../data/gegevens.js';
-import { NIEUWE_CLUBS, SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
+import { NIEUWE_CLUBS, SPEEL_LANDEN, thuisLand, EUROPA_LANDEN } from '../../data/landen.js';
 import { simGoals } from './competitie.js';
 import { clubNaam } from '../../data/gegevens.js';
 
@@ -9,7 +9,7 @@ import { clubNaam } from '../../data/gegevens.js';
 // De Elite heeft 8 vaste plaatsen (club-id 0-7). Elke plaats heeft een identiteit (naam en land) die kan wisselen:
 // een gedegradeerde buitenlandse club gaat terug naar zijn eigen land, en kampioenen uit andere landen kunnen erin komen.
 // Een plaats die in jouw eigen competitie terechtkomt, wordt een club uit jouw land (een fusieclub).
-export const europaLanden = () => [...new Set([...SPEEL_LANDEN, 'Denemarken', 'Oekraïne'])];
+export const europaLanden = () => [...new Set([...EUROPA_LANDEN, 'Denemarken', 'Oekraïne'])];
 export const slots = () => S.slots || (S.slots = ELITE_NAAM.map((n, i) => ({n, land:ELITE_LAND[i]})));
 // De namen van de plaatsen in CLUBS zetten (na laden, een nieuw spel of een verhuizing)
 export function pasSlotsToe(){ const l = S && S.slots; for (let i = 0; i < 8; i++) CLUBS[i].n = l && l[i] ? l[i].n : ELITE_NAAM[i]; }

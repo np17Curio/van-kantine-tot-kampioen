@@ -8,7 +8,15 @@ import { RODDELBLADEN } from '../game/media/roddel.js';
 // Elk land heeft twee leagues met het echte aantal clubs (LIGA in gegevens.js), met eigen namen voor de divisies, clubs, beker en kranten.
 // De clubs staan van sterk naar zwak: de eerste n1 spelen in de hoogste league, de volgende n2 in de 2e league.
 // De Europese Elite (clubs 0-7) is voor iedereen hetzelfde. Clubnamen zijn verzonnen.
-export const SPEEL_LANDEN = ['Nederland', 'België', 'Engeland', 'Duitsland', 'Frankrijk', 'Spanje', 'Italië', 'Portugal', 'Turkije', 'Tsjechië', 'Griekenland', 'Polen', 'Denemarken', 'Noorwegen', 'Zwitserland'];
+export const SPEEL_LANDEN = ['Nederland', 'België', 'Engeland', 'Duitsland', 'Frankrijk', 'Spanje', 'Italië', 'Portugal', 'Turkije', 'Tsjechië', 'Griekenland', 'Polen', 'Denemarken', 'Noorwegen', 'Zwitserland', 'Mexico', 'Verenigde Staten'];
+// Noord-Amerika (Mexico en de VS) speelt niet Europees, maar de CONCACAF Champions Cup en de Leagues Cup (Mexico tegen de VS)
+export const AMERIKA = ['Mexico', 'Verenigde Staten'];
+export const EUROPA_LANDEN = SPEEL_LANDEN.filter(l => !AMERIKA.includes(l));
+export const inAmerika = land => AMERIKA.includes(land ?? thuisLand());
+const CUP_NAMEN = {eu:{cl:'Champions League', eur:'Europa Cup'}, nam:{cl:'CONCACAF Champions Cup', eur:'Leagues Cup'}};
+// De naam van de continentale beker ('cl' of 'eur') voor het land waar je speelt
+export const cupNaam = (k, land) => CUP_NAMEN[inAmerika(land) ? 'nam' : 'eu'][k];
+export const CUP_ALT = 'Champions League|Europa Cup|CONCACAF Champions Cup|Leagues Cup';
 export const LAND_DATA = {
   'België':{divs:['Eerste Klasse', 'Tweede Klasse'], beker:'Belgische Beker',
     clubs:['Royal Scheldestad', 'Club Kempenland', 'Standaard Maasvallei', 'KAA Leiestad', 'Racing Dijlestad', 'Sporting Sambre', 'KV Kustlijn', 'OH Hageland',
@@ -116,13 +124,31 @@ export const LAND_DATA = {
       'FC Rhonetal', 'Winterthur Töss', 'Thun Oberland', 'FC Jura Neuchâtel', 'FC Emmental', 'Bellinzona Ticino', 'FC Engadin', 'Aarau Rebstock',
       'FC Alpenrhein', 'FC Zugersee', 'FC Fondue', 'Schoggi Kickers', 'FC Rösti', 'Kuhglocke United'],
     kranten:{2:['Sportbote', 'Le Matin Foot', 'Fussballabend TV'], 1:['Sportbote', 'Le Matin Foot', 'Fussballabend TV']},
-    roddel:['Klatsch Woche', 'Promi Schweiz', 'Sportbote']}
+    roddel:['Klatsch Woche', 'Promi Schweiz', 'Sportbote']},
+  Mexico:{divs:['Liga MX', 'Liga de Expansión MX'], beker:'Copa MX',
+    clubs:['Águilas Capitalinas', 'Rayados de la Sierra', 'Tigres del Norte', 'Chivas de Occidente', 'Cruz Celeste', 'Pumas del Pedregal', 'Diablos de Toluquilla', 'Club Puebla Colonial',
+      'Santos Laguneros', 'Atlético Bajío', 'Club Tijuana Frontera', 'Rojinegros del Lago', 'Gallos del Acueducto', 'Tuzos de la Mina', 'Mazatlán Puerto FC', 'Juárez Desierto FC',
+      'Club León Esmeralda', 'Rayos de Aguascalientes',
+      'Correcaminos del Valle', 'Leones Grises', 'Mineros de la Plata', 'Venados del Mayab', 'Club Celaya Bajío', 'Alebrijes del Sur', 'Cancún Caribe FC', 'Tepatitlán Agave',
+      'Club Tlaxcala Volcán', 'Cañeros de Morelos', 'Club Sonora Desierto', 'Halcones de Chiapas', 'Tequila FC', 'CD Taco Loco', 'Club Mariachi', 'Piñata United'],
+    kranten:{2:['Diario Cancha', 'Gol Mexicano', 'Noche Futbolera TV'], 1:['Diario Cancha', 'Gol Mexicano', 'Noche Futbolera TV']},
+    roddel:['Chismes Semanales', 'Farándula Hoy', 'Diario Cancha']},
+  'Verenigde Staten':{divs:['Major League Soccer', 'USL Championship'], beker:'U.S. Open Cup',
+    clubs:['LA Sunset FC', 'New York Harbor', 'Atlanta Peach United', 'Seattle Cascade FC', 'Miami Palms CF', 'Austin Lone Star', 'Columbus Ironworks', 'Philadelphia Liberty',
+      'Portland Pines FC', 'Kansas City Prairie', 'Nashville Strings SC', 'Chicago Lakeshore', 'Denver Summit FC', 'Charlotte Crown FC', 'Houston Rocket City', 'Salt Lake Canyon',
+      'San Diego Surf', 'Twin Cities North Star',
+      'Louisville Bourbon City', 'Tampa Bay Pelicans', 'Sacramento Gold', 'San Antonio Alamo FC', 'Pittsburgh Steel SC', 'Phoenix Cactus FC', 'Indy Speedway FC', 'Detroit Motor City',
+      'Memphis Blues SC', 'El Paso Borderland', 'Oakland Bay FC', 'Tulsa Prairie Wind', 'Las Vegas Neon FC', 'Albuquerque Balloon', 'Hot Dog United', 'Tailgate FC',
+      'Root Beer Rovers', 'Monster Truck SC'],
+    kranten:{2:['The Soccer Daily', 'Pitch Report', 'Matchday Live TV'], 1:['The Soccer Daily', 'Pitch Report', 'Matchday Live TV']},
+    roddel:['Celebrity Buzz', 'The Gossip Weekly', 'The Soccer Daily']}
 };
 // De leagues in het vrouwenvoetbal (de beker heet hetzelfde, met "Vrouwen" erachter)
 export const DIVS_V = {Nederland:['Topdivisie Vrouwen', 'Eerste Divisie Vrouwen'], 'België':['Super League Vrouwen', 'Eerste Nationale Vrouwen'], Engeland:["Women's Super League", "Women's Championship"],
   Duitsland:['Frauen-Bundesklasse', '2. Frauen-Klasse'], Frankrijk:['Première Ligue', 'Seconde Ligue'], Spanje:['Liga F', 'Primera Federación'], 'Italië':['Serie Prima Femminile', 'Serie Seconda Femminile'],
   Portugal:['Liga Feminina', 'Segunda Divisão Feminina'], Turkije:['Kadınlar Süper Ligi', 'Kadınlar 1. Ligi'], 'Tsjechië':['První Liga Žen', 'Druhá Liga Žen'], Griekenland:['A Ethniki Gynaikon', 'B Ethniki Gynaikon'],
-  Polen:['Ekstraliga Kobiet', 'I Liga Kobiet'], Denemarken:['Kvindeligaen', 'Kvinde 1. Division'], Noorwegen:['Toppserien', '1. divisjon kvinner'], Zwitserland:['Super League Frauen', 'Nationalliga B Frauen']};
+  Polen:['Ekstraliga Kobiet', 'I Liga Kobiet'], Denemarken:['Kvindeligaen', 'Kvinde 1. Division'], Noorwegen:['Toppserien', '1. divisjon kvinner'], Zwitserland:['Super League Frauen', 'Nationalliga B Frauen'],
+  Mexico:['Liga MX Femenil', 'Liga Femenil de Ascenso'], 'Verenigde Staten':['NWSL', 'USL Super League']};
 // De naam van league t (1 of 2) in een land, in de wereld van deze carrière
 export const divNaam = (land, t) => WERELD === 'v' ? (DIVS_V[land] || DIVS_V.Nederland)[t - 1] : land === 'Nederland' ? (NL.divs || DIVS)[t] : (LAND_DATA[land] || {divs:[]}).divs[t - 1];
 export const bekerNaam = land => { const b = land === 'Nederland' || !LAND_DATA[land] ? 'Nationale Beker' : LAND_DATA[land].beker; return WERELD === 'v' ? b + ' Vrouwen' : b; };
@@ -141,12 +167,13 @@ export function zetLand(land){
   KRANTEN[0] = NL.kranten[0].map(k => k === 'De Sportkrant' && L ? L.kranten[1][0] : k);
   RODDELBLADEN.splice(0, RODDELBLADEN.length, ...(L ? L.roddel : NL.roddel));
   BEKERS.nat.naam = bekerNaam(L ? land : 'Nederland');
+  BEKERS.cl.naam = cupNaam('cl', land); BEKERS.eur.naam = cupNaam('eur', land); // (Noord-Amerika: CONCACAF Champions Cup en Leagues Cup)
 }
 export const thuisLand = () => (S && S.land) || 'Nederland';
 export const NL_VRAAG = /Nederland|Nederlandse|5 mei/;
 export const nietNL = () => S && S.land && S.land !== 'Nederland';
 
-export const PRIJS_CLUB = new RegExp(`^(Kampioen|${BEKER_ALT}|Champions League|Europa Cup|Jeugdbeker|Promotie)`), PRIJS_IND = /^(Topscorer|Assistkoning|Speler van het Seizoen|Gouden Bal|Maatschappelijk|Clublegende|Beste speler|Clubtopscorer|Competitierecord|Standbeeld|Rugnummer)/, PRIJS_LAND = /^(WK|EK|Copa América|Afrika Cup|Azië Cup|Gold Cup) \d{4} met /;
+export const PRIJS_CLUB = new RegExp(`^(Kampioen|${BEKER_ALT}|${CUP_ALT}|Jeugdbeker|Promotie)`), PRIJS_IND = /^(Topscorer|Assistkoning|Speler van het Seizoen|Gouden Bal|Maatschappelijk|Clublegende|Beste speler|Clubtopscorer|Competitierecord|Standbeeld|Rugnummer)/, PRIJS_LAND = /^(WK|EK|Copa América|Afrika Cup|Azië Cup|Gold Cup) \d{4} met /;
 
 // Clubnamen voor nieuwe clubs (een fusieclub in jouw land, of een nieuwe kampioen in de Europese Elite)
 export const NIEUWE_CLUBS = {
@@ -165,5 +192,7 @@ export const NIEUWE_CLUBS = {
   Polen:['KS Nowa Wisła', 'Unia Mazowiecka', 'Odra Zjednoczona', 'Pomorze Gdańskie', 'Tatry Zakopiańskie', 'KS Warmia'],
   Noorwegen:['Nordfjord FK', 'Lofoten IL', 'Fjellheim BK', 'Vestland FK', 'Nordkapp IL', 'Hardanger FK'],
   Zwitserland:['FC Gotthard', 'Union Léman', 'FC Bodensee', 'AC Leventina', 'FC Glarnerland', 'Servette Unie'],
+  Mexico:['Club Lagos de Moreno', 'Atlético Huasteca', 'Club Real Oaxaca', 'Deportivo Sinaloa', 'Unión Yucateca', 'Club Durango Sierra'],
+  'Verenigde Staten':['Orlando Lagoon FC', 'Cincinnati Queen City', 'St. Louis Arch FC', 'Raleigh Oaks SC', 'Baltimore Harbor FC', 'Omaha Plains SC'],
   'Oekraïne':['FK Stepovyi','Dnipro-Zirka','Metalurh Azovsk','Karpaty Verkhovyna','Zorya Polissya','FK Chornomorets-Sud']
 };
