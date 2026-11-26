@@ -41,8 +41,13 @@ const KEUZE = {
     return o.ouders ? o.ouders(d) : `Je moeder neemt op voordat de telefoon één keer is overgegaan. "We hebben alles gezien!" Je vader pakt de telefoon over: "Trots op je, ${ik.jongen}." Even ben je weer tien.`; }}),
   partner:(o, d, m) => ({wie:'partner', toon:'kalm', l:o.partnerL ? o.partnerL(d, m.partner) : `Uit eten met ${m.partner}`, f(){ partnerBand(7); mod('moraal', 3); S.sp.geld = Math.max(0, S.sp.geld - 120);
     return o.partner ? o.partner(d, m.partner) : `${m.partner} heeft een tafel gereserveerd bij jullie favoriete restaurant. "Op ${o.wat(d)}," zegt ${pa.ze}, en jullie proosten. Je telefoon blijft de hele avond in je zak.`; }}),
-  vriend:(o, d, m) => ({wie:'vriend', toon:'bal', l:o.vriendL ? o.vriendL(d, m.vriend) : `${m.vriend} bellen`, f(){ zetBand(7); mod('moraal', 2);
-    return o.vriend ? o.vriend(d, m.vriend) : `${m.vriend} neemt meteen op en schreeuwt zo hard dat je de telefoon van je oor moet houden. "Ik zei het toch! Al sinds we tien waren!" Jullie praten een uur over vroeger.`; }}),
+  // Speelt je vriend bij jouw club (bijJou), dan bel je hem niet: hij was er gewoon bij. Dan de samen-teksten (vriendSL/vriendS),
+  // bij een clubprijs (o.samen) hebben jullie het samen gewonnen. Interlands (o.ver): je club speelt geen rol, dan gewoon bellen
+  vriend:(o, d, m) => { const sa = bijJou() && !o.ver, n = m.vriend;
+    return {wie:'vriend', toon:'bal', l:sa ? (o.vriendSL ? o.vriendSL(d, n) : `Samen vieren met ${n}`) : o.vriendL ? o.vriendL(d, n) : `${n} bellen`, f(){ zetBand(sa ? 8 : 7); mod('moraal', sa ? 3 : 2);
+    if (sa) return o.vriendS ? o.vriendS(d, n) : o.samen ? `Jij en ${n} vinden elkaar in het feestgedruis en vallen elkaar in de armen. "Weet je nog, de kantine van vroeger? Kijk ons nu." Jullie maken samen een foto, en die hangt een week later bij allebei jullie ouders aan de muur.`
+      : `${n} staat na de training al bij de spelersingang te wachten. "Dit moeten we vieren, ${ik.knul}." Jullie eten friet op de parkeerplaats, net als vroeger na de jeugdwedstrijden, en praten een uur over hoe ver jullie samen gekomen zijn.`;
+    return o.vriend ? o.vriend(d, n) : `${n} neemt meteen op en schreeuwt zo hard dat je de telefoon van je oor moet houden. "Ik zei het toch! Al sinds we tien waren!" Jullie praten een uur over vroeger.`; }}; },
   exVriend:(o, d, m) => ({wie:'exVriend', toon:'kalm', l:`Het berichtje van ${m.exVriend} beantwoorden`, f(){ zetRivaalBand(10); mod('moraal', 1);
     return `Er staat een berichtje van ${m.exVriend} op je telefoon: "Gefeliciteerd met ${o.wat(d)}. Echt." Je kijkt er een tijdje naar en stuurt dan terug: "Dank je. Dat betekent wat." Misschien is het ijs een beetje gebroken.`; }}),
   opa:(o, d, m) => ({wie:'opa', toon:'kalm', l:`Langs bij ${m.opa}`, f(){ mod('moraal', 4); mod('focus', 3);
@@ -62,11 +67,13 @@ const HOOG = {
     tekst:d => `Je hebt je debuut gemaakt in het eerste elftal van ${d.club}${d.zij ? `, tegen ${d.zij}` : ''}! In de kleedkamer klapt de trainer je op je schouder: "Welkom bij de groep." Op je telefoon staan al tientallen berichtjes. Met wie deel je dit moment?`,
     volgorde:['ouders', 'partner', 'vriend', 'exVriend', 'opa'], sociaal:'team',
     ouders:() => `Je ouders zaten op de tribune. Je moeder heeft het hele vak verteld dat jij haar ${ik.zoon} bent, en je vader heeft het wedstrijdprogramma gekocht, drie keer. Jullie eten samen patat bij de snackbar naast het stadion, net als vroeger na de jeugdwedstrijden.`,
-    vriend:(d, n) => bijJou() ? `${n} wacht je op bij de spelersbus. "Eindelijk, ${ik.knul}. Nu wij samen, in het eerste." Jullie maken een selfie in het lege stadion.` : `${n} heeft de hele wedstrijd gekeken. "Ik zei het toch! Ooit spelen we tegen elkaar, in een vol stadion." Jullie praten een uur.`},
+    vriendSL:(d, n) => `Samen vieren met ${n} in de kleedkamer`, vriendS:(d, n) => `${n} was er gewoon bij, net als vroeger op het pleintje. In de kleedkamer springt ${vr.hij} op je rug: "Eindelijk, ${ik.knul}. Nu wij samen, in het eerste!" Na afloop maken jullie een selfie in het lege stadion, allebei nog in het clubshirt.`,
+    vriend:(d, n) => `${n} heeft de hele wedstrijd gekeken. "Ik zei het toch! Ooit spelen we tegen elkaar, in een vol stadion." Jullie praten een uur.`},
   eersteGoal:{titel:'Je eerste goal', wat:() => 'je eerste goal',
     tekst:d => `Je eerste goal als prof${d.zij ? `, tegen ${d.zij}` : ''}! De bal gaat erin en even hoor je niks meer, alleen je hart. Daarna het stadion. Wat doe je met dit moment?`,
     volgorde:['vriend', 'partner', 'ouders', 'exVriend', 'opa'], sociaal:'fans',
     vriendL:(d, n) => `Het juichgebaar van vroeger, voor ${n}`, vriend:(d, n) => `Je doet het juichgebaar dat jullie als kinderen bedachten. ${n} ziet het op tv en stuurt een filmpje terug: ${vr.hij} doet het ook, op de bank, in ${vr.zijn} pyjama.`,
+    vriendSL:(d, n) => `Het juichgebaar van vroeger, samen met ${n}`, vriendS:(d, n) => `${n} is als eerste bij je. Midden op het veld doen jullie samen het juichgebaar dat jullie als kinderen bedachten. De rest van de ploeg snapt er niks van, de camera's wel: het beeld gaat het hele land rond.`,
     partnerL:(d, n) => `Een kushandje naar ${n} op de tribune`, partner:(d, n) => `Je zoekt ${n} op de tribune en geeft een kushandje. De camera pikt het op. "Je stond op tv," appt ${pa.ze} na afloop, met tien hartjes.`,
     oudersL:() => 'De bal bewaren voor je ouders', ouders:() => 'Na afloop vraag je de wedstrijdbal. Je ouders zetten hem in de vitrinekast, naast je eerste jeugdbeker. Je vader poetst hem elke week.',
     fansL:() => 'Shirt uit, juichen voor het vak', fans:() => 'Je trekt je shirt uit en rent naar het vak. De scheidsrechter kijkt streng, maar laat het gaan. De fans zingen je naam.'},
@@ -86,29 +93,30 @@ const HOOG = {
     partnerL:(d, n) => `Samen met ${n} de nieuwe stad verkennen`, partner:(d, n) => `Jij en ${n} lopen een hele zondag door ${d.buitenland ? 'je nieuwe stad' : `de stad van ${d.club}`}. Jullie vinden een koffietentje dat meteen "jullie plek" wordt. "Het voelt al een beetje als thuis," zegt ${pa.ze}.`,
     oudersL:() => 'Je ouders helpen met verhuizen', ouders:() => 'Je vader rijdt met een aanhanger vol dozen achter je aan, je moeder vult je koelkast tot hij niet meer dicht kan. Bij het afscheid geeft ze je een knuffel die net iets te lang duurt.',
     vriendL:(d, n) => `Een afscheidsavond met ${n}`, vriend:(d, n) => `Jij en ${n} eten pizza op het dak, net als vroeger. "Je bent nu een grote ${ik.speler}," zegt ${vr.hij}. "Vergeet me niet." Je belooft elke week te bellen.`,
+    vriendSL:(d, n) => `${n} laat je de club zien`, vriendS:(d, n) => `${n} staat je op te wachten bij de ingang van ${d.club}. "Welkom bij mijn club. Nou ja, onze club." ${vr.Hij} laat je alles zien, van de kleedkamer tot het beste plekje in de kantine, en stelt je voor aan de groep. Je bent er nog geen dag en je voelt je al thuis.`,
     teamL:d => 'Afscheid nemen van je oude ploeggenoten', team:d => `Je geeft een afscheidsetentje voor je oude ploeggenoten${d.oud ? ` van ${d.oud}` : ''}. Er wordt gelachen, er worden verhalen verteld, en de aanvoerder geeft je een shirt met alle handtekeningen.`},
   // (verlenging: geen moment meer bij een nieuw contract bij je eigen club, dat kwam elke keer terug. Een die nog in de
   //  wachtrij van een opgeslagen spel staat, valt vanzelf weg: hoogtepuntEvent kent hem niet meer)
-  interDebuut:{titel:'Je debuut voor je land', wat:d => `je debuut voor ${d.land}`,
+  interDebuut:{ver:true, titel:'Je debuut voor je land', wat:d => `je debuut voor ${d.land}`,
     tekst:d => `Je debuut voor ${d.land}${d.zij ? `, tegen ${d.zij}` : ''}! Het volkslied, je hand op je hart, het shirt met het nationale embleem. Je hebt er als kind van gedroomd.`,
     volgorde:['opa', 'ouders', 'partner', 'vriend', 'exVriend'], sociaal:'fans',
     opa:(d, n) => `${n} heeft het shirt van jouw debuut ingelijst en boven de bank gehangen, naast een foto van hemzelf, veertig jaar geleden. "Twee voetballers in de familie," zegt hij trots. "Maar één in het nationale team."`,
     ouders:d => `Je ouders stonden in het stadion, met sjaals in de kleuren van ${d.land}. Je moeder heeft het hele volkslied meegezongen en huilt nog steeds als je haar belt.`,
     fansL:() => 'Handtekeningen voor de kinderen langs het veld', fans:() => 'Na afloop blijf je een half uur bij het hek staan en zet je handtekeningen voor kinderen in nationale shirts. Eentje vertelt dat hij later net zo wil worden als jij.'},
-  interGoal:{titel:'Je eerste interlandgoal', wat:d => `je eerste goal voor ${d.land}`,
+  interGoal:{ver:true, titel:'Je eerste interlandgoal', wat:d => `je eerste goal voor ${d.land}`,
     tekst:d => `Je eerste goal voor ${d.land}${d.zij ? `, tegen ${d.zij}` : ''}! Je naam staat voor altijd in de boeken van de bond.`,
     volgorde:['vriend', 'ouders', 'opa', 'partner', 'exVriend'], sociaal:'fans'},
-  eersteTitel:{titel:'Je eerste titel', wat:d => `het kampioenschap`,
+  eersteTitel:{samen:true, titel:'Je eerste titel', wat:d => `het kampioenschap`,
     tekst:d => `${d.club} is kampioen van de ${d.div}! Je eerste titel als prof. De champagne spuit door de kleedkamer en iemand heeft de schaal al in de douche gezet.`,
     volgorde:['ouders', 'partner', 'vriend', 'opa', 'exVriend'], sociaal:'team',
     ouders:() => 'Je ouders staan beneden bij de spelersingang, allebei met een kampioenssjaal. Je vader heeft een spandoek gemaakt met jouw naam erop. Hij heeft er de hele nacht aan gewerkt.',
     teamL:() => 'Met de groep de hele nacht door', team:() => 'Jullie vieren het tot de zon opkomt. Om zes uur sta je met de schaal in de fontein op het plein, samen met de halve selectie. Op de huldiging de volgende dag zie je eruit als een zombie, maar het is het mooiste dat je ooit hebt meegemaakt.'},
-  promotie:{titel:'Promotie!', wat:d => `de promotie naar de ${d.naar}`,
+  promotie:{samen:true, titel:'Promotie!', wat:d => `de promotie naar de ${d.naar}`,
     tekst:d => `${d.club} promoveert naar de ${d.naar}${d.po ? ', via de nacompetitie' : d.plek ? `, als nummer ${d.plek}` : ''}! Geen titel, maar wel een stap omhoog. Volgend seizoen speel je op een hoger niveau. Met wie vier je het?`,
     volgorde:['ouders', 'partner', 'vriend', 'opa', 'exVriend'], sociaal:'team',
     teamL:() => 'Met de groep de stad in', team:() => 'Jullie lopen met de hele groep door de stad, met sjaals en een toeter. Overal wordt getoeterd. In een kroeg zingt iemand het clublied, en de hele zaak zingt mee.',
     fansL:() => 'Een rondje langs de fans', fans:() => 'Je loopt een rondje langs het hek en geeft high fives. Een supporter van zeventig huilt van blijdschap: "Dertig jaar heb ik hierop gewacht."'},
-  eersteBeker:{titel:'Je eerste beker', wat:d => `de ${d.beker}`,
+  eersteBeker:{samen:true, titel:'Je eerste beker', wat:d => `de ${d.beker}`,
     tekst:d => `${d.club} wint de ${d.beker}! Je eerste prijs als prof. Je mag de beker vasthouden en hij is zwaarder dan je dacht.`,
     volgorde:['ouders', 'partner', 'vriend', 'opa', 'exVriend'], sociaal:'fans',
     fansL:() => 'De beker naar het vak brengen', fans:() => 'Je loopt met de beker naar het vak van de fans en tilt hem boven je hoofd. Het geluid is oorverdovend.'},

@@ -794,9 +794,22 @@ export function vriendInBeeld(ents, bezet){
   const M = S && S.M, v = S && S.sp && S.sp.vriend; if (!M || !v || !ents) return null;
   let mee = false, tegen = false; try { mee = vriendInTeam(M); tegen = !mee && !M.inter && M.opp != null && speeltTegenVriend(M.opp); } catch (e){ return null; }
   if (!mee && !tegen) return null;
-  const keeper = vriendPos() === 'KEEPER', rol = mee ? 'wij' : 'zij';
-  const id = keeper ? (mee ? 'k' : 'K') : (mee ? ['A', 'B', 'C'] : ['X', 'Y', 'Z']).find(k => k !== bezet && ents[k] && ents[k].rol === rol);
+  const pos = vriendPos();
+  const id = pos === 'KEEPER' ? (mee ? 'k' : 'K') : vriendPlek(ents, mee, pos, bezet);
   return id && ents[id] ? {id, naam:vriendNaam(), mee} : null;
+}
+// Waar mag je vriend staan: hoe ver hij is opgerukt richting het doel van de ander (0 = eigen doellijn, 1 = die van de tegenstander).
+// Wij vallen aan richting x=105, de tegenstander richting x=0. Een spits staat voorin, een verdediger achterin, een middenvelder bijna overal
+const VRIEND_ZONE = {SPITS:{van:.55, tot:1, best:.85}, MID:{van:.2, tot:.8, best:.5}, VERD:{van:0, tot:.45, best:.15}};
+export function vriendPlek(ents, mee, pos, bezet){
+  const z = VRIEND_ZONE[pos] || VRIEND_ZONE.MID, rol = mee ? 'wij' : 'zij';
+  let id = null, afst = Infinity;
+  for (const k of mee ? ['A', 'B', 'C'] : ['X', 'Y', 'Z']){
+    const p = ents[k]; if (k === bezet || !p || p.rol !== rol) continue;
+    const f = (mee ? p.x : 105 - p.x) / 105, d = Math.abs(f - z.best);
+    if (f >= z.van && f <= z.tot && d < afst){ id = k; afst = d; } // (de best passende plek; past niemand, dan staat hij niet in beeld)
+  }
+  return id;
 }
 export function ploegen(){ const sp = S && S.sp; if (!sp) return {}; if (!sp.uitSleutel) sp.uitSleutel = Math.random().toString(36).slice(2, 10); return {wij:sp.club, zij:S.M ? S.M.opp : null, jij:sp.uitSleutel, jijUit:sp.uiterlijk || null, tenues:tenuesVanWedstrijd(), band:!S.trainer && !sp.clubloos && isAanvoerder() && !(S.M && (S.M.inter || S.M.selectie)),
   jijNaam:sp.naam, rugWij:opstelling(sp.club, true), rugZij:S.M && !S.M.inter && !S.M.selectie ? opstelling(S.M.opp, false) : null}; }
@@ -860,7 +873,7 @@ export function pitchSpeel(el, a, klaar, opt = {}){
     // Na een goal (zolang de bal niet meer meedoet): hij valt uit het net op het gras in het doel, en rolt een stukje terug
     if (T.netKant && T.bal && (i >= st.length || !st[i].bal)){ const rust = T.netKant === 'R' ? 106.1 : -1.1;
       T.bal = {...T.bal, z:Math.max(0, (T.bal.z || 0) * .8 - .03), x:T.bal.x + (rust - T.bal.x) * .07}; }
-    if (fx){ const [txt, kl] = typeof fx === 'object' ? [fx.t, fx.kl] : FX[fx] || [fx, '#fff']; if (fx.score) T.onder = `Strafschoppen · ${fx.score} (${S.M && S.M.wij || 'wij'} - ${S.M && S.M.zij || 'zij'})`; T.tekst = txt; T.tekstKleur = kl; T.tekstT = Math.min(1, (nu - fxT) / 400); T.netBol = T.netKant ? Math.max(0, .9 - (nu - fxT) / 900) : 0; }
+    if (fx){ const [txt, kl] = typeof fx === 'object' ? [fx.t, fx.kl] : FX[fx] || [fx, '#fff']; if (fx.score) T.onder = `Strafschoppen · ${fx.score} (${S.M && S.M.wij || 'wij'} - ${S.M && S.M.zij || 'zij'})`; T.tekst = txt; T.tekstKleur = kl; T.tekstT = Math.min(1, (nu - fxT) / 400); T.netBol = T.netKant ? Math.max(0, 1 - (nu - fxT) / 1500) : 0; }
     teken(cv, T, nu);
     if (i >= st.length && nu - eind > (fx ? (a.soort === 'shootout' ? 1400 : 900) : 300) * snel){ PITCH = null; klaar(); return; }
     requestAnimationFrame(frame);
