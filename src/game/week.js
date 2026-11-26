@@ -125,6 +125,7 @@ export function verhoog(k, n){
 
 export function doeActiviteit(soort, attr){
   const sp = S.sp, w = S.week; let t;
+  if (!tmp.simBezig) tmp.trainAnim = {soort, attr}; // (een korte animatie van wat je doet: render/trainingscene.js, via core/ui.js)
   if (soort === 'train'){
     mod('fit', sp.items.fitness ? -5 : -8); mod('vert', 1);
     if (sp.a[attr] >= plafond()){

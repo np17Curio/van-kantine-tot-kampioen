@@ -75,6 +75,8 @@ export function render(){
   if (S) bewaar();
   // Net getekend bij een nieuwe club? Dan de animatie (over het spel heen; het spel zelf is al bijgewerkt)
   if (S && tmp.ondertekening){ const o = tmp.ondertekening; tmp.ondertekening = null; if (instel().transferAnim !== 'uit') speelOndertekening(o); }
+  // Net een activiteit gekozen in het weekoverzicht? Dan een korte animatie van die training (render/trainingscene.js)
+  if (S && tmp.trainAnim){ const o = tmp.trainAnim; tmp.trainAnim = null; if (!tmp.simBezig && instel().trainAnim !== 'uit') speelTrainingNu(o); }
   // Een prijs gewonnen? Dan eerst de huldiging; een persconferentie die nog open staat komt daarna (als speler na de wedstrijd, als trainer ervoor)
   if (S && !tmp.beweging && !tmp.vrijTrainen && !tmp.stats && !tmp.simBezig){ if (SAMEN_BEZIG || samenCheck()) return; if (S.mijlpaalGoal || MIJL_BEZIG) mijlpaalCheck(); else if (S.huldiging || HULD_BEZIG) huldigingCheck(); else if (galaOpen()) galaCheck(); else persCheck(); }
 }
@@ -121,6 +123,8 @@ function samenCheck(){
   return true;
 }
 export function speelSamenNu(){ return (SAMEN || (SAMEN = import('../render/samenscene.js'))).then(m => m.speelSamen()).catch(e => console.warn('samen', e)); }
+let TRAIN = null;
+export function speelTrainingNu(o){ return (TRAIN || (TRAIN = import('../render/trainingscene.js'))).then(m => m.speelTraining(o)).catch(e => console.warn('training', e)); }
 export function speelMijlpaalNu(o){ return (MIJL || (MIJL = import('../render/mijlpaalscene.js'))).then(m => m.speelMijlpaal(o)).catch(e => console.warn('mijlpaalgoal', e)); }
 export function speelHuldigingNu(o){ return (HULD || (HULD = import('../render/huldigingscene.js'))).then(m => m.speelHuldiging(o)).catch(e => console.warn('huldiging', e)); }
 // Het gala van de Gouden Bal (render/galascene.js): één keer, op het eindscherm van het seizoen waarin je hem wint (S.eind.gala,
