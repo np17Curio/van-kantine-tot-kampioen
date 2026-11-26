@@ -115,7 +115,7 @@ function zoekMeer(t){
 }
 // Eén stuk tekst vertalen (de witruimte eromheen blijft staan). Lukt het niet in één keer, dan per stukje tussen de " · "
 // Vaste woorden in het pixelfont (bordjes, rubrieken, krantennamen). Dat zijn hoofdletters zonder zinsbouw, dus een eigen lijstje
-const PIXEL = {'PERSCONFERENTIE':'PRESS CONFERENCE', 'OPSTELLING':'LINE-UPS', 'DIT IS ONS HUIS':'THIS IS OUR HOME', 'VELD':'PITCH', 'VERKOCHT':'SOLD', 'KAMPIOENEN':'CHAMPIONS', 'WINNAARS':'WINNERS', 'GOUDEN BAL':'GOLDEN BALL', 'EN DE WINNAAR IS':'AND THE WINNER IS', 'DE WINNAAR':'THE WINNER', 'IN DE BASIS':'IN THE STARTING XI',
+const PIXEL = {'SAMEN!':'TOGETHER!', 'VROEGER':'BACK THEN', 'KANTINE':'CLUBHOUSE', 'PERSCONFERENTIE':'PRESS CONFERENCE', 'OPSTELLING':'LINE-UPS', 'DIT IS ONS HUIS':'THIS IS OUR HOME', 'VELD':'PITCH', 'VERKOCHT':'SOLD', 'KAMPIOENEN':'CHAMPIONS', 'WINNAARS':'WINNERS', 'GOUDEN BAL':'GOLDEN BALL', 'EN DE WINNAAR IS':'AND THE WINNER IS', 'DE WINNAAR':'THE WINNER', 'IN DE BASIS':'IN THE STARTING XI',
   'TRANSFERNIEUWS':'TRANSFER NEWS', 'RODDEL':'GOSSIP', 'INTERLAND':'INTERNATIONAL', 'DEBUUT':'DEBUT', 'DE DEAL':'THE DEAL', 'DE PIXEL KRANT':'THE PIXEL TIMES',
   'DE SPORTKRANT':'THE SPORTS PAPER', 'VOETBAL VANDAAG':'FOOTBALL TODAY', 'STUDIO VOETBAL':'FOOTBALL STUDIO', 'EUROPEES VOETBALNIEUWS':'EUROPEAN FOOTBALL NEWS',
   '1E GOAL':'1ST GOAL', 'HERHALING':'REPLAY', 'De Sportkrant':'The Sports Paper', 'Voetbal Vandaag':'Football Today', 'Studio Voetbal':'Football Studio', 'Europees Voetbalnieuws':'European Football News',

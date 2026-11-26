@@ -24,6 +24,7 @@ import { vClubloos } from '../render/views/clubloos.js';
 import { vSelectie, vSelectieKeuze } from '../render/views/selectiedagen.js';
 import { proefNaRender, vProef } from '../render/views/proef.js';
 import { vAfscheid } from '../render/views/afscheid.js';
+import { bijJou } from '../game/speler/journey.js';
 
 /* ===================== Weergave ===================== */
 // Elke knop krijgt een index in ACTS; de klik-handler in main.js voert die functie uit en tekent opnieuw.
@@ -75,7 +76,7 @@ export function render(){
   // Net getekend bij een nieuwe club? Dan de animatie (over het spel heen; het spel zelf is al bijgewerkt)
   if (S && tmp.ondertekening){ const o = tmp.ondertekening; tmp.ondertekening = null; if (instel().transferAnim !== 'uit') speelOndertekening(o); }
   // Een prijs gewonnen? Dan eerst de huldiging; een persconferentie die nog open staat komt daarna (als speler na de wedstrijd, als trainer ervoor)
-  if (S && !tmp.beweging && !tmp.vrijTrainen && !tmp.stats && !tmp.simBezig){ if (S.mijlpaalGoal || MIJL_BEZIG) mijlpaalCheck(); else if (S.huldiging || HULD_BEZIG) huldigingCheck(); else if (galaOpen()) galaCheck(); else persCheck(); }
+  if (S && !tmp.beweging && !tmp.vrijTrainen && !tmp.stats && !tmp.simBezig){ if (SAMEN_BEZIG || samenCheck()) return; if (S.mijlpaalGoal || MIJL_BEZIG) mijlpaalCheck(); else if (S.huldiging || HULD_BEZIG) huldigingCheck(); else if (galaOpen()) galaCheck(); else persCheck(); }
 }
 // De huldiging (render/huldigingscene.js): S.huldiging = {soort, prijs, clubId of land}, gezet bij de winst van een beker, de titel of een toernooi.
 // Na een wedstrijd pas als de laatste actie op het veld is uitgespeeld (zoals de persconferentie hieronder)
@@ -103,6 +104,23 @@ function mijlpaalCheck(){
   MIJL_BEZIG = true;
   speelMijlpaalNu(o).finally(() => { MIJL_BEZIG = false; if (S) render(); });
 }
+// Samen bij dezelfde club met je jeugdvriend(in) (render/samenscene.js): één keer per club, in het weekoverzicht.
+// Speel je niet meer samen, dan wordt het onthouden gewist: kom je later weer samen, dan vieren jullie het opnieuw.
+// Staat er nog een andere scène (de contractscène na een transfer), dan eerst die laten uitspelen
+let SAMEN = null, SAMEN_BEZIG = false, samenWacht = 0;
+function samenCheck(){
+  const sp = S.sp, v = sp && sp.vriend; if (!v || SAMEN_BEZIG || S.fase !== 'week') return false;
+  let samen = false; try { samen = bijJou(); } catch (e){}
+  if (!samen){ if (v.samenClub != null) v.samenClub = null; return false; }
+  if (v.samenClub === sp.club) return false;
+  if (document.querySelector('body > .cutscene:not(.uit)')){ clearTimeout(samenWacht); samenWacht = setTimeout(() => { if (S) render(); }, 1200); return false; }
+  v.samenClub = sp.club; bewaar();
+  if (instel().huldigingAnim === 'uit') return false; // (dezelfde instelling als de huldiging: feestscènes aan of uit)
+  SAMEN_BEZIG = true;
+  speelSamenNu().finally(() => { SAMEN_BEZIG = false; if (S) render(); });
+  return true;
+}
+export function speelSamenNu(){ return (SAMEN || (SAMEN = import('../render/samenscene.js'))).then(m => m.speelSamen()).catch(e => console.warn('samen', e)); }
 export function speelMijlpaalNu(o){ return (MIJL || (MIJL = import('../render/mijlpaalscene.js'))).then(m => m.speelMijlpaal(o)).catch(e => console.warn('mijlpaalgoal', e)); }
 export function speelHuldigingNu(o){ return (HULD || (HULD = import('../render/huldigingscene.js'))).then(m => m.speelHuldiging(o)).catch(e => console.warn('huldiging', e)); }
 // Het gala van de Gouden Bal (render/galascene.js): één keer, op het eindscherm van het seizoen waarin je hem wint (S.eind.gala,

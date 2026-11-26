@@ -18,7 +18,7 @@ const PAAL = 184, LAT = 40; // de voorste doelpaal (x) en de bovenkant van het d
 const DOEL = [204, 54];     // waar de bal het net raakt
 
 // ---------- kleuren ----------
-const STIJL = {K:'#0b1022', k:'#1a1414', b:'#3c4a6e', M:'#ffe9a8', w:'#ffffff', W:'#d4d4de', C:'#1d1f2c', c:'#2b2e3e', g:'#2f7d3f', G:'#378c48',
+export const STIJL = {K:'#0b1022', k:'#1a1414', b:'#3c4a6e', M:'#ffe9a8', w:'#ffffff', W:'#d4d4de', C:'#1d1f2c', c:'#2b2e3e', g:'#2f7d3f', G:'#378c48',
   s:'#f7c9a8', S:'#e3a07e', i:'#a8744f', I:'#6f4630', d:'#5a3a24', n:'#2a1f1c', h:'#b5541c', y:'#ffd21a', Y:'#e39a0c', r:'#e0262b', o:'#ffd84a'};
 const KORREL = n => { let h = (n * 2654435761) >>> 0; h ^= h >>> 15; h = Math.imul(h, 2246822519) >>> 0; return (h ^ (h >>> 13)) >>> 0; };
 
@@ -37,7 +37,7 @@ function veldA(naam, juich){
   });
 }
 // B: dichterbij de tribune, de hoekvlag rechts
-function veldB(naam, juich){
+export function veldB(naam, juich){
   return sprite(MW, MH, c => {
     c.rect(0, 0, MW, 8, 'K');
     c.rect(0, 6, MW, 52, 'C'); for (let y = 12; y < 58; y += 9) c.hline(0, y, MW, 'c');
@@ -78,7 +78,7 @@ function fan(c, x, y, nr, soort, hoog, shirt){
     c.line(x + 6, y + 10, x + 8, top, hd, 2); c.circ(x + 8, top - 1, 2, hd); c.line(x - 6, y + 11, x - 9, y + 16, hd, 2);
   } else { c.line(x - 6, y + 10, x - 10, top, hd, 2); c.line(x + 6, y + 10, x + 10, top, hd, 2); c.circ(x - 10, top - 1, 2, hd); c.circ(x + 10, top - 1, 2, hd); }
 }
-function tribune(f, kop, naam){
+export function tribune(f, kop, naam){
   const achter = sprite(MW, MH, c => {
     c.rect(0, 0, MW, MH, 'C'); for (let y = 6; y < MH; y += 12) c.hline(0, y, MW, 'c');
     c.rect(0, 0, MW, 5, 'K'); for (let x = 20; x < MW; x += 60) c.rect(x, 0, 16, 2, 'M');

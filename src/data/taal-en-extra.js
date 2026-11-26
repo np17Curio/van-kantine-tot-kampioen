@@ -835,4 +835,14 @@ export const EN_EXTRA = {
   "De beste ploeg van het land. Volgend seizoen wacht de *.":"The best team in the country. Next season the * awaits.",
   "CONCACAF Champions Cup (nummers 1 en 2)":"CONCACAF Champions Cup (numbers 1 and 2)",
   "Champions League (nummers 1 en 2)":"Champions League (numbers 1 and 2)",
+  // ---- Samen met je vriend ----
+  "Eindelijk samen":"Together at last",
+  "Jij en * · * · *":"You and * · * · *",
+  "Jullie vliegen elkaar in de armen!":"You fly into each other's arms!",
+  "Vroeger, op het veldje achter de kantine…":"Back then, on the little pitch behind the clubhouse…",
+  "…droomden jullie hier al van. Samen in één ploeg.":"…you already dreamed of this. Together in one team.",
+  "De fans zingen jullie namen!":"The fans are singing your names!",
+  "Samen bij *!":"Together at *!",
+  "Jij en *: van de kantine tot hier":"You and *: from the clubhouse to here",
+  "Animatie: jij en * spelen samen bij *":"Animation: you and * play together at *",
 };
