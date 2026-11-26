@@ -193,6 +193,8 @@ export const POSES = ['duw', 'struikel', 'val', 'sliding', 'steek', 'schouder', 
   'heupwieg', 'vliegtuig', 'kracht', 'knieslide', 'robot', 'kangoeroe', 'pirouette', 'boogschutter', 'polonaise', 'overspring', 'balen'];
 // Het script: een lijst stappen. Elke stap verplaatst spelers en/of de bal in d milliseconden.
 // moves: {id:{x, y, z, pose, rol}}  ·  bal: {to, boog, krul, trap, van} of {volg}  ·  fx: tekst-effect aan het eind van de stap
+// Hoe diep de bal bij een goal het net in gaat: net vóór het achternet (dat hangt 1,8 m achter de lijn, veld3d.js)
+const NET_DIEP = 1.65;
 export function animScript(a){ const r = animScriptBasis(a); return a.jijKeeper ? alsKeeper(r) : r; }
 function animScriptBasis(a){
   const sc = keeperVeld(pitchSceneBasis(a.type), a.type), E = sc.ents, st = [], r = () => Math.random();
@@ -208,7 +210,7 @@ function animScriptBasis(a){
   const stap = (d, moves, bal, fx) => { moves = moves || {};
     // Een goal gaat altijd ónder de lat door: de bal (een sprite van .62 m, z = onderkant) eindigt hooguit op 1,5 m en tussen de palen
     if (bal && bal.to && (fx === 'goal' || fx === 'tegen' || (fx && fx.net)) && (bal.to.x > 104.9 || bal.to.x < .1)){
-      bal = {...bal, to:{...bal.to, z:Math.min(bal.to.z || 0, 1.5), y:Math.max(30.9, Math.min(37.1, bal.to.y))}, boog:Math.min(bal.boog || 0, 1.2)}; }
+      bal = {...bal, to:{...bal.to, x:bal.to.x > 104.9 ? 105 + NET_DIEP : -NET_DIEP, z:Math.min(bal.to.z || 0, 1.5), y:Math.max(30.9, Math.min(37.1, bal.to.y))}, boog:Math.min(bal.boog || 0, 1.2)}; }
     for (const k in moves){ const m = moves[k]; if (m && cur[k]){ if (m.x !== undefined) cur[k].x = m.x; if (m.y !== undefined) cur[k].y = m.y; if ('pose' in m) cur[k].pose = m.pose; } } st.push({d, moves, bal, fx}); };
   // Blessure in het veld (wedstrijd.js: a.blessure = 'J' of 'X'): hij blijft liggen, de scheids zwaait de verzorger erbij, en hij strompelt naar de kant
   const blessureStap = () => { const wie = a.blessure; if (!wie || !cur[wie]) return;
@@ -855,6 +857,9 @@ export function pitchSpeel(el, a, klaar, opt = {}){
       T.cam += (Math.max(18, Math.min(87, T.bal.x)) - T.cam) * .06;
       if (t >= 1){ if (s.fx){ fx = s.fx; fxT = nu; if (s.fx === 'goal' || s.fx === 'tegen' || s.fx.net){ T.netKant = s.fx === 'tegen' ? 'L' : 'R'; } if (s.fx === 'geel' || s.fx === 'rood'){ T.kaart = s.fx; } } begin(nu); }
     }
+    // Na een goal (zolang de bal niet meer meedoet): hij valt uit het net op het gras in het doel, en rolt een stukje terug
+    if (T.netKant && T.bal && (i >= st.length || !st[i].bal)){ const rust = T.netKant === 'R' ? 106.1 : -1.1;
+      T.bal = {...T.bal, z:Math.max(0, (T.bal.z || 0) * .8 - .03), x:T.bal.x + (rust - T.bal.x) * .07}; }
     if (fx){ const [txt, kl] = typeof fx === 'object' ? [fx.t, fx.kl] : FX[fx] || [fx, '#fff']; if (fx.score) T.onder = `Strafschoppen · ${fx.score} (${S.M && S.M.wij || 'wij'} - ${S.M && S.M.zij || 'zij'})`; T.tekst = txt; T.tekstKleur = kl; T.tekstT = Math.min(1, (nu - fxT) / 400); T.netBol = T.netKant ? Math.max(0, .9 - (nu - fxT) / 900) : 0; }
     teken(cv, T, nu);
     if (i >= st.length && nu - eind > (fx ? (a.soort === 'shootout' ? 1400 : 900) : 300) * snel){ PITCH = null; klaar(); return; }

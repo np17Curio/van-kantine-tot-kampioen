@@ -10,7 +10,8 @@ import { BEKERS, bekerRondeNaam } from './beker.js';
 // In je eigen land groeien en krimpen de clubs met hun spelers (markt.js). De andere landen ontwikkelen zich hier, één keer per seizoen:
 // een trend per land (goede en slechte generaties), wat toeval per club, Europese successen, en een rem richting de startsterkte.
 export const landSterkte = land => { const L = leagueInfo(land, 1); return L ? L.gem : 0; };
-export const landenRanking = () => EUROPA_LANDEN.map(land => ({land, gem:landSterkte(land)})).sort((a, b) => b.gem - a.gem).map((x, i) => ({...x, plek:i + 1}));
+// (alle: ook Mexico en de VS, voor het overzicht; zonder: alleen Europa, voor de plaatsen in de Europese bekers)
+export const landenRanking = (alle = false) => (alle ? SPEEL_LANDEN : EUROPA_LANDEN).map(land => ({land, gem:landSterkte(land)})).sort((a, b) => b.gem - a.gem).map((x, i) => ({...x, plek:i + 1}));
 // Europese bonus voor de gastclubs van dit seizoen: halve finale +1, finale +2, winst +3 (geld en aanzien)
 function europaBonus(){
   const B = S.ss && S.ss.bekers, uit = {}; if (!B) return uit;
@@ -27,7 +28,7 @@ function europaBonus(){
 export function ontwikkelLanden(){
   if (S.landJaar === S.jaar) return [];
   S.landJaar = S.jaar;
-  const voor = landenRanking(), bonus = europaBonus(), T = S.landTrend = S.landTrend || {}, L = S.landen = S.landen || {};
+  const voor = landenRanking(true), bonus = europaBonus(), T = S.landTrend = S.landTrend || {}, L = S.landen = S.landen || {};
   for (const land of SPEEL_LANDEN){
     if (land === thuisLand()) continue; // daar bepalen de spelers de sterkte
     const basis = landBasis(land), lijst = (L[land] && L[land].clubs ? hervormStand(L[land].clubs, land) : basis).map(x => x.slice());
@@ -37,7 +38,7 @@ export function ontwikkelLanden(){
       x[1] = clamp(Math.round(x[1] + T[land] * .5 + randInt(-2, 2) + rem + (bonus[`${land}|${i}`] || 0)), 30, 95); });
     L[land] = {...(L[land] || {}), clubs:lijst};
   }
-  const na = landenRanking();
+  const na = landenRanking(true);
   S.landRank = {vorig:voor, nu:na};
   // de krant: wie passeert wie (je eigen land altijd)
   const krant = [], thuis = thuisLand();

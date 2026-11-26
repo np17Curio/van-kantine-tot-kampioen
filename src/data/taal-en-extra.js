@@ -845,4 +845,6 @@ export const EN_EXTRA = {
   "Samen bij *!":"Together at *!",
   "Jij en *: van de kantine tot hier":"You and *: from the clubhouse to here",
   "Animatie: jij en * spelen samen bij *":"Animation: you and * play together at *",
+  // ---- Landenranking ----
+  "Gemiddelde sterkte van de clubs in de hoogste competitie. Clubs worden elk seizoen sterker of zwakker, dus de ranking verandert mee. Mexico en de VS spelen niet Europees, maar de CONCACAF Champions Cup.":"Average strength of the clubs in the top league. Clubs get stronger or weaker every season, so the ranking changes too. Mexico and the USA don't play in Europe but in the CONCACAF Champions Cup.",
 };

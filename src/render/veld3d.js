@@ -148,7 +148,8 @@ function maak(){
     const paal = (z) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, 2.44, 8), wit); m.position.set(X, 1.22, z); g.add(m); };
     paal(wz(30.34)); paal(wz(37.66));
     const lat = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, 7.32, 8), wit); lat.rotation.x = Math.PI / 2; lat.position.set(X, 2.44, 0); g.add(lat);
-    const achter = new THREE.Mesh(new THREE.PlaneGeometry(7.32, 2.44), netM); achter.rotation.y = Math.PI / 2; achter.position.set(X + dx * 1.8, 1.22, 0); g.add(achter);
+    const achter = new THREE.Mesh(new THREE.PlaneGeometry(7.32, 2.44, 28, 10), netM); achter.rotation.y = Math.PI / 2; achter.position.set(X + dx * 1.8, 1.22, 0); g.add(achter);
+    achter.userData.basis = achter.geometry.attributes.position.array.slice(); // (de rechte stand, om de bolling op te tekenen)
     const dak = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 7.32), netM); dak.rotation.x = Math.PI / 2; dak.position.set(X + dx * .9, 2.44, 0); g.add(dak);
     for (const z of [wz(30.34), wz(37.66)]){ const zij = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 2.44), netM); zij.position.set(X + dx * .9, 1.22, z); g.add(zij); }
     scene.add(g); doelen[kant] = {achter, X, dx};
@@ -497,7 +498,20 @@ export function teken3D(T, nu){
   R.bal.position.set(bx, by, bz); R.bal.visible = !balVast; R.balSchaduw.visible = !balVast;
   R.balSchaduw.position.set(bx, .016, bz); R.balSchaduw.material.opacity = .32 * Math.max(.25, 1 - (bal.z || 0) / 4);
   // net bolt na een doelpunt
-  for (const k of ['L', 'R']){ const d = R.doelen[k], b = k === T.netKant ? (T.netBol || 0) : 0; d.achter.position.x = d.X + d.dx * (1.8 + b * 1.1); }
+  // Het net bolt waar de bal het raakt: een bult naar achter rond dat punt (de rest van het net blijft bijna recht)
+  for (const k of ['L', 'R']){
+    const d = R.doelen[k], b = k === T.netKant ? (T.netBol || 0) : 0, A = d.achter, pos = A.geometry.attributes.position, basis = A.userData.basis;
+    if (b > 0 && !d.raak) d.raak = {lx:bz, ly:Math.min(1.1, Math.max(-1.1, by - 1.22))}; // (waar de bal het net raakte: in de coördinaten van het net)
+    if (b <= 0) d.raak = null;
+    if (!b && !d.gebold) continue;
+    const r = d.raak || {lx:0, ly:0};
+    for (let i = 0; i < pos.count; i++){ const lx = basis[i * 3], ly = basis[i * 3 + 1];
+      // (het net is een kwartslag gedraaid: lokaal x is -z in de wereld; lokaal z wijst naar achter, het doel uit)
+      const dl = (-lx - r.lx) / 1.3, dh = (ly - r.ly) / .8;
+      pos.array[i * 3 + 2] = d.dx * b * 1.15 * Math.exp(-(dl * dl + dh * dh) / 2) * (k === 'R' ? 1 : -1) * d.dx; }
+    pos.needsUpdate = true; d.gebold = b > 0;
+    A.position.x = d.X + d.dx * (1.8 + b * .15);
+  }
   // camera: schuin vanaf de tribune, volgt de bal rustig
   // ingezoomd zoals een tv-camera; bij een doel schuift het beeld iets op zodat het doel in beeld blijft
   // Ver weg (normaal): volgt de bal en schuift bij een doel iets op, zodat het doel in beeld blijft.

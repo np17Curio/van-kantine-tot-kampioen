@@ -1,6 +1,6 @@
 import { clubPlekken, mijnFormatie, mijnPlek, plekGesprekNodig, plekOpnieuwMag, plekPastTekst, plekTekst, plekkenVoor, vraagPlek } from '../../data/plekken.js';
 import { BROEK_KAST, DAS_KAST, KLEUR_KAST, PERS_STIJLEN, UIT_STIJLEN, kies as kiesKleding, kledingWaarde } from '../../game/prive/kleding.js';
-import { BEKER_ALT, CUP_ALT } from '../../data/landen.js';
+import { BEKER_ALT, CUP_ALT, inAmerika } from '../../data/landen.js';
 import { S, club, mod, ovr, tmp, attr } from '../../core/state.js';
 import { act, keuzeKnop, knop, tabBalk } from '../../core/ui.js';
 import { clamp, esc, geldTxt } from '../../core/utils.js';
@@ -320,8 +320,8 @@ function vLandenRanking(){
   const R = S.landRank, vorig = R && R.vorig, thuis = S.land || 'Nederland';
   const pijl = x => { const v = vorig && vorig.find(y => y.land === x.land); if (!v) return ''; const d = v.plek - x.plek, g = x.gem - v.gem;
     return `${d > 0 ? `<span class="omhoog">▲${d}</span>` : d < 0 ? `<span class="omlaag">▼${-d}</span>` : '<span class="muted">=</span>'} <span class="muted klein-tekst">(${g > 0 ? '+' : ''}${g})</span>`; };
-  return `<span class="label">Landenranking</span><table class="tabel">${landenRanking().map(x => `<tr class="${x.land === thuis ? 'mij' : ''}"><td>${x.plek}.</td><td>${esc(x.land)}</td><td>${x.gem}</td><td>${pijl(x)}</td></tr>`).join('')}</table>
-    <p class="muted klein-tekst">Gemiddelde sterkte van de clubs in de hoogste competitie. Clubs worden elk seizoen sterker of zwakker, dus de ranking verandert mee.</p>`;
+  return `<span class="label">Landenranking</span><table class="tabel">${landenRanking(true).map(x => `<tr class="${x.land === thuis ? 'mij' : ''}"><td>${x.plek}.</td><td>${esc(x.land)}${inAmerika(x.land) ? ' <span class="muted klein-tekst">CONCACAF</span>' : ''}</td><td>${x.gem}</td><td>${pijl(x)}</td></tr>`).join('')}</table>
+    <p class="muted klein-tekst">Gemiddelde sterkte van de clubs in de hoogste competitie. Clubs worden elk seizoen sterker of zwakker, dus de ranking verandert mee. Mexico en de VS spelen niet Europees, maar de CONCACAF Champions Cup.</p>`;
 }
 // De opbouw van je Gouden Bal-punten (ook in het eindscherm)
 export function vGbOpbouw(O, titel){
