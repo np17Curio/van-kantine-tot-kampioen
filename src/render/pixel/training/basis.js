@@ -65,6 +65,6 @@ export function kamer(tenue, {muur = 'c', vloer = 'q', plint = 'Q'} = {}){
 
 // Een simpele animatie als voorbeeld én als reserve (een activiteit zonder eigen animatie): je staat op het trainingsveld en juicht
 export function reserve(info){
-  const bg = trainingsveld(info.tenue, info.club), ik = look(info.uit, info.tenue, 'training');
+  const bg = trainingsveld(info.tenue, info.club), ik = look(info.uit, info.tenue, 'tenue');
   return {teken(g, f){ g.drawImage(bg, 0, 0); zet(g, ik, f < 12 ? 'sta' : 'juich', frameOp(f < 12 ? 'sta' : 'juich', (f % 12) / T_FPS), TW / 2); }};
 }

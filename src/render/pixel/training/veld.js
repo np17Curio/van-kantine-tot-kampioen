@@ -11,8 +11,8 @@ const L = (a, b, u) => a + (b - a) * Math.max(0, Math.min(1, u));
 const vlak = (g, x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), w, h); };
 const schaduw = (g, x, r = 3) => vlak(g, x - r, GY - 1, r * 2, 2, 'rgba(0,0,0,.22)');
 // een teamgenoot in het trainingspak, of met een oranje hesje (de tegenstander op de training)
-const maat = (info, nr, hesje = false) => look(uiterlijkVoor('maat|training|' + nr), info.tenue, 'training', hesje ? {kleuren:{r:'#ff8a1c', R:'#c4600c'}} : {});
-const ikVeld = info => look(info.uit, info.tenue, 'training');
+const maat = (info, nr, hesje = false) => look(uiterlijkVoor('maat|training|' + nr), info.tenue, 'tenue', hesje ? {kleuren:{r:'#ff8a1c', R:'#c4600c'}} : {});
+const ikVeld = info => look(info.uit, info.tenue, 'tenue'); // (op het veld in het voetbaltenue: shirt en korte broek, geen trainingspak)
 const ikKeeper = info => look(info.uit, info.tenue, 'tenue', {handschoen:true});
 // zweetdruppels die van je hoofd spatten (x = het midden van de speler)
 function zweet(g, x, f, y = GY){

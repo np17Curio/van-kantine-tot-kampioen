@@ -83,7 +83,7 @@ export const ANIMATIES = {
     }
     c.fillStyle = 'rgba(255,240,190,.1)'; for (let dy = -6; dy <= 6; dy++){ const w = R(Math.sqrt(1 - (dy / 7) ** 2) * 80); c.fillRect(110 - w, GY + dy, w * 2, 1); }
     doel(c, 168, 80, 40, 32);
-    const ik = look(info.uit, info.tenue, 'training'), X = 96, voet = X + 18;
+    const ik = look(info.uit, info.tenue, 'tenue'), X = 96, voet = X + 18;
     const STAPEL = [[34, GY - 3], [41, GY - 3], [48, GY - 3], [37, GY - 8], [44, GY - 8]], DOEL = [[183, 92], [197, 100]], RUST = [[182, GY - 3], [196, GY - 3]];
     return {teken(g, f){
       g.drawImage(bg, 0, 0);
@@ -102,7 +102,7 @@ export const ANIMATIES = {
   trainer: info => {
     const bg = trainingsveld(info.tenue, info.club), c = bg.getContext('2d');
     doel(c, 140, 88, 30, 24); for (const x of [26, 50, 74]) pion(c, x);
-    const ik = look(info.uit, info.tenue, 'training'), coach = ander(info, 'trainer'), X = 98, CX = 196, voet = X + 18;
+    const ik = look(info.uit, info.tenue, 'tenue'), coach = ander(info, 'trainer'), X = 98, CX = 196, voet = X + 18;
     return {teken(g, f){
       const t = f / T_FPS; g.drawImage(bg, 0, 0);
       // de trainer: kijkt (het klembord voor zich), en klapt als het raak is (het klembord onder zijn arm)
@@ -155,7 +155,7 @@ export const ANIMATIES = {
   // Extra training bij de talentcoach: hij speelt je aan, jij neemt aan en schiet raak, hij klapt
   talentcoach: info => {
     const bg = trainingsveld(info.tenue, info.club), c = bg.getContext('2d'); doel(c, 172, 80, 36, 32);
-    const ik = look(info.uit, info.tenue, 'training'), coach = ander(info, 'talentcoach', 'training', {shirt:'#3c4a6e', accent:'#ffd21a', broek:'#1d1f2c', sok:'#3c4a6e'});
+    const ik = look(info.uit, info.tenue, 'tenue'), coach = ander(info, 'talentcoach', 'training', {shirt:'#3c4a6e', accent:'#ffd21a', broek:'#1d1f2c', sok:'#3c4a6e'});
     const KX = 30, X = 112, voet = X + 18;
     return {teken(g, f){
       const t = f / T_FPS; g.drawImage(bg, 0, 0);
@@ -204,7 +204,7 @@ export const ANIMATIES = {
   // Jonge spelers helpen: jij houdt de bal hoog, speelt hem naar een jonge speler, hij doet het je na en juicht; jij klapt
   mentor: info => {
     const bg = trainingsveld(info.tenue, info.club), c = bg.getContext('2d'); for (const x of [14, 206]) pion(c, x);
-    const ik = look(info.uit, info.tenue, 'training'), klein = ander(info, 'jeugd', 'tenue'), X = 76, JX = 150, s = .8;
+    const ik = look(info.uit, info.tenue, 'tenue'), klein = ander(info, 'jeugd', 'tenue'), X = 76, JX = 150, s = .8;
     return {teken(g, f){
       const t = f / T_FPS, kl = {flip:true, s}; g.drawImage(bg, 0, 0);
       if (f < 12){ const p = (f % 6) / 6; zet(g, ik, f % 6 === 0 ? 'volley' : 'sta', 0, X); bal(g, X + 11, GY - 14 - Math.sin(Math.PI * p) * 22); }
