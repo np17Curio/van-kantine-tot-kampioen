@@ -883,4 +883,13 @@ export const EN_EXTRA = {
   // ---- Revalidatie-animatie ----
   "Revalideren":"Rehab",
   "Rustig in beweging blijven":"Staying gently active",
+  // ---- Faciliteiten ----
+  "Trainers en faciliteiten: *":"Coaches and facilities: *",
+  "Faciliteiten":"Facilities",
+  "Eenvoudig (*% trainen)":"Basic (*% training)",
+  "Gemiddeld (*% trainen)":"Average (*% training)",
+  "Goed (*% trainen)":"Good (*% training)",
+  "Uitstekend (*% trainen)":"Excellent (*% training)",
+  "Wereldklasse (*% trainen)":"World class (*% training)",
+  "Hoe beter de club, hoe beter de trainers, de staf en de faciliteiten: dan word je sneller beter":"The better the club, the better the coaches, staff and facilities: you improve faster",
 };

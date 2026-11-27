@@ -1,3 +1,4 @@
+import { clubGroei, faciliteitTekst } from '../../game/speler/faciliteiten.js';
 import { clubPlekken, mijnFormatie, mijnPlek, plekGesprekNodig, plekOpnieuwMag, plekPastTekst, plekTekst, plekkenVoor, vraagPlek } from '../../data/plekken.js';
 import { BROEK_KAST, DAS_KAST, KLEUR_KAST, PERS_STIJLEN, UIT_STIJLEN, kies as kiesKleding, kledingWaarde } from '../../game/prive/kleding.js';
 import { BEKER_ALT, CUP_ALT, inAmerika } from '../../data/landen.js';
@@ -214,7 +215,7 @@ function vActiviteiten(){
   const va = verhaalActiviteiten(), verhaal = va.length ? `<div class="actgroep verhaal"><span class="label">Jouw verhaal · ${esc(verhaalTitel(sp))}</span><div class="keuzes">${va.map(a => keuzeKnop(a.l, a.s, () => doeActiviteit(a.id))).join('')}</div></div>` : '';
   return `<section class="activiteiten sblok"><div class="blokkop"><span class="label">Wat doe je deze week? · 1 keuze</span>${knop('⚽ Vrij trainen', () => { tmp.vrijTrainen = true; }, 'klein', 'data-blijf title="Zelf je speler besturen · telt niet als activiteit"')}</div>
     <div class="actgroepen">
-    <div class="actgroep"><span class="label">Trainen</span><div class="keuzes">${train}${extra}</div></div>
+    <div class="actgroep"><span class="label">Trainen</span><span class="muted klein-tekst" title="Hoe beter de club, hoe beter de trainers, de staf en de faciliteiten: dan word je sneller beter">Trainers en faciliteiten: ${faciliteitTekst(clubGroei())}</span><div class="keuzes">${train}${extra}</div></div>
     <div class="actgroep"><span class="label">Herstel en mentaal</span><div class="keuzes">${herstel}</div></div>
     <div class="actgroep"><span class="label">Club en sociaal</span><div class="keuzes">${sociaal}</div></div>${verhaal}</div></section>`;
 }

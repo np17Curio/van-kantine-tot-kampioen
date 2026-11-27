@@ -1,8 +1,9 @@
+import { faciliteitFactor, faciliteitTekst } from '../../game/speler/faciliteiten.js';
 import { formatieBijBod } from '../../data/plekken.js';
 import { S, club, salarisLabel, tmp } from '../../core/state.js';
 import { knop } from '../../core/ui.js';
 import { esc, geldTxt } from '../../core/utils.js';
-import { DIVS, NIVEAU } from '../../data/gegevens.js';
+import { CLUBS, DIVS, NIVEAU } from '../../data/gegevens.js';
 import { kondigAfscheidAan } from '../../game/seizoen/seizoen.js';
 import { gaHuren } from '../../game/speler/o23.js';
 import { rolBijClub } from '../../game/speler/status.js';
@@ -26,7 +27,7 @@ export function rolRij(id, cObj){
 // Wat er gebeurt als je toch gaat terwijl je partner niet mee wil
 function partnerWaarschuwing(o){ const r = S.sp.relatie, k = kinderen(); return `${r.naam} wil niet mee naar ${o.land}. Ga je toch, dan gaan jullie uit elkaar${r.getrouwd ? `: jullie scheiden en ${r.naam} krijgt de helft van je spaargeld` : ''}${k.length ? `, en ${k.length === 1 ? k[0].naam + ' blijft' : 'je kinderen blijven'} bij ${r.naam} in ${thuisLand()}` : ''}. Toch gaan?`; }
 // De formatie van de club en of jouw favoriete plek daar bestaat (data/plekken.js)
-const formatieRij = id => { const t = formatieBijBod(id); return t ? `<dt>Formatie</dt><dd>${esc(t)}</dd>` : ''; };
+const formatieRij = id => { const t = formatieBijBod(id); return (t ? `<dt>Formatie</dt><dd>${esc(t)}</dd>` : '') + (CLUBS[id] ? `<dt>Faciliteiten</dt><dd>${esc(faciliteitTekst(faciliteitFactor(CLUBS[id])))}</dd>` : ''); };
 export function bodKaart(o, label){
   const c = clubInfo(o), V = S.venster, bl = isBuitenland(o);
   const kanVragen = V.modus === 'normaal' && !o.gevraagd && !o.laatsteDans && (o.verlenging || c.t <= 3);
