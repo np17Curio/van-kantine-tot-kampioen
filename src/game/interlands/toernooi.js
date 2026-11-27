@@ -3,7 +3,7 @@ import { keuzeKnop, knop } from '../../core/ui.js';
 import { clamp, esc, pick, randInt, rnd } from '../../core/utils.js';
 import { LANDEN } from '../../data/gegevens.js';
 import { simGoals } from '../competitie/competitie.js';
-import { interDrempel, interScore, landenVoor, magInterland } from './interlands.js';
+import { interDrempel, interScore, klasseOfficieel, landenVoor, magInterland } from './interlands.js';
 import { KRANTEN, vKrant } from '../media/nieuws.js';
 import { krantMelding } from '../media/roddel.js';
 import { social } from '../prive/social.js';
@@ -46,7 +46,7 @@ export function toernooiSelectie(){
   // Nog niet gekozen en meer landen mogelijk? Dan is een eindtoernooi een keuze: het is officieel, dus daarna zit je vast
   const vrij = !sp.land && landenVoor().length > 1;
   if (vrij){
-    const opties = landenVoor().filter(l => interScore(l) - interDrempel(l) >= -1).map(l => { const n = soort === 'WK' ? 'WK' : CONT_TOERNOOI[tLand(l).c]; return {land:l, naam:n, titel:`${n} ${jaar}`}; });
+    const opties = landenVoor().filter(l => interScore(l) - interDrempel(l) >= -1 && klasseOfficieel(l)).map(l => { const n = soort === 'WK' ? 'WK' : CONT_TOERNOOI[tLand(l).c]; return {land:l, naam:n, titel:`${n} ${jaar}`}; });
     if (opties.length){
       const wie = opties.map(o => o.land).join(' en '), waar = [...new Set(opties.map(o => `${lidw(o.naam)} ${o.titel}`))].join(' of ');
       const rest = opties.length === 1 ? `voor ${landenVoor().filter(l => l !== opties[0].land).join(' of ')}` : 'voor het andere land';
@@ -54,6 +54,7 @@ export function toernooiSelectie(){
     }
   }
   const d = interScore(land) - interDrempel(land);
+  if (d >= -1 && !klasseOfficieel(land)) return {...basis, reden:`De bondscoach van ${land} kiest voor een eindtoernooi alleen spelers van het hoogste niveau. Met jouw klasse word je nog niet meegenomen naar ${lw} ${titel}.`};
   if (d >= -1) return {...basis, mee:true, reden:`De bondscoach van ${land} heeft zijn selectie bekendgemaakt: jij gaat mee naar ${lw} ${titel}!`};
   return d >= -7 ? {...basis, reden:`Net niet: de bondscoach van ${land} laat je thuis voor ${lw} ${titel}. Met betere cijfers was je erbij geweest.`} : null;
 }

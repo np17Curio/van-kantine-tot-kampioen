@@ -25,11 +25,16 @@ export function interScore(naam){
   return ovr(sp) + (gem - 6.5) * 4 + (statusNiveau() >= 2 ? 2 : -3) + (sp.rep - 30) * .05 + ((sp.bonds[naam] ?? 40) - 40) * .08 + (S.land && S.land === naam && club().t !== 0 ? 1 : 0);
 }
 export const interDrempel = naam => landInfo(naam).s - 5;
+// Voor officiële wedstrijden (kwalificatie, een eindtoernooi) moet je klasse ook echt in de buurt komen: hooguit OFFICIEEL_MARGE onder
+// de sterkte van het land. Met heel goede cijfers kun je wel een oefeninterland verdienen, maar een officiële interland niet
+export const OFFICIEEL_MARGE = 12;
+export const klasseOfficieel = naam => ovr(S.sp) >= landInfo(naam).s - OFFICIEEL_MARGE;
 export function interStatus(naam){
   if (S.sp.interStop) return ['Gestopt als international', 'r-gem'];
   if (S.sp.o23) return ['Niet bij de O23', 'r-riskant'];
   if (!magInterland()) return ['Eerst prof worden', 'r-riskant'];
   const d = interScore(naam) - interDrempel(naam);
+  if (d >= -2 && !klasseOfficieel(naam)) return [`Alleen oefeninterlands (officieel vanaf klasse ${landInfo(naam).s - OFFICIEEL_MARGE})`, 'r-gem'];
   if (d >= 2) return ['In de selectie', 'r-veilig'];
   if (d >= -2) return ['Op het randje', 'r-gem'];
   if (d >= -6) return ['In beeld', 'r-gem'];
@@ -40,7 +45,7 @@ export function maakOproep(){
   const type = rnd() < .55 ? 'Kwalificatiewedstrijd' : 'Oefeninterland', landen = [], bijna = [];
   for (const naam of landenVoor()){
     const d = interScore(naam) + randInt(-2, 2) - interDrempel(naam);
-    if (d >= 0) landen.push({land:naam, opp:pick(LANDEN.filter(l => l.n !== naam)).n});
+    if (d >= 0 && (type === 'Oefeninterland' || klasseOfficieel(naam))) landen.push({land:naam, opp:pick(LANDEN.filter(l => l.n !== naam)).n}); // (officieel: ook je klasse moet goed genoeg zijn)
     else if (d >= -6) bijna.push(naam);
   }
   return {type, landen, bijna};

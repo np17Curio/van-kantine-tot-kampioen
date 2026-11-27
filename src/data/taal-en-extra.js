@@ -906,4 +906,7 @@ export const EN_EXTRA = {
   "Bij de kapper: flattop (*).":"At the barber: flat top (*).",
   "Bij de kapper: twists (*).":"At the barber: twists (*).",
   "Bij de kapper: krullen met fade (*).":"At the barber: curls with fade (*).",
+  // ---- Interlands ----
+  "Alleen oefeninterlands (officieel vanaf klasse *)":"Friendlies only (official from rating *)",
+  "De bondscoach van * kiest voor een eindtoernooi alleen spelers van het hoogste niveau. Met jouw klasse word je nog niet meegenomen naar *.":"The * national coach only picks top-level players for a tournament. With your rating you're not taken to * yet.",
 };
