@@ -13,7 +13,7 @@ import { uiterlijkVoor } from './pixel/uiterlijk.js';
 // Titels: wat je ziet bovenin (bij een training op het veld de naam van de eigenschap)
 const TITEL = {tactiek:'Tactiektraining', extra:'Extra trainen', rust:'Rustig aan', mentaal:'Mentale training', video:'Videoanalyse', trainer:'Indruk maken op de trainer',
   uit:'Avondje uit', huiswerk:'Huiswerk maken', talentcoach:'Bij de talentcoach', media:'Een vlog opnemen', toekomst:'Praten met je ouders', bijbaan:'Bijbaantje',
-  derdehelft:'Derde helft', sportkunde:'Avondschool sportkunde', fysio:'Bij de fysio', magazijn:'Bijbaan in het magazijn', mentor:'Jonge spelers helpen'};
+  revalidatie:'Revalideren', derdehelft:'Derde helft', sportkunde:'Avondschool sportkunde', fysio:'Bij de fysio', magazijn:'Bijbaan in het magazijn', mentor:'Jonge spelers helpen'};
 
 let BEZIG = null;
 export function speelTraining(o){
@@ -24,7 +24,7 @@ export function speelTraining(o){
 
 async function speel(o = {}){
   const sp = S && S.sp; if (!sp) return;
-  const id = o.soort === 'train' ? `train-${o.attr}` : o.soort, titel = o.soort === 'train' ? `${attrNaam(o.attr, sp.pos)} trainen` : TITEL[o.soort] || 'Training';
+  const id = o.soort === 'train' ? `train-${o.attr}` : o.soort, titel = o.soort === 'train' ? `${attrNaam(o.attr, sp.pos)} trainen` : o.soort === 'revalidatie' && sp.verlof ? 'Rustig in beweging blijven' : TITEL[o.soort] || 'Training';
   const laag = maakLaag({tag:'Training', label:`Animatie: ${titel}`});
   try {
     let sleutel = sp.naam; try { sleutel = ploegen().jij || sleutel; } catch (e){}

@@ -217,6 +217,37 @@ export const ANIMATIES = {
     }};
   },
 
+  // Revalideren (geblesseerd): in de oefenzaal van de fysio. Eerst voorzichtig lopen tussen de leuningen van de loopbrug, de fysio
+  // loopt naast je mee en praat je moed in; dan een balansoefening op een balansbord, en de fysio klapt
+  revalidatie: info => {
+    const bg = kamer(info.tenue, {muur:'m', vloer:'W', plint:'x'}), c = bg.getContext('2d');
+    blok(c, 150, 30, 50, 44, 'X'); blok(c, 152, 32, 46, 40, 'w'); for (let y = 36; y < 70; y += 8) blok(c, 154, y, 42, 1, 'm');     // een raam met lamellen
+    blok(c, 16, 44, 30, 3, 'Q'); for (let i = 0; i < 4; i++) blok(c, 18 + i * 7, 36, 5, 8, ['e', 'v', 'g', 'p'][i]);               // halters op een rek
+    blok(c, 28, 78, 40, 14, 'v'); blok(c, 28, 78, 40, 2, '#5b86e8');                                                                  // een oefenmat tegen de muur
+    const ik = look(info.uit, info.tenue, 'training'), fysio = ander(info, 'fysio', 'training', {shirt:'#ffffff', accent:'#2f62d6', broek:'#2f62d6', sok:'#ffffff'});
+    const RAIL = GY - 36, L0 = 30, L1 = 150;
+    const leuning = (g, y, k) => { blok(g, L0, y, L1 - L0, 3, k); blok(g, L0, y + 3, L1 - L0, 1, 'k'); for (const x of [L0, (L0 + L1) / 2, L1 - 3]) blok(g, x, y, 3, GY - y, 'z'); };
+    return {teken(g, f){
+      const t = f / T_FPS; g.drawImage(bg, 0, 0);
+      if (f < 18){
+        // 1. de loopbrug: de achterste leuning, jij loopt langzaam (een halve pas per beeld), de voorste leuning, de fysio ernaast
+        leuning(g, RAIL - 4, 'X');
+        const x = tussen(44, 112, f / 17);
+        zet(g, ik, 'loop', frameOp('loop', t * .55), x);
+        leuning(g, RAIL, 'z');
+        zet(g, fysio, 'praat', frameOp('praat', t), Math.min(196, x + 46), {flip:true}); // (hij loopt achteruit voor je uit)
+      } else {
+        // 2. de balansoefening: een balansbord (een halve bol met een plank erop) dat een beetje wiebelt, de fysio kijkt en klapt
+        const n = f - 18, wiebel = [0, 1, 1, 0, -1, -1][n % 6], bx = 96;
+        blok(g, bx - 12, GY - 3, 24, 3, 'Q'); blok(g, bx - 8, GY - 5, 16, 2, 'q');                                   // de halve bol
+        blok(g, bx - 16, GY - 7 - (wiebel > 0 ? 1 : 0), 16, 2, 'd'); blok(g, bx, GY - 7 - (wiebel < 0 ? 1 : 0), 16, 2, 'd'); // de plank die kantelt
+        zet(g, ik, n < 8 ? 'spreid' : 'sta', n < 8 ? 0 : frameOp('sta', n / T_FPS), bx + wiebel, {y:GY - 7});
+        zet(g, fysio, n < 7 ? 'kalm' : 'klap', frameOp(n < 7 ? 'kalm' : 'klap', n / T_FPS), 160, {flip:true});
+        if (n >= 8 && f % 4 < 2){ ster(g, bx - 14, GY - 80); ster(g, bx + 16, GY - 76); }
+      }
+    }};
+  },
+
   // Extra uren bij de fysio: jij ligt op de behandeltafel, de fysio rekt je been op en houdt het even vast
   fysio: info => {
     const bg = kamer(info.tenue, {muur:'m', vloer:'W', plint:'x'}), c = bg.getContext('2d');

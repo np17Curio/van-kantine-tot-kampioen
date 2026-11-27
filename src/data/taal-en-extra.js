@@ -880,4 +880,7 @@ export const EN_EXTRA = {
   "Animatie: *":"Animation: *",
   "Animatie bij je training":"Training animation",
   "Kies je in het weekoverzicht wat je doet, dan zie je kort een animatie van die training.":"When you choose what to do in the weekly overview, you briefly see an animation of that training.",
+  // ---- Revalidatie-animatie ----
+  "Revalideren":"Rehab",
+  "Rustig in beweging blijven":"Staying gently active",
 };
