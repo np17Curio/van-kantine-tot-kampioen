@@ -1,5 +1,5 @@
 import { S, club, mod, ovr, salarisVoor, seizoenLabel, somVoor, waarde } from '../../core/state.js';
-import { clamp, pick, randInt, rnd } from '../../core/utils.js';
+import { clamp, pick, randInt, rnd, shuffle } from '../../core/utils.js';
 import { AANTAL_RONDES, CLUBS, DIVS, LAAGSTE, liefNamen, clubsLand, divClubs, WINTER, rondeInWeek, weekFactor, LINIE_VAN, POS } from '../../data/gegevens.js';
 import { SPEEL_LANDEN, thuisLand } from '../../data/landen.js';
 import { andereWereldClub, andereWereldIds, clubPlek, vreemdeClub } from '../transfers/buitenland.js';
@@ -350,17 +350,21 @@ export function vriendTransfer(){
   if (sp.huur && v.club === sp.huur.ouder && vriendLand() === (sp.huur.ouderLand || thuisLand())) return null;
   const land = vriendLand(), hier = vriendHier(), info = id => vriendClubInfo(id), cur = info(v.club);
   if (!cur) return null;
-  const omhoog = v.k >= cur.s + 5, omlaag = v.k <= cur.s - 8; if (!omhoog && !omlaag) return null;
+  const ids = hier ? [1, LAAGSTE].flatMap(t => divClubs(t)) : vriendApart() ? [1, 2].flatMap(t => andereWereldIds(land, t)) : Array.from({length:clubsLand(land) - 8}, (_, i) => 8 + i);
+  // Te goed voor de hele competitie: beter dan de sterkste club van zijn league. Dan wil hij naar een grotere competitie in het buitenland
+  const ligaTop = Math.max(0, ...ids.map(i => info(i)).filter(c => c && c.t === 1).map(c => c.s));
+  const teGoed = !vriendApart() && ligaTop > 0 && v.k > ligaTop;
+  const omhoog = v.k >= cur.s + 5 || teGoed, omlaag = !omhoog && v.k <= cur.s - 8; if (!omhoog && !omlaag) return null;
   // Hij gaat zijn eigen weg, niet op hetzelfde moment als jij: hooguit eens per twee seizoenen, en ook als hij te goed is
   // voor zijn club niet meteen (een kans die groeit naarmate hij beter is dan zijn club). Ben jij net zelf van club gewisseld,
   // dan blijft hij meestal nog even zitten
   if (v.transferJaar != null && S.jaar - v.transferJaar < 2) return null;
-  let kans = omhoog ? clamp((v.k - cur.s - 3) / 10, .2, .75) : .4;
-  if ((sp.sindsTransfer ?? 99) < 8) kans *= .3;
+  let kans = teGoed ? clamp((v.k - ligaTop) / 8, .45, .85) : omhoog ? clamp((v.k - cur.s - 3) / 10, .2, .75) : .4;
+  if ((sp.sindsTransfer ?? 99) < 8) kans *= teGoed ? .6 : .3;
   if (rnd() > kans) return null;
-  // Soms kiest hij bij een stap omhoog voor een ander land: het buitenland, of (speelt hij al in het buitenland) terug naar jouw land
+  // Te goed voor zijn competitie: naar een land met een sterkere competitie. Anders soms bij een stap omhoog een ander land
+  if (teGoed){ const t = vriendNaarLand(cur, ligaTop); if (t) return t; }
   if (omhoog && !vriendApart() && v.k >= 60 && rnd() < .3){ const t = vriendNaarLand(cur); if (t) return t; }
-  const ids = hier ? [1, LAAGSTE].flatMap(t => divClubs(t)) : vriendApart() ? [1, 2].flatMap(t => andereWereldIds(land, t)) : Array.from({length:clubsLand(land) - 8}, (_, i) => 8 + i);
   const verboden = vriendVerboden();
   const kand = ids.filter(i => { const c = info(i); return i !== v.club && !verboden.has(i) && !(hier && i === sp.club) && c && c.t >= 1 && (omhoog ? c.s >= cur.s + 2 && c.s >= v.k - 6 && c.s <= v.k - 1 : c.s < cur.s && c.s >= v.k - 6); });
   if (!kand.length) return null;
@@ -373,14 +377,22 @@ export function vriendTransfer(){
   return `${v.voornaam} maakt de overstap van ${oud} naar ${nieuw.n}${div ? ` (${div})` : ''}!`;
 }
 // Een overstap naar een ander land (cur = zijn huidige club). Geeft de tekst voor het weekoverzicht, of null als er niets past
-function vriendNaarLand(cur){
-  const sp = S.sp, v = sp.vriend, land = vriendLand(), thuis = thuisLand(), hier = vriendHier();
-  const nl = pick(SPEEL_LANDEN.filter(l => l !== land)); if (!nl) return null;
-  const naarHier = nl === thuis, verboden = vriendVerboden();
-  const info = id => naarHier ? CLUBS[id] : vreemdeClub(nl, id);
-  const ids = naarHier ? [1, LAAGSTE].flatMap(t => divClubs(t)) : Array.from({length:clubsLand(nl) - 8}, (_, i) => 8 + i);
-  const kand = ids.filter(i => { const c = info(i); return c && c.t >= 1 && !(naarHier && (i === sp.club || verboden.has(i))) && c.s >= cur.s + 2 && c.s >= v.k - 6 && c.s <= v.k - 1; });
-  if (!kand.length) return null;
+// ligaTop: hij is te goed voor zijn hele competitie (de sterkste club daar). Dan alleen een land met een sterkere competitie, en een club
+// rond zijn eigen niveau (hooguit een paar punten sterker dan hij: een topclub haalt een speler die net te goed is voor zijn league)
+function vriendNaarLand(cur, ligaTop = 0){
+  const sp = S.sp, v = sp.vriend, land = vriendLand(), thuis = thuisLand(), hier = vriendHier(), verboden = vriendVerboden();
+  let nl = null, naarHier = false, info = null, kand = [];
+  for (const l of shuffle(SPEEL_LANDEN.filter(x => x !== land))){
+    const nh = l === thuis, inf = id => nh ? CLUBS[id] : vreemdeClub(l, id);
+    const ids = nh ? [1, LAAGSTE].flatMap(t => divClubs(t)) : Array.from({length:clubsLand(l) - 8}, (_, i) => 8 + i);
+    const top = Math.max(0, ...ids.map(inf).filter(c => c && c.t === 1).map(c => c.s));
+    if (ligaTop && top < ligaTop + 3) continue; // (geen stap omhoog: daar gaat hij niet heen)
+    const k = ids.filter(i => { const c = inf(i); return c && c.t >= 1 && !(nh && (i === sp.club || verboden.has(i))) && (ligaTop
+      ? c.t === 1 && c.s >= Math.max(cur.s, v.k - 6) && c.s <= v.k + 3
+      : c.s >= cur.s + 2 && c.s >= v.k - 6 && c.s <= v.k - 1); });
+    if (k.length){ nl = l; naarHier = nh; info = inf; kand = k; break; }
+  }
+  if (!nl) return null;
   const naar = pick(kand), nieuw = info(naar), oud = cur.n; v.transferJaar = S.jaar; (v.vorigeClubs = v.vorigeClubs || []).push(oud);
   if (hier){ const sel = selectie(v.club), x = sel.find(y => y.vriend); if (x){ sel.splice(sel.indexOf(x), 1); selectie(v.club); herschik(sel); } } // (weg uit de selectie bij jou in het land)
   v.land = nl;
