@@ -97,12 +97,14 @@ export function vraagPlek(plek, stil = false){
   let p = .62 - tekort * .05 + klasse * .02 + (plek === STANDAARD_PLEK[sp.pos] ? .1 : 0) + (opnieuw ? .1 : 0);
   if (plek === bezet) p -= .5;
   p = Math.max(.08, Math.min(.95, p));
-  const ok = (hash(`${sp.club}|${S.jaar}|${plek}|${opnieuw}`) % 1000) / 1000 < p;
-  const oud = mijnPlek();
+  // Welke andere plek de trainer je zou geven als hij nee zegt. Is er geen andere vrije plek (een 4-3-3 heeft op het middenveld alleen CM
+  // en CDM, en de CDM is bezet), dan heeft nee zeggen geen zin: dan krijg je je wens gewoon
+  const anders = bestePlek(lijst.filter(id => id !== bezet && id !== plek), sp);
+  const ok = !anders || (hash(`${sp.club}|${S.jaar}|${plek}|${opnieuw}`) % 1000) / 1000 < p;
   let tekst, nieuw = plek;
   if (ok) tekst = `Je zegt tegen de trainer dat je het liefst als ${plek} speelt. Hij knikt: "Dat kan. Laat maar zien dat het werkt."`;
   else {
-    nieuw = bestePlek(lijst.filter(id => id !== bezet && id !== plek), sp) || oud;
+    nieuw = anders;
     const reden = plek === bezet ? '"Op die plek heb ik al een vaste kracht staan.'
       : tekort > 4 ? '"Daar ben je nog niet goed genoeg voor. Jouw kwaliteiten passen beter ergens anders.'
       : '"Eerst moet je je hier bewijzen.';
