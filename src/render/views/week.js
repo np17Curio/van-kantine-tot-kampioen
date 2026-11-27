@@ -565,7 +565,7 @@ function vBuitenBasis(){
   // Kapper en voetbalschoenen (schoenen.js)
   const u = mijnUiterlijk(), dl = schoenDeal(), kapper = kanKapper();
   const stijlHtml = `<div class="rij" style="align-items:flex-start;gap:14px;flex-wrap:wrap"><figure class="portretfoto" style="max-width:220px"><img data-foto="portret" alt="Jouw speler"><span class="ontwikkel">Foto laden…</span></figure>
-    <div style="flex:1;min-width:220px"><span class="label">Kapper · knippen ${geldTxt(KAPPER.knippen)}, verven ${geldTxt(KAPPER.verven)}${kapper ? '' : ' · deze week al geweest'}</span>
+    <div style="flex:1;min-width:220px"><span class="label">Kapper · knippen ${geldTxt(KAPPER.knippen)}, verven ${geldTxt(KAPPER.verven)} · zo vaak als je wilt</span>
       <div class="kapsels" role="group" aria-label="Kapsel">${KAPSEL_KEUZE.map(([k, n]) => knop(n, () => naarKapper(k, null), 'klein' + (u.kapsel === k ? ' aan' : ''), `data-blijf aria-pressed="${u.kapsel === k}" ${kapper && u.kapsel !== k && sp.geld >= KAPPER.knippen ? '' : 'disabled'}`)).join('')}</div>
       <span class="label" style="margin-top:8px">Haarkleur</span>
       <div class="kapsels" role="group" aria-label="Haarkleur">${HAAR_NAAM.map((n, i) => knop(n, () => naarKapper(null, i), 'klein' + (u.haar === i ? ' aan' : ''), `data-blijf aria-pressed="${u.haar === i}" ${kapper && u.haar !== i && sp.geld >= KAPPER.verven ? '' : 'disabled'}`)).join('')}</div>

@@ -892,4 +892,18 @@ export const EN_EXTRA = {
   "Uitstekend (*% trainen)":"Excellent (*% training)",
   "Wereldklasse (*% trainen)":"World class (*% training)",
   "Hoe beter de club, hoe beter de trainers, de staf en de faciliteiten: dan word je sneller beter":"The better the club, the better the coaches, staff and facilities: you improve faster",
+  // ---- Kapper ----
+  "Undercut":"Undercut",
+  "Achterover":"Slicked back",
+  "Matje":"Mullet",
+  "Flattop":"Flat top",
+  "Twists":"Twists",
+  "Krullen met fade":"Curls with fade",
+  "Kapper · knippen *, verven * · zo vaak als je wilt":"Barber · cut *, dye * · as often as you like",
+  "Bij de kapper: undercut (*).":"At the barber: undercut (*).",
+  "Bij de kapper: achterover (*).":"At the barber: slicked back (*).",
+  "Bij de kapper: matje (*).":"At the barber: mullet (*).",
+  "Bij de kapper: flattop (*).":"At the barber: flat top (*).",
+  "Bij de kapper: twists (*).":"At the barber: twists (*).",
+  "Bij de kapper: krullen met fade (*).":"At the barber: curls with fade (*).",
 };

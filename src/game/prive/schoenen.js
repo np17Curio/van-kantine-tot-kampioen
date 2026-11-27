@@ -21,20 +21,23 @@ export function mijnUiterlijk(){
   return sp.uiterlijk;
 }
 
-// ---------- Kapper: één keer per week ----------
+// ---------- Kapper: zo vaak als je wilt, je betaalt elke keer ----------
 export const KAPPER = {knippen:50, verven:150};
-export const kanKapper = () => !!(S.week && !S.week.kapper && !S.sp.clubloos);
+export const kanKapper = () => !!S.week;
+// (één regel per week in "Wat er gebeurde": een nieuw bezoek vervangt het vorige; volgers krijg je hooguit één keer per week)
+function kapperTekst(t){ const w = S.week, i = w.tekst.findIndex(x => /^Bij de kapper: /.test(x)); if (i >= 0) w.tekst.splice(i, 1); w.tekst.push(t); }
+const eersteBezoek = () => { const nieuw = !S.week.kapper; S.week.kapper = true; return nieuw; };
 export function naarKapper(kapsel, haar){
   const sp = S.sp, u = mijnUiterlijk(); if (!kanKapper()) return;
   const verven = haar != null && haar !== u.haar, prijs = verven ? KAPPER.verven : KAPPER.knippen;
   if (sp.geld < prijs) return;
   if (kapsel && KAPSEL_KEUZE.some(([k]) => k === kapsel)) u.kapsel = kapsel;
   if (verven && HAAR[haar]) u.haar = haar;
-  sp.geld -= prijs; S.week.kapper = true;
+  sp.geld -= prijs; const eerste = eersteBezoek();
   const naam = (KAPSEL_KEUZE.find(([k]) => k === u.kapsel) || [, 'nieuw'])[1].toLowerCase(), product = (sp.sponsors || []).some(d => d.cat === 'verzorging');
   let t = `Bij de kapper: ${naam}${verven ? `, en je haar is nu ${HAAR_NAAM[u.haar].toLowerCase()}` : ''} (${geldTxt(prijs)}).`;
-  if (rnd() < (product ? .6 : .3)){ const n = Math.round(30 + social().volgers * .01); social().volgers += n; t += ` Je nieuwe look valt op: +${volgersTxt(n)} volgers.`; if (product){ mod('moraal', 2); t += ' Je sponsor deelt de foto.'; } }
-  S.week.tekst.push(t);
+  if (eerste && rnd() < (product ? .6 : .3)){ const n = Math.round(30 + social().volgers * .01); social().volgers += n; t += ` Je nieuwe look valt op: +${volgersTxt(n)} volgers.`; if (product){ mod('moraal', 2); t += ' Je sponsor deelt de foto.'; } }
+  kapperTekst(t);
 }
 
 // ---------- Gezichtshaar ----------
@@ -49,10 +52,10 @@ export function baardWeek(){
 export function naarKapperBaard(baard){
   const sp = S.sp, u = mijnUiterlijk(); if (!kanKapper() || !baardMag() || u.baard === baard || sp.geld < KAPPER.knippen) return;
   const keuze = BAARD_KEUZE.find(([b]) => b === baard); if (!keuze) return;
-  u.baard = baard; sp.geld -= KAPPER.knippen; S.week.kapper = true;
+  u.baard = baard; sp.geld -= KAPPER.knippen; const eerste = eersteBezoek();
   let t = baard === 'geen' ? `Bij de kapper: alles eraf, je bent weer gladgeschoren (${geldTxt(KAPPER.knippen)}).` : `Bij de kapper: je hebt nu ${baard === 'stoppels' ? 'stoppels' : baard === 'baard' ? 'een volle baard' : 'een ' + baard} (${geldTxt(KAPPER.knippen)}).`;
-  if (rnd() < .3){ const n = Math.round(30 + social().volgers * .01); social().volgers += n; t += ` Je nieuwe look valt op: +${volgersTxt(n)} volgers.`; }
-  S.week.tekst.push(t);
+  if (eerste && rnd() < .3){ const n = Math.round(30 + social().volgers * .01); social().volgers += n; t += ` Je nieuwe look valt op: +${volgersTxt(n)} volgers.`; }
+  kapperTekst(t);
 }
 
 // ---------- Voetbalschoenen: van een klein merk tot de wereldtop ----------

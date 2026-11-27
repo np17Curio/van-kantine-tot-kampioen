@@ -326,4 +326,55 @@ Object.assign(RUG, {
   vlecht: c => { RUG_KORT(c); for (const x of [16, 21, 26]) c.line(x, 3, 21, 15, 'H'); STRENG(c, 19, 15, 26); c.px(20, 25, 'j'); },
   knotjes: c => { RUG_KORT(c); KNOT(c, 10, 4, 4); KNOT(c, 32, 4, 4); },
 });
+/* ---------- nog meer kapsels: undercut, achterover, matje, flattop, twists en krullen met een fade ---------- */
+// (de zijkanten bij de slapen eerst als huid, dan het verloop erop: hetzelfde begin als de fade)
+const SLAPEN = c => { KAAL(c); c.rect(8, 7, 3, 5, 's'); c.rect(31, 7, 3, 5, 's'); FADE_NET(c, 8, 6, 10, 12); FADE_NET(c, 31, 6, 33, 12); };
+const ZIJ_SLAAP = c => { ZIJ_DAK(c, 's', 2, 4); ACHTERHOOFD(c, 's', 8, 15); };
+// twists: korte gedraaide plukjes kroeshaar die rechtop staan, elk met een licht puntje bovenaan en een donkere draai halverwege
+const TWISTS = (c, x0, x1, top, y1) => { for (let x = x0; x <= x1; x += 2){ const t = top(x); c.vline(x, t, y1 - t + 1, 'h'); c.px(x, t, 'j'); for (let y = t + 2; y <= y1; y += 3) c.px(x, y, 'H'); if (x + 1 <= x1 && c.is(x + 1, t + 2, 'sS')) c.px(x + 1, t + 2, 'H'); } };
+const BOLLEN = (c, lijst, r = 3) => { for (const [x, y] of lijst){ c.circ(x, y, r, 'h'); c.px(x - 1, y - 1, 'j'); c.px(x + 1, y + 1, 'H'); } };
+Object.assign(ACHTER, {
+  // undercut: lang haar bovenop dat opzij (naar rechts) is gekamd, de zijkanten kort opgeschoren
+  undercut: c => { SLAPEN(c); c.rect(10, 1, 22, 8, 'h'); c.rect(12, 0, 18, 1, 'h'); c.rect(31, 2, 3, 6, 'h'); c.px(34, 4, 'h');
+    for (const x of [12, 17, 22, 27]) c.line(x, 1, x + 5, 7, 'H'); c.line(13, 1, 22, 0, 'j'); c.hline(11, 9, 20, 'H'); },
+  // achterover: strak naar achteren gekamd, met kamstrepen en een glans bovenop; het voorhoofd blijft vrij
+  achterover: c => { c.rect(9, 3, 24, 6, 'h'); c.rect(11, 1, 20, 2, 'h'); c.rect(14, 0, 14, 1, 'h'); c.rect(8, 6, 2, 5, 'h'); c.rect(32, 6, 2, 5, 'h'); // (de haargrens hoog: een stuk voorhoofd vrij)
+    for (const x of [13, 17, 21, 25, 29]) c.vline(x, 1, 7, 'H'); c.rect(14, 2, 3, 1, 'j'); c.rect(22, 2, 3, 1, 'j'); },
+  // matje: kort bovenop, lang in de nek (van voren zie je het lange haar net achter de oren)
+  matje: c => { KORT(c); c.rect(6, 10, 4, 12, 'h'); c.rect(32, 10, 4, 12, 'h'); c.vline(7, 12, 10, 'H'); c.vline(34, 12, 10, 'H'); c.px(6, 22, 'h'); c.px(35, 22, 'h'); },
+  // flattop: een plat, hoog blok bovenop met een rechte bovenkant, de zijkanten in een verloop
+  flattop: c => { SLAPEN(c); c.rect(10, 0, 22, 9, 'h'); c.hline(10, 0, 22, 'j'); for (const x of [14, 19, 24, 29]) c.vline(x, 1, 7, 'H'); c.hline(11, 9, 20, 'H'); },
+  twists: c => { KAAL(c); c.rect(8, 8, 2, 4, 's'); c.rect(32, 8, 2, 4, 's'); TWISTS(c, 9, 32, x => Math.round(((x - 20.5) / 12) ** 2 * 5), 10); },
+  // krullen bovenop, een fade aan de zijkanten
+  krulfade: c => { SLAPEN(c); c.rect(10, 4, 22, 5, 'h'); BOLLEN(c, [[12, 5], [17, 3], [22, 2], [27, 3], [31, 6]]); c.hline(11, 9, 20, 'H'); },
+});
+Object.assign(VOOR, {
+  undercut: c => { c.line(13, 9, 31, 11, 'h', 2); c.line(14, 9, 31, 10, 'H'); },
+  achterover: () => {},
+  matje: RECHTE_PONY, flattop: RECHTE_PONY,
+  twists: c => { c.hline(10, 10, 22, 'h'); for (let x = 10; x < 32; x += 2) c.px(x, 11, 'H'); },
+  krulfade: c => { for (let x = 11; x < 31; x += 2) c.px(x, 10 + (x % 4 === 1 ? 1 : 0), 'h'); c.hline(11, 10, 20, 'h'); },
+});
+Object.assign(ZIJ_ACHTER, {
+  undercut: c => { ZIJ_SLAAP(c); ZIJ_DAK(c, 'h', 0, 3); for (let x = 9; x <= 17; x++) for (let y = 7; y <= 14; y++) if (c.is(x, y, 'h')) c.px(x, y, 's'); FADE_NET(c, 9, 7, 17, 14);
+    c.rect(28, 1, 5, 6, 'h'); for (const x of [16, 21, 26]) c.line(x - 4, 2, x + 2, 5, 'H'); c.line(14, 1, 26, 0, 'j'); },
+  achterover: c => { ZIJ_KORT(c); c.rect(12, 1, 18, 3, 'h'); for (const y of [3, 5, 7]) c.line(31, y - 1, 11, y + 3, 'H'); c.line(16, 1, 28, 1, 'j'); },
+  matje: c => { ZIJ_KORT(c); c.rect(7, 12, 10, 11, 'h'); PUNTEN(c, 7, 16, 23, -1); c.vline(9, 13, 10, 'H'); c.vline(13, 14, 9, 'H'); },
+  flattop: c => { ZIJ_SLAAP(c); c.rect(12, 0, 20, 8, 'h'); c.hline(12, 0, 20, 'j'); FADE_NET(c, 9, 7, 16, 14); for (const x of [17, 23, 28]) c.vline(x, 1, 6, 'H'); },
+  twists: c => { ZIJ_DAK(c, 's', 2, 4); ACHTERHOOFD(c, 's', 8, 16); TWISTS(c, 9, 31, x => Math.round(1 + ((x - 20.5) / 11) ** 2 * 4), 10); ACHTERHOOFD(c, 'h', 9, 14); for (let y = 9; y <= 14; y += 2) c.px(11, y, 'H'); },
+  krulfade: c => { ZIJ_SLAAP(c); ZIJ_DAK(c, 'h', 2, 4); for (let x = 9; x <= 16; x++) for (let y = 7; y <= 10; y++) if (c.is(x, y, 'h')) c.px(x, y, 's'); FADE_NET(c, 9, 7, 16, 14);
+    BOLLEN(c, [[14, 3], [19, 1], [24, 1], [29, 3]], 2); },
+});
+Object.assign(ZIJ_VOOR, {
+  undercut: c => { ZIJ_RECHT(c); c.line(20, 9, 32, 10, 'h', 2); }, achterover: ZIJ_RECHT, matje: ZIJ_RECHT, flattop: ZIJ_RECHT,
+  twists: c => { c.hline(17, 10, 15, 'h'); for (let x = 18; x < 32; x += 2) c.px(x, 11, 'H'); }, krulfade: ZIJ_VOOR.krul,
+});
+Object.assign(RUG, {
+  undercut: c => { RUG.kaal(c); GESCHOREN(c, 9, 10, 32, 21); c.rect(9, 1, 24, 9, 'h'); c.rect(12, 0, 18, 1, 'h'); c.hline(9, 10, 24, 'H'); for (const x of [14, 20, 26]) c.line(x - 2, 1, x + 2, 8, 'H'); c.rect(14, 1, 4, 1, 'j'); },
+  achterover: c => { RUG_KORT(c); for (const x of [12, 16, 21, 26, 30]) c.vline(x, 3, 14, 'H'); c.rect(15, 3, 3, 1, 'j'); },
+  matje: c => { RUG_KORT(c); c.rect(9, 16, 24, 8, 'h'); for (let x = 9; x <= 32; x++) c.rect(x, 24, 1, [1, 2, 1, 0, 2][x % 5], 'h'); for (const x of [13, 18, 23, 28]) c.vline(x, 16, 8, 'H'); },
+  flattop: c => { RUG.kaal(c); c.rect(10, 0, 22, 6, 'h'); c.hline(10, 0, 22, 'j'); FADE_NET(c, 9, 6, 32, 15); },
+  twists: c => { RUG.kaal(c); TWISTS(c, 9, 32, x => Math.round(((x - 20.5) / 12) ** 2 * 5), 15); },
+  krulfade: c => { RUG.fade(c); BOLLEN(c, [[13, 3], [19, 2], [25, 2], [30, 4]]); },
+});
 export const haarRug = (c, k) => (RUG[B(k)] || RUG_VOL)(c);
