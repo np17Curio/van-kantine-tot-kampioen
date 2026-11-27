@@ -111,7 +111,7 @@ export function trainVoortgang(attr, f = 1){
 }
 // Hoe jonger, hoe sneller je groeit: tot 21 jaar het snelst, daarna steeds langzamer
 // Tijdens "seizoen simuleren" groei je trager dan als je elke week zelf kiest (SIM_GROEI)
-export const SIM_GROEI = .7;
+export const SIM_GROEI = .85;
 export const leeftijdGroei = () => { const l = S.sp.leeftijd; return (l <= 21 ? 1.5 : l <= 24 ? 1.12 : l <= 27 ? .75 : .5) * (tmp.simBezig ? SIM_GROEI : 1); }; // (ongeveer 25% sneller dan eerst: 1,2 · 0,9 · 0,6 · 0,4)
 export function trainKans(){ const sp = S.sp; return weekFactor() * leeftijdGroei() * clubGroei() * (clamp((sp.pot - ovr(sp)) / 20, .1, .7) + (sp.items.trainer ? .15 : 0) + pers('train') + rivaalPrikkel()); } // (weekFactor: per seizoen even snel, hoe lang het seizoen ook is)
 // Plafond per eigenschap: met jouw talent kun je een eigenschap niet eindeloos opkrikken

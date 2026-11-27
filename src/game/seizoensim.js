@@ -26,8 +26,8 @@ function weekKeuzes(){
   if (!w.gedaan){
     if (sp.blessure > 0) doeActiviteit('revalidatie');
     else if (sp.fit < 55) doeActiviteit('rust');
-    // zoals een gewone speler: meestal trainen (niet altijd je zwakste punt), soms rust, video of mentale training
-    else { const r = rnd(), l = TRAINBAAR.filter(x => sp.a[x] < plafond()).sort((a, b) => sp.a[a] - sp.a[b]).slice(0, 3), k = l.length ? l[Math.floor(rnd() * l.length)] : null;
+    // zoals een gewone speler: meestal trainen (je zwakste eigenschap die nog niet aan je plafond zit), soms rust, video of mentale training
+    else { const r = rnd(), k = TRAINBAAR.filter(x => sp.a[x] < plafond()).sort((a, b) => sp.a[a] - sp.a[b])[0] || null;
       if (r < .6 && k) doeActiviteit('train', k); else if (r < .75) doeActiviteit('video'); else if (r < .85) doeActiviteit('mentaal'); else doeActiviteit('rust'); }
   }
 }
